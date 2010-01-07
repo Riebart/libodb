@@ -3,8 +3,10 @@
 #include <stdio.h>
 
 #include "datastore.hpp"
+//#include "datanode.hpp"
 
-#define TEST_SIZE 200000000
+#define TEST_SIZE 10000000
+
 
 void usage()
 {
@@ -21,21 +23,25 @@ int main (int argc, char ** argv)
     uint64_t element_size;
     uint64_t test_size;
     
-    sscanf(argv[0], "%lu", &element_size);
-    sscanf(argv[1], "%lu", &test_size);
+    sscanf(argv[1], "%lu", &element_size);
+    sscanf(argv[2], "%lu", &test_size);
     
+    printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
+    
+    Datastore ds;
     
     struct timeb* start = (struct timeb*)malloc(sizeof(struct timeb));
     struct timeb* end = (struct timeb*)malloc(sizeof(struct timeb));
     
     ftime(start);
     
-    Datastore < struct item<element_size> > my_datastore;
-    
-    uint64_t i;
+    int i;
     for ( i=0; i<test_size; i++)
     {
-        my_datastore.add_element((void *)(&i));
+        void * mem = malloc(element_size);
+//         my_cont.push_front(i);
+//         my_cont.insert(i);
+        ds.add_element(mem);
     }
     
     ftime(end);

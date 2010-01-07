@@ -27,12 +27,16 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)
 
-# Add executable called "helloDemo" that is built from the source files
-# "demo.cxx" and "demo_b.cxx".  The extensions are automatically found.
-#add_executable (helloDemo demo.cxx demo_b.cxx)
-add_executable (test test.cpp)
-
 # Link the executable to the Hello library.
 #target_link_libraries (helloDemo Hello)
 
 #target_link_libraries(pthread state c profiler)
+
+#link_directories(/usr/local/lib)
+target_link_libraries(tcmalloc_minimal)
+
+
+# Add executable called "helloDemo" that is built from the source files
+# "demo.cxx" and "demo_b.cxx".  The extensions are automatically found.
+#add_executable (helloDemo demo.cxx demo_b.cxx)
+add_executable (test test.cpp)
