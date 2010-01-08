@@ -5,30 +5,49 @@
 #include <vector>
 #include <stdint.h>
 
+
+struct datanode
+{
+    struct datanode * next;
+    char data;
+};
+
 class Datastore
 {
     public:
-        Datastore () { };
-        Datastore (uint32_t);
-        void add_element(void *);
-        void del_element(void *);
+        Datastore () { bottom = NULL; };
+        void inline add_element(struct datanode *);
+        bool del_element(uint32_t index);
         void * element_at(uint32_t index);
-        uint32_t get_datasize() { return datasize; };
     private:
-        uint32_t datasize;
-        std::vector<void*> store;
+        struct datanode * bottom;
+        std::vector<bool> deleted_list;
 };
 
-Datastore::Datastore(uint32_t dt)
+void inline Datastore::add_element(struct datanode * new_element)
 {
-    datasize=dt;
+    if (bottom != NULL)
+    {
+        new_element->next=bottom;
+    }
+    bottom=new_element;
+    deleted_list.push_back(0);
 }
 
-void Datastore::add_element(void * new_element)
+// returns false if index is out of range, or if element was already
+// marked as deleted
+bool Datastore::del_element(uint32_t index)
 {
-    store.push_back(new_element);
+    
+    if (deleted_list.size() > index)
+    {
+        bool ret=deleted_list[index];
+        deleted_list[index]=1;
+        return ret;
+    }
+    else
+        return 0;
+        
 }
-
-
 
 #endif

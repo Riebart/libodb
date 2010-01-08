@@ -23,6 +23,9 @@ int main (int argc, char ** argv)
     uint64_t element_size;
     uint64_t test_size;
     
+    struct timeb start;
+    struct timeb end;
+    
     sscanf(argv[1], "%lu", &element_size);
     sscanf(argv[2], "%lu", &test_size);
     
@@ -30,23 +33,20 @@ int main (int argc, char ** argv)
     
     Datastore ds;
     
-    struct timeb* start = (struct timeb*)malloc(sizeof(struct timeb));
-    struct timeb* end = (struct timeb*)malloc(sizeof(struct timeb));
-    
-    ftime(start);
-    
+    ftime(&start);
+    element_size+=8;
     int i;
     for ( i=0; i<test_size; i++)
     {
         void * mem = malloc(element_size);
 //         my_cont.push_front(i);
 //         my_cont.insert(i);
-        ds.add_element(mem);
+        ds.add_element((struct datanode *)mem);
     }
     
-    ftime(end);
+    ftime(&end);
     
-    double duration = (end->time - start->time) + 0.001 * (end->millitm - start->millitm);
+    double duration = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
     
     printf("Elapsed time: %fs\n", duration);
     
