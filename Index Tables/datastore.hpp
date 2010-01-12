@@ -14,14 +14,14 @@ struct datanode
 
 class Datastore
 {
-    public:
-        Datastore () { bottom = NULL; };
-        void inline add_element(struct datanode *);
-        bool del_element(uint32_t index);
-        void * element_at(uint32_t index);
-    private:
-        struct datanode * bottom;
-        std::vector<bool> deleted_list;
+public:
+    Datastore () { bottom = NULL; };
+    void inline add_element(struct datanode *);
+    bool del_element(uint32_t index);
+    void * element_at(uint32_t index);
+private:
+    struct datanode * bottom;
+    std::vector<bool> deleted_list;
 };
 
 void inline Datastore::add_element(struct datanode * new_element)
@@ -38,7 +38,7 @@ void inline Datastore::add_element(struct datanode * new_element)
 // marked as deleted
 bool Datastore::del_element(uint32_t index)
 {
-    
+
     if (deleted_list.size() > index)
     {
         bool ret=deleted_list[index];
@@ -47,7 +47,7 @@ bool Datastore::del_element(uint32_t index)
     }
     else
         return 0;
-        
+
 }
 
 #endif

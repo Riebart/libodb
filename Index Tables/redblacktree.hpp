@@ -10,24 +10,24 @@ using namespace std;
 
 class RedBlackTree_c : public Index
 {
-    public:
-	RedBlackTree_c(int (*)(void*, void*), void* (*)(void*, void*), bool);
-	virtual void Add(void*);
-	virtual void Print(int);
-    
-    private:
-	struct node
-	{
-	    struct node* next;
-	    void* data;
-	};
-	
-	struct node* first;
-	int (*Compare)(void*, void*);
-	void* (*Merge)(void*, void*);
-	uint64_t count;
-	bool dropDuplicates;
-	multiset<void*> mset;
+public:
+    RedBlackTree_c(int (*)(void*, void*), void* (*)(void*, void*), bool);
+    virtual void Add(void*);
+    virtual void Print(int);
+
+private:
+    struct node
+    {
+        struct node* next;
+        void* data;
+    };
+
+    struct node* first;
+    int (*Compare)(void*, void*);
+    void* (*Merge)(void*, void*);
+    uint64_t count;
+    bool dropDuplicates;
+    multiset<void*> mset;
 };
 
 RedBlackTree_c::RedBlackTree_c(int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool no)

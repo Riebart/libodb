@@ -34,8 +34,8 @@ int main (int argc, char ** argv)
     Datastore ds;
     
     ftime(&start);
-    element_size+=8;
-    int i;
+    element_size+=sizeof(void*);
+    uint i;
     for ( i=0; i<test_size; i++)
     {
         void * mem = malloc(element_size);
