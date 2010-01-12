@@ -50,13 +50,13 @@ int main (int argc, char ** argv)
     for (long i = 0 ; i < 20000000 ; i++)
     {
 	//d = (long*)malloc(sizeof(long));
-	v = (i + ((rand() % (2 * p + 1)) - p));
-	//v = rand();
+	//v = (i + ((rand() % (2 * p + 1)) - p));
+	v = rand();
 	//memcpy(d, &v, sizeof(int));
  	//LT.Add(d);
 	//LTM.Add(d);
 	dn = odb.AddData(&v);
-	odb.AddToIndex(dn, lt);
+	//odb.AddToIndex(dn, lt);
 	//odb.AddToIndex(dn, ltm);
 	odb.AddToIndex(dn, rbt);
 	

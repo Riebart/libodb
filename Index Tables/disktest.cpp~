@@ -8,9 +8,6 @@
 
 #include <iostream>
 #include <list>
-
-#include "odb.hpp"
-
 using namespace std;
 
 // Flags are 45 bytes in: first bit indicates query (0) or response (1).

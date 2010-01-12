@@ -1,7 +1,7 @@
 #ifndef ODB_HPP
 #define ODB_HPP
 
-#define BANK
+#define DATASTORE
 
 #include <vector>
 #include <deque>
