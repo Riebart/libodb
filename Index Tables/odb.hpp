@@ -8,7 +8,7 @@
 #include <vector>
 #include <deque>
 
-#include "datastore.hpp"
+#include "../datastore.hpp"
 #include "index.hpp"
 #include "bank.hpp"
 #include "bank.h"

@@ -8,22 +8,22 @@ using namespace std;
 
 class Bank
 {
-    public:
-        Bank();
-        Bank(unsigned int, unsigned long);
-        void* Add(void*);
-        void* Get(unsigned long);
-        void RemoveAt(unsigned long);
-        
-    private:
-        char **data;
-        unsigned long posA, posB;
-        unsigned long data_count;
-        unsigned long list_size;
-        unsigned long cap;
-        unsigned long cap_size;
-        unsigned int data_size;
-        stack<void*> deleted;
+public:
+    Bank();
+    Bank(unsigned int, unsigned long);
+    void* Add(void*);
+    void* Get(unsigned long);
+    void RemoveAt(unsigned long);
+
+private:
+    char **data;
+    unsigned long posA, posB;
+    unsigned long data_count;
+    unsigned long list_size;
+    unsigned long cap;
+    unsigned long cap_size;
+    unsigned int data_size;
+    stack<void*> deleted;
 };
 
 Bank::Bank()
@@ -46,7 +46,7 @@ Bank::Bank(unsigned int data_size, unsigned long cap)
 inline void* Bank::Add(void* data_in)
 {
     void* ret;
-    
+
     if (deleted.empty())
     {
         ret = *(data + posA) + posB;
@@ -74,7 +74,7 @@ inline void* Bank::Add(void* data_in)
     {
         ret = deleted.top();
         deleted.pop();
-        
+
         memcpy(ret, data_in, data_size);
     }
 
@@ -103,7 +103,7 @@ void Bank::RemoveAt(unsigned long index)
 //             posA -= sizeof(char*);
 //             posB = 0;
 //         }
-// 
+//
 //         *(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size) = *(*(data + posA) + posB);
 //         data_count--;
 //     }
