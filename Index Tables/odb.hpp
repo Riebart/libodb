@@ -11,6 +11,7 @@
 #include "datastore.hpp"
 #include "index.hpp"
 #include "bank.hpp"
+#include "bank.h"
 
 using namespace std;
 
@@ -32,7 +33,7 @@ public:
 #ifdef BANK
     void* AddData(void*);
     void AddToIndex(void*, int);
-    struct odb_bank *bank;
+    Bank bank;
 #endif
 
 #ifdef DEQUE
@@ -54,7 +55,7 @@ ODB::ODB(int datalen)
     this->datalen = datalen;
 
 #ifdef BANK
-    bank = odb_bank_init(datalen, 100000);
+    bank = *(new Bank(datalen, 100000));
 #endif
 }
 
@@ -109,7 +110,7 @@ inline void ODB::AddToIndex(struct datanode* d, int i)
 #ifdef BANK
 inline void* ODB::AddData(void* rawdata)
 {
-    return odb_bank_add(bank, (char*)rawdata);
+    return bank.Add(rawdata);
 }
 
 inline void ODB::AddToIndex(void* p, int i)
