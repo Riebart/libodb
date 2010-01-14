@@ -1,5 +1,5 @@
 #!/bin/bash
-g++ -O2 -o $1 -DBANK -ltcmalloc $2
+g++ -O2 -o $1 -DBANK -ltcmalloc_minimal $2
 
 for (( j=1 ; j<=$4 ; j++ ))
 do
@@ -7,7 +7,7 @@ do
     . bench.sh $1 $3
 done
 
-g++ -O2 -o $1 -DDATASTORE -ltcmalloc $2
+g++ -O2 -o $1 -DDATASTORE -ltcmalloc_minimal $2
 
 for (( j=1 ; j<=$4 ; j++ ))
 do
@@ -15,7 +15,7 @@ do
     . bench.sh $1 $3
 done
 
-g++ -O2 -o $1 -DDEQUE -ltcmalloc $2
+g++ -O2 -o $1 -DDEQUE -ltcmalloc_minimal $2
 
 for (( j=1 ; j<=$4 ; j++))
 do
