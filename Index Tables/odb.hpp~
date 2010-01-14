@@ -1,7 +1,9 @@
 #ifndef ODB_HPP
 #define ODB_HPP
 
-#define DATASTORE
+//#define BANK
+//#define DATASTORE
+//#define DEQUE
 
 #include <vector>
 #include <deque>
@@ -14,46 +16,46 @@ using namespace std;
 
 class ODB
 {
-    public:
-	typedef enum itype { HashTable, LinkedList, RedBlackTree, BTree } IndexType;
-	typedef enum iflags { DropDuplicates = 1 } IndexOps;
-	
-	ODB(int);
-	int CreateIndex(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*));
-	int CreateIndex(IndexType, int flags, int (*)(void*, void*));
-	
-	#ifdef DATASTORE
-	struct datanode* AddData(void*);
-	void AddToIndex(struct datanode*, int);
-	#endif
-	
-	#ifdef BANK
-	unsigned long AddData(void*);
-	void AddToIndex(unsigned long, int);
-	struct odb_bank *bank;
-	#endif
-	
-	#ifdef DEQUE
-	unsigned long AddData(void*);
-	void AddToIndex(unsigned long, int);
-	#endif
-	
-	void Print(int n, int i);
-    
-    private:
-	uint32_t datalen;
-	vector<Index*> tables;
-	Datastore data;
-	deque<void*> deq;
+public:
+    typedef enum itype { HashTable, LinkedList, RedBlackTree, BTree } IndexType;
+    typedef enum iflags { DropDuplicates = 1 } IndexOps;
+
+    ODB(int);
+    int CreateIndex(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*));
+    int CreateIndex(IndexType, int flags, int (*)(void*, void*));
+
+#ifdef DATASTORE
+    struct datanode* AddData(void*);
+    void AddToIndex(struct datanode*, int);
+#endif
+
+#ifdef BANK
+    unsigned long AddData(void*);
+    void AddToIndex(unsigned long, int);
+    struct odb_bank *bank;
+#endif
+
+#ifdef DEQUE
+    unsigned long AddData(void*);
+    void AddToIndex(unsigned long, int);
+#endif
+
+    void Print(int n, int i);
+
+private:
+    uint32_t datalen;
+    vector<Index*> tables;
+    Datastore data;
+    deque<void*> deq;
 };
 
 ODB::ODB(int datalen)
 {
     this->datalen = datalen;
-    
-    #ifdef BANK
+
+#ifdef BANK
     bank = odb_bank_init(datalen, 100000);
-    #endif
+#endif
 }
 
 int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*))
@@ -64,23 +66,28 @@ int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*))
 int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*), void* (*Merge)(void*, void*))
 {
     bool dropDuplicates = flags & DropDuplicates;
-    
-    switch(type)
+
+    switch (type)
     {
-	case LinkedList:
-	{
-	    tables.push_back(new LinkedList_c(Compare, Merge, dropDuplicates));
-	    break;
-	}
-	case RedBlackTree:
-	{
-	    tables.push_back(new RedBlackTree_c(Compare, Merge, dropDuplicates));
-	    break;
-	}
-	default:
-	    printf("!");
+    case LinkedList:
+    {
+        tables.push_back(new LinkedList_c(Compare, Merge, dropDuplicates));
+        break;
     }
-    
+    case RedBlackTree:
+    {
+        tables.push_back(new RedBlackTree_c(Compare, Merge, dropDuplicates));
+        break;
+    }
+//     case SkipList:
+//     {
+//         tables.push_back(new SkipList_c(Compare, Merge, dropDuplicates));
+//         break;
+//     }
+    default:
+        printf("!");
+    }
+
     return tables.size() - 1;
 }
 

@@ -3,9 +3,9 @@
 
 class Index
 {
-    public:
-	virtual void Add(void*) { };
-	virtual void Print(int) { };
+public:
+    virtual void Add(void*) { };
+    virtual void Print(int) { };
 };
 
 #include "linkedlist.hpp"
