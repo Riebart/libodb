@@ -8,29 +8,29 @@ using namespace std;
 
 class Bank
 {
-public:
-    Bank();
-    Bank(unsigned int, unsigned long);
-    void* Add(void*);
-    void* Get(unsigned long);
-    void RemoveAt(unsigned long);
-
-private:
-    char **data;
-    unsigned long posA, posB;
-    unsigned long data_count;
-    unsigned long list_size;
-    unsigned long cap;
-    unsigned long cap_size;
-    unsigned int data_size;
-    stack<void*> deleted;
+    public:
+        Bank();
+        Bank(unsigned long, unsigned long);
+        void* Add(void*);
+        void* Get(unsigned long);
+        void RemoveAt(unsigned long);
+        
+    private:
+        char **data;
+        unsigned long posA, posB;
+        unsigned long data_count;
+        unsigned long list_size;
+        unsigned long cap;
+        unsigned long cap_size;
+        unsigned long data_size;
+        stack<void*> deleted;
 };
 
 Bank::Bank()
 {
 }
 
-Bank::Bank(unsigned int data_size, unsigned long cap)
+Bank::Bank(unsigned long data_size, unsigned long cap)
 {
     data = (char**)malloc(sizeof(char*));
     *(data) = (char*)malloc(cap * data_size);
@@ -38,15 +38,15 @@ Bank::Bank(unsigned int data_size, unsigned long cap)
     posB = 0;
     data_count = 0;
     list_size = sizeof(char*);
-    cap = cap;
+    this->cap = cap;
     cap_size = cap * data_size;
-    data_size = data_size;
+    this->data_size = data_size;
 }
 
 inline void* Bank::Add(void* data_in)
 {
     void* ret;
-
+    
     if (deleted.empty())
     {
         ret = *(data + posA) + posB;
@@ -74,7 +74,7 @@ inline void* Bank::Add(void* data_in)
     {
         ret = deleted.top();
         deleted.pop();
-
+        
         memcpy(ret, data_in, data_size);
     }
 
@@ -92,21 +92,6 @@ inline void* Bank::Get(unsigned long index)
 void Bank::RemoveAt(unsigned long index)
 {
     deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
-//     data_count--;
-//     if (data_count > 0)
-//     {
-//         if (posB > 0)
-//             posB -= data_size;
-//         else
-//         {
-//             free(data[posA]);
-//             posA -= sizeof(char*);
-//             posB = 0;
-//         }
-//
-//         *(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size) = *(*(data + posA) + posB);
-//         data_count--;
-//     }
 }
 
 #endif

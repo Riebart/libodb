@@ -54,15 +54,7 @@ int main (int argc, char ** argv)
         //memcpy(d, &v, sizeof(int));
         //LT.Add(d);
         //LTM.Add(d);
-
-//         if (i == 23771)
-//         {
-//             printf("!");
-//             getchar();
-//         }
-//         else
-//             printf("%ld\n", v);
-
+        
         dn = odb.AddData(&v);
         odb.AddToIndex(dn, lt);
         odb.AddToIndex(dn, ltm);

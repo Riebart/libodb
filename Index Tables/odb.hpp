@@ -134,9 +134,4 @@ inline void ODB::AddToIndex(unsigned long p, int i)
 }
 #endif
 
-void ODB::Print(int i, int n)
-{
-    tables[i]->Print(n);
-}
-
 #endif
