@@ -18,7 +18,7 @@ using namespace std;
 class ODB
 {
 public:
-    typedef enum itype { HashTable, LinkedList, RedBlackTree, BTree } IndexType;
+    typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
     typedef enum iflags { DropDuplicates = 1 } IndexOps;
 
     ODB(int);
@@ -41,7 +41,9 @@ public:
     void AddToIndex(unsigned long, int);
 #endif
 
-    void Print(int n, int i);
+    unsigned long Size(int);
+    unsigned long MemSize(int);
+    unsigned long MemSize();
 
 private:
     uint32_t datalen;
@@ -80,11 +82,6 @@ int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*), vo
         tables.push_back(new RedBlackTree_c(Compare, Merge, dropDuplicates));
         break;
     }
-//     case SkipList:
-//     {
-//         tables.push_back(new SkipList_c(Compare, Merge, dropDuplicates));
-//         break;
-//     }
     default:
         printf("!");
     }
@@ -133,5 +130,26 @@ inline void ODB::AddToIndex(unsigned long p, int i)
     tables[i]->Add(deq[p]);
 }
 #endif
+
+unsigned long ODB::Size(int n)
+{
+    return tables[n]->Size();
+}
+
+unsigned long ODB::MemSize(int n)
+{
+    return tables[n]->MemSize();
+}
+
+unsigned long ODB::MemSize()
+{
+#ifdef BANK
+    return bank.MemSize() + sizeof(*this) + sizeof(tables) + tables.capacity() * sizeof(Index*);
+#endif
+
+#ifndef BANK
+    return -1;
+#endif
+}
 
 #endif

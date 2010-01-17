@@ -8,22 +8,23 @@ using namespace std;
 
 class Bank
 {
-    public:
-        Bank();
-        Bank(unsigned long, unsigned long);
-        void* Add(void*);
-        void* Get(unsigned long);
-        void RemoveAt(unsigned long);
-        
-    private:
-        char **data;
-        unsigned long posA, posB;
-        unsigned long data_count;
-        unsigned long list_size;
-        unsigned long cap;
-        unsigned long cap_size;
-        unsigned long data_size;
-        stack<void*> deleted;
+public:
+    Bank();
+    Bank(unsigned long, unsigned long);
+    void* Add(void*);
+    void* Get(unsigned long);
+    void RemoveAt(unsigned long);
+    unsigned long MemSize();
+
+private:
+    char **data;
+    unsigned long posA, posB;
+    unsigned long data_count;
+    unsigned long list_size;
+    unsigned long cap;
+    unsigned long cap_size;
+    unsigned long data_size;
+    stack<void*> deleted;
 };
 
 Bank::Bank()
@@ -46,7 +47,7 @@ Bank::Bank(unsigned long data_size, unsigned long cap)
 inline void* Bank::Add(void* data_in)
 {
     void* ret;
-    
+
     if (deleted.empty())
     {
         ret = *(data + posA) + posB;
@@ -74,7 +75,7 @@ inline void* Bank::Add(void* data_in)
     {
         ret = deleted.top();
         deleted.pop();
-        
+
         memcpy(ret, data_in, data_size);
     }
 
@@ -92,6 +93,11 @@ inline void* Bank::Get(unsigned long index)
 void Bank::RemoveAt(unsigned long index)
 {
     deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
+}
+
+unsigned long Bank::MemSize()
+{
+    return sizeof(*this) + list_size + (posA + sizeof(char*)) * cap_size / sizeof(char*);
 }
 
 #endif

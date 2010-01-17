@@ -5,11 +5,13 @@ class Index
 {
 public:
     virtual void Add(void*) { };
-    virtual void Print(int) { };
+    virtual unsigned long Size() { };
+    virtual unsigned long MemSize() { };
 };
 
 #include "linkedlist.hpp"
 #include "redblacktree.hpp"
-#include "skiplist.hpp"
+//#include "skiplist.hpp"
+//#include "trie.hpp"
 
 #endif

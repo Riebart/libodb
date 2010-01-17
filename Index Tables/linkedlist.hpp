@@ -7,15 +7,6 @@
 
 class LinkedList_c : public Index
 {
-public:
-    LinkedList_c(int (*)(void*, void*), void* (*)(void*, void*), bool);
-    virtual void Add(void*);
-    bool Delete(void*);
-    bool Delete(int);
-    int Prune(int (*)(void*));
-    uint64_t Size();
-    virtual void Print(int);
-
 private:
     struct node
     {
@@ -26,188 +17,382 @@ private:
     struct node* first;
     int (*Compare)(void*, void*);
     void* (*Merge)(void*, void*);
-    uint64_t count;
+    unsigned long count;
     bool dropDuplicates;
-};
 
-LinkedList_c::LinkedList_c(int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool dropDuplicates)
-{
-    first = NULL;
-    this->Compare = Compare;
-    this->Merge = Merge;
-    this->dropDuplicates = dropDuplicates;
-    count = 0;
-}
-
-void LinkedList_c::Add(void* data)
-{
-    if (first == NULL)
+public:
+    LinkedList_c(int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool dropDuplicates)
     {
-        first = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
-        first->next = NULL;
-        first->data = data;
-        count = 1;
+        first = NULL;
+        this->Compare = Compare;
+        this->Merge = Merge;
+        this->dropDuplicates = dropDuplicates;
+        count = 0;
     }
-    else
+
+    void Add(void* data)
     {
-        int comp = Compare(data, first->data);
-
-        if (comp <= 0)
+        if (first == NULL)
         {
-            if (comp == 0)
-            {
-                if (Merge != NULL)
-                    first->data = Merge(data, first->data);
-
-                if (dropDuplicates)
-                    return;
-            }
-
-            struct node* newNode = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
-            newNode->data = data;
-            newNode->next = first;
-            first = newNode;
+            first = (struct node*)malloc(sizeof(struct node));
+            first->next = NULL;
+            first->data = data;
+            count = 1;
         }
         else
         {
-            struct node* curr = first;
+            int comp = Compare(data, first->data);
 
-            if (first->next != NULL)
+            if (comp <= 0)
             {
-                comp = Compare(data, curr->next->data);
-
-                while ((curr->next->next != NULL) && (comp > 0))
-                {
-                    curr = curr->next;
-                    comp = Compare(data, curr->next->data);
-                }
-
-                if (comp > 0)
-                    curr = curr->next;
-
                 if (comp == 0)
                 {
                     if (Merge != NULL)
-                        curr->data = Merge(data, curr->data);
+                        first->data = Merge(data, first->data);
 
                     if (dropDuplicates)
                         return;
                 }
 
-                struct node* newNode = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
+                struct node* newNode = (struct node*)malloc(sizeof(struct node));
                 newNode->data = data;
+                newNode->next = first;
+                first = newNode;
+            }
+            else
+            {
+                struct node* curr = first;
 
-                if (curr->next == NULL)
+                if (first->next != NULL)
                 {
-                    curr->next = newNode;
-                    newNode->next = NULL;
+                    comp = Compare(data, curr->next->data);
+
+                    while ((curr->next->next != NULL) && (comp > 0))
+                    {
+                        curr = curr->next;
+                        comp = Compare(data, curr->next->data);
+                    }
+
+                    if (comp > 0)
+                        curr = curr->next;
+
+                    if (comp == 0)
+                    {
+                        if (Merge != NULL)
+                            curr->data = Merge(data, curr->data);
+
+                        if (dropDuplicates)
+                            return;
+                    }
+
+                    struct node* newNode = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
+                    newNode->data = data;
+
+                    if (curr->next == NULL)
+                    {
+                        curr->next = newNode;
+                        newNode->next = NULL;
+                    }
+                    else
+                    {
+                        newNode->next = curr->next;
+                        curr->next = newNode;
+                    }
                 }
-                else
+            }
+
+            count++;
+        }
+    }
+
+    bool Delete(void* data)
+    {
+        bool ret = false;
+
+        if (first != NULL)
+        {
+            if (Compare(first->data, data) == 0)
+            {
+                first = first->next;
+                ret = true;
+            }
+            else
+            {
+                struct node* curr = first;
+
+                while ((curr->next != NULL) && (Compare(data, curr->next->data) != 0))
+                    curr = curr->next;
+
+                if (curr->next != NULL)
                 {
-                    newNode->next = curr->next;
-                    curr->next = newNode;
+                    curr->next = curr->next->next;
+                    ret = true;
                 }
             }
         }
 
-        count++;
+        return ret;
     }
-}
 
-bool LinkedList_c::Delete(void* data)
-{
-    bool ret = false;
-
-    if (first != NULL)
+    bool Delete(int n)
     {
-        if (Compare(first->data, data) == 0)
+        bool ret = false;
+
+        if (n == 0)
         {
             first = first->next;
             ret = true;
         }
-        else
+        else if (n <= count)
         {
             struct node* curr = first;
+            int i = 0;
 
-            while ((curr->next != NULL) && (Compare(data, curr->next->data) != 0))
+            while (i < (n - 1))
                 curr = curr->next;
 
-            if (curr->next != NULL)
-            {
-                curr->next = curr->next->next;
-                ret = true;
-            }
+            curr->next = curr->next->next;
+            ret = true;
         }
+
+        return ret;
     }
 
-    return ret;
-}
-
-bool LinkedList_c::Delete(int n)
-{
-    bool ret = false;
-
-    if (n == 0)
-    {
-        first = first->next;
-        ret = true;
-    }
-    else if (n <= count)
+    int Prune(int (*Condition)(void*))
     {
         struct node* curr = first;
-        int i = 0;
+        int ret = 0;
 
-        while (i < (n - 1))
-            curr = curr->next;
-
-        curr->next = curr->next->next;
-        ret = true;
-    }
-
-    return ret;
-}
-
-int LinkedList_c::Prune(int (*Condition)(void*))
-{
-    struct node* curr = first;
-    int ret = 0;
-
-    while (Condition(first->data) > 0)
-    {
-        ret++;
-        first = first->next;
-    }
-
-    while (curr->next != NULL)
-    {
-        if (Condition(curr->next->data) > 0)
+        while (Condition(first->data) > 0)
         {
             ret++;
-            curr->next = curr->next->next;
+            first = first->next;
+        }
+
+        while (curr->next != NULL)
+        {
+            if (Condition(curr->next->data) > 0)
+            {
+                ret++;
+                curr->next = curr->next->next;
+            }
+            else
+                curr = curr->next;
+        }
+
+        return ret;
+    }
+
+    unsigned long Size()
+    {
+        return count;
+    }
+
+    unsigned long MemSize()
+    {
+        return sizeof(*this) + count * sizeof(struct node);
+    }
+};
+
+class KeyedLinkedList_c : public Index
+{
+private:
+    struct node
+    {
+        struct node* next;
+        void* data;
+        char key;
+    };
+
+    struct node* first;
+    int (*Compare)(void*, void*);
+    void* (*Merge)(void*, void*);
+    void (*Keygen)(void*, void*);
+    unsigned long count;
+    int keylen;
+    char* key;
+    bool dropDuplicates;
+
+public:
+    KeyedLinkedList_c(int keylen, void (*Keygen)(void*, void*), int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool dropDuplicates)
+    {
+        first = NULL;
+        this->keylen = keylen;
+        this->Compare = Compare;
+        this->Merge = Merge;
+        this->Keygen = Keygen;
+        this->dropDuplicates = dropDuplicates;
+        count = 0;
+        key = (char*)malloc(keylen);
+    }
+
+    void Add(void* data)
+    {
+        Keygen(data, key);
+
+        if (first == NULL)
+        {
+            first = (struct node*)malloc(sizeof(struct node*) + sizeof(void*) + keylen);
+            first->next = NULL;
+            first->data = data;
+            memcpy(&(first->key), key, keylen);
+            count = 1;
         }
         else
-            curr = curr->next;
+        {
+            int comp = Compare(key, &(first->key));
+
+            if (comp <= 0)
+            {
+                if (comp == 0)
+                {
+                    if (Merge != NULL)
+                        first->data = Merge(data, first->data);
+
+                    if (dropDuplicates)
+                        return;
+                }
+
+                struct node* newNode = (struct node*)malloc(sizeof(struct node*) + sizeof(void*) + keylen);
+                newNode->data = data;
+                newNode->next = first;
+                memcpy(&(newNode->key), key, keylen);
+                first = newNode;
+            }
+            else
+            {
+                struct node* curr = first;
+
+                if (first->next != NULL)
+                {
+                    comp = Compare(key, &(curr->next->key));
+
+                    while ((curr->next->next != NULL) && (comp > 0))
+                    {
+                        curr = curr->next;
+                        comp = Compare(key, &(curr->next->key));
+                    }
+
+                    if (comp > 0)
+                        curr = curr->next;
+
+                    if (comp == 0)
+                    {
+                        if (Merge != NULL)
+                            curr->data = Merge(data, curr->data);
+
+                        if (dropDuplicates)
+                            return;
+                    }
+
+                    struct node* newNode = (struct node*)malloc(sizeof(struct node*) + sizeof(void*) + keylen);
+                    newNode->data = data;
+                    memcpy(&(newNode->key), key, keylen);
+
+                    if (curr->next == NULL)
+                    {
+                        curr->next = newNode;
+                        newNode->next = NULL;
+                    }
+                    else
+                    {
+                        newNode->next = curr->next;
+                        curr->next = newNode;
+                    }
+                }
+            }
+
+            count++;
+        }
     }
 
-    return ret;
-}
-
-uint64_t LinkedList_c::Size()
-{
-    return count;
-}
-
-void LinkedList_c::Print(int n)
-{
-    struct node* curr = first;
-    int i = 0;
-
-    while ((i < n) && (curr != NULL))
+    bool Delete(void* key)
     {
-        printf("%ld\n", *(long*)(curr->data));
-        curr = curr->next;
-        i++;
+        bool ret = false;
+
+        if (first != NULL)
+        {
+            if (Compare(&(first->key), key) == 0)
+            {
+                first = first->next;
+                ret = true;
+            }
+            else
+            {
+                struct node* curr = first;
+
+                while ((curr->next != NULL) && (Compare(key, &(curr->next->key)) != 0))
+                    curr = curr->next;
+
+                if (curr->next != NULL)
+                {
+                    curr->next = curr->next->next;
+                    ret = true;
+                }
+            }
+        }
+
+        return ret;
     }
-}
+
+    bool Delete(int n)
+    {
+        bool ret = false;
+
+        if (n == 0)
+        {
+            first = first->next;
+            ret = true;
+        }
+        else if (n <= count)
+        {
+            struct node* curr = first;
+            int i = 0;
+
+            while (i < (n - 1))
+                curr = curr->next;
+
+            curr->next = curr->next->next;
+            ret = true;
+        }
+
+        if (ret)
+            count--;
+
+        return ret;
+    }
+
+    int Prune(int (*Condition)(void*))
+    {
+        struct node* curr = first;
+        int ret = 0;
+
+        while (Condition(&(first->key)) > 0)
+        {
+            ret++;
+            first = first->next;
+        }
+
+        while (curr->next != NULL)
+        {
+            if (Condition(&(curr->next->key)) > 0)
+            {
+                ret++;
+                curr->next = curr->next->next;
+            }
+            else
+                curr = curr->next;
+        }
+
+        count -= ret;
+        return ret;
+    }
+
+    unsigned long Size()
+    {
+        return count;
+    }
+};
+
 
 #endif
