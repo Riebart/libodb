@@ -11,10 +11,10 @@ class Bank
 public:
     Bank();
     Bank(unsigned long, unsigned long);
-    void* Add(void*);
-    void* Get(unsigned long);
-    void RemoveAt(unsigned long);
-    unsigned long MemSize();
+    void* add(void*);
+    void* get(unsigned long);
+    void remove_at(unsigned long);
+    unsigned long mem_size();
 
 private:
     char **data;
@@ -44,7 +44,7 @@ Bank::Bank(unsigned long data_size, unsigned long cap)
     this->data_size = data_size;
 }
 
-inline void* Bank::Add(void* data_in)
+inline void* Bank::add(void* data_in)
 {
     void* ret;
 
@@ -85,17 +85,17 @@ inline void* Bank::Add(void* data_in)
     //return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
 }
 
-inline void* Bank::Get(unsigned long index)
+inline void* Bank::get(unsigned long index)
 {
     return *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
 }
 
-void Bank::RemoveAt(unsigned long index)
+void Bank::remove_at(unsigned long index)
 {
     deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
 }
 
-unsigned long Bank::MemSize()
+unsigned long Bank::mem_size()
 {
     return sizeof(*this) + list_size + (posA + sizeof(char*)) * cap_size / sizeof(char*);
 }

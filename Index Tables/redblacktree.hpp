@@ -19,24 +19,24 @@ private:
     };
 
     struct node* first;
-    int (*Compare)(void*, void*);
-    void* (*Merge)(void*, void*);
+    int (*compare)(void*, void*);
+    void* (*merge)(void*, void*);
     uint64_t count;
-    bool dropDuplicates;
+    bool drop_duplicates;
     multiset<void*> mset;
 
 public:
-    RedBlackTree_c(int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool no)
+    RedBlackTree_c(int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
         count = 0;
     }
 
-    void Add(void* data)
+    void add(void* data)
     {
         mset.insert(data);
     }
 
-    unsigned long Size()
+    unsigned long size()
     {
         return mset.size();
     }
@@ -52,24 +52,24 @@ private:
     };
 
     struct node* first;
-    int (*Compare)(void*, void*);
-    void* (*Merge)(void*, void*);
+    int (*compare)(void*, void*);
+    void* (*merge)(void*, void*);
     uint64_t count;
-    bool dropDuplicates;
+    bool drop_duplicates;
     multimap<void*, void*> mmap;
 
 public:
-    KeyedRedBlackTree_c(int (*Compare)(void*, void*), void* (*Merge)(void*, void*), bool no)
+    KeyedRedBlackTree_c(int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
         count = 0;
     }
 
-    void Add(void* data)
+    void add(void* data)
     {
         //mmap.insert(data);
     }
 
-    unsigned long Size()
+    unsigned long size()
     {
         return mmap.size();
     }

@@ -11,7 +11,7 @@
 #include "../datastore.hpp"
 #include "index.hpp"
 #include "bank.hpp"
-#include "bank.h"
+// #include "bank.h"
 
 using namespace std;
 
@@ -19,31 +19,31 @@ class ODB
 {
 public:
     typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
-    typedef enum iflags { DropDuplicates = 1 } IndexOps;
+    typedef enum iflags { DROP_DUPLICATES = 1 } IndexOps;
 
     ODB(int);
-    int CreateIndex(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*));
-    int CreateIndex(IndexType, int flags, int (*)(void*, void*));
+    int create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*)=NULL);
+//     int create_index(IndexType, int flags, int (*)(void*, void*));
 
 #ifdef DATASTORE
-    struct datanode* AddData(void*);
-    void AddToIndex(struct datanode*, int);
+    struct datanode* add_data(void*);
+    void add_to_index(struct datanode*, int);
 #endif
 
 #ifdef BANK
-    void* AddData(void*);
-    void AddToIndex(void*, int);
+    void* add_data(void*);
+    void add_to_index(void*, int);
     Bank bank;
 #endif
 
 #ifdef DEQUE
-    unsigned long AddData(void*);
-    void AddToIndex(unsigned long, int);
+    uint64_t add_data(void*);
+    void add_to_index(uint64_t, int);
 #endif
 
-    unsigned long Size(int);
-    unsigned long MemSize(int);
-    unsigned long MemSize();
+    uint64_t size(int);
+    uint64_t mem_size(int);
+    uint64_t mem_size();
 
 private:
     uint32_t datalen;
@@ -61,25 +61,25 @@ ODB::ODB(int datalen)
 #endif
 }
 
-int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*))
-{
-    return CreateIndex(type, flags, Compare, NULL);
-}
+// int ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*))
+// {
+//     return create_index(type, flags, Compare, NULL);
+// }
 
-int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*), void* (*Merge)(void*, void*))
+int ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*))
 {
-    bool dropDuplicates = flags & DropDuplicates;
+    bool drop_duplicates = flags & DROP_DUPLICATES;
 
     switch (type)
     {
     case LinkedList:
     {
-        tables.push_back(new LinkedList_c(Compare, Merge, dropDuplicates));
+        tables.push_back(new LinkedList_c(compare, merge, drop_duplicates));
         break;
     }
     case RedBlackTree:
     {
-        tables.push_back(new RedBlackTree_c(Compare, Merge, dropDuplicates));
+        tables.push_back(new RedBlackTree_c(compare, merge, drop_duplicates));
         break;
     }
     default:
@@ -90,7 +90,7 @@ int ODB::CreateIndex(IndexType type, int flags, int (*Compare)(void*, void*), vo
 }
 
 #ifdef DATASTORE
-inline struct datanode* ODB::AddData(void* rawdata)
+inline struct datanode* ODB::add_data(void* rawdata)
 {
     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(datan->data), rawdata, datalen);
@@ -98,26 +98,26 @@ inline struct datanode* ODB::AddData(void* rawdata)
     return datan;
 }
 
-inline void ODB::AddToIndex(struct datanode* d, int i)
+inline void ODB::add_to_index(struct datanode* d, int i)
 {
-    tables[i]->Add(&(d->data));
+    tables[i]->add(&(d->data));
 }
 #endif
 
 #ifdef BANK
-inline void* ODB::AddData(void* rawdata)
+inline void* ODB::add_data(void* rawdata)
 {
-    return bank.Add(rawdata);
+    return bank.add(rawdata);
 }
 
-inline void ODB::AddToIndex(void* p, int i)
+inline void ODB::add_to_index(void* p, int i)
 {
-    tables[i]->Add(p);
+    tables[i]->add(p);
 }
 #endif
 
 #ifdef DEQUE
-inline unsigned long ODB::AddData(void* rawdata)
+inline unsigned long ODB::add_data(void* rawdata)
 {
     void* d2 = malloc(datalen);
     memcpy(d2, rawdata, datalen);
@@ -125,26 +125,26 @@ inline unsigned long ODB::AddData(void* rawdata)
     return (deq.size() - 1);
 }
 
-inline void ODB::AddToIndex(unsigned long p, int i)
+inline void ODB::add_to_index(unsigned long p, int i)
 {
-    tables[i]->Add(deq[p]);
+    tables[i]->add(deq[p]);
 }
 #endif
 
-unsigned long ODB::Size(int n)
+unsigned long ODB::size(int n)
 {
-    return tables[n]->Size();
+    return tables[n]->size();
 }
 
-unsigned long ODB::MemSize(int n)
+unsigned long ODB::mem_size(int n)
 {
-    return tables[n]->MemSize();
+    return tables[n]->mem_size();
 }
 
-unsigned long ODB::MemSize()
+unsigned long ODB::mem_size()
 {
 #ifdef BANK
-    return bank.MemSize() + sizeof(*this) + sizeof(tables) + tables.capacity() * sizeof(Index*);
+    return bank.mem_size() + sizeof(*this) + sizeof(tables) + tables.capacity() * sizeof(Index*);
 #endif
 
 #ifndef BANK

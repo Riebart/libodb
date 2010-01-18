@@ -11,12 +11,12 @@
 //#include "tcutil.h"
 //#include "tcmdb.h"
 
-int Compare(void* a, void* b)
+int compare(void* a, void* b)
 {
     return (*(int*)b - *(int*)a);
 }
 
-int CompareMod(void* a, void* b)
+int compare_mod(void* a, void* b)
 {
     return ((*(int*)a % 10) - (*(int*)b) % 10);
 }
@@ -29,16 +29,15 @@ int main (int argc, char ** argv)
     long* d;
     long p = 50;
     long v;
-
+#ifdef TC
     TCMDB *mdb;
-    #ifdef TC
     mdb = tcmdbnew();
-    #endif
+#endif
     
     ODB odb(sizeof(long));
-    int lt = odb.CreateIndex(ODB::LinkedList, 0, Compare);
-    int ltm = odb.CreateIndex(ODB::LinkedList, ODB::DropDuplicates, CompareMod);
-    int rbt = odb.CreateIndex(ODB::RedBlackTree, 0, Compare);
+    int lt = odb.create_index(ODB::LinkedList, 0, compare);
+    int ltm = odb.create_index(ODB::LinkedList, ODB::DROP_DUPLICATES, compare_mod);
+    int rbt = odb.create_index(ODB::RedBlackTree, 0, compare);
 
 #ifdef DATASTORE
     struct datanode* dn;
@@ -52,8 +51,8 @@ int main (int argc, char ** argv)
     unsigned long dn;
 #endif
 
-    //LinkedList_c LT(Compare, NULL, false);
-    //LinkedList_c LTM(CompareMod, NULL, true);
+    //LinkedList_c LT(comapre, NULL, false);
+    //LinkedList_c LTM(comapre_mod, NULL, true);
     
     char cha = '\0';
 
@@ -72,10 +71,10 @@ int main (int argc, char ** argv)
         #endif
 
         #ifndef TC
-        dn = odb.AddData(&v);
-        //odb.AddToIndex(dn, lt);
-        //odb.AddToIndex(dn, ltm);
-        odb.AddToIndex(dn, rbt);
+        dn = odb.add_data(&v);
+        //odb.add_to_index(dn, lt);
+        //odb.add_to_index(dn, ltm);
+        odb.add_to_index(dn, rbt);
         #endif
 
         //LL.Print(10);

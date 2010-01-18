@@ -4,9 +4,9 @@
 class Index
 {
 public:
-    virtual void Add(void*) { };
-    virtual unsigned long Size() { };
-    virtual unsigned long MemSize() { };
+    virtual void add(void*) { };
+    virtual unsigned long size() { };
+    virtual unsigned long mem_size() { };
 };
 
 #include "linkedlist.hpp"
