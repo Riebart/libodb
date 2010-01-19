@@ -25,7 +25,7 @@ private:
 public:
     LinkedList_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
     {
-//         this->ident = ident;
+        this->ident = ident;
         first = NULL;
         this->compare = compare;
         this->merge = merge;
@@ -137,8 +137,7 @@ public:
         return ret;
     }
 
-//TODO: Fix this or discard it
-    bool del(uint n)
+    bool del(uint64_t n)
     {
         bool ret = false;
 
@@ -150,10 +149,13 @@ public:
         else if (n <= count)
         {
             struct node* curr = first;
-            uint i = 0;
+            uint64_t i = 0;
 
             while (i < (n - 1))
+            {
                 curr = curr->next;
+                i++;
+            }
 
             curr->next = curr->next->next;
             ret = true;
@@ -213,7 +215,7 @@ private:
     bool drop_duplicates;
 
 public:
-    KeyedLinkedList_c(int ident, int keylen, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), bool drop_duplicates)
+    KeyedLinkedList_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int keylen, bool drop_duplicates)
     {
         this->ident = ident;
         first = NULL;
@@ -335,8 +337,7 @@ public:
         return ret;
     }
 
-//TODO: Fix or discard
-    bool del(uint n)
+    bool del(uint64_t n)
     {
         bool ret = false;
 
@@ -348,10 +349,13 @@ public:
         else if (n <= count)
         {
             struct node* curr = first;
-            uint i = 0;
+            uint64_t i = 0;
 
             while (i < (n - 1))
+            {
                 curr = curr->next;
+                i++;
+            }
 
             curr->next = curr->next->next;
             ret = true;

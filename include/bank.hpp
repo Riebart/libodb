@@ -16,6 +16,7 @@ public:
     void* get(uint64_t);
     void remove_at(uint64_t);
     uint64_t size();
+    void populate(Index*);
 
 private:
     char **data;
@@ -99,6 +100,10 @@ void Bank::remove_at(uint64_t index)
 uint64_t Bank::size()
 {
     return data_count;
+}
+
+void Bank::populate(Index* index)
+{
 }
 
 #endif

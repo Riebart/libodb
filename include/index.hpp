@@ -38,7 +38,7 @@ public:
     inline virtual void add_data(DataObj* data)
     {
         if (data->get_ident() == ident)
-            for (uint i = 0 ; i < indices.size() ; i++)
+            for (uint32_t i = 0 ; i < indices.size() ; i++)
                 indices[i]->add_data(data);
     }
     
@@ -61,7 +61,7 @@ public:
     }
     
     inline virtual void add_data_v(void*) { };
-    virtual uint64_t size() { return 0; };
+    virtual unsigned long size() { return 0; };
 };
 
 #include "linkedlist.hpp"

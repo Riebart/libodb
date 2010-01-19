@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cstdarg>
 
-#include "odb.hpp"
+#include "include/odb.hpp"
 
 //#include "ftlib.h"
 //#include "zlib.h"
@@ -26,7 +26,6 @@ int main (int argc, char ** argv)
     struct timeb start;
     struct timeb end;
     double time;
-//     long* d;
     long p = 50;
     long v;
 #ifdef TC
@@ -55,8 +54,6 @@ int main (int argc, char ** argv)
 
     //LinkedList_c LT(comapre, NULL, false);
     //LinkedList_c LTM(comapre_mod, NULL, true);
-    
-//     char cha = '\0';
 
     ftime(&start);
     for (long i = 0 ; i < 10000000 ; i++)
@@ -68,7 +65,7 @@ int main (int argc, char ** argv)
         
         //tcmdbputcat(mdb, &v, sizeof(long), &v, 0);
 
-        dn = odb.add_data(&v);
+        dn = odb.add_data(&v, false);
         all->add_data(dn);
         //ll->add_data(dn);
         //lt->add_data(dn);
