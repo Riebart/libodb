@@ -89,7 +89,7 @@ int main (int argc, char ** argv)
     //printf("%f : %lu", time, odb.MemSize(lt) + odb.MemSize(ltm) + odb.MemSize());
     printf("%f", time);
     //printf("\ndatabase is occupying %lu extra bytes of memory with %lu records\nAmortized %f bytes per entry", (tcmdbmsiz(mdb) - 0), tcmdbrnum(mdb), 1.0 * (tcmdbmsiz(mdb) - 525376) / tcmdbrnum(mdb));
-    //getchar();
+    getchar();
 
     return EXIT_SUCCESS;
 }

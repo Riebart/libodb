@@ -9,7 +9,7 @@ class SkipList_c : public Index
 {
 public:
     SkipList_c(int (*)(void*, void*), void* (*)(void*, void*), bool);
-    virtual void Add(void*);
+    virtual void add(void*);
 
 private:
 

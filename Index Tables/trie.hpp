@@ -9,7 +9,7 @@ class Trie_c : public Index
 {
 public:
     Trie_c(int keylen);
-    virtual void Add(void*, void*);
+    virtual void add(void*, void*);
 
 private:
     struct inode
