@@ -93,16 +93,14 @@ inline DataObj* ODB::add_data(void* rawdata)
     memcpy(&(datan->data), rawdata, datalen);
     data.add_element(datan);
     
-    DataObj* ret = (DataObj*)malloc(sizeof(DataObj));
-    ret->ident = ident;
-    ret->data = &(datan->data);
+    DataObj* ret = new DataObj(ident, &(datan->data));
     
     return ret;
 }
 
 inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 {
-    i->add_data(&(d->data));
+    i->add_data(d->get_data());
 }
 #endif
 

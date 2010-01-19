@@ -9,7 +9,7 @@
 
 void usage()
 {
-    printf("Usage: test <element size> <num elements>");
+    printf("Usage: test <element size> <num elements>\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -34,20 +34,20 @@ int main (int argc, char ** argv)
     
     ftime(&start);
     element_size+=8;
-    int i;
+    uint i;
     for ( i=0; i<test_size; i++)
     {
         void * mem = malloc(element_size);
 //         my_cont.push_front(i);
 //         my_cont.insert(i);
-        ds.add((struct datanode *)mem);
+        ds.add_element((struct datanode *)mem);
     }
     
     ftime(&end);
     
     double duration = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
     
-    printf("Elapsed time: %fs\n", duration);
+    printf("Elapsed time: %fs\n\nPress Enter to continue\n", duration);
     
     fgetc(stdin);
     

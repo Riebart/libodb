@@ -26,7 +26,7 @@ int main (int argc, char ** argv)
     struct timeb start;
     struct timeb end;
     double time;
-    long* d;
+//     long* d;
     long p = 50;
     long v;
 #ifdef TC
@@ -56,7 +56,7 @@ int main (int argc, char ** argv)
     //LinkedList_c LT(comapre, NULL, false);
     //LinkedList_c LTM(comapre_mod, NULL, true);
     
-    char cha = '\0';
+//     char cha = '\0';
 
     ftime(&start);
     for (long i = 0 ; i < 10000000 ; i++)

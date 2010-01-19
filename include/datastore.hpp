@@ -25,8 +25,6 @@ class Datastore
 };
 
 
-#ifdef DATASTORE
-
 void inline Datastore::add_element(struct datanode * new_element)
 {
     if (bottom != NULL)
@@ -52,8 +50,5 @@ bool Datastore::del_element(uint32_t index)
         return 0;
         
 }
-
-#endif
-
 
 #endif
