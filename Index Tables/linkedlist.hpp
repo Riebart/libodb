@@ -19,12 +19,13 @@ private:
     struct node* first;
     int (*compare)(void*, void*);
     void* (*merge)(void*, void*);
-    unsigned long count;
+    uint64_t count;
     bool drop_duplicates;
 
 public:
-    LinkedList_c(int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+    LinkedList_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
     {
+        this->ident = ident;
         first = NULL;
         this->compare = compare;
         this->merge = merge;
@@ -32,7 +33,7 @@ public:
         count = 0;
     }
 
-    void add(void* data)
+    inline virtual void add_data_v(void* data)
     {
         if (first == NULL)
         {
@@ -185,14 +186,9 @@ public:
         return ret;
     }
 
-    unsigned long size()
+    uint64_t size()
     {
         return count;
-    }
-
-    unsigned long mem_size()
-    {
-        return sizeof(*this) + count * sizeof(struct node);
     }
 };
 
@@ -210,14 +206,15 @@ private:
     int (*compare)(void*, void*);
     void* (*merge)(void*, void*);
     void (*keygen)(void*, void*);
-    unsigned long count;
+    uint64_t count;
     int keylen;
     char* key;
     bool drop_duplicates;
 
 public:
-    KeyedLinkedList_c(int keylen, void (*keygen)(void*, void*), int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+    KeyedLinkedList_c(int ident, int keylen, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), bool drop_duplicates)
     {
+        this->ident = ident;
         first = NULL;
         this->keylen = keylen;
         this->compare = compare;
@@ -228,7 +225,7 @@ public:
         key = (char*)malloc(keylen);
     }
 
-    void add(void* data)
+    inline virtual void add_data_v(void* data)
     {
         keygen(data, key);
 
@@ -390,7 +387,7 @@ public:
         return ret;
     }
 
-    unsigned long size()
+    uint64_t size()
     {
         return count;
     }

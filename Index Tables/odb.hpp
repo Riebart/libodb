@@ -1,17 +1,11 @@
 #ifndef ODB_HPP
 #define ODB_HPP
 
-//#define BANK
-//#define DATASTORE
-//#define DEQUE
-
 #include <vector>
-#include <deque>
 
 #include "../datastore.hpp"
 #include "index.hpp"
 #include "bank.hpp"
-// #include "bank.h"
 
 using namespace std;
 
@@ -21,135 +15,108 @@ public:
     typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
     typedef enum iflags { DROP_DUPLICATES = 1 } IndexOps;
 
-    ODB(int);
-    int create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*)=NULL);
-//     int create_index(IndexType, int flags, int (*)(void*, void*));
+    ODB(uint32_t, uint32_t = 100000);
+    Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void* (*)(void*) = NULL);
+    IndexGroup* create_group();
+    inline DataObj* add_data(void*);
+    inline void add_to_index(DataObj*, IndexGroup*);
 
-#ifdef DATASTORE
-    struct datanode* add_data(void*);
-    void add_to_index(struct datanode*, int);
-#endif
-
-#ifdef BANK
-    void* add_data(void*);
-    void add_to_index(void*, int);
-    Bank bank;
-#endif
-
-#ifdef DEQUE
-    uint64_t add_data(void*);
-    void add_to_index(uint64_t, int);
-#endif
-
-    uint64_t size(int);
-    uint64_t mem_size(int);
-    uint64_t mem_size();
-
+    uint64_t size()
+    {
+        return bank.size();
+    }
+    
 private:
+    int ident;
     uint32_t datalen;
     vector<Index*> tables;
+    vector<IndexGroup*> groups;
     Datastore data;
-    deque<void*> deq;
+    Bank bank;
+    IndexGroup* all;
 };
 
-ODB::ODB(int datalen)
+ODB::ODB(uint32_t datalen, uint32_t cap)
 {
+    ident = rand();
     this->datalen = datalen;
-
-#ifdef BANK
-    bank = *(new Bank(datalen, 100000));
-#endif
+    bank = *(new Bank(datalen, cap));
+    all = new IndexGroup();
 }
 
-// int ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*))
-// {
-//     return create_index(type, flags, Compare, NULL);
-// }
-
-int ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*))
+Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void* (*keygen)(void*))
 {
     bool drop_duplicates = flags & DROP_DUPLICATES;
+    Index* new_index;
 
     switch (type)
     {
-    case LinkedList:
-    {
-        tables.push_back(new LinkedList_c(compare, merge, drop_duplicates));
-        break;
-    }
-    case RedBlackTree:
-    {
-        tables.push_back(new RedBlackTree_c(compare, merge, drop_duplicates));
-        break;
-    }
-    default:
-        printf("!");
+        case LinkedList:
+        {
+            new_index = new LinkedList_c(ident, compare, merge, drop_duplicates);
+            tables.push_back(new_index);
+            all->add_index(new_index);
+            break;
+        }
+//         case KeyedLinkedList:
+//         {
+//             new_index = new KeyedLinkedList_c(ident, compare, merge, keygen, drop_duplicates);
+//             tables.push_back(new_index);
+//             all->add_index(new_index);
+//             break;
+//         }
+        case RedBlackTree:
+        {
+            new_index = new RedBlackTree_c(ident, compare, merge, drop_duplicates);
+            tables.push_back(new_index);
+            all->add_index(new_index);
+            break;
+        }
+        default:
+            printf("!");
     }
 
-    return tables.size() - 1;
+    return new_index;
+}
+
+IndexGroup* ODB::create_group()
+{
+    IndexGroup* g = new IndexGroup(ident);
+    groups.push_back(g);
+    return g;
 }
 
 #ifdef DATASTORE
-inline struct datanode* ODB::add_data(void* rawdata)
+inline DataObj* ODB::add_data(void* rawdata)
 {
     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(datan->data), rawdata, datalen);
     data.add_element(datan);
-    return datan;
+    
+    DataObj* ret = (DataObj*)malloc(sizeof(DataObj));
+    ret->ident = ident;
+    ret->data = &(datan->data);
+    
+    return ret;
 }
 
-inline void ODB::add_to_index(struct datanode* d, int i)
+inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 {
-    tables[i]->add(&(d->data));
+    i->add_data(&(d->data));
 }
 #endif
 
 #ifdef BANK
-inline void* ODB::add_data(void* rawdata)
+inline DataObj* ODB::add_data(void* rawdata)
 {
-    return bank.add(rawdata);
+    DataObj* ret = new DataObj(ident, bank.add(rawdata));
+    return ret;
 }
 
-inline void ODB::add_to_index(void* p, int i)
+inline void ODB::add_to_index(DataObj* p, IndexGroup* i)
 {
-    tables[i]->add(p);
-}
-#endif
-
-#ifdef DEQUE
-inline unsigned long ODB::add_data(void* rawdata)
-{
-    void* d2 = malloc(datalen);
-    memcpy(d2, rawdata, datalen);
-    deq.push_back(d2);
-    return (deq.size() - 1);
-}
-
-inline void ODB::add_to_index(unsigned long p, int i)
-{
-    tables[i]->add(deq[p]);
+    i->add_data(p);
 }
 #endif
-
-unsigned long ODB::size(int n)
-{
-    return tables[n]->size();
-}
-
-unsigned long ODB::mem_size(int n)
-{
-    return tables[n]->mem_size();
-}
-
-unsigned long ODB::mem_size()
-{
-#ifdef BANK
-    return bank.mem_size() + sizeof(*this) + sizeof(tables) + tables.capacity() * sizeof(Index*);
-#endif
-
-#ifndef BANK
-    return -1;
-#endif
-}
 
 #endif
