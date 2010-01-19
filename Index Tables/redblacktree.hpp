@@ -26,12 +26,13 @@ private:
     multiset<void*> mset;
 
 public:
-    RedBlackTree_c(int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
+    RedBlackTree_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
+        this->ident = ident;
         count = 0;
     }
 
-    void add(void* data)
+    inline virtual void add_data_v(void* data)
     {
         mset.insert(data);
     }
@@ -59,12 +60,13 @@ private:
     multimap<void*, void*> mmap;
 
 public:
-    KeyedRedBlackTree_c(int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
+    KeyedRedBlackTree_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
+        this->ident = ident;
         count = 0;
     }
 
-    void add(void* data)
+    inline virtual void add_data_v(void* data)
     {
         //mmap.insert(data);
     }

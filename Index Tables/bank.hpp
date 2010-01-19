@@ -1,6 +1,7 @@
 #ifndef BANK_HPP
 #define BANK_HPP
 
+#include <stdint.h>
 #include <string.h>
 #include <stack>
 
@@ -10,20 +11,20 @@ class Bank
 {
 public:
     Bank();
-    Bank(unsigned long, unsigned long);
+    Bank(uint64_t, uint64_t);
     void* add(void*);
-    void* get(unsigned long);
-    void remove_at(unsigned long);
-    unsigned long mem_size();
+    void* get(uint64_t);
+    void remove_at(uint64_t);
+    uint64_t size();
 
 private:
     char **data;
-    unsigned long posA, posB;
-    unsigned long data_count;
-    unsigned long list_size;
-    unsigned long cap;
-    unsigned long cap_size;
-    unsigned long data_size;
+    uint64_t posA, posB;
+    uint64_t data_count;
+    uint64_t list_size;
+    uint64_t cap;
+    uint64_t cap_size;
+    uint64_t data_size;
     stack<void*> deleted;
 };
 
@@ -31,7 +32,7 @@ Bank::Bank()
 {
 }
 
-Bank::Bank(unsigned long data_size, unsigned long cap)
+Bank::Bank(uint64_t data_size, uint64_t cap)
 {
     data = (char**)malloc(sizeof(char*));
     *(data) = (char*)malloc(cap * data_size);
@@ -85,19 +86,19 @@ inline void* Bank::add(void* data_in)
     //return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
 }
 
-inline void* Bank::get(unsigned long index)
+inline void* Bank::get(uint64_t index)
 {
     return *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
 }
 
-void Bank::remove_at(unsigned long index)
+void Bank::remove_at(uint64_t index)
 {
     deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
 }
 
-unsigned long Bank::mem_size()
+uint64_t Bank::size()
 {
-    return sizeof(*this) + list_size + (posA + sizeof(char*)) * cap_size / sizeof(char*);
+    return data_count;
 }
 
 #endif

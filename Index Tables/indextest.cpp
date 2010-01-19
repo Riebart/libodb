@@ -35,20 +35,22 @@ int main (int argc, char ** argv)
 #endif
     
     ODB odb(sizeof(long));
-    int lt = odb.create_index(ODB::LinkedList, 0, compare);
-    int ltm = odb.create_index(ODB::LinkedList, ODB::DROP_DUPLICATES, compare_mod);
-    int rbt = odb.create_index(ODB::RedBlackTree, 0, compare);
+    Index* lt = odb.create_index(ODB::LinkedList, 0, compare);
+    Index* ltm = odb.create_index(ODB::LinkedList, ODB::DROP_DUPLICATES, compare_mod);
+    Index* rbt = odb.create_index(ODB::RedBlackTree, 0, compare);
+    IndexGroup* ll = odb.create_group();
+    ll->add_index(lt);
+    ll->add_index(ltm);
+    IndexGroup* all = odb.create_group();
+    all->add_index(ll);
+    all->add_index(rbt);
 
 #ifdef DATASTORE
     struct datanode* dn;
 #endif
 
 #ifdef BANK
-    void* dn;
-#endif
-
-#ifdef DEQUE
-    unsigned long dn;
+    DataObj* dn;
 #endif
 
     //LinkedList_c LT(comapre, NULL, false);
@@ -63,29 +65,22 @@ int main (int argc, char ** argv)
         v = (i + ((rand() % (2 * p + 1)) - p));
         //v = rand();
         //memcpy(d, &v, sizeof(int));
-        //LT.Add(d);
-        //LTM.Add(d);
         
-        #ifdef TC
-        tcmdbputcat(mdb, &v, sizeof(long), &v, 0);
-        #endif
+        //tcmdbputcat(mdb, &v, sizeof(long), &v, 0);
 
-        #ifndef TC
         dn = odb.add_data(&v);
-        //odb.add_to_index(dn, lt);
-        //odb.add_to_index(dn, ltm);
-        odb.add_to_index(dn, rbt);
-        #endif
-
-        //LL.Print(10);
-        //odb.Print(lt, 10);
-        //getchar();
-        //free(d);
+        all->add_data(dn);
+        //ll->add_data(dn);
+        //lt->add_data(dn);
+        //ltm->add_data(dn);
+        //rbt->add_data(dn);
+        free(dn);
     }
     ftime(&end);
 
     time = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 
+    printf("%lu\n", rbt->size());
     //printf("%f : %lu", time, odb.MemSize(lt) + odb.MemSize(ltm) + odb.MemSize());
     printf("%f", time);
     //printf("\ndatabase is occupying %lu extra bytes of memory with %lu records\nAmortized %f bytes per entry", (tcmdbmsiz(mdb) - 0), tcmdbrnum(mdb), 1.0 * (tcmdbmsiz(mdb) - 525376) / tcmdbrnum(mdb));
