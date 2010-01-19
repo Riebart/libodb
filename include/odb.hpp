@@ -18,6 +18,7 @@ public:
     ODB(uint32_t, uint32_t = 100000);
     Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
     IndexGroup* create_group();
+    inline void add_data(void*);
     inline DataObj* add_data(void*, bool);
     inline void add_to_index(DataObj*, IndexGroup*);
 
@@ -115,9 +116,20 @@ inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 #endif
 
 #ifdef BANK
+inline void ODB::add_data(void* rawdata)
+{
+    DataObj* ret = new DataObj(ident, bank.add(rawdata));
+    all->add_data(ret);
+    free(ret);
+}
+
 inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     DataObj* ret = new DataObj(ident, bank.add(rawdata));
+    
+    if (add_to_all)
+        all->add_data(ret);
+    
     return ret;
 }
 
