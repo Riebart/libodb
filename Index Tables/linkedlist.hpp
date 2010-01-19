@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "index.hpp"
+
 class LinkedList_c : public Index
 {
 private:

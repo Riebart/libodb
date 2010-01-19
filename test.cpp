@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #include "datastore.hpp"
-//#include "datanode.hpp"
 
 #define TEST_SIZE 10000000
 
@@ -41,7 +40,7 @@ int main (int argc, char ** argv)
         void * mem = malloc(element_size);
 //         my_cont.push_front(i);
 //         my_cont.insert(i);
-        ds.add_element((struct datanode *)mem);
+        ds.add((struct datanode *)mem);
     }
     
     ftime(&end);
