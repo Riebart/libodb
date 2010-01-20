@@ -32,7 +32,7 @@ int main (int argc, char ** argv)
     TCMDB *mdb;
     mdb = tcmdbnew();
 #endif
-    
+
     ODB odb(sizeof(long));
     Index* lt = odb.create_index(ODB::LinkedList, 0, compare);
     Index* ltm = odb.create_index(ODB::LinkedList, ODB::DROP_DUPLICATES, compare_mod);
@@ -62,7 +62,7 @@ int main (int argc, char ** argv)
         v = (i + ((rand() % (2 * p + 1)) - p));
         //v = rand();
         //memcpy(d, &v, sizeof(int));
-        
+
         //tcmdbputcat(mdb, &v, sizeof(long), &v, 0);
 
         dn = odb.add_data(&v, false);

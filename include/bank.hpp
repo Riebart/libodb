@@ -104,6 +104,8 @@ uint64_t Bank::size()
 
 void Bank::populate(Index* index)
 {
+    for (uint64_t i = 0 ; i < data_count ; i++)
+        index->add_data_v(get(i));
 }
 
 #endif

@@ -14,10 +14,10 @@
         fprintf (stderr, str);\
         fprintf (stderr, "\n");} \
     exit(EXIT_FAILURE); }
-        
+
 #define DEBUG(str...) { \
     if (globalOpts.verbose >= 1) { \
         fprintf(stderr, "%s:%d: ", __FILE__, __LINE__);\
         fprintf(stderr, str); } }\
-
+ 
 #endif

@@ -26,7 +26,7 @@ public:
     {
         return bank.size();
     }
-    
+
 private:
     int ident;
     uint32_t datalen;
@@ -54,35 +54,35 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
 
     switch (type)
     {
-        case LinkedList:
-        {
-            new_index = new LinkedList_c(ident, compare, merge, drop_duplicates);
-            break;
-        }
-        case KeyedLinkedList:
-        {
-            new_index = new KeyedLinkedList_c(ident, compare, merge, keygen, keylen, drop_duplicates);
-            break;
-        }
-        case RedBlackTree:
-        {
-            new_index = new RedBlackTree_c(ident, compare, merge, drop_duplicates);
-            break;
-        }
-        default:
-            printf("!");
+    case LinkedList:
+    {
+        new_index = new LinkedList_c(ident, compare, merge, drop_duplicates);
+        break;
     }
-    
+    case KeyedLinkedList:
+    {
+        new_index = new KeyedLinkedList_c(ident, compare, merge, keygen, keylen, drop_duplicates);
+        break;
+    }
+    case RedBlackTree:
+    {
+        new_index = new RedBlackTree_c(ident, compare, merge, drop_duplicates);
+        break;
+    }
+    default:
+        printf("!");
+    }
+
     tables.push_back(new_index);
-    
+
     if (!do_not_add_to_all)
         all->add_index(new_index);
-    
+
     if (populate)
     {
-        #ifdef BANK
+#ifdef BANK
         bank.populate(new_index);
-        #endif
+#endif
     }
 
     return new_index;
@@ -101,11 +101,11 @@ inline DataObj* ODB::add_data(void* rawdata)
     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(datan->data), rawdata, datalen);
     data.add_element(datan);
-    
+
     DataObj* ret = (DataObj*)malloc(sizeof(DataObj));
     ret->ident = ident;
     ret->data = &(datan->data);
-    
+
     return ret;
 }
 
@@ -126,10 +126,10 @@ inline void ODB::add_data(void* rawdata)
 inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     DataObj* ret = new DataObj(ident, bank.add(rawdata));
-    
+
     if (add_to_all)
         all->add_data(ret);
-    
+
     return ret;
 }
 
