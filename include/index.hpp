@@ -7,6 +7,8 @@ using namespace std;
 
 class DataObj
 {
+    friend class ODB;
+    
 public:
     DataObj(int ident, void* data)
     {
@@ -41,7 +43,7 @@ public:
 
     inline void add_index(IndexGroup* ig)
     {
-        if (this->ident == ig->get_ident())
+        if ((this->ident) == (ig->get_ident()))
             indices.push_back(ig);
     }
 

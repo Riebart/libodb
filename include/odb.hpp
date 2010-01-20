@@ -13,7 +13,7 @@ class ODB
 {
 public:
     typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
-    typedef enum iflags { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, POPULATE = 4 } IndexOps;
+    typedef enum iflags { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     ODB(uint32_t, uint32_t = 100000);
     Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
@@ -42,13 +42,13 @@ ODB::ODB(uint32_t datalen, uint32_t cap)
     ident = rand();
     this->datalen = datalen;
     bank = *(new Bank(datalen, cap));
-    all = new IndexGroup();
+    all = new IndexGroup(ident);
 }
 
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
 {
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
-    bool populate = flags & POPULATE;
+    bool do_not_populate = flags & DO_NOT_POPULATE;
     bool drop_duplicates = flags & DROP_DUPLICATES;
     Index* new_index;
 
@@ -78,7 +78,7 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
     if (!do_not_add_to_all)
         all->add_index(new_index);
 
-    if (populate)
+    if (!do_not_populate)
     {
 #ifdef BANK
         bank.populate(new_index);
