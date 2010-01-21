@@ -35,6 +35,8 @@ private:
 class IndexGroup
 {
     friend class Bank;
+    friend class Datastore;
+    
 public:
     IndexGroup() { };
 

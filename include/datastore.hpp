@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdint.h>
 
+#include "index.hpp"
 
 struct datanode
 {
@@ -22,6 +23,7 @@ public:
     void inline add_element(struct datanode *);
     bool del_element(uint32_t index);
     void * element_at(uint32_t index);
+    void populate(Index*);
 private:
     struct datanode * bottom;
     std::vector<bool> deleted_list;
@@ -52,6 +54,17 @@ bool Datastore::del_element(uint32_t index)
     else
         return 0;
 
+}
+
+void Datastore::populate(Index* index)
+{
+    struct datanode* curr = bottom;
+    
+    while (curr != NULL)
+    {
+        index->add_data_v(&(curr->data));
+        curr = curr->next;
+    }
 }
 
 #endif

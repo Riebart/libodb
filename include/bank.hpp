@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stack>
 
+#include "index.hpp"
+
 using namespace std;
 
 class Bank
