@@ -10,6 +10,8 @@ class DataObj
     friend class ODB;
     
 public:
+    DataObj() { }
+    
     DataObj(int ident, void* data)
     {
         this->ident = ident;
@@ -53,6 +55,12 @@ public:
             for (uint32_t i = 0 ; i < indices.size() ; i++)
                 indices[i]->add_data(data);
     }
+    
+    inline virtual void add_data_v(void* data)
+    {
+        for (uint32_t i = 0 ; i < indices.size() ; i++)
+            indices[i]->add_data_v(data);
+    }
 
     inline virtual int get_ident()
     {
@@ -74,6 +82,8 @@ public:
         if (data->get_ident() == ident)
             add_data_v(data->get_data());
     }
+    
+    virtual void verify() { };
 
     inline virtual void add_data_v(void*) { };
     virtual unsigned long size()

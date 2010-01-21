@@ -35,6 +35,7 @@ private:
     Datastore data;
     Bank bank;
     IndexGroup* all;
+    DataObj dataobj;
 };
 
 ODB::ODB(uint32_t datalen, uint32_t cap)
@@ -43,6 +44,7 @@ ODB::ODB(uint32_t datalen, uint32_t cap)
     this->datalen = datalen;
     bank = *(new Bank(datalen, cap));
     all = new IndexGroup(ident);
+    dataobj.ident = this->ident;
 }
 
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
@@ -118,19 +120,18 @@ inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 #ifdef BANK
 inline void ODB::add_data(void* rawdata)
 {
-    DataObj* ret = new DataObj(ident, bank.add(rawdata));
-    all->add_data(ret);
-    free(ret);
+    all->add_data_v(bank.add(rawdata));
 }
 
 inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
-    DataObj* ret = new DataObj(ident, bank.add(rawdata));
+    //DataObj* ret = new DataObj(ident, bank.add(rawdata));
+    dataobj.data = bank.add(rawdata);
 
     if (add_to_all)
-        all->add_data(ret);
+        all->add_data_v(dataobj.data);
 
-    return ret;
+    return &dataobj;
 }
 
 inline void ODB::add_to_index(DataObj* p, IndexGroup* i)

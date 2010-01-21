@@ -193,6 +193,18 @@ public:
     {
         return count;
     }
+    
+    void verify()
+    {
+        struct node* curr = first;
+        
+        while (curr != NULL)
+        {
+            printf("%ld", *(long*)(curr->data));
+            getchar();
+            curr = curr->next;
+        }
+    }
 };
 
 class KeyedLinkedList_c : public Index
