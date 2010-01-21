@@ -31,6 +31,8 @@
 #define LOCK()
 #define UNLOCK()
 
+#define RWLOCK_INIT();
+#define LOCK_INIT();
 
 
 
