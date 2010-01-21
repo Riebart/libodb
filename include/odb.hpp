@@ -98,22 +98,28 @@ IndexGroup* ODB::create_group()
 }
 
 #ifdef DATASTORE
-inline DataObj* ODB::add_data(void* rawdata)
+inline void ODB::add_data(void* rawdata)
+{
+    struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
+    memcpy(&(datan->data), rawdata, datalen);
+    data.add_element(datan);
+    
+    all->add_data_v(&(datan->data));
+}
+
+inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(datan->data), rawdata, datalen);
     data.add_element(datan);
 
-    DataObj* ret = (DataObj*)malloc(sizeof(DataObj));
-    ret->ident = ident;
-    ret->data = &(datan->data);
-
-    return ret;
+    dataobj.data = &(datan->data);
+    return &dataobj;
 }
 
 inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 {
-    i->add_data(d->get_data());
+    i->add_data(d);
 }
 #endif
 
@@ -125,7 +131,6 @@ inline void ODB::add_data(void* rawdata)
 
 inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
-    //DataObj* ret = new DataObj(ident, bank.add(rawdata));
     dataobj.data = bank.add(rawdata);
 
     if (add_to_all)
@@ -134,9 +139,9 @@ inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
     return &dataobj;
 }
 
-inline void ODB::add_to_index(DataObj* p, IndexGroup* i)
+inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 {
-    i->add_data(p);
+    i->add_data(d);
 }
 #endif
 
