@@ -17,7 +17,7 @@ int main (int argc, char ** argv)
     long v, p = 500;
     
     ODB odb(sizeof(long));
-    Index* rbt = odb.create_index(ODB::RedBlackTree, 0, compare);
+    odb.create_index(ODB::RedBlackTree, 0, compare);
     
     ftime(&start);
     for (long i = 0 ; i < 10000000 ; i++)

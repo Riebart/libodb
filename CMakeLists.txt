@@ -40,4 +40,4 @@ target_link_libraries(tcmalloc_minimal)
 # "demo.cxx" and "demo_b.cxx".  The extensions are automatically found.
 #add_executable (helloDemo demo.cxx demo_b.cxx)
 add_executable (test test.cpp)
-add_executable (indextest indextest.cpp)
+add_executable (minimal minimal.cpp)
