@@ -85,6 +85,10 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
 #ifdef BANK
         bank.populate(new_index);
 #endif
+
+#ifdef DATASTORE
+        data.populate(new_index);
+#endif
     }
 
     return new_index;
