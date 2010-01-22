@@ -8,11 +8,13 @@
 #include "index.hpp"
 #include "common.hpp"
 
+#pragma pack(1)
 struct datanode
 {
     struct datanode * next;
     char data;
 };
+#pragma pack()
 
 class Datastore
 {
@@ -28,6 +30,7 @@ public:
     bool del_element(uint32_t index);
     void * element_at(uint32_t index);
     void populate(Index*);
+    void cleanup();
 private:
     struct datanode * bottom;
     std::vector<bool> deleted_list;
@@ -78,6 +81,45 @@ void Datastore::populate(Index* index)
         curr = curr->next;
     }
     READ_UNLOCK();
+}
+
+// Get the pointer to data for a given index
+// WARNING: O(n) complexity. Avoid.
+void * Datastore::element_at(uint32_t index)
+{
+    struct datanode * cur_item=bottom;
+    uint32_t cur_index=0;
+    
+    while (cur_index < index && cur_item != NULL)
+    {
+        cur_index++;
+        cur_item=cur_item->next;
+    }
+    
+    if (cur_item != NULL)
+        return &(cur_item->data);
+    
+    else
+        return NULL;
+    
+}
+
+// Performs the sweep of a mark-and-sweep. starting at the back,
+// frees all data that has been marked as deleted. O(n).
+void Datastore::cleanup()
+{
+    uint32_t cur_index=deleted_list.size();
+    uint32_t remaining_items=cur_index;
+    
+    while (cur_index > 0)
+    {
+        cur_index--;
+        
+    }
+        
+    // since all marked data has been freed, we can safely
+    // create a new vector of 0s
+    deleted_list.assign(remaining_items, 0);
 }
 
 #endif
