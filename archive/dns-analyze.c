@@ -62,7 +62,7 @@ bool name_unique(dnsrec* a, dnsrec* b)
 {
     if (strcmp(a->data, b->data) == 0)
     {
-        a->count++;
+        (a->count) += (b->count);
         return true;
     }
 
@@ -73,7 +73,7 @@ bool count_unique(dnsrec* a, dnsrec* b)
 {
     if (a->count == b->count)
     {
-        a->count2++;
+        a->count2 += b->count2;
         return true;
     }
 
@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
 
     uint32 nbytes;
     int num = 0;
+    int total_num = 0;
     double dur = 0;
     double totaldur = 0;
 
@@ -125,11 +126,16 @@ int main(int argc, char *argv[])
     start = (struct timeb*)malloc(sizeof(struct timeb));
     end = (struct timeb*)malloc(sizeof(struct timeb));
 
+    int num_files;
+    sscanf(argv[1], "%d", &num_files);
+    fprintf(stderr, "%d", num_files);
+    getchar();
+    
     int i;
-    for (i = 1 ; i < (argc-1) ; i++)
+    for (i = 0 ; i < num_files ; i++)
     {
-        fp = fopen(argv[i], "rb");
-        //printf("%s: ", argv[i]);
+        fp = fopen(argv[i+2], "rb");
+        fprintf(stderr, "%s: ", argv[i]);
 
         if (fp == NULL)
             continue;
@@ -160,42 +166,65 @@ int main(int argc, char *argv[])
             rec = (dnsrec*)calloc(1, sizeof(dnsrec));
             rec->count = 1;
             rec->data = getname(data);
-            rec->file = argv[i];
+            rec->file = argv[i+2];
             rec->index = num;
             rec->count2 = 1;
 
             recs.push_back(rec);
 
             num++;
+            total_num++;
         }
 
         ftime(end);
 
         dur = (end->time - start->time) + 0.001 * (end->millitm - start->millitm);
-        //printf("%f", num / dur);
+        fprintf(stderr, "%f (%d / %d)", num / dur, i+1, num_files);
 
         totaldur += dur;
 
         fclose(fp);
 
-        //printf("\n");
-        //fflush(stdout);
+        fprintf(stderr, "\n");
+        fflush(stdout);
+        
+//         if ((i > 0) && (i % 10 == 0))
+//         {
+//             fprintf(stderr, "periodic culling...");
+//             fprintf(stderr, "name-sorting...");
+//             recs.sort(name_sort);
+//             fprintf(stderr, "name-culling...\n");
+//             recs.unique(name_unique);
+//         }
     }
 
-    printf("Read performance: %f records per second over %lu records.\n", recs.size() / totaldur, recs.size());
+    printf("Read performance: %f records per second over %d records.\n", total_num / totaldur, total_num);
     fflush(stdout);
 
+    fprintf(stderr, "name-sorting...\n");
     recs.sort(name_sort);
+    fprintf(stderr, "name-culling...\n");
     recs.unique(name_unique);
-    recs.sort(count_sort);
-    recs.unique(count_unique);
 
-    printf("The list contains %lu unique records.\n", recs.size());
+    printf("The list contains %lu unique records (by name).\n", recs.size());
 
     list<dnsrec*>::iterator it;
 
+//     for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
+//         printf("%41s : %6u (%6d @ %45s) - %d\n", (*it)->data, (*it)->count, (*it)->index, (*it)->file, i);
+        
+    fprintf(stderr, "count-sorting...\n");
+    recs.sort(count_sort);
+    
     for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
-        //printf("%41s : %6u (%6d @ %32s) - %d\n", (*it)->data, (*it)->count, (*it)->index, (*it)->file, i);
+        printf("%41s : %6u (%6d @ %45s) - %d\n", (*it)->data, (*it)->count, (*it)->index, (*it)->file, i);
+    
+    fprintf(stderr, "count-culling...\n");
+    recs.unique(count_unique);
+    
+    printf("The list contains %lu unique records (by count).\n", recs.size());
+    
+    for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
         printf("%10d : %10u\n", (*it)->count, (*it)->count2);
 
     fflush(stdout);
