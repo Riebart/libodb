@@ -71,7 +71,6 @@ int main (int argc, char ** argv)
         //lt->add_data(dn);
         //ltm->add_data(dn);
         //rbt->add_data(dn);
-        free(dn);
     }
     ftime(&end);
 

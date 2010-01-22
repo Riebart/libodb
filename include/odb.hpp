@@ -28,6 +28,7 @@ public:
     }
 
 private:
+    static int num_idents = 0;
     int ident;
     uint32_t datalen;
     vector<Index*> tables;
