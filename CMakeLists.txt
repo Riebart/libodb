@@ -40,6 +40,6 @@ add_executable (minimal minimal.cpp)
 #target_link_libraries(pthread state c profiler)
 
 #link_directories(/usr/local/lib)
-target_link_libraries(minimal tcmalloc_minimal)
-target_link_libraries(test tcmalloc_minimal)
+target_link_libraries(minimal tcmalloc_minimal pthread)
+target_link_libraries(test tcmalloc_minimal pthread)
 

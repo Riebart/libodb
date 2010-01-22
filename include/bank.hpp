@@ -6,6 +6,7 @@
 #include <stack>
 
 #include "index.hpp"
+#include "common.hpp"
 
 using namespace std;
 
@@ -29,10 +30,12 @@ private:
     uint64_t cap_size;
     uint64_t data_size;
     stack<void*> deleted;
+    RWLOCK_T;
 };
 
 Bank::Bank()
 {
+    RWLOCK_INIT();
 }
 
 Bank::Bank(uint64_t data_size, uint64_t cap)
@@ -46,12 +49,14 @@ Bank::Bank(uint64_t data_size, uint64_t cap)
     this->cap = cap;
     cap_size = cap * data_size;
     this->data_size = data_size;
+    RWLOCK_INIT();
 }
 
 inline void* Bank::add(void* data_in)
 {
     void* ret;
 
+    WRITE_LOCK();
     if (deleted.empty())
     {
         ret = *(data + posA) + posB;
@@ -85,18 +90,24 @@ inline void* Bank::add(void* data_in)
 
     data_count++;
 
+    WRITE_UNLOCK();
     return ret;
     //return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
 }
 
 inline void* Bank::get(uint64_t index)
 {
-    return *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
+    READ_LOCK();
+    void * ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
+    READ_UNLOCK();
+    return ret;
 }
 
 void Bank::remove_at(uint64_t index)
 {
+    WRITE_LOCK();
     deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
+    WRITE_UNLOCK();
 }
 
 uint64_t Bank::size()
@@ -106,8 +117,10 @@ uint64_t Bank::size()
 
 void Bank::populate(Index* index)
 {
+    READ_LOCK();
     for (uint64_t i = 0 ; i < data_count ; i++)
         index->add_data_v(get(i));
+    READ_UNLOCK();
 }
 
 #endif

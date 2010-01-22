@@ -23,7 +23,29 @@
 #define DEBUG(str...) { }
 #endif
 
-//placeholder macros
+
+#ifdef PTHREAD_LOCK
+#include "pthread.h"
+
+//simple locking macros
+#define READ_LOCK() pthread_rwlock_rdlock(&rwlock)
+#define READ_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define WRITE_LOCK() pthread_rwlock_wrlock(&rwlock)
+#define WRITE_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define LOCK()
+#define UNLOCK()
+
+#define RWLOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
+#define LOCK_INIT()
+
+#define RWLOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
+#define LOCK_DESTROY()
+
+#define LOCK_T
+#define RWLOCK_T pthread_rwlock_t rwlock
+
+#else
+
 #define READ_LOCK()
 #define READ_UNLOCK()
 #define WRITE_LOCK()
@@ -31,9 +53,16 @@
 #define LOCK()
 #define UNLOCK()
 
-#define RWLOCK_INIT();
-#define LOCK_INIT();
+#define RWLOCK_INIT()
+#define LOCK_INIT()
 
+#define RWLOCK_DESTROY()
+#define LOCK_DESTROY()
+
+#define LOCK_T
+#define RWLOCK_T
+
+#endif
 
 
 #endif

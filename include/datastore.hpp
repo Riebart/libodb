@@ -23,6 +23,7 @@ public:
         RWLOCK_INIT();
         bottom = NULL;
     };
+    ~Datastore () { RWLOCK_DESTROY(); }
     void inline add_element(struct datanode *);
     bool del_element(uint32_t index);
     void * element_at(uint32_t index);
@@ -30,6 +31,7 @@ public:
 private:
     struct datanode * bottom;
     std::vector<bool> deleted_list;
+    RWLOCK_T;
 };
 
 
