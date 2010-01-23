@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#include "include/odb.hpp"
+#include "odb.hpp"
 
 int compare(void* a, void* b)
 {
