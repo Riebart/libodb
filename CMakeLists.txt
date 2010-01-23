@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.6)
+
 # The name of our project is "TM-PROJECT".  CMakeLists files in this project can
 # refer to the root source directory of the project as ${TM-PROJECT_SOURCE_DIR} and
 # to the root binary directory of the project as ${TM-PROJECT_BINARY_DIR}.)
@@ -13,7 +15,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 #this is probably the wrong way to do this: setting compile-time defines
-add_definitions(-DBANK -DPTHREAD_LOCK_SPIN)
+add_definitions(-DDATASTORE -DPTHREAD_LOCK_SPIN)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
