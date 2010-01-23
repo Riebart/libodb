@@ -26,38 +26,38 @@ void datastore_test(uint64_t element_size, uint64_t test_size)
 //         my_cont.insert(i);
         ds.add_element((struct datanode *)mem);
     }
-    
-    
-    
+
+
+
 }
 
 int main (int argc, char ** argv)
 {
     if (argc < 2)
         usage();
-    
+
     uint64_t element_size;
     uint64_t test_size;
-    
+
     struct timeb start;
     struct timeb end;
-    
+
     sscanf(argv[1], "%lu", &element_size);
     sscanf(argv[2], "%lu", &test_size);
-    
+
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
-    
-    
+
+
     ftime(&start);
     datastore_test(element_size, test_size);
     ftime(&end);
-    
+
     double duration = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-    
+
     printf("Elapsed time: %fs\n\nPress Enter to continue\n", duration);
-    
+
     fgetc(stdin);
-    
+
     return EXIT_SUCCESS;
 
 }

@@ -193,11 +193,11 @@ public:
     {
         return count;
     }
-    
+
     void verify()
     {
         struct node* curr = first;
-        
+
         while (curr != NULL)
         {
             printf("%ld", *(long*)(curr->data));

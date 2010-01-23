@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
     sscanf(argv[1], "%d", &num_files);
     fprintf(stderr, "%d", num_files);
     getchar();
-    
+
     int i;
     for (i = 0 ; i < num_files ; i++)
     {
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 
         fprintf(stderr, "\n");
         fflush(stdout);
-        
+
 //         if ((i > 0) && (i % 10 == 0))
 //         {
 //             fprintf(stderr, "periodic culling...");
@@ -212,18 +212,18 @@ int main(int argc, char *argv[])
 
 //     for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
 //         printf("%41s : %6u (%6d @ %45s) - %d\n", (*it)->data, (*it)->count, (*it)->index, (*it)->file, i);
-        
+
     fprintf(stderr, "count-sorting...\n");
     recs.sort(count_sort);
-    
+
     for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
         printf("%41s : %6u (%6d @ %45s) - %d\n", (*it)->data, (*it)->count, (*it)->index, (*it)->file, i);
-    
+
     fprintf(stderr, "count-culling...\n");
     recs.unique(count_unique);
-    
+
     printf("The list contains %lu unique records (by count).\n", recs.size());
-    
+
     for (it = recs.begin(), i = 0 ; it != recs.end() ; it++, i++)
         printf("%10d : %10u\n", (*it)->count, (*it)->count2);
 

@@ -25,7 +25,10 @@ public:
         RWLOCK_INIT();
         bottom = NULL;
     };
-    ~Datastore () { RWLOCK_DESTROY(); }
+    ~Datastore ()
+    {
+        RWLOCK_DESTROY();
+    }
     void inline add_element(struct datanode *);
     bool del_element(uint32_t index);
     void * element_at(uint32_t index);
@@ -73,7 +76,7 @@ bool Datastore::del_element(uint32_t index)
 void Datastore::populate(Index* index)
 {
     struct datanode* curr = bottom;
-    
+
     READ_LOCK();
     while (curr != NULL)
     {
@@ -89,19 +92,19 @@ void * Datastore::element_at(uint32_t index)
 {
     struct datanode * cur_item=bottom;
     uint32_t cur_index=0;
-    
+
     while (cur_index < index && cur_item != NULL)
     {
         cur_index++;
         cur_item=cur_item->next;
     }
-    
+
     if (cur_item != NULL)
         return &(cur_item->data);
-    
+
     else
         return NULL;
-    
+
 }
 
 // Performs the sweep of a mark-and-sweep. starting at the back,
@@ -110,13 +113,13 @@ void Datastore::cleanup()
 {
     uint32_t cur_index=deleted_list.size();
     uint32_t remaining_items=cur_index;
-    
+
     while (cur_index > 0)
     {
         cur_index--;
-        
+
     }
-        
+
     // since all marked data has been freed, we can safely
     // create a new vector of 0s
     deleted_list.assign(remaining_items, 0);

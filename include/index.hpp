@@ -8,10 +8,10 @@ using namespace std;
 class DataObj
 {
     friend class ODB;
-    
+
 public:
     DataObj() { }
-    
+
     DataObj(int ident, void* data)
     {
         this->ident = ident;
@@ -36,7 +36,7 @@ class IndexGroup
 {
     friend class Bank;
     friend class Datastore;
-    
+
 public:
     IndexGroup() { };
 
@@ -57,7 +57,7 @@ public:
             for (uint32_t i = 0 ; i < indices.size() ; i++)
                 indices[i]->add_data(data);
     }
-    
+
     inline virtual void add_data_v(void* data)
     {
         for (uint32_t i = 0 ; i < indices.size() ; i++)
@@ -84,7 +84,7 @@ public:
         if (data->get_ident() == ident)
             add_data_v(data->get_data());
     }
-    
+
     virtual void verify() { };
 
     inline virtual void add_data_v(void*) { };
