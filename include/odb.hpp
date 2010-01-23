@@ -11,30 +11,33 @@ using namespace std;
 
 class ODB
 {
-public:
-    typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
-    //TODO: Not the standard way of handling orthogonal bit-flags
-    typedef enum iflags { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, POPULATE = 4 } IndexOps;
-
-    ODB(uint32_t, uint32_t = 100000);
-    Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
-    IndexGroup* create_group();
-    inline DataObj* add_data(void*, bool=0);
-    inline void add_to_index(DataObj*, IndexGroup*);
-
-    uint64_t size()
-    {
-        return bank.size();
-    }
-    
-private:
-    int ident;
-    uint32_t datalen;
-    vector<Index*> tables;
-    vector<IndexGroup*> groups;
-    Datastore data;
-    Bank bank;
-    IndexGroup* all;
+    public:
+        typedef enum itype { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
+        
+        //TODO: Apparently this isn't the appropriate way to do this.
+        typedef enum iflags { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
+        
+        ODB(uint32_t, uint32_t = 100000);
+        Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
+        IndexGroup* create_group();
+        inline void add_data(void*);
+        inline DataObj* add_data(void*, bool);
+        inline void add_to_index(DataObj*, IndexGroup*);
+        
+        uint64_t size()
+        {
+            return bank.size();
+        }
+        
+    private:
+        int ident;
+        uint32_t datalen;
+        vector<Index*> tables;
+        vector<IndexGroup*> groups;
+        Datastore data;
+        Bank bank;
+        IndexGroup* all;
+        DataObj dataobj;
 };
 
 ODB::ODB(uint32_t datalen, uint32_t cap)
@@ -42,16 +45,17 @@ ODB::ODB(uint32_t datalen, uint32_t cap)
     ident = rand();
     this->datalen = datalen;
     bank = *(new Bank(datalen, cap));
-    all = new IndexGroup();
+    all = new IndexGroup(ident);
+    dataobj.ident = this->ident;
 }
 
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
 {
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
-    bool populate = flags & POPULATE;
+    bool do_not_populate = flags & DO_NOT_POPULATE;
     bool drop_duplicates = flags & DROP_DUPLICATES;
     Index* new_index;
-
+    
     switch (type)
     {
         case LinkedList:
@@ -78,13 +82,17 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
     if (!do_not_add_to_all)
         all->add_index(new_index);
     
-    if (populate)
+    if (!do_not_populate)
     {
         #ifdef BANK
         bank.populate(new_index);
         #endif
+        
+        #ifdef DATASTORE
+        data.populate(new_index);
+        #endif
     }
-
+    
     return new_index;
 }
 
@@ -96,35 +104,50 @@ IndexGroup* ODB::create_group()
 }
 
 #ifdef DATASTORE
-inline DataObj* ODB::add_data(void* rawdata)
+inline void ODB::add_data(void* rawdata)
 {
     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(datan->data), rawdata, datalen);
     data.add_element(datan);
     
-    DataObj* ret = (DataObj*)malloc(sizeof(DataObj));
-    ret->ident = ident;
-    ret->data = &(datan->data);
+    all->add_data_v(&(datan->data));
+}
+
+inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
+{
+    struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
+    memcpy(&(datan->data), rawdata, datalen);
+    data.add_element(datan);
     
-    return ret;
+    dataobj.data = &(datan->data);
+    return &dataobj;
 }
 
 inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
 {
-    i->add_data(d->get_data());
+    i->add_data(d);
 }
 #endif
 
 #ifdef BANK
-inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
+inline void ODB::add_data(void* rawdata)
 {
-    DataObj* ret = new DataObj(ident, bank.add(rawdata));
-    return ret;
+    all->add_data_v(bank.add(rawdata));
 }
 
-inline void ODB::add_to_index(DataObj* p, IndexGroup* i)
+inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
-    i->add_data(p);
+    dataobj.data = bank.add(rawdata);
+    
+    if (add_to_all)
+        all->add_data_v(dataobj.data);
+    
+    return &dataobj;
+}
+
+inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
+{
+    i->add_data(d);
 }
 #endif
 
