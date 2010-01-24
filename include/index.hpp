@@ -11,13 +11,9 @@ class DataObj
     friend class ODB;
 
 public:
-    DataObj() { }
+    DataObj() { };
     
-    ~DataObj()
-    {
-        delete &ident;
-        delete &data;
-    }
+    ~DataObj() { };
 
     DataObj(int ident, void* data)
     {
@@ -47,11 +43,7 @@ class IndexGroup
 public:
     IndexGroup() { };
     
-    virtual ~IndexGroup()
-    {
-        delete &ident;
-        //delete &indices;
-    }
+    virtual ~IndexGroup() { };
 
     IndexGroup(int ident)
     {

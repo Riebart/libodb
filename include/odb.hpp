@@ -50,8 +50,8 @@ ODB::ODB(DataStore* data)
 
 ODB::~ODB()
 {
-    delete &ident;
-    delete &datalen;
+    //delete &ident;
+    //delete &datalen;
     //delete &tables;
     //delete &groups;
     delete all;
