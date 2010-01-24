@@ -21,10 +21,12 @@ private:
     void* (*merge)(void*, void*);
     uint64_t count;
     bool drop_duplicates;
+    RWLOCK_T;
 
 public:
     LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
     {
+        RWLOCK_INIT();
         this->ident = ident;
         first = NULL;
         this->compare = compare;
@@ -32,9 +34,28 @@ public:
         this->drop_duplicates = drop_duplicates;
         count = 0;
     }
+    
+    ~LinkedListI()
+    {
+        //Should I WRITE_LOCK() this?
+        struct node * curr=first;
+        struct node * prev;
+        
+        while (curr!=NULL)
+        {
+            prev=curr;
+            curr=curr->next;
+            free(prev);
+        }
+        
+        RWLOCK_DESTROY();
+    }
 
+//TODO: My spidey-senses tell me this function can be improved. Also, it
+//likely too big to be inlined.
     inline virtual void add_data_v(void* data)
     {
+        WRITE_LOCK();
         if (first == NULL)
         {
             first = (struct node*)malloc(sizeof(struct node));
@@ -106,12 +127,14 @@ public:
 
             count++;
         }
+        WRITE_UNLOCK();
     }
 
     bool del(void* data)
     {
         bool ret = false;
 
+        WRITE_LOCK();
         if (first != NULL)
         {
             if (compare(first->data, data) == 0)
@@ -133,6 +156,7 @@ public:
                 }
             }
         }
+        WRITE_UNLOCK();
 
         return ret;
     }
@@ -141,6 +165,7 @@ public:
     {
         bool ret = false;
 
+        WRITE_LOCK();
         if (n == 0)
         {
             first = first->next;
@@ -160,6 +185,7 @@ public:
             curr->next = curr->next->next;
             ret = true;
         }
+        WRITE_UNLOCK();
 
         return ret;
     }
@@ -169,6 +195,7 @@ public:
         struct node* curr = first;
         int ret = 0;
 
+        WRITE_LOCK();
         while (condition(first->data) > 0)
         {
             ret++;
@@ -185,6 +212,7 @@ public:
             else
                 curr = curr->next;
         }
+        WRITE_UNLOCK();
 
         return ret;
     }
@@ -200,12 +228,14 @@ public:
         #include <stdio.h>
         struct node* curr = first;
 
+        READ_LOCK();
         while (curr != NULL)
         {
             printf("%ld", *(long*)(curr->data));
             getchar();
             curr = curr->next;
         }
+        READ_UNLOCK();
     }
     #endif
 };
@@ -228,6 +258,7 @@ private:
     int keylen;
     char* key;
     bool drop_duplicates;
+    RWLOCK_T;
 
 public:
     KeyedLinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int keylen, bool drop_duplicates)
@@ -241,12 +272,31 @@ public:
         this->drop_duplicates = drop_duplicates;
         count = 0;
         key = (char*)malloc(keylen);
+        RWLOCK_INIT();
+    }
+    
+    //TODO: double check this
+    ~KeyedLinkedListI()
+    {
+        struct node * curr=first;
+        struct node * prev;
+        
+        while (curr!=NULL)
+        {
+            prev=curr;
+            curr=curr->next;
+            free(prev);
+        }
+        
+        RWLOCK_DESTROY();
+        free(key);
     }
 
     inline virtual void add_data_v(void* data)
     {
         keygen(data, key);
 
+        WRITE_LOCK();
         if (first == NULL)
         {
             first = (struct node*)malloc(sizeof(struct node*) + sizeof(void*) + keylen);
@@ -321,12 +371,14 @@ public:
 
             count++;
         }
+        WRITE_UNLOCK();
     }
 
     bool del(void* key)
     {
         bool ret = false;
 
+        WRITE_LOCK();
         if (first != NULL)
         {
             if (compare(&(first->key), key) == 0)
@@ -348,6 +400,7 @@ public:
                 }
             }
         }
+        WRITE_UNLOCK();
 
         return ret;
     }
@@ -356,6 +409,7 @@ public:
     {
         bool ret = false;
 
+        WRITE_LOCK();
         if (n == 0)
         {
             first = first->next;
@@ -378,12 +432,14 @@ public:
 
         if (ret)
             count--;
+        WRITE_UNLOCK();
 
         return ret;
     }
 
     int prune(int (*condition)(void*))
     {
+        WRITE_LOCK();
         struct node* curr = first;
         int ret = 0;
 
@@ -405,6 +461,8 @@ public:
         }
 
         count -= ret;
+        
+        WRITE_UNLOCK();
         return ret;
     }
 
