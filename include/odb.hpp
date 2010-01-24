@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "common.hpp"
 #include "datastore.hpp"
 #include "index.hpp"
 
@@ -21,7 +22,7 @@ public:
     Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
     IndexGroup* create_group();
     inline void add_data(void*);
-    inline DataObj* add_data(void*, bool);
+    inline DataObj* add_data(void*, bool); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     inline void add_to_index(DataObj*, IndexGroup*);
     uint64_t size();
 
@@ -70,7 +71,7 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
         break;
     }
     default:
-        printf("!");
+        FAIL("Invalid index type.");
     }
 
     tables.push_back(new_index);

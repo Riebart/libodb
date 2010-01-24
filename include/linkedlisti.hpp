@@ -194,17 +194,20 @@ public:
         return count;
     }
 
+    #ifdef DEBUG
     void verify()
     {
         struct node* curr = first;
 
         while (curr != NULL)
         {
+            #include <stdio.h>
             printf("%ld", *(long*)(curr->data));
             getchar();
             curr = curr->next;
         }
     }
+    #endif
 };
 
 class KeyedLinkedListI : public Index

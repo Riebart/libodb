@@ -3,6 +3,7 @@
 
 //for the fail macro
 #include <errno.h>
+#include <stdio.h>
 
 #include "lock.hpp"
 
@@ -24,6 +25,9 @@
 #else
 #define DEBUG(str...) { }
 #endif
+
+#define NOT_IMPLEMENTED(str...) { \
+        fprintf(stderr, "Function not yet implemented: %s\n", str); }\
 
 
 
