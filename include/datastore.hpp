@@ -20,7 +20,7 @@ public:
         return NULL;
     };
 
-    virtual bool remove_at(uint64_t) { };
+    virtual bool remove_at(uint64_t) { return false; };
 
     virtual void populate(Index*) { };
 
