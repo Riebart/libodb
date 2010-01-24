@@ -56,10 +56,10 @@ BankDS::BankDS(uint64_t data_size, uint64_t cap)
 
 BankDS::~BankDS()
 {
-    for ( ; posA > 0 ; posA--)
-        free(data + posA);
+    for ( ; posA > 0 ; posA -= sizeof(char*))
+        free(*(data + posA));
     
-    free(data + posA);
+    free(*data);
     
     free(data);
     

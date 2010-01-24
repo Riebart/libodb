@@ -54,14 +54,14 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     
     odb->create_index(ODB::RedBlackTree, 0, compare);
 
-    for (long i = 0 ; i < test_size ; i++)
+    for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
         odb->add_data(&v, false);
     }
     
-    printf("!");
-    getchar();
+    //printf("!");
+    //getchar();
     delete odb;
 }
 
@@ -86,7 +86,7 @@ int main (int argc, char ** argv)
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
 
     double duration = 0;
-    for (int i = 0 ; i < test_num ; i++)
+    for (uint64_t i = 0 ; i < test_num ; i++)
     {
         ftime(&start);
         
