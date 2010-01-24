@@ -27,8 +27,19 @@ public:
         bottom = NULL;
     };
     
+    //TODO: free memory
     ~LinkedListDS ()
     {
+        struct datanode * curr = bottom;
+        struct datanode * prev;
+        
+        while (curr != NULL)
+        {
+            prev=curr;
+            curr=curr->next;
+            free(prev);
+        }
+        
         RWLOCK_DESTROY();
     }
     
@@ -52,10 +63,7 @@ void* LinkedListDS::add_element(void* rawdata)
     memcpy(&(new_element->data), rawdata, datalen);
     
     WRITE_LOCK();
-    if (bottom != NULL)
-    {
-        new_element->next=bottom;
-    }
+    new_element->next=bottom;
     bottom=new_element;
     deleted_list.push_back(0);
     WRITE_UNLOCK();
