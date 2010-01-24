@@ -26,10 +26,12 @@ public:
         this->datalen = datalen;
         bottom = NULL;
     };
+    
     ~LinkedListDS ()
     {
         RWLOCK_DESTROY();
     }
+    
     virtual void* add_element(void*);
     virtual bool del_at(uint32_t index);
     virtual void* get_at(uint32_t index);

@@ -89,7 +89,7 @@ public:
     virtual void verify() { };
 
     inline virtual void add_data_v(void*) { };
-    
+
     virtual unsigned long size()
     {
         return 0;

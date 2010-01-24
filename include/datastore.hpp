@@ -8,11 +8,24 @@
 class DataStore
 {
 public:
-    virtual void* add_element(void*) { return NULL; };
-    virtual void* get_at(uint64_t) { return NULL; };
+    virtual void* add_element(void*)
+    {
+        return NULL;
+    };
+
+    virtual void* get_at(uint64_t)
+    {
+        return NULL;
+    };
+
     virtual bool remove_at(uint64_t) { };
+
     virtual void populate(Index*) { };
-    virtual uint64_t size() { return 0; };
+
+    virtual uint64_t size()
+    {
+        return 0;
+    };
 };
 
 #include "bankds.hpp"

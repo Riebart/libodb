@@ -32,7 +32,7 @@ private:
     vector<IndexGroup*> groups;
     IndexGroup* all;
     DataObj dataobj;
-    
+
     DataStore* data;
 };
 
@@ -121,7 +121,7 @@ uint64_t ODB::size()
 //     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
 //     memcpy(&(datan->data), rawdata, datalen);
 //     data.add_element(datan);
-//     
+//
 //     dataobj.data = &(datan->data);
 //     return &dataobj;
 // }
