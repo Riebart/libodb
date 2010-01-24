@@ -19,6 +19,8 @@ public:
     typedef enum iflags { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     ODB(DataStore*);
+    ~ODB();
+    
     Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
     IndexGroup* create_group();
     inline void add_data(void*);
@@ -44,6 +46,17 @@ ODB::ODB(DataStore* data)
     all = new IndexGroup(ident);
     dataobj.ident = this->ident;
     this->data = data;
+}
+
+ODB::~ODB()
+{
+    delete &ident;
+    delete &datalen;
+    //delete &tables;
+    //delete &groups;
+    delete all;
+    //delete &dataobj;
+    delete data;
 }
 
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)

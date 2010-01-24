@@ -8,6 +8,8 @@
 class DataStore
 {
 public:
+    virtual ~DataStore() { };
+    
     virtual void* add_element(void*)
     {
         return NULL;

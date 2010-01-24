@@ -12,6 +12,12 @@ class DataObj
 
 public:
     DataObj() { }
+    
+    ~DataObj()
+    {
+        delete &ident;
+        delete &data;
+    }
 
     DataObj(int ident, void* data)
     {
@@ -40,6 +46,12 @@ class IndexGroup
 
 public:
     IndexGroup() { };
+    
+    virtual ~IndexGroup()
+    {
+        delete &ident;
+        //delete &indices;
+    }
 
     IndexGroup(int ident)
     {

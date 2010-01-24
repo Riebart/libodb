@@ -15,6 +15,8 @@ class BankDS : public DataStore
 public:
     BankDS();
     BankDS(uint64_t, uint64_t = 100000);
+    ~BankDS();
+    
     virtual inline void* add_element(void*);
     virtual void* get_at(uint64_t);
     virtual bool remove_at(uint64_t);
@@ -50,6 +52,25 @@ BankDS::BankDS(uint64_t data_size, uint64_t cap)
     cap_size = cap * data_size;
     this->data_size = data_size;
     RWLOCK_INIT();
+}
+
+BankDS::~BankDS()
+{
+    for ( ; posA > 0 ; posA--)
+        free(data + posA);
+    
+    free(data + posA);
+    
+    free(data);
+    
+    //delete &deleted;
+    delete &data_size;
+    delete &cap_size;
+    delete &cap;
+    delete &list_size;
+    delete &data_count;
+    delete &posA;
+    delete &posB;
 }
 
 inline void* BankDS::add_element(void* data_in)

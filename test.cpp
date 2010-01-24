@@ -57,8 +57,12 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     for (long i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
-        odb->add_data(&v);
+        odb->add_data(&v, false);
     }
+    
+    printf("!");
+    getchar();
+    delete odb;
 }
 
 int main (int argc, char ** argv)
