@@ -197,11 +197,11 @@ public:
     #ifdef DEBUG
     void verify()
     {
+        #include <stdio.h>
         struct node* curr = first;
 
         while (curr != NULL)
         {
-            #include <stdio.h>
             printf("%ld", *(long*)(curr->data));
             getchar();
             curr = curr->next;

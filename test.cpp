@@ -13,7 +13,7 @@ int compare(void* a, void* b)
 
 void usage()
 {
-    printf("Usage: test <element size> <num elements>\n");
+    printf("Usage: test <element size> <number of elements> <number of tests> <test type>\n\tWhere: test_type=0 => BANK, test_type=1 => LL\n");
     exit(EXIT_SUCCESS);
 }
 
