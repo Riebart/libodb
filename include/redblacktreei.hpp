@@ -36,6 +36,12 @@ public:
         this->ident = ident;
         count = 0;
     }
+    
+    //TODO: proper memory deletion, etc - wait, is it done?
+    ~RedBlackTreeI()
+    {
+        RWLOCK_DESTROY();
+    }
 
     inline virtual void add_data_v(void* data)
     {
