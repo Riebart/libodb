@@ -1,5 +1,5 @@
-#ifndef REDBLACKTREE_HPP
-#define REDBLACKTREE_HPP
+#ifndef REDBLACKTREEI_HPP
+#define REDBLACKTREEI_HPP
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class RedBlackTree_c : public Index
+class RedBlackTreeI : public Index
 {
 private:
     struct node
@@ -26,7 +26,7 @@ private:
     multiset<void*> mset;
 
 public:
-    RedBlackTree_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
+    RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
         this->ident = ident;
         count = 0;
@@ -43,7 +43,7 @@ public:
     }
 };
 
-class KeyedRedBlackTree_c : public Index
+class KeyedRedBlackTreeI : public Index
 {
 private:
     struct node
@@ -60,7 +60,7 @@ private:
     multimap<void*, void*> mmap;
 
 public:
-    KeyedRedBlackTree_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
+    KeyedRedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
     {
         this->ident = ident;
         count = 0;

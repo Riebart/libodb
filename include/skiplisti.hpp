@@ -1,5 +1,5 @@
-#ifndef SKIPLIST_HPP
-#define SKIPLIST_HPP
+#ifndef SKIPLISTI_HPP
+#define SKIPLISTI_HPP
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -8,7 +8,7 @@
 class SkipList_c : public Index
 {
 public:
-    SkipList_c(int (*)(void*, void*), void* (*)(void*, void*), bool);
+    SkipListI(int (*)(void*, void*), void* (*)(void*, void*), bool);
     virtual void add(void*);
 
 private:

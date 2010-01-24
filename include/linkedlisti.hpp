@@ -1,5 +1,5 @@
-#ifndef LINKEDLIST_HPP
-#define LINKEDLIST_HPP
+#ifndef LINKEDLISTI_HPP
+#define LINKEDLISTI_HPP
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 
 #include "index.hpp"
 
-class LinkedList_c : public Index
+class LinkedListI : public Index
 {
 private:
     struct node
@@ -23,7 +23,7 @@ private:
     bool drop_duplicates;
 
 public:
-    LinkedList_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+    LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
     {
         this->ident = ident;
         first = NULL;
@@ -207,7 +207,7 @@ public:
     }
 };
 
-class KeyedLinkedList_c : public Index
+class KeyedLinkedListI : public Index
 {
 private:
     struct node
@@ -227,7 +227,7 @@ private:
     bool drop_duplicates;
 
 public:
-    KeyedLinkedList_c(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int keylen, bool drop_duplicates)
+    KeyedLinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int keylen, bool drop_duplicates)
     {
         this->ident = ident;
         first = NULL;

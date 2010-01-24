@@ -1,14 +1,14 @@
-#ifndef TRIE_HPP
-#define TRIE_HPP
+#ifndef TRIEI_HPP
+#define TRIEI_HPP
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-class Trie_c : public Index
+class TrieI : public Index
 {
 public:
-    Trie_c(int keylen);
+    TrieI(int keylen);
     virtual void add(void*, void*);
 
 private:
@@ -27,7 +27,7 @@ private:
     int keylen;
 };
 
-Trie_c::Trie_c()
+TrieI::TrieI()
 {
 }
 

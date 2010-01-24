@@ -2,6 +2,7 @@
 #define INDEX_HPP
 
 #include <vector>
+#include <stdint.h>
 
 using namespace std;
 
@@ -88,15 +89,16 @@ public:
     virtual void verify() { };
 
     inline virtual void add_data_v(void*) { };
+    
     virtual unsigned long size()
     {
         return 0;
     };
 };
 
-#include "linkedlist.hpp"
-#include "redblacktree.hpp"
-//#include "skiplist.hpp"
-//#include "trie.hpp"
+#include "linkedlisti.hpp"
+#include "redblacktreei.hpp"
+//#include "skiplisti.hpp"
+//#include "triei.hpp"
 
 #endif

@@ -1,5 +1,5 @@
-#ifndef BANK_HPP
-#define BANK_HPP
+#ifndef BANKDS_HPP
+#define BANKDS_HPP
 
 #include <stdint.h>
 #include <string.h>
@@ -10,16 +10,16 @@
 
 using namespace std;
 
-class Bank
+class BankDS : public DataStore
 {
 public:
-    Bank();
-    Bank(uint64_t, uint64_t);
-    void* add(void*);
-    void* get(uint64_t);
-    void remove_at(uint64_t);
-    uint64_t size();
-    void populate(Index*);
+    BankDS();
+    BankDS(uint64_t, uint64_t = 100000);
+    virtual inline void* add_element(void*);
+    virtual void* get_at(uint64_t);
+    virtual bool remove_at(uint64_t);
+    virtual uint64_t size();
+    virtual void populate(Index*);
 
 private:
     char **data;
@@ -33,12 +33,12 @@ private:
     RWLOCK_T;
 };
 
-Bank::Bank()
+BankDS::BankDS()
 {
     RWLOCK_INIT();
 }
 
-Bank::Bank(uint64_t data_size, uint64_t cap)
+BankDS::BankDS(uint64_t data_size, uint64_t cap)
 {
     data = (char**)malloc(sizeof(char*));
     *(data) = (char*)malloc(cap * data_size);
@@ -52,7 +52,7 @@ Bank::Bank(uint64_t data_size, uint64_t cap)
     RWLOCK_INIT();
 }
 
-inline void* Bank::add(void* data_in)
+inline void* BankDS::add_element(void* data_in)
 {
     void* ret;
 
@@ -95,7 +95,7 @@ inline void* Bank::add(void* data_in)
     //return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
 }
 
-inline void* Bank::get(uint64_t index)
+inline void* BankDS::get_at(uint64_t index)
 {
     READ_LOCK();
     void * ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
@@ -103,23 +103,29 @@ inline void* Bank::get(uint64_t index)
     return ret;
 }
 
-void Bank::remove_at(uint64_t index)
+bool BankDS::remove_at(uint64_t index)
 {
-    WRITE_LOCK();
-    deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
-    WRITE_UNLOCK();
+    if (index < data_count)
+    {
+        WRITE_LOCK();
+        deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
+        WRITE_UNLOCK();
+        return true;
+    }
+    else
+        return false;
 }
 
-uint64_t Bank::size()
+uint64_t BankDS::size()
 {
     return data_count;
 }
 
-void Bank::populate(Index* index)
+void BankDS::populate(Index* index)
 {
     READ_LOCK();
     for (uint64_t i = 0 ; i < data_count ; i++)
-        index->add_data_v(get(i));
+        index->add_data_v(get_at(i));
     READ_UNLOCK();
 }
 

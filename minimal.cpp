@@ -16,7 +16,14 @@ int main (int argc, char ** argv)
     double time;
     long v, p = 500;
 
-    ODB odb(sizeof(long));
+    #ifdef BANK
+    ODB odb(new BankDS(sizeof(long)));
+    #endif
+    
+    #ifdef LL
+    ODB odb(new LinkedListDS(sizeof(long)));
+    #endif
+    
     odb.create_index(ODB::RedBlackTree, 0, compare);
 
     ftime(&start);
@@ -30,6 +37,7 @@ int main (int argc, char ** argv)
     time = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 
     printf("%f", time);
+    getchar();
 
     return EXIT_SUCCESS;
 }
