@@ -12,7 +12,7 @@ class DataObj
 
 public:
     DataObj() { };
-    
+
     ~DataObj() { };
 
     DataObj(int ident, void* data)
@@ -42,8 +42,8 @@ class IndexGroup
 
 public:
     IndexGroup() { };
-    
-    virtual ~IndexGroup() 
+
+    virtual ~IndexGroup()
     {
         IndexGroup * curr;
         while (!indices.empty())

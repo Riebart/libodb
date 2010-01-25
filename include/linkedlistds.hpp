@@ -26,30 +26,30 @@ public:
         this->datalen = datalen;
         bottom = NULL;
     };
-    
+
     //TODO: free memory
     ~LinkedListDS ()
     {
         struct datanode * curr = bottom;
         struct datanode * prev;
-        
+
         while (curr != NULL)
         {
             prev=curr;
             curr=curr->next;
             free(prev);
         }
-        
+
         RWLOCK_DESTROY();
     }
-    
+
     virtual void* add_element(void*);
     virtual bool del_at(uint32_t index);
     virtual void* get_at(uint32_t index);
     virtual void populate(Index*);
     virtual uint64_t size();
     void cleanup();
-    
+
 private:
     struct datanode * bottom;
     std::vector<bool> deleted_list;
@@ -61,13 +61,13 @@ void* LinkedListDS::add_element(void* rawdata)
 {
     struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(new_element->data), rawdata, datalen);
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     deleted_list.push_back(0);
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 

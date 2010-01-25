@@ -17,25 +17,11 @@ void usage()
     exit(EXIT_SUCCESS);
 }
 
-// void datastore_test(uint64_t element_size, uint64_t test_size)
-// {
-//     Datastore ds;
-//     element_size+=8;
-//     uint i;
-//     for ( i=0; i<test_size; i++)
-//     {
-//         void * mem = malloc(element_size);
-// //         my_cont.push_front(i);
-// //         my_cont.insert(i);
-//         ds.add_element((struct datanode *)mem);
-//     }
-// }
-
 void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 {
     ODB* odb;
     long v, p = 500;
-    
+
     switch (test_type)
     {
     case 0:
@@ -51,7 +37,7 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     default:
         FAIL("Incorrect test type.");
     }
-    
+
     odb->create_index(ODB::RedBlackTree, 0, compare);
 
     for (uint64_t i = 0 ; i < test_size ; i++)
@@ -59,9 +45,7 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         v = (i + ((rand() % (2 * p + 1)) - p));
         odb->add_data(&v, false);
     }
-    
-    //printf("!");
-    //getchar();
+
     delete odb;
 }
 
@@ -89,11 +73,11 @@ int main (int argc, char ** argv)
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
         ftime(&start);
-        
+
         odb_test(element_size, test_size, test_type);
-            
+
         ftime(&end);
-        
+
         duration += (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
         printf(".");
         fflush(stdout);

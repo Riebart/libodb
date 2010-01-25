@@ -60,17 +60,7 @@ BankDS::~BankDS()
         free(*(data + posA));
     
     free(*data);
-    
     free(data);
-    
-    //delete &deleted;
-    //delete &data_size;
-    //delete &cap_size;
-    //delete &cap;
-    //delete &list_size;
-    //delete &data_count;
-    //delete &posA;
-    //delete &posB;
 }
 
 inline void* BankDS::add_element(void* data_in)

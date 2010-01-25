@@ -20,7 +20,7 @@ public:
 
     ODB(DataStore*);
     ~ODB();
-    
+
     Index* create_index(IndexType, int flags, int (*)(void*, void*), void* (*)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t = 0);
     IndexGroup* create_group();
     inline void add_data(void*);
@@ -33,10 +33,9 @@ private:
     uint32_t datalen;
     vector<Index*> tables;
     vector<IndexGroup*> groups;
+    DataStore* data;
     IndexGroup* all;
     DataObj dataobj;
-
-    DataStore* data;
 };
 
 ODB::ODB(DataStore* data)
@@ -50,12 +49,7 @@ ODB::ODB(DataStore* data)
 
 ODB::~ODB()
 {
-    //delete &ident;
-    //delete &datalen;
-    //delete &tables;
-    //delete &groups;
     delete all;
-    //delete &dataobj;
     delete data;
 }
 
@@ -129,15 +123,5 @@ uint64_t ODB::size()
 {
     return data->size();
 }
-
-// inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
-// {
-//     struct datanode* datan = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
-//     memcpy(&(datan->data), rawdata, datalen);
-//     data.add_element(datan);
-//
-//     dataobj.data = &(datan->data);
-//     return &dataobj;
-// }
 
 #endif

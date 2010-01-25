@@ -28,7 +28,7 @@
 
 #define NOT_IMPLEMENTED(str...) { \
         fprintf(stderr, "Function not yet implemented: %s\n", str); }\
-
+ 
 
 
 #endif

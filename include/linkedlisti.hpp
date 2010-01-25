@@ -34,20 +34,20 @@ public:
         this->drop_duplicates = drop_duplicates;
         count = 0;
     }
-    
+
     ~LinkedListI()
     {
         //Should I WRITE_LOCK() this?
         struct node * curr=first;
         struct node * prev;
-        
+
         while (curr!=NULL)
         {
             prev=curr;
             curr=curr->next;
             free(prev);
         }
-        
+
         RWLOCK_DESTROY();
     }
 
@@ -222,10 +222,10 @@ public:
         return count;
     }
 
-    #ifdef DEBUG
+#ifdef DEBUG
     void verify()
     {
-        #include <stdio.h>
+#include <stdio.h>
         struct node* curr = first;
 
         READ_LOCK();
@@ -237,7 +237,7 @@ public:
         }
         READ_UNLOCK();
     }
-    #endif
+#endif
 };
 
 class KeyedLinkedListI : public Index
@@ -274,20 +274,20 @@ public:
         key = (char*)malloc(keylen);
         RWLOCK_INIT();
     }
-    
+
     //TODO: double check this
     ~KeyedLinkedListI()
     {
         struct node * curr=first;
         struct node * prev;
-        
+
         while (curr!=NULL)
         {
             prev=curr;
             curr=curr->next;
             free(prev);
         }
-        
+
         RWLOCK_DESTROY();
         free(key);
     }
@@ -461,7 +461,7 @@ public:
         }
 
         count -= ret;
-        
+
         WRITE_UNLOCK();
         return ret;
     }

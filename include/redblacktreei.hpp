@@ -36,7 +36,7 @@ public:
         this->ident = ident;
         count = 0;
     }
-    
+
     //TODO: proper memory deletion, etc - wait, is it done?
     ~RedBlackTreeI()
     {

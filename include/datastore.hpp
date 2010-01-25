@@ -9,7 +9,7 @@ class DataStore
 {
 public:
     virtual ~DataStore() { };
-    
+
     virtual void* add_element(void*)
     {
         return NULL;
@@ -20,7 +20,10 @@ public:
         return NULL;
     };
 
-    virtual bool remove_at(uint64_t) { return false; };
+    virtual bool remove_at(uint64_t)
+    {
+        return false;
+    };
 
     virtual void populate(Index*) { };
 
