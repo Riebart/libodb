@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "odb.hpp"
+#include "pthread.h"
 
 #define TEST_SIZE 10000000
 
@@ -13,7 +14,7 @@ int compare(void* a, void* b)
 
 void usage()
 {
-    printf("Usage: test <element size> <number of elements> <number of tests> <test type>\n\tWhere: test_type=0 => BANK, test_type=1 => LL\n");
+    printf("Usage: test <element size> <number of elements> <number of tests> <test type> <num threads>\n\tWhere: test_type=0 => BANK, test_type=1 => LL\n");
     exit(EXIT_SUCCESS);
 }
 
@@ -31,9 +32,25 @@ void usage()
 //     }
 // }
 
-void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
+ODB* odb;
+    
+void * worker_thread(void * test_size_p)
 {
-    ODB* odb;
+    uint32_t test_size=*(uint32_t*)(test_size_p);
+    int64_t v, p=500;
+    
+    for (uint64_t i = 0 ; i < test_size ; i++)
+    {
+        v = (i + ((rand() % (2 * p + 1)) - p));
+        odb->add_data(&v, false);
+    }
+    
+    return NULL;
+}
+
+void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint32_t num_threads)
+{
+
     long v, p = 500;
     
     switch (test_type)
@@ -54,11 +71,21 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     
     odb->create_index(ODB::RedBlackTree, 0, compare);
 
-    for (uint64_t i = 0 ; i < test_size ; i++)
+    uint32_t data_per_thread=test_size/num_threads;
+    
+    pthread_t * threads=(pthread_t *)malloc(num_threads*sizeof(pthread_t));
+    
+    uint32_t i;
+    for(i=0; i< num_threads; i++)
     {
-        v = (i + ((rand() % (2 * p + 1)) - p));
-        odb->add_data(&v, false);
+        pthread_create(threads+i, NULL, &worker_thread, (void*)&data_per_thread);
     }
+    
+    for(i=0; i< num_threads; i++)
+    {
+        pthread_join(*(threads+i), NULL);
+    }
+    
     
     //printf("!");
     //getchar();
@@ -67,13 +94,14 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
 int main (int argc, char ** argv)
 {
-    if (argc < 2)
+    if (argc < 5)
         usage();
 
     uint64_t element_size;
     uint64_t test_size;
     uint32_t test_num;
     uint32_t test_type;
+    uint32_t num_threads;
 
     struct timeb start;
     struct timeb end;
@@ -82,6 +110,7 @@ int main (int argc, char ** argv)
     sscanf(argv[2], "%lu", &test_size);
     sscanf(argv[3], "%u", &test_num);
     sscanf(argv[4], "%u", &test_type);
+    sscanf(argv[5], "%u", &num_threads);
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
 
@@ -90,7 +119,7 @@ int main (int argc, char ** argv)
     {
         ftime(&start);
         
-        odb_test(element_size, test_size, test_type);
+        odb_test(element_size, test_size, test_type, num_threads);
             
         ftime(&end);
         
@@ -103,7 +132,7 @@ int main (int argc, char ** argv)
 
     printf("Elapsed time per run: %f\n\nPress Enter to continue\n", duration);
 
-    fgetc(stdin);
+//     fgetc(stdin);
 
     return EXIT_SUCCESS;
 
