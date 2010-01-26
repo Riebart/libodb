@@ -61,6 +61,8 @@ BankDS::~BankDS()
     
     free(*data);
     free(data);
+    
+    RWLOCK_DESTROY();
 }
 
 inline void* BankDS::add_element(void* data_in)

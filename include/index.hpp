@@ -45,13 +45,6 @@ public:
 
     virtual ~IndexGroup()
     {
-        IndexGroup * curr;
-        while (!indices.empty())
-        {
-            curr=indices.back();
-            indices.pop_back();
-            delete curr;
-        }
     };
 
     IndexGroup(int ident)

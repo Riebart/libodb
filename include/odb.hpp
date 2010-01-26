@@ -51,6 +51,22 @@ ODB::~ODB()
 {
     delete all;
     delete data;
+    
+    IndexGroup* curr;
+    
+    while (!groups.empty())
+    {
+        curr = groups.back();
+        groups.pop_back();
+        delete curr;
+    }
+    
+    while (!tables.empty())
+    {
+        curr = tables.back();
+        tables.pop_back();
+        delete curr;
+    }
 }
 
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
