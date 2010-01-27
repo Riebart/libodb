@@ -1,6 +1,18 @@
 #ifndef LINKEDLISTDS_CPP
 #define LINKEDLISTDS_CPP
 
+LinkedListDS::LinkedListDS()
+{
+}
+
+LinkedListIDS::LinkedListIDS()
+{
+    //since the only read case we (currently) have is trivial, might a general lock be better suited?
+    RWLOCK_INIT();
+    datalen = sizeof(char*);
+    bottom = NULL;
+}
+
 LinkedListDS::LinkedListDS(uint64_t datalen)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
@@ -39,9 +51,14 @@ void* LinkedListDS::add_element(void* rawdata)
     return &(new_element->data);
 }
 
+void* LinkedListIDS::add_element(void* rawdata)
+{
+    return LinkedListDS::add_element(&rawdata);
+}
+
 // returns false if index is out of range, or if element was already
 // marked as deleted
-bool LinkedListDS::del_at(uint32_t index)
+bool LinkedListDS::del_at(uint64_t index)
 {
     WRITE_LOCK();
     if (deleted_list.size() > index)
@@ -56,7 +73,6 @@ bool LinkedListDS::del_at(uint32_t index)
         WRITE_UNLOCK();
         return 0;
     }
-
 }
 
 void LinkedListDS::populate(Index* index)
@@ -74,7 +90,7 @@ void LinkedListDS::populate(Index* index)
 
 // Get the pointer to data for a given index
 // WARNING: O(n) complexity. Avoid.
-void * LinkedListDS::get_at(uint32_t index)
+void * LinkedListDS::get_at(uint64_t index)
 {
     struct datanode * cur_item=bottom;
     uint32_t cur_index=0;
@@ -90,7 +106,11 @@ void * LinkedListDS::get_at(uint32_t index)
 
     else
         return NULL;
+}
 
+inline void* LinkedListIDS::get_at(uint64_t index)
+{
+    return (void*)(*((char*)(LinkedListDS::get_at(index))));
 }
 
 // Performs the sweep of a mark-and-sweep. starting at the back,
@@ -114,6 +134,11 @@ void LinkedListDS::cleanup()
 uint64_t LinkedListDS::size()
 {
     return deleted_list.size();
+}
+
+DataStore* LinkedListDS::clone()
+{
+    return new LinkedListIDS();
 }
 
 #endif

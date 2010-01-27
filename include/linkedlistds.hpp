@@ -19,20 +19,30 @@ struct datanode
 class LinkedListDS : public DataStore
 {
 public:
+    LinkedListDS();
     LinkedListDS(uint64_t datalen);
-    ~LinkedListDS();
+    virtual ~LinkedListDS();
     virtual void* add_element(void* rawdata);
-    virtual bool del_at(uint32_t index);
-    virtual void* get_at(uint32_t index);
+    virtual bool del_at(uint64_t index);
+    virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
     virtual uint64_t size();
-    void cleanup();
+    virtual void cleanup();
+    virtual DataStore* clone();
 
-private:
+protected:
     struct datanode * bottom;
     std::vector<bool> deleted_list;
     uint64_t datalen;
     RWLOCK_T;
+};
+
+class LinkedListIDS : public LinkedListDS
+{
+public:
+    LinkedListIDS();
+    virtual inline void* add_element(void* rawdata);
+    virtual inline void* get_at(uint64_t index);
 };
 
 #include "linkedlistds.cpp"

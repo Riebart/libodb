@@ -25,7 +25,9 @@ bool DataStore::remove_at(uint64_t index)
     return false;
 }
 
-void DataStore::populate(Index* index) { }
+void DataStore::populate(Index* index)
+{
+}
 
 DataStore* DataStore::clone()
 {

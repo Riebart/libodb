@@ -6,7 +6,7 @@
 #include "odb.hpp"
 
 #define NUM_TABLES 1
-#define NUM_QUERIES 8
+#define NUM_QUERIES 1
 
 bool condition(void* a)
 {
@@ -56,6 +56,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     for (int i = 0 ; i < NUM_TABLES ; i++)
         ind[i] = odb->create_index(Index::LinkedList, 0, compare);
 
+    ftime(&start);
+    
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
@@ -66,14 +68,19 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         for (int j = 0 ; j < NUM_TABLES ; j++)
             ind[j]->add_data(dn);
     }
+    
+    ftime(&end);
 
-    ftime(&start);
+    //ftime(&start);
 
     //#pragma omp parallel for
     for (int j = 0 ; j < NUM_QUERIES ; j++)
-        res[j] = ind[0]->query(condition);
+    {
+       res[j] = ind[0]->query(condition);
+       //printf("%lu:", res[j]->size());
+    }
 
-    ftime(&end);
+    //ftime(&end);
 
     delete odb;
 
