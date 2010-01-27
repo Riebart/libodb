@@ -19,8 +19,8 @@ struct datanode
 class LinkedListDS : public DataStore
 {
 public:
-    LinkedListDS();
-    LinkedListDS(uint64_t datalen);
+    LinkedListDS(DataStore* parent = NULL);
+    LinkedListDS(uint64_t datalen, DataStore* parent = NULL);
     virtual ~LinkedListDS();
     virtual void* add_element(void* rawdata);
     virtual bool del_at(uint64_t index);
@@ -40,7 +40,7 @@ protected:
 class LinkedListIDS : public LinkedListDS
 {
 public:
-    LinkedListIDS();
+    LinkedListIDS(DataStore* parent = NULL);
     virtual inline void* add_element(void* rawdata);
     virtual inline void* get_at(uint64_t index);
 };

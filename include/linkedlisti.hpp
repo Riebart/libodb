@@ -19,7 +19,6 @@ public:
     bool del(uint64_t n);
     int prune(int (*condition)(void*));
     uint64_t size();
-    DataStore* query(bool (*condition)(void*));
     void query(bool (*condition)(void*), DataStore* ds);
 
 private:

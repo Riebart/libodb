@@ -3,10 +3,11 @@
 
 BankDS::BankDS()
 {
+    parent = NULL;
     RWLOCK_INIT();
 }
 
-BankDS::BankDS(uint64_t data_size, uint64_t cap)
+BankDS::BankDS(uint64_t data_size, uint64_t cap, DataStore* parent)
 {
     data = (char**)malloc(sizeof(char*));
     *(data) = (char*)malloc(cap * data_size);
@@ -17,10 +18,11 @@ BankDS::BankDS(uint64_t data_size, uint64_t cap)
     this->cap = cap;
     cap_size = cap * data_size;
     this->data_size = data_size;
+    this->parent = parent;
     RWLOCK_INIT();
 }
 
-BankIDS::BankIDS(uint64_t cap)
+BankIDS::BankIDS(uint64_t cap, DataStore* parent)
 {
     data_size = sizeof(char*);
     data = (char**)malloc(sizeof(char*));
@@ -31,6 +33,7 @@ BankIDS::BankIDS(uint64_t cap)
     list_size = sizeof(char*);
     this->cap = cap;
     cap_size = cap * data_size;
+    this->parent = parent;
     RWLOCK_INIT();
 }
 
@@ -134,7 +137,7 @@ void BankDS::populate(Index* index)
 
 DataStore* BankDS::clone()
 {
-    return new BankIDS(cap);
+    return new BankIDS(cap, this);
 }
 
 #endif

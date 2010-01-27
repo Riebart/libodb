@@ -54,7 +54,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(Index::LinkedList, 0, compare);
+        ind[i] = odb->create_index(Index::RedBlackTree, 0, compare);
 
     ftime(&start);
     
@@ -62,11 +62,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
         //v = i;
-        dn = odb->add_data(&v, false);
+        odb->add_data(&v);
 
         //#pragma omp parallel for
-        for (int j = 0 ; j < NUM_TABLES ; j++)
-            ind[j]->add_data(dn);
+        //for (int j = 0 ; j < NUM_TABLES ; j++)
+        //    ind[j]->add_data(dn);
     }
     
     ftime(&end);
@@ -74,11 +74,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     //ftime(&start);
 
     //#pragma omp parallel for
-    for (int j = 0 ; j < NUM_QUERIES ; j++)
-    {
-       res[j] = ind[0]->query(condition);
+    //for (int j = 0 ; j < NUM_QUERIES ; j++)
+    //{
+    //   res[j] = ind[0]->query(condition);
        //printf("%lu:", res[j]->size());
-    }
+    //}
 
     //ftime(&end);
 

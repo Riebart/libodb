@@ -14,7 +14,7 @@ class BankDS : public DataStore
 {
 public:
     BankDS();
-    BankDS(uint64_t datalen, uint64_t cap = 100000);
+    BankDS(uint64_t datalen, uint64_t cap = 100000, DataStore* parent = NULL);
     virtual ~BankDS();
 
     virtual inline void* add_element(void* rawdata);
@@ -39,7 +39,7 @@ protected:
 class BankIDS : public BankDS
 {
 public:
-    BankIDS(uint64_t cap = 100000);
+    BankIDS(uint64_t cap = 100000, DataStore* parent = NULL);
     virtual inline void* add_element(void* rawdata);
     virtual inline void* get_at(uint64_t index);
 };

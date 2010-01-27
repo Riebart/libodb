@@ -1,19 +1,21 @@
 #ifndef LINKEDLISTDS_CPP
 #define LINKEDLISTDS_CPP
 
-LinkedListDS::LinkedListDS()
+LinkedListDS::LinkedListDS(DataStore* parent)
 {
+    this->parent = parent;
 }
 
-LinkedListIDS::LinkedListIDS()
+LinkedListIDS::LinkedListIDS(DataStore* parent)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
     datalen = sizeof(char*);
     bottom = NULL;
+    this->parent = parent;
 }
 
-LinkedListDS::LinkedListDS(uint64_t datalen)
+LinkedListDS::LinkedListDS(uint64_t datalen, DataStore* parent)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
@@ -138,7 +140,7 @@ uint64_t LinkedListDS::size()
 
 DataStore* LinkedListDS::clone()
 {
-    return new LinkedListIDS();
+    return new LinkedListIDS(this);
 }
 
 #endif

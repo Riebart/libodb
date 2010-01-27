@@ -57,10 +57,11 @@ inline void IndexGroup::add_data(DataObj* data)
 inline DataStore* IndexGroup::query(bool (*condition)(void*))
 {
     DataStore* ret = parent->clone();
-
+    ret->ident = ident;
+    
     for (uint32_t i = 0 ; i < indices.size() ; i++)
         indices[i]->query(condition, ret);
-
+    
     return ret;
 }
 
@@ -96,7 +97,12 @@ inline void Index::add_data(DataObj* data)
 
 inline DataStore* Index::query(bool (*condition)(void*))
 {
-    return NULL;
+    DataStore* ret = parent->clone();
+    ret->ident = ident;
+    
+    query(condition, ret);
+    
+    return ret;
 }
 
 uint64_t Index::size()

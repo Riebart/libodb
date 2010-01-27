@@ -199,24 +199,15 @@ uint64_t LinkedListI::size()
     return count;
 }
 
-DataStore* LinkedListI::query(bool (*condition)(void*))
-{
-    DataStore* ret = parent->clone();
-
-    query(condition, ret);
-
-    return ret;
-}
-
 void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 {
     struct node* curr = first;
-
+    
     while (curr != NULL)
     {
         if (condition(curr->data))
             ds->add_element(&(curr->data));
-
+        
         curr = curr->next;
     }
 }

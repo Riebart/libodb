@@ -9,6 +9,10 @@ class Index;
 
 class DataStore
 {
+    friend class ODB;
+    friend class IndexGroup;
+    friend class Index;
+    
 public:
     DataStore();
     virtual ~DataStore();
@@ -21,6 +25,7 @@ public:
 
 protected:
     DataStore* parent;
+    int ident;
 };
 
 #include "datastore.cpp"

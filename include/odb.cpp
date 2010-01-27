@@ -12,6 +12,7 @@ ODB::ODB(DataStore* data)
     all = new IndexGroup(ident, data);
     dataobj.ident = this->ident;
     this->data = data;
+    data->ident = this->ident;
 }
 
 ODB::~ODB()
