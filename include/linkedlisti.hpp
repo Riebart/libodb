@@ -53,7 +53,7 @@ public:
 
 //TODO: My spidey-senses tell me this function can be improved. Also, it
 //likely too big to be inlined.
-    inline virtual void add_data_v(void* data)
+    virtual void add_data_v(void* data)
     {
         WRITE_LOCK();
         if (first == NULL)
@@ -75,7 +75,10 @@ public:
                         first->data = merge(data, first->data);
 
                     if (drop_duplicates)
+                    {
+                        WRITE_UNLOCK();
                         return;
+                    }
                 }
 
                 struct node* new_node = (struct node*)malloc(sizeof(struct node));
@@ -106,7 +109,10 @@ public:
                             curr->data = merge(data, curr->data);
 
                         if (drop_duplicates)
+                        {
+                            WRITE_UNLOCK();
                             return;
+                        }
                     }
 
                     struct node* new_node = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
