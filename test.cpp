@@ -1,14 +1,21 @@
 #include <stdlib.h>
 #include <sys/timeb.h>
 #include <stdio.h>
+#include <omp.h>
 
 #include "odb.hpp"
 
-#define TEST_SIZE 10000000
+#define NUM_TABLES 1
+#define NUM_QUERIES 8
+
+bool condition(void* a)
+{
+    return ((*(long*)a) < 0);
+}
 
 int compare(void* a, void* b)
 {
-    return (*(int*)b - *(int*)a);
+    return (*(long*)b - *(long*)a);
 }
 
 void usage()
@@ -17,10 +24,9 @@ void usage()
     exit(EXIT_SUCCESS);
 }
 
-void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
+double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 {
     ODB* odb;
-    long v, p = 500;
 
     switch (test_type)
     {
@@ -38,15 +44,40 @@ void odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         FAIL("Incorrect test type.");
     }
 
-    odb->create_index(ODB::RedBlackTree, 0, compare);
+    struct timeb start;
+    struct timeb end;
+
+    long v, p = 50;
+
+    Index* ind[NUM_TABLES];
+    DataStore* res[NUM_QUERIES];
+    DataObj* dn;
+
+    for (int i = 0 ; i < NUM_TABLES ; i++)
+        ind[i] = odb->create_index(Index::LinkedList, 0, compare);
 
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
-        odb->add_data(&v, false);
+        //v = i;
+        dn = odb->add_data(&v, false);
+
+        //#pragma omp parallel for
+        for (int j = 0 ; j < NUM_TABLES ; j++)
+            ind[j]->add_data(dn);
     }
 
+    ftime(&start);
+
+    //#pragma omp parallel for
+    for (int j = 0 ; j < NUM_QUERIES ; j++)
+        res[j] = ind[0]->query(condition);
+
+    ftime(&end);
+
     delete odb;
+
+    return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 }
 
 int main (int argc, char ** argv)
@@ -59,9 +90,6 @@ int main (int argc, char ** argv)
     uint32_t test_num;
     uint32_t test_type;
 
-    struct timeb start;
-    struct timeb end;
-
     sscanf(argv[1], "%lu", &element_size);
     sscanf(argv[2], "%lu", &test_size);
     sscanf(argv[3], "%u", &test_num);
@@ -72,14 +100,10 @@ int main (int argc, char ** argv)
     double duration = 0;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
-        ftime(&start);
+        duration += odb_test(element_size, test_size, test_type);
 
-        odb_test(element_size, test_size, test_type);
-
-        ftime(&end);
-
-        duration += (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
         printf(".");
+        //printf(" %f\n", (end.time - start.time) + 0.001 * (end.millitm - start.millitm));
         fflush(stdout);
     }
 

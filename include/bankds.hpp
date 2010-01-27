@@ -14,16 +14,17 @@ class BankDS : public DataStore
 {
 public:
     BankDS();
-    BankDS(uint64_t, uint64_t = 100000);
-    ~BankDS();
-    
-    virtual inline void* add_element(void*);
-    virtual void* get_at(uint64_t);
-    virtual bool remove_at(uint64_t);
-    virtual uint64_t size();
-    virtual void populate(Index*);
+    BankDS(uint64_t datalen, uint64_t cap = 100000);
+    virtual ~BankDS();
 
-private:
+    virtual inline void* add_element(void* rawdata);
+    virtual void* get_at(uint64_t index);
+    virtual bool remove_at(uint64_t index);
+    virtual uint64_t size();
+    virtual void populate(Index* index);
+    virtual DataStore* clone();
+
+protected:
     char **data;
     uint64_t posA, posB;
     uint64_t data_count;
@@ -35,111 +36,14 @@ private:
     RWLOCK_T;
 };
 
-BankDS::BankDS()
+class BankIDS : public BankDS
 {
-    RWLOCK_INIT();
-}
+public:
+    BankIDS(uint64_t cap = 100000);
+    virtual inline void* add_element(void* rawdata);
+    virtual inline void* get_at(uint64_t index);
+};
 
-BankDS::BankDS(uint64_t data_size, uint64_t cap)
-{
-    data = (char**)malloc(sizeof(char*));
-    *(data) = (char*)malloc(cap * data_size);
-    posA = 0;
-    posB = 0;
-    data_count = 0;
-    list_size = sizeof(char*);
-    this->cap = cap;
-    cap_size = cap * data_size;
-    this->data_size = data_size;
-    RWLOCK_INIT();
-}
-
-BankDS::~BankDS()
-{
-    for ( ; posA > 0 ; posA -= sizeof(char*))
-        free(*(data + posA));
-    
-    free(*data);
-    free(data);
-    
-    RWLOCK_DESTROY();
-}
-
-inline void* BankDS::add_element(void* data_in)
-{
-    void* ret;
-
-    WRITE_LOCK();
-    if (deleted.empty())
-    {
-        ret = *(data + posA) + posB;
-        memcpy(ret, data_in, data_size);
-        posB += data_size;
-
-        if (posB == cap_size)
-        {
-            posB = 0;
-            posA += sizeof(char*);
-
-            if (posA == list_size)
-            {
-                char** temp = (char**)malloc(2 * list_size * sizeof(char*));
-                memcpy(temp, data, list_size * sizeof(char*));
-                free(data);
-                data = temp;
-                list_size *= 2;
-            }
-
-            *(data + posA) = (char*)malloc(cap * data_size);
-        }
-    }
-    else
-    {
-        ret = deleted.top();
-        deleted.pop();
-
-        memcpy(ret, data_in, data_size);
-    }
-
-    data_count++;
-
-    WRITE_UNLOCK();
-    return ret;
-    //return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
-}
-
-inline void* BankDS::get_at(uint64_t index)
-{
-    READ_LOCK();
-    void * ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
-    READ_UNLOCK();
-    return ret;
-}
-
-bool BankDS::remove_at(uint64_t index)
-{
-    if (index < data_count)
-    {
-        WRITE_LOCK();
-        deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
-        WRITE_UNLOCK();
-        return true;
-    }
-    else
-        return false;
-}
-
-uint64_t BankDS::size()
-{
-    return data_count;
-}
-
-void BankDS::populate(Index* index)
-{
-    READ_LOCK();
-    for (uint64_t i = 0 ; i < data_count ; i++)
-        index->add_data_v(get_at(i));
-    READ_UNLOCK();
-}
+#include "bankds.cpp"
 
 #endif

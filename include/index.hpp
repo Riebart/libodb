@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdint.h>
 
+#include "datastore.hpp"
+
 using namespace std;
 
 class DataObj
@@ -11,24 +13,11 @@ class DataObj
     friend class ODB;
 
 public:
-    DataObj() { };
-
-    ~DataObj() { };
-
-    DataObj(int ident, void* data)
-    {
-        this->ident = ident;
-        this->data = data;
-    }
-
-    inline int get_ident()
-    {
-        return ident;
-    }
-    inline void* get_data()
-    {
-        return data;
-    }
+    DataObj();
+    ~DataObj();
+    DataObj(int ident, void* data);
+    inline int get_ident();
+    inline void* get_data();
 
 private:
     int ident;
@@ -37,47 +26,24 @@ private:
 
 class IndexGroup
 {
-    friend class Bank;
-    friend class Datastore;
+    friend class ODB;
 
 public:
-    IndexGroup() { };
-
-    virtual ~IndexGroup()
-    {
-    };
-
-    IndexGroup(int ident)
-    {
-        this->ident = ident;
-    }
-
-    inline void add_index(IndexGroup* ig)
-    {
-        if ((this->ident) == (ig->get_ident()))
-            indices.push_back(ig);
-    }
-
-    inline virtual void add_data(DataObj* data)
-    {
-        if (data->get_ident() == ident)
-            for (uint32_t i = 0 ; i < indices.size() ; i++)
-                indices[i]->add_data(data);
-    }
-
-    inline virtual void add_data_v(void* data)
-    {
-        for (uint32_t i = 0 ; i < indices.size() ; i++)
-            indices[i]->add_data_v(data);
-    }
-
-    inline virtual int get_ident()
-    {
-        return ident;
-    }
+    IndexGroup();
+    virtual ~IndexGroup();
+    IndexGroup(int ident, DataStore* parent);
+    inline void add_index(IndexGroup* ig);
+    inline virtual void add_data(DataObj* data);
+    inline virtual DataStore* query(bool (*condition)(void*));
+    inline virtual int get_ident();
+    virtual uint64_t size();
 
 protected:
     int ident;
+    DataStore* parent;
+
+    inline virtual void add_data_v(void* data);
+    inline virtual void query(bool (*condition)(void*), DataStore* ds);
 
 private:
     vector<IndexGroup*> indices;
@@ -85,22 +51,22 @@ private:
 
 class Index : public IndexGroup
 {
+    friend class BankDS;
+    friend class LinkedListDS;
+
 public:
-    inline virtual void add_data(DataObj* data)
-    {
-        if (data->get_ident() == ident)
-            add_data_v(data->get_data());
-    }
+    typedef enum { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
 
-    virtual void verify() { };
+    inline virtual void add_data(DataObj* data);
+    inline virtual DataStore* query(bool (*condition)(void*));
+    virtual uint64_t size();
 
-    inline virtual void add_data_v(void*) { };
-
-    virtual unsigned long size()
-    {
-        return 0;
-    };
+protected:
+    inline virtual void add_data_v(void*);
+    inline virtual void query(bool (*condition)(void*), DataStore* ds);
 };
+
+#include "index.cpp"
 
 #include "linkedlisti.hpp"
 #include "redblacktreei.hpp"
