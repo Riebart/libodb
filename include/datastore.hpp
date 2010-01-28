@@ -28,9 +28,4 @@ protected:
     int ident;
 };
 
-#include "datastore.cpp"
-
-#include "bankds.hpp"
-#include "linkedlistds.hpp"
-
 #endif

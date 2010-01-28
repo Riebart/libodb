@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "index.hpp"
+#include "datastore.hpp"
 
 class LinkedListDS : public DataStore
 {
@@ -43,10 +44,9 @@ public:
     LinkedListIDS(DataStore* parent = NULL);
 
 protected:
-    virtual inline void* add_element(void* rawdata);
-    virtual inline void* get_at(uint64_t index);
+    virtual void* add_element(void* rawdata);
+    virtual void* get_at(uint64_t index);
 };
 
-#include "linkedlistds.cpp"
 
 #endif

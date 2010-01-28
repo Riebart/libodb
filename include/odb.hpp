@@ -8,7 +8,11 @@
 #include "datastore.hpp"
 #include "index.hpp"
 
+#include "bankds.hpp"
+#include "linkedlistds.hpp"
+
 using namespace std;
+
 
 class ODB
 {
@@ -20,9 +24,9 @@ public:
     ~ODB();
     Index* create_index(Index::IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);
     IndexGroup* create_group();
-    inline void add_data(void* raw_data);
-    inline DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
-    inline void add_to_index(DataObj* d, IndexGroup* i);
+    void add_data(void* raw_data);
+    DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
+    void add_to_index(DataObj* d, IndexGroup* i);
     uint64_t size();
 
 private:
@@ -35,7 +39,5 @@ private:
     IndexGroup* all;
     DataObj dataobj;
 };
-
-#include "odb.cpp"
 
 #endif

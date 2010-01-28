@@ -1,5 +1,6 @@
-#ifndef INDEX_CPP
-#define INDEX_CPP
+#include "index.hpp"
+#include "datastore.hpp"
+#include "odb.hpp"
 
 DataObj::DataObj()
 {
@@ -41,7 +42,7 @@ IndexGroup::IndexGroup(int ident, DataStore* parent)
     this->parent = parent;
 }
 
-inline void IndexGroup::add_index(IndexGroup* ig)
+void IndexGroup::add_index(IndexGroup* ig)
 {
     if ((this->ident) == (ig->get_ident()))
         indices.push_back(ig);
@@ -117,5 +118,3 @@ inline void Index::add_data_v(void*)
 inline void Index::query(bool (*condition)(void*), DataStore* ds)
 {
 }
-
-#endif

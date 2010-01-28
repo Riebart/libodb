@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lock.hpp"
+#include "index.hpp"
+
 class LinkedListI : public Index
 {
 public:
@@ -22,7 +25,7 @@ protected:
         void* data;
     };
     
-    inline virtual void add_data_v(void* data);
+    virtual void add_data_v(void* data);
     void query(bool (*condition)(void*), DataStore* ds);
 
     struct node* first;
@@ -32,7 +35,5 @@ protected:
     bool drop_duplicates;
     RWLOCK_T;
 };
-
-#include "linkedlisti.cpp"
 
 #endif

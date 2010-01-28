@@ -1,5 +1,4 @@
-#ifndef BANKDS_CPP
-#define BANKDS_CPP
+#include "bankds.hpp"
 
 BankDS::BankDS()
 {
@@ -140,4 +139,3 @@ DataStore* BankDS::clone()
     return new BankIDS(cap, this);
 }
 
-#endif

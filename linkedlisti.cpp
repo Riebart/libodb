@@ -1,5 +1,6 @@
-#ifndef LINKEDLISTI_CPP
-#define LINKEDLISTI_CPP
+#include "linkedlisti.hpp"
+#include "datastore.hpp"
+
 
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
@@ -211,5 +212,3 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
         curr = curr->next;
     }
 }
-
-#endif

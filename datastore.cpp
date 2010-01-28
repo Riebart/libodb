@@ -1,5 +1,6 @@
-#ifndef DATASTORE_CPP
-#define DATASTORE_CPP
+#include "datastore.hpp"
+#include "common.hpp"
+
 
 DataStore::DataStore()
 {
@@ -39,4 +40,3 @@ uint64_t DataStore::size()
     return 0;
 }
 
-#endif

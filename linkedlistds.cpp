@@ -1,5 +1,5 @@
-#ifndef LINKEDLISTDS_CPP
-#define LINKEDLISTDS_CPP
+#include "linkedlistds.hpp"
+#include "datastore.hpp"
 
 LinkedListDS::LinkedListDS(DataStore* parent)
 {
@@ -142,5 +142,3 @@ DataStore* LinkedListDS::clone()
 {
     return new LinkedListIDS(this);
 }
-
-#endif

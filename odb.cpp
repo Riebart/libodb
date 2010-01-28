@@ -1,5 +1,5 @@
-#ifndef ODB_CPP
-#define ODB_CPP
+#include "odb.hpp"
+
 
 uint32_t ODB::num_unique = 0;
 
@@ -79,12 +79,12 @@ IndexGroup* ODB::create_group()
     return g;
 }
 
-inline void ODB::add_data(void* rawdata)
+void ODB::add_data(void* rawdata)
 {
     all->add_data_v(data->add_element(rawdata));
 }
 
-inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
+DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     dataobj.data = data->add_element(rawdata);
 
@@ -103,5 +103,3 @@ uint64_t ODB::size()
 {
     return data->size();
 }
-
-#endif

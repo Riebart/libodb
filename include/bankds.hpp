@@ -6,6 +6,7 @@
 #include <stack>
 
 #include "index.hpp"
+#include "datastore.hpp"
 
 using namespace std;
 
@@ -17,7 +18,7 @@ public:
     virtual ~BankDS();
 
 protected:
-    virtual inline void* add_element(void* rawdata);
+    virtual void* add_element(void* rawdata);
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
     virtual uint64_t size();
@@ -41,10 +42,9 @@ public:
     BankIDS(uint64_t cap = 100000, DataStore* parent = NULL);
 
 protected:
-    virtual inline void* add_element(void* rawdata);
-    virtual inline void* get_at(uint64_t index);
+    virtual void* add_element(void* rawdata);
+    virtual void* get_at(uint64_t index);
 };
 
-#include "bankds.cpp"
 
 #endif

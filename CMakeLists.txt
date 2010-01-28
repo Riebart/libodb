@@ -26,6 +26,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 # Make sure the compiler can find include files from our Hello library.
 include_directories (${TM-PROJECT_SOURCE_DIR}/include)
 
+add_library(odb datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp)
+
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)
 
@@ -42,6 +44,6 @@ add_executable (minimal minimal.cpp)
 #target_link_libraries(pthread state c profiler)
 
 #link_directories(/usr/local/lib)
-target_link_libraries(minimal tcmalloc_minimal pthread)
-target_link_libraries(test tcmalloc_minimal pthread)
+target_link_libraries(minimal tcmalloc_minimal pthread odb)
+target_link_libraries(test tcmalloc_minimal pthread odb)
 
