@@ -88,7 +88,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         ind[i] = odb->create_index(Index::LinkedList, 0, compare);
 
     ftime(&start);
-    
+
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
@@ -97,9 +97,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
-           ind[j]->add_data(dn);
+            ind[j]->add_data(dn);
     }
-    
+
     //ftime(&end);
 
     //ftime(&start);

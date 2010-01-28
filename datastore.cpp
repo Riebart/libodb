@@ -1,7 +1,6 @@
 #include "datastore.hpp"
 #include "common.hpp"
 
-
 DataStore::DataStore()
 {
     parent = NULL;
@@ -39,4 +38,3 @@ uint64_t DataStore::size()
 {
     return 0;
 }
-

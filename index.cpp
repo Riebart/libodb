@@ -58,10 +58,10 @@ inline void IndexGroup::add_data(DataObj* data)
 inline ODB* IndexGroup::query(bool (*condition)(void*))
 {
     DataStore* ds = parent->clone();
-    
+
     for (uint32_t i = 0 ; i < indices.size() ; i++)
         indices[i]->query(condition, ds);
-    
+
     return new ODB(ds, ident);
 }
 
@@ -98,9 +98,9 @@ inline void Index::add_data(DataObj* data)
 inline ODB* Index::query(bool (*condition)(void*))
 {
     DataStore* ds = parent->clone();
-    
+
     query(condition, ds);
-    
+
     return new ODB(ds, ident);
 }
 

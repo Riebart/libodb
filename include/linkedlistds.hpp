@@ -15,14 +15,14 @@ public:
     virtual ~LinkedListDS();
 
 protected:
-    #pragma pack(1)
+#pragma pack(1)
     struct datanode
     {
         struct datanode* next;
         char data;
     };
-    #pragma pack()
-    
+#pragma pack()
+
     virtual void* add_element(void* rawdata);
     virtual bool del_at(uint64_t index);
     virtual void* get_at(uint64_t index);
@@ -30,7 +30,7 @@ protected:
     virtual uint64_t size();
     virtual void cleanup();
     virtual DataStore* clone();
-    
+
     struct datanode * bottom;
     std::vector<bool> deleted_list;
     uint64_t datalen;
@@ -46,6 +46,5 @@ protected:
     virtual void* add_element(void* rawdata);
     virtual void* get_at(uint64_t index);
 };
-
 
 #endif

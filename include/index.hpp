@@ -17,7 +17,7 @@ public:
     DataObj();
     DataObj(int ident, void* data);
     ~DataObj();
-    
+
     inline int get_ident();
     inline void* get_data();
 
@@ -34,7 +34,7 @@ public:
     IndexGroup();
     IndexGroup(int ident, DataStore* parent);
     virtual ~IndexGroup();
-    
+
     void add_index(IndexGroup* ig);
     virtual void add_data(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));

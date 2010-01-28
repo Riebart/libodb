@@ -6,7 +6,7 @@ ODB::ODB(DataStore* data)
 {
     this->ident = num_unique;
     num_unique++;
-    
+
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
     dataobj.ident = this->ident;
@@ -16,7 +16,7 @@ ODB::ODB(DataStore* data)
 ODB::ODB(DataStore* data, int ident)
 {
     this->ident = ident;
-    
+
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
     dataobj.ident = this->ident;

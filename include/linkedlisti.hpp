@@ -24,7 +24,7 @@ protected:
         struct node* next;
         void* data;
     };
-    
+
     virtual void add_data_v(void* data);
     void query(bool (*condition)(void*), DataStore* ds);
 

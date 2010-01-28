@@ -11,7 +11,7 @@ class DataStore
     friend class IndexGroup;
     friend class Index;
     friend class LinkedListI;
-    
+
 public:
     DataStore();
     virtual ~DataStore();
@@ -23,7 +23,7 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual uint64_t size();
-    
+
     DataStore* parent;
 };
 

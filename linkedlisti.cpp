@@ -1,7 +1,6 @@
 #include "linkedlisti.hpp"
 #include "datastore.hpp"
 
-
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
     RWLOCK_INIT();
@@ -203,12 +202,12 @@ uint64_t LinkedListI::size()
 void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 {
     struct node* curr = first;
-    
+
     while (curr != NULL)
     {
         if (condition(curr->data))
             ds->add_element(&(curr->data));
-        
+
         curr = curr->next;
     }
 }

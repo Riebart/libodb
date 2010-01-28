@@ -23,7 +23,7 @@ protected:
     virtual uint64_t size();
     virtual void populate(Index* index);
     virtual DataStore* clone();
-    
+
     char **data;
     uint64_t posA, posB;
     uint64_t data_count;
@@ -44,6 +44,5 @@ protected:
     virtual void* add_element(void* rawdata);
     virtual void* get_at(uint64_t index);
 };
-
 
 #endif
