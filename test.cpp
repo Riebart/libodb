@@ -7,7 +7,7 @@
 
 #define SPREAD 50
 #define NUM_TABLES 1
-#define NUM_QUERIES 0
+#define NUM_QUERIES 1
 
 bool condition(void* a)
 {
@@ -78,7 +78,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {
         res[j] = ind[0]->query(condition);
-        //printf("%lu:", res[j]->size());
+        printf("%lu:", res[j]->size());
     }
 
     ftime(&end);

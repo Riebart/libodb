@@ -1,18 +1,26 @@
 #include "odb.hpp"
 
-
 uint32_t ODB::num_unique = 0;
 
 ODB::ODB(DataStore* data)
 {
-    ident = num_unique;
+    this->ident = num_unique;
     num_unique++;
-
+    
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
     dataobj.ident = this->ident;
     this->data = data;
-    data->ident = this->ident;
+}
+
+ODB::ODB(DataStore* data, int ident)
+{
+    this->ident = ident;
+    
+    this->datalen = datalen;
+    all = new IndexGroup(ident, data);
+    dataobj.ident = this->ident;
+    this->data = data;
 }
 
 ODB::~ODB()

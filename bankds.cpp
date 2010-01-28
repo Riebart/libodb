@@ -1,11 +1,5 @@
 #include "bankds.hpp"
 
-BankDS::BankDS()
-{
-    parent = NULL;
-    RWLOCK_INIT();
-}
-
 BankDS::BankDS(uint64_t data_size, uint64_t cap, DataStore* parent)
 {
     data = (char**)malloc(sizeof(char*));
@@ -21,19 +15,8 @@ BankDS::BankDS(uint64_t data_size, uint64_t cap, DataStore* parent)
     RWLOCK_INIT();
 }
 
-BankIDS::BankIDS(uint64_t cap, DataStore* parent)
+BankIDS::BankIDS(uint64_t cap, DataStore* parent) : BankDS(sizeof(char*), cap, parent)
 {
-    data_size = sizeof(char*);
-    data = (char**)malloc(sizeof(char*));
-    *(data) = (char*)malloc(cap * data_size);
-    posA = 0;
-    posB = 0;
-    data_count = 0;
-    list_size = sizeof(char*);
-    this->cap = cap;
-    cap_size = cap * data_size;
-    this->parent = parent;
-    RWLOCK_INIT();
 }
 
 BankDS::~BankDS()
@@ -138,4 +121,3 @@ DataStore* BankDS::clone()
 {
     return new BankIDS(cap, this);
 }
-

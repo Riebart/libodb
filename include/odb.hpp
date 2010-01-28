@@ -20,6 +20,7 @@ public:
     //TODO: Apparently this isn't the appropriate way to do this.
     typedef enum { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
+    ODB(DataStore* data, int ident);
     ODB(DataStore* data);
     ~ODB();
     Index* create_index(Index::IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);

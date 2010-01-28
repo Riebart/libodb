@@ -25,7 +25,6 @@ protected:
     virtual uint64_t size();
     
     DataStore* parent;
-    int ident;
 };
 
 #endif

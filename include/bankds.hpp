@@ -13,7 +13,6 @@ using namespace std;
 class BankDS : public DataStore
 {
 public:
-    BankDS();
     BankDS(uint64_t datalen, uint64_t cap = 100000, DataStore* parent = NULL);
     virtual ~BankDS();
 

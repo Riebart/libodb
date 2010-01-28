@@ -1,26 +1,17 @@
 #include "linkedlistds.hpp"
 #include "datastore.hpp"
 
-LinkedListDS::LinkedListDS(DataStore* parent)
-{
-    this->parent = parent;
-}
-
-LinkedListIDS::LinkedListIDS(DataStore* parent)
-{
-    //since the only read case we (currently) have is trivial, might a general lock be better suited?
-    RWLOCK_INIT();
-    datalen = sizeof(char*);
-    bottom = NULL;
-    this->parent = parent;
-}
-
 LinkedListDS::LinkedListDS(uint64_t datalen, DataStore* parent)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
     this->datalen = datalen;
     bottom = NULL;
+    this->parent = parent;
+}
+
+LinkedListIDS::LinkedListIDS(DataStore* parent) : LinkedListDS(sizeof(char*), parent)
+{
 }
 
 //TODO: free memory

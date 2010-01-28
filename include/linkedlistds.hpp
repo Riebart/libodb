@@ -11,7 +11,6 @@
 class LinkedListDS : public DataStore
 {
 public:
-    LinkedListDS(DataStore* parent = NULL);
     LinkedListDS(uint64_t datalen, DataStore* parent = NULL);
     virtual ~LinkedListDS();
 
