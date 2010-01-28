@@ -1,15 +1,8 @@
-
-/** File for testing framework
-*
-* @file test.cpp
-* This file is used for testing the database framework. Here you will find
-* methods and examples that use the framework and test it to make sure it
-* functions properly.
-*
-* @Author Travis
-*
-* @warning Specifying too many elements for testing can eat up your RAMs
-*/
+/// File for testing framework
+/// This file is used for testing the database framework. Here you will find methods and examples that use the framework and test it to make sure it functions properly.
+/// @file test.cpp
+/// @Author Travis
+/// @warning Specifying too many elements for testing can eat up your RAMs
 
 #include <stdlib.h>
 #include <sys/timeb.h>
@@ -22,39 +15,40 @@
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
 
+/// Example of a condtional function for use in general queries.
+/// @ingroup example
+/// @param [in] a A pointer to the data to be checked.
+/// @retval true The condition succeeds for the given input.
+/// @retval false The condition fails for the given input.
 bool condition(void* a)
 {
     return ((*(long*)a) < 0);
 }
 
-/**A sample comparison function
-*
-* @ingroup example
-* @param [in] a A pointer to the first int to be compared against
-* @param [in] b A poitner to the second int to be compared
-* @retval 0 The elements are identical
-* @retval <0 Element pointed at by a is larger than the one pointed at by b
-* @retval >0 Element pointed at by b is larger than the one pointed at by a
-*/
+/// Example of a comparison function for use in index tables.
+/// @ingroup example
+/// @param [in] a A pointer to the first int to be compared against.
+/// @param [in] b A poitner to the second int to be compared.
+/// @retval 0 The elements are identical.
+/// @retval <0 Element pointed at by a is larger than the one pointed at by b.
+/// @retval >0 Element pointed at by b is larger than the one pointed at by a.
 int compare(void* a, void* b)
 {
     return (*(long*)b - *(long*)a);
 }
 
-///Prints out the sample usage
+/// Usage function that prints out the proper usage.
 void usage()
 {
     printf("Usage: test <element size> <number of elements> <number of tests> <test type>\n\tWhere: test_type=0 => BANK, test_type=1 => LL\n");
     exit(EXIT_SUCCESS);
 }
 
-/**Function for testing the database
-*
-* @param [in] element_size The size of the elements to be inserted
-* @param [in] test_size The number of elements to be inserted
-* @param [in] test_type The type of test to be done. As of now, a 0 indicates
-that the test should run against the BankDS, a 1 against the LinkedListDS
-*/
+/// Function for testing the database.
+/// @param [in] element_size The size of the elements to be inserted
+/// @param [in] test_size The number of elements to be inserted
+/// @param [in] test_type The type of test to be done. As of now, a 0 indicates that the test should run against the BankDS, a 1 against the LinkedListDS
+/// @return Some duration obtained during the test. Could be the duration for insertion, query, deletion, or any combination (perhaps all of them). This gives flexibility for determining which events count towards the timing when muiltiple actions are performed each run.
 double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 {
     ODB* odb;
@@ -88,7 +82,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         ind[i] = odb->create_index(Index::LinkedList, 0, compare);
 
     ftime(&start);
-
+    
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
@@ -97,9 +91,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
-            ind[j]->add_data(dn);
+           ind[j]->add_data(dn);
     }
-
+    
     //ftime(&end);
 
     //ftime(&start);
@@ -152,6 +146,4 @@ int main (int argc, char ** argv)
     fgetc(stdin);
 
     return EXIT_SUCCESS;
-
 }
-
