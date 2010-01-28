@@ -64,11 +64,13 @@ protected:
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created (by ODB::create_index) on top of a datastore that already contains data, the new index table be populated with the existing data. That job is performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
-    /// @todo Populating and IndexGroup?
+    /// @todo Populating an IndexGroup?
+    /// @todo Boost performance. Move from indexing to pointer arithmetic.
     virtual void populate(Index* index);
     
     /// Clone the datastore and return an indirect version.
     /// @return A pointer to an indirect datastore (an instance of BankIDS) that references back to this instance of BankDS as its parent.
+    /// @todo Split this into clone() and clone_indirect().
     virtual DataStore* clone();
 
     /// List of pointers to the buckets.
@@ -76,15 +78,18 @@ protected:
     char** data;
     
     /// The position indicating which bucket the 'cursor' is in.
-    uint64_t posA
+    /// This actually holds a byte-offset to avoid unnecessary arithmetic.
+    uint64_t posA;
     
     /// The position indicating where in the bucket (indicated by posA) the 'cursor' is.
+    /// This actually holds a byte-offset to avoid unnecessary arithmetic.
     uint64_t posB;
     
     /// The number of items in this datastore.
     uint64_t data_count;
     
     /// The number of buckets that can be created before BankDS::data needs to grow.
+    /// This actually stores sizeof(char*)*number_of_buckets, to save on unnecessary arithmetic.
     uint64_t list_size;
     
     /// The number of elements stored per bucket.
