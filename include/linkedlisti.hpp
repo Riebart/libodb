@@ -7,8 +7,6 @@
 
 class LinkedListI : public Index
 {
-    friend class ODB;
-
 public:
     LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates);
     ~LinkedListI();

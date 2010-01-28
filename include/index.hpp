@@ -6,7 +6,7 @@
 
 using namespace std;
 
-class DataStore;
+class ODB;
 
 class DataObj
 {
@@ -36,7 +36,7 @@ public:
     
     inline void add_index(IndexGroup* ig);
     inline virtual void add_data(DataObj* data);
-    inline virtual DataStore* query(bool (*condition)(void*));
+    inline virtual ODB* query(bool (*condition)(void*));
     inline virtual int get_ident();
     virtual uint64_t size();
 
@@ -60,7 +60,7 @@ public:
     typedef enum { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
 
     inline virtual void add_data(DataObj* data);
-    inline virtual DataStore* query(bool (*condition)(void*));
+    inline virtual ODB* query(bool (*condition)(void*));
     virtual uint64_t size();
 
 protected:

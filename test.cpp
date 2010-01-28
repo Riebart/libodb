@@ -5,6 +5,7 @@
 
 #include "odb.hpp"
 
+#define SPREAD 50
 #define NUM_TABLES 1
 #define NUM_QUERIES 0
 
@@ -47,10 +48,10 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     struct timeb start;
     struct timeb end;
 
-    long v, p = 50;
+    long v;
 
     Index* ind[NUM_TABLES];
-    DataStore* res[NUM_QUERIES];
+    ODB* res[NUM_QUERIES];
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
@@ -60,7 +61,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
-        v = (i + ((rand() % (2 * p + 1)) - p));
+        v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = i;
         dn = odb->add_data(&v, false);
 
