@@ -37,7 +37,7 @@ private:
     vector<IndexGroup*> groups;
     DataStore* data;
     IndexGroup* all;
-    DataObj dataobj;
+    DataObj* dataobj;
 };
 
 #endif

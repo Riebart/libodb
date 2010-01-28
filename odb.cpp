@@ -9,7 +9,7 @@ ODB::ODB(DataStore* data)
 
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
-    dataobj.ident = this->ident;
+    dataobj = new DataObj(ident);
     this->data = data;
 }
 
@@ -19,7 +19,7 @@ ODB::ODB(DataStore* data, int ident)
 
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
-    dataobj.ident = this->ident;
+    dataobj = new DataObj(ident);
     this->data = data;
 }
 
@@ -94,12 +94,12 @@ void ODB::add_data(void* rawdata)
 
 DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
-    dataobj.data = data->add_element(rawdata);
+    dataobj->data = data->add_element(rawdata);
 
     if (add_to_all)
-        all->add_data_v(dataobj.data);
+        all->add_data_v(dataobj->data);
 
-    return &dataobj;
+    return dataobj;
 }
 
 inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
