@@ -6,29 +6,20 @@
 
 using namespace std;
 
+class ODB;
+class DataStore;
+
 class DataObj
 {
     friend class ODB;
 
 public:
-    DataObj() { };
-
-    ~DataObj() { };
-
-    DataObj(int ident, void* data)
-    {
-        this->ident = ident;
-        this->data = data;
-    }
-
-    inline int get_ident()
-    {
-        return ident;
-    }
-    inline void* get_data()
-    {
-        return data;
-    }
+    DataObj();
+    DataObj(int ident, void* data);
+    ~DataObj();
+    
+    inline int get_ident();
+    inline void* get_data();
 
 private:
     int ident;
@@ -37,47 +28,25 @@ private:
 
 class IndexGroup
 {
-    friend class Bank;
-    friend class Datastore;
+    friend class ODB;
 
 public:
-    IndexGroup() { };
-
-    virtual ~IndexGroup()
-    {
-    };
-
-    IndexGroup(int ident)
-    {
-        this->ident = ident;
-    }
-
-    inline void add_index(IndexGroup* ig)
-    {
-        if ((this->ident) == (ig->get_ident()))
-            indices.push_back(ig);
-    }
-
-    inline virtual void add_data(DataObj* data)
-    {
-        if (data->get_ident() == ident)
-            for (uint32_t i = 0 ; i < indices.size() ; i++)
-                indices[i]->add_data(data);
-    }
-
-    inline virtual void add_data_v(void* data)
-    {
-        for (uint32_t i = 0 ; i < indices.size() ; i++)
-            indices[i]->add_data_v(data);
-    }
-
-    inline virtual int get_ident()
-    {
-        return ident;
-    }
+    IndexGroup();
+    IndexGroup(int ident, DataStore* parent);
+    virtual ~IndexGroup();
+    
+    void add_index(IndexGroup* ig);
+    virtual void add_data(DataObj* data);
+    virtual ODB* query(bool (*condition)(void*));
+    virtual int get_ident();
+    virtual uint64_t size();
 
 protected:
     int ident;
+    DataStore* parent;
+
+    virtual void add_data_v(void* data);
+    virtual void query(bool (*condition)(void*), DataStore* ds);
 
 private:
     vector<IndexGroup*> indices;
@@ -85,21 +54,19 @@ private:
 
 class Index : public IndexGroup
 {
+    friend class BankDS;
+    friend class LinkedListDS;
+
 public:
-    inline virtual void add_data(DataObj* data)
-    {
-        if (data->get_ident() == ident)
-            add_data_v(data->get_data());
-    }
+    typedef enum { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
 
-    virtual void verify() { };
+    virtual void add_data(DataObj* data);
+    virtual ODB* query(bool (*condition)(void*));
+    virtual uint64_t size();
 
-    inline virtual void add_data_v(void*) { };
-
-    virtual unsigned long size()
-    {
-        return 0;
-    };
+protected:
+    virtual void add_data_v(void*);
+    virtual void query(bool (*condition)(void*), DataStore* ds);
 };
 
 #include "linkedlisti.hpp"

@@ -4,6 +4,7 @@
 //for the fail macro
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "lock.hpp"
 

@@ -3,37 +3,28 @@
 
 #include <stdint.h>
 
-#include "index.hpp"
+class Index;
 
 class DataStore
 {
+    friend class ODB;
+    friend class IndexGroup;
+    friend class Index;
+    friend class LinkedListI;
+    
 public:
-    virtual ~DataStore() { };
+    DataStore();
+    virtual ~DataStore();
 
-    virtual void* add_element(void*)
-    {
-        return NULL;
-    };
-
-    virtual void* get_at(uint64_t)
-    {
-        return NULL;
-    };
-
-    virtual bool remove_at(uint64_t)
-    {
-        return false;
-    };
-
-    virtual void populate(Index*) { };
-
-    virtual uint64_t size()
-    {
-        return 0;
-    };
+protected:
+    virtual void* add_element(void* rawdata);
+    virtual void* get_at(uint64_t index);
+    virtual bool remove_at(uint64_t index);
+    virtual void populate(Index* index);
+    virtual DataStore* clone();
+    virtual uint64_t size();
+    
+    DataStore* parent;
 };
-
-#include "bankds.hpp"
-#include "linkedlistds.hpp"
 
 #endif
