@@ -52,12 +52,6 @@ Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*,
         new_index->parent = data;
         break;
     }
-    case Index::KeyedLinkedList:
-    {
-        new_index = new KeyedLinkedListI(ident, compare, merge, keygen, keylen, drop_duplicates);
-        new_index->parent = data;
-        break;
-    }
     case Index::RedBlackTree:
     {
         new_index = new RedBlackTreeI(ident, compare, merge, drop_duplicates);

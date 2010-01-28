@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-//#include "index.hpp"
-
 class Index;
 
 class DataStore
@@ -12,18 +10,20 @@ class DataStore
     friend class ODB;
     friend class IndexGroup;
     friend class Index;
+    friend class LinkedListI;
     
 public:
     DataStore();
     virtual ~DataStore();
+
+protected:
     virtual void* add_element(void* rawdata);
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual uint64_t size();
-
-protected:
+    
     DataStore* parent;
     int ident;
 };

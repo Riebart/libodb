@@ -4,9 +4,9 @@
 #include <vector>
 #include <stdint.h>
 
-#include "datastore.hpp"
-
 using namespace std;
+
+class DataStore;
 
 class DataObj
 {
@@ -14,8 +14,9 @@ class DataObj
 
 public:
     DataObj();
-    ~DataObj();
     DataObj(int ident, void* data);
+    ~DataObj();
+    
     inline int get_ident();
     inline void* get_data();
 
@@ -30,8 +31,9 @@ class IndexGroup
 
 public:
     IndexGroup();
-    virtual ~IndexGroup();
     IndexGroup(int ident, DataStore* parent);
+    virtual ~IndexGroup();
+    
     inline void add_index(IndexGroup* ig);
     inline virtual void add_data(DataObj* data);
     inline virtual DataStore* query(bool (*condition)(void*));

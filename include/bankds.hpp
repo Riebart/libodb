@@ -6,7 +6,6 @@
 #include <stack>
 
 #include "index.hpp"
-#include "common.hpp"
 
 using namespace std;
 
@@ -17,14 +16,14 @@ public:
     BankDS(uint64_t datalen, uint64_t cap = 100000, DataStore* parent = NULL);
     virtual ~BankDS();
 
+protected:
     virtual inline void* add_element(void* rawdata);
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
     virtual uint64_t size();
     virtual void populate(Index* index);
     virtual DataStore* clone();
-
-protected:
+    
     char **data;
     uint64_t posA, posB;
     uint64_t data_count;
@@ -40,6 +39,8 @@ class BankIDS : public BankDS
 {
 public:
     BankIDS(uint64_t cap = 100000, DataStore* parent = NULL);
+
+protected:
     virtual inline void* add_element(void* rawdata);
     virtual inline void* get_at(uint64_t index);
 };
