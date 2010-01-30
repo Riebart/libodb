@@ -29,12 +29,12 @@ public:
     /// Unique constructor for a BankDS object.
     /// Since BankDS requires only three parameters, two of which have default values and the third is required in all situations, a single constructor is all that is needed.
     /// @param [in] data_size The length (in bytes) of each unit of data.
-    /// @param [in] cap The number of items to store in each block. (The default value is 100,000 as it has shown to have very good performance)
+    /// @param [in] cap The number of items to store in each block. (The default value is 102400 = 4096*25 as it has shown to have very good performance and guarantees memory alignment)
     /// @param [in] parent A pointer to the DataStore that spawned this one through a BankDS::clone operation. This parameter will rarely be supplied by the user.
     /// @todo Modify it so that cap*datalen falls onto a page boundary. Thing is, there is no guarantee that it is 'starting' on a page boundary.
     /// @todo Move a constructor that takes parent to a private/protected location, only presenting the two-parameter version to the user.
-    BankDS(uint64_t data_size, uint64_t cap = 100000, DataStore* parent = NULL);
-    
+    BankDS(uint64_t data_size, uint64_t cap = 102400, DataStore* parent = NULL);
+
     /// Destructor for a BankDS object.
     /// Since BankDS performs most of the memory handling itself there is a non-trivial destruction process that is required to free all of that memory. This destructor takes care of that.
     virtual ~BankDS();
@@ -44,30 +44,30 @@ protected:
     /// @param [in] rawdata A pointer to the the location of the data to be added.
     /// @return A pointer to the location of the added data in the datastore. By returning a pointer this reduces the lookup overhead to a minimal level.
     virtual void* add_element(void* rawdata);
-    
+
     /// Index into the datastore to retrieve a pointer to the data at the requested location.
     /// Since BankDS is a locally contiguous data structure, it is possible to index into it.
     /// @param [in] index A value indicating where to look into the datastore.
     /// @return Returns a pointer to the desired data.
     virtual void* get_at(uint64_t index);
-    
+
     /// Mark the location at the specified index as free.
     /// @param [in] index A value indicating where in the datastore to mark as free.
     /// @retval true The deletion succeeded and the corresponding location has been marked as free for the next addition.
     /// @retval false The deletion failed and the location was not marked as free. This is most likely due to the case that index was out of bounds.
     virtual bool remove_at(uint64_t index);
-    
+
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.
     virtual uint64_t size();
-    
+
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created (by ODB::create_index) on top of a datastore that already contains data, the new index table be populated with the existing data. That job is performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
     /// @todo Populating an IndexGroup?
     /// @todo Boost performance. Move from indexing to pointer arithmetic.
     virtual void populate(Index* index);
-    
+
     /// Clone the datastore and return an indirect version.
     /// @return A pointer to an indirect datastore (an instance of BankIDS) that references back to this instance of BankDS as its parent.
     /// @todo Split this into clone() and clone_indirect().
@@ -76,34 +76,34 @@ protected:
     /// List of pointers to the buckets.
     /// This contains a series of char* pointers to the various buckets. It starts with enough space for one bucket and double each time it needs to grow in size (i.e: as buckets are added).
     char** data;
-    
+
     /// The position indicating which bucket the 'cursor' is in.
     /// This actually holds a byte-offset to avoid unnecessary arithmetic.
     uint64_t posA;
-    
+
     /// The position indicating where in the bucket (indicated by posA) the 'cursor' is.
     /// This actually holds a byte-offset to avoid unnecessary arithmetic.
     uint64_t posB;
-    
+
     /// The number of items in this datastore.
     uint64_t data_count;
-    
+
     /// The number of buckets that can be created before BankDS::data needs to grow.
     /// This actually stores sizeof(char*)*number_of_buckets, to save on unnecessary arithmetic.
     uint64_t list_size;
-    
+
     /// The number of elements stored per bucket.
     uint64_t cap;
-    
+
     /// The number of bytes per bucket. Equal to cap*data_size.
     uint64_t cap_size;
-    
+
     /// The size (in bytes) of each piece of data.
     uint64_t data_size;
-    
+
     /// Stack containing the memory locations of any deleted items.
     stack<void*> deleted;
-    
+
     /// Locking.
     RWLOCK_T;
 };
@@ -116,11 +116,10 @@ class BankIDS : public BankDS
 public:
     /// Unique constructor for a BankIDS object.
     /// Since BankIDS requires only two parameters (since data_size is automatically set to sizeof(char*)), both of which can be default, only one constructor is needed.
-    /// @param [in] cap The number of items to store in each block. (The default value is 100,000 as it has shown to have very good performance)
+    /// @param [in] cap The number of items to store in each block. (The default value is 102400 = 4096*25 as it has shown to have very good performance and guarantees memory alignment)
     /// @param [in] parent A pointer to the DataStore that spawned this one through a BankDS::clone operation. This parameter will rarely be supplied by the user.
-    /// @todo Modify it so that cap*datalen falls onto a page boundary. Thing is, there is no guarantee that it is 'starting' on a page boundary. This will be taken care of by the BankDS constructor.
     /// @todo Move a constructor that takes parent to a private/protected location, only presenting the two-parameter version to the user.
-    BankIDS(uint64_t cap = 100000, DataStore* parent = NULL);
+    BankIDS(uint64_t cap = 102400, DataStore* parent = NULL);
 
 protected:
     /// Add a piece of raw data to the datastore.
@@ -128,7 +127,7 @@ protected:
     /// @param [in] rawdata A pointer to the the location of the data to be added.
     /// @return A pointer to the location of the added data in the datastore. By returning a pointer this reduces the lookup overhead to a minimal level.
     virtual void* add_element(void* rawdata);
-    
+
     /// Index into the datastore to retrieve a pointer to the data at the requested location.
     /// Since BankDS is a locally contiguous data structure, it is possible to index into it. This function adds a single dereference (*) operation to perform the necessary indirection on the output.
     /// @param [in] index A value indicating where to look into the datastore.

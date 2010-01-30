@@ -7,21 +7,21 @@ BankDS::BankDS(uint64_t data_size, uint64_t cap, DataStore* parent)
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
     *(data) = (char*)malloc(cap * data_size);
-    
+
     // Initialize the cursor position and data count
     posA = 0;
     posB = 0;
     data_count = 0;
-    
+
     // Number of bytes currently available for pointers to buckets. When that is exceeded this list must be grown.
     list_size = sizeof(char*);
-    
+
     // Initialize a few other values.
     this->cap = cap;
     cap_size = cap * data_size;
     this->data_size = data_size;
     this->parent = parent;
-    
+
     RWLOCK_INIT();
 }
 
@@ -40,7 +40,7 @@ BankDS::~BankDS()
 
     // Free the 'first' bucket.
     free(*data);
-    
+
     // Free the list of buckets.
     free(data);
 
@@ -57,10 +57,10 @@ inline void* BankDS::add_element(void* rawdata)
     {
         // Store the data location to be returned later.
         ret = *(data + posA) + posB;
-        
+
         // Copy the data into the datastore.
         memcpy(ret, rawdata, data_size);
-        
+
         // Increment the pointer in the bucket.
         posB += data_size;
 
@@ -69,7 +69,7 @@ inline void* BankDS::add_element(void* rawdata)
         {
             // Reset the cursor position to the beginning of the bucket.
             posB = 0;
-            
+
             // Move the cursor to the next bucket.
             posA += sizeof(char*);
 
@@ -78,16 +78,16 @@ inline void* BankDS::add_element(void* rawdata)
             {
                 // Create a new bucket list that is twice the size of the old one.
                 char** temp = (char**)malloc(2 * list_size * sizeof(char*));
-                
+
                 // Copy existing contents to the new list.
                 memcpy(temp, data, list_size * sizeof(char*));
-                
+
                 // Free the old one.
                 free(data);
-                
+
                 // Bring the new one into use.
                 data = temp;
-                
+
                 // Make sure ot update how big we 'think' the list is.
                 list_size *= 2;
             }
@@ -101,7 +101,7 @@ inline void* BankDS::add_element(void* rawdata)
     {
         // Get the top one.
         ret = deleted.top();
-        
+
         // Pop the stack.
         deleted.pop();
 
@@ -113,10 +113,10 @@ inline void* BankDS::add_element(void* rawdata)
     data_count++;
 
     WRITE_UNLOCK();
-    
+
     // Return the pointer to the data.
     return ret;
-    
+
     // This is for reference in case I need it again. It is nontrivial, so I am hesitant to discard it.
     // It computes the absolute 0-based index of the cursor position.
     // return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
@@ -153,7 +153,7 @@ bool BankDS::remove_at(uint64_t index)
         // Push the memory location onto the stack.
         deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
         WRITE_UNLOCK();
-        
+
         // Return success
         return true;
     }
