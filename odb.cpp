@@ -60,11 +60,11 @@ Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*,
         new_index->parent = data;
         break;
     }
-//     case Index::RedBlackTree:
-//     {
-//         new_index = new RedBlackTreeI(ident, compare, merge, drop_duplicates);
-//         break;
-//     }
+    case Index::RedBlackTree:
+    {
+        new_index = new RedBlackTreeI(ident, compare, merge, drop_duplicates);
+        break;
+    }
     default:
         FAIL("Invalid index type.");
     }

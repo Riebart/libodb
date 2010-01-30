@@ -13,7 +13,7 @@
 
 #define SPREAD 50
 #define NUM_TABLES 1
-#define NUM_QUERIES 1
+#define NUM_QUERIES 0
 
 /// Example of a condtional function for use in general queries.
 /// @ingroup example
@@ -79,22 +79,32 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(Index::LinkedList, 0, compare);
+        ind[i] = odb->create_index(Index::RedBlackTree, 0, compare);
 
     ftime(&start);
-
+    
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = i;
         dn = odb->add_data(&v, false);
-
+        
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
-            ind[j]->add_data(dn);
+           ind[j]->add_data(dn);
     }
-
-    //ftime(&end);
+    
+    printf("%lu\n", ind[0]->size());
+    
+    ftime(&end);
+    
+    if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
+        printf("P");
+    else
+    {
+        printf("F");
+        return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+    }
 
     //ftime(&start);
 
@@ -105,7 +115,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         printf("%lu:", res[j]->size());
     }
 
-    ftime(&end);
+    //ftime(&end);
 
     delete odb;
 
@@ -128,7 +138,7 @@ int main (int argc, char ** argv)
     sscanf(argv[4], "%u", &test_type);
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
-
+    
     double duration = 0;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
