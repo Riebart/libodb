@@ -51,11 +51,8 @@ using namespace std;
 /// @todo Allow duplicate values in the tree.
 /// @todo Make use of the merge function.
 /// @todo Deletion.
-/// @todo Verify the assertion function.
-/// @todo Fix a whole bunch of the issues with dereferencing NULL pointers in the insert function.
-/// @todo Change general sopping case (in insert) so that duplicates can exist.
+/// @todo Change general stopping case (in insert) so that duplicates can exist.
 /// @todo Fix the use of goto in the insert function.
-/// @todo Cache the comparison result in insertion.
 /// @todo Fix return value of the insertion function.
 class RedBlackTreeI : public Index
 {
@@ -69,6 +66,9 @@ public:
         this->merge = merge;
         this->drop_duplicates = drop_duplicates;
         count = 0;
+        
+        // Initialize the false root
+        false_root = (struct node*)calloc(1, sizeof(struct node));
     }
 
 private:
@@ -95,6 +95,12 @@ private:
     
     /// Indicator on whether or not to drop duplicates. CURRENTLY ASSUMED TO ALWAYS BE TRUE.
     bool drop_duplicates;
+    
+    /// False root for use when inserting.
+    /// Set up a false root so we can talk about the root's parent without worrying about the fact that it doesn't actually exist.
+    /// This allows us to perform rotations involving the root without it being a particular issue.
+    struct node* false_root;
+    
     RWLOCK_T;
 
     /// Perform a single tree rotation in one direction.
@@ -138,7 +144,7 @@ private:
     /// Add a piece of raw data to the tree.
     /// Takes care of allocating space for, and initialization of, a new node. Then calls RedBlackTreeI::add_data_n to perform the real work.
     /// @param [in] rawdata Pointer to the raw data.
-    void add_data_v(void* rawdata)
+    inline void add_data_v(void* rawdata)
     {
         // Alloc space for a new node.
         struct node* n = (struct node*)malloc(sizeof(struct node));
@@ -161,7 +167,7 @@ private:
     /// @param [in] n Pointer to the new, initialized, node that represents the new data.
     /// @retval true The insertion succeeded and the node is now a part of the tree.
     /// @retval false The insertion failed. Currently this happens when the specified data compares as equal to a piece of data already in the tree.
-    bool add_data_n(struct node* n)
+    inline bool add_data_n(struct node* n)
     {
         // For storing the comparison value, means only one call to the compare function.
         int c;
@@ -173,12 +179,8 @@ private:
         }
         else
         {
-            // Set up a false root so we can talk about the root's parent without worrying about the fact that it doesn't actually exist.
-            // This allows us to perform rotations involving the root without it being a particular issue.
-            struct node false_root;
-
             // The real root sits as the false root's right child.
-            false_root.link[1] = root;
+            false_root->link[1] = root;
 
             // The parent/grandparent/great-grandparent pointers and and iterator.
             // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
@@ -186,7 +188,7 @@ private:
             struct node *i;
 
             // Initialize them:
-            ggp = &false_root;
+            ggp = false_root;
             gp = NULL;
             p = NULL;
             i = root;
@@ -238,14 +240,14 @@ private:
                         SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
                 }
 
-                skip:
+/**************/skip:
                 
                 // At the moment no duplicates are allowed.
                 // Currently this also handles the general stopping case.
                 c = compare(n->data, i->data);
                 if (c == 0)
                 {
-                    root = STRIP(false_root.link[1]);
+                    root = STRIP(false_root->link[1]);
                     SET_BLACK(root);
                     return true;
                 }
@@ -255,7 +257,7 @@ private:
 
                 // Update the new direction to traverse
                 // If the comparison results that the new data is larger than the current data, move right.
-                dir = (c > 0);
+                dir = (c < 0);
 
                 // Update the various context pointers.
                 // Bring the great-grandparent into the mix when we get far enough down.
@@ -267,7 +269,7 @@ private:
                 i = STRIP(i->link[dir]);
             }
 
-            root = STRIP(false_root.link[1]);
+            root = STRIP(false_root->link[1]);
         }
 
         SET_BLACK(root);

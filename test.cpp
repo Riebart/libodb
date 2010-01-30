@@ -94,17 +94,17 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
            ind[j]->add_data(dn);
     }
     
-    printf("%lu\n", ind[0]->size());
+    //printf("%lu\n", ind[0]->size());
     
     ftime(&end);
     
-    if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
-        printf("P");
-    else
-    {
-        printf("F");
-        return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-    }
+//     if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
+//         printf("P");
+//     else
+//     {
+//         printf("F");
+//         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+//     }
 
     //ftime(&start);
 
