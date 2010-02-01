@@ -79,7 +79,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(Index::RedBlackTree, 0, compare);
+        ind[i] = odb->create_index(Index::RedBlackTree, ODB::NONE, compare);
 
     ftime(&start);
     
@@ -98,13 +98,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     
     ftime(&end);
     
-//     if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
-//         printf("P");
-//     else
-//     {
-//         printf("F");
-//         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-//     }
+    if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
+        printf("P");
+    else
+    {
+        printf("F");
+        return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+    }
 
     //ftime(&start);
 
@@ -139,19 +139,36 @@ int main (int argc, char ** argv)
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
     
-    double duration = 0;
+    double duration = 0, min = 100, max = -1, cur;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
-        duration += odb_test(element_size, test_size, test_type);
+        cur = odb_test(element_size, test_size, test_type);
+        
+        if (cur > max)
+            max = cur;
+        
+        if (cur < min)
+            min = cur;
+        
+        duration += cur;
 
         printf(".");
-        //printf(" %f\n", (end.time - start.time) + 0.001 * (end.millitm - start.millitm));
+        //printf(" %f\n", cur);
         fflush(stdout);
+
+        //printf("%lu", ((uint64_t)malloc(1)) & test_type);
+    }
+
+    if (test_num > 2)
+    {
+        duration -= (max + min);
+        test_num -= 2;
+        printf("\nMax and min times dropped.\n");
     }
 
     duration /= test_num;
 
-    printf("Elapsed time per run: %f\n\nPress Enter to continue\n", duration);
+    printf("Average time per run of %f.\n\nPress Enter to continue\n", duration);
 
     fgetc(stdin);
 

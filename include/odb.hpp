@@ -17,7 +17,7 @@ class ODB
 {
 public:
     //TODO: Apparently this isn't the appropriate way to do this.
-    typedef enum { DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
+    typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     ODB(DataStore* data, int ident);
     ODB(DataStore* data);

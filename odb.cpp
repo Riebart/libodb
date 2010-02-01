@@ -58,7 +58,6 @@ Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*,
     case Index::LinkedList:
     {
         new_index = new LinkedListI(ident, compare, merge, drop_duplicates);
-        new_index->parent = data;
         break;
     }
     case Index::RedBlackTree:
@@ -70,6 +69,7 @@ Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*,
         FAIL("Invalid index type.");
     }
 
+    new_index->parent = data;
     tables.push_back(new_index);
 
     if (!do_not_add_to_all)

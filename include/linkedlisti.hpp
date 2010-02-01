@@ -8,6 +8,7 @@
 #include "lock.hpp"
 #include "index.hpp"
 
+/// @todo Apparently dropping duplicates segfaults. Fix that.
 class LinkedListI : public Index
 {
 public:
