@@ -27,6 +27,7 @@ ODB::~ODB()
 {
     delete all;
     delete data;
+    delete dataobj;
 
     IndexGroup* curr;
 

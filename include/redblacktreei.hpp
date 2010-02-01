@@ -160,7 +160,7 @@ private:
         SET_RED(n);
 
         // Call the insertion worker function.
-        add_data_n(n);
+        count += add_data_n(n);
     }
 
     /// Add a node to the tree.
@@ -169,14 +169,15 @@ private:
     /// @retval false The insertion failed. Currently this happens when the specified data compares as equal to a piece of data already in the tree.
     inline bool add_data_n(struct node* n)
     {
+        // Keep track of whether a node was added or not. This handles whether or not to free the new node.
+        int ret = 0;
+        
         // For storing the comparison value, means only one call to the compare function.
         int c;
         
         // If the tree is empty, that's easy.
         if (root == NULL)
-        {
             root = n;
-        }
         else
         {
             // The real root sits as the false root's right child.
@@ -203,17 +204,17 @@ private:
                 {
                     SET_LINK(p->link[dir], n);
                     i = n;
-                    count++;
+                    ret = 1;
                 }
                 // If not, check for a any colour flips that we can do on the way down.
                 // This ensures that no backtracking is needed.
                 //  - First make sure that they are both non-NULL.
-                else if (((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL)) && (IS_RED(i->link[0]) && IS_RED(i->link[1])))
+                else if (((STRIP(i->link[0]) != NULL) && ((i->link[1]) != NULL)) && (IS_RED(i->link[0]) && IS_RED(i->link[1])))
                 {
                     // If the children are both red, perform a colour flip that makes the parent red and the children black.
                     SET_RED(i);
                     SET_BLACK(STRIP(i->link[0]));
-                    SET_BLACK(STRIP(i->link[1]));
+                    SET_BLACK(i->link[1]);
                 }
                 // Note that the above two cases cover any tree modifications we might do.
                 // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
@@ -226,7 +227,7 @@ private:
                 {
                     // Select the direction based on whether the grandparent is a right or left child.
                     // This way we know how to inform the tree about the changes we're going to make.
-                    int dir2 = (STRIP(ggp->link[1]) == gp);
+                    int dir2 = ((ggp->link[1]) == gp);
                     
                     // If the iterator sits as an outside child, perform a single rotation to resolve the violation.
                     // I think this can be replaced by a straight integer comparison... I'm not 100% sure though.
@@ -247,17 +248,18 @@ private:
                 c = compare(n->data, i->data);
                 if (c == 0)
                 {
-                    root = STRIP(false_root->link[1]);
-                    SET_BLACK(root);
-                    return true;
+                    if (ret == 0)
+                        free(n);
+                    
+                    break;
                 }
 
                 // Track back the last traversed direction.
                 prev_dir = dir;
 
                 // Update the new direction to traverse
-                // If the comparison results that the new data is larger than the current data, move right.
-                dir = (c < 0);
+                // If the comparison results that the new data is greater than the current data, move right.
+                dir = (c > 0);
 
                 // Update the various context pointers.
                 // Bring the great-grandparent into the mix when we get far enough down.
@@ -274,10 +276,33 @@ private:
 
         SET_BLACK(root);
 
-        return true;
+        return ret;
     }
     
 public:
+    ~RedBlackTreeI()
+    {
+        if (root != NULL)
+            free_n(root);
+        
+        free(false_root);
+    }
+    
+    void free_n(struct node* n)
+    {
+        struct node* child = STRIP(n->link[0]);
+        
+        if (child != NULL)
+            free_n(child);
+        
+        child = STRIP(n->link[1]);
+        
+        if (child != NULL)
+            free_n(child);
+        
+        free(n);
+    }
+    
     uint64_t size()
     {
         return count;
@@ -303,7 +328,7 @@ public:
             if (IS_RED(root))
                 if (((left != NULL) && IS_RED(left)) || ((right != NULL) && IS_RED(right)))
                 {
-                    printf("Red violation");
+                    FAIL("Red violation");
                     return 0;
                 }
                 
@@ -314,14 +339,14 @@ public:
             if (((left != NULL) && (compare(left->data, root->data) >= 0)) ||
                 ((right != NULL) && (compare(right->data, root->data) <= 0)))
             {
-                printf("BST violation");
+                FAIL("BST violation");
                 return 0;
             }
             
             // Verify black height
             if ((height_l != 0) && (height_r != 0) && (height_l != height_r))
             {
-                printf("Black violation");
+                FAIL("Black violation");
                 return 0;
             }
             
