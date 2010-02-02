@@ -129,7 +129,7 @@ public:
     }
 
 private:
-    /// Tree node structure
+    /// Tree node structure. 
     /// By using a top-down algorithm, it is possible to avoid pointers to anything other than children and hence reduce memory overhead. By embedding the red/black bit into the least significant bit of the left link there is no additional memory overhead.
     /// The link array holds the left (index 0) and right (index 1) child pointers. It simplifies the code by reducing symmetric cases to a single block of code.
     struct tree_node
@@ -138,7 +138,7 @@ private:
         void* data;
     };
 
-    /// List node structure
+    /// List node structure. 
     /// For storing duplicates, instead of bloating and unbalancing the tree they are stored embedded into a linked list with a head pointed to by the tree node's data value. The indicator of whether or not the tree node contains a list of a value is held in the second-least significant bit of the left child pointer of the tree node.
     struct list_node
     {
@@ -473,9 +473,9 @@ skip:
 };
 
 // #include <set>
-//
+// 
 // using namespace std;
-//
+// 
 // class RedBlackTreeI : public Index
 // {
 // private:
@@ -484,7 +484,7 @@ skip:
 //         struct node* next;
 //         void* data;
 //     };
-//
+// 
 //     struct node* first;
 //     int (*compare)(void*, void*);
 //     void* (*merge)(void*, void*);
@@ -492,7 +492,7 @@ skip:
 //     bool drop_duplicates;
 //     multiset<void*> mset;
 //     RWLOCK_T;
-//
+// 
 // public:
 //     RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
 //     {
@@ -500,20 +500,20 @@ skip:
 //         this->ident = ident;
 //         count = 0;
 //     }
-//
+// 
 //     //TODO: proper memory deletion, etc - wait, is it done?
 //     ~RedBlackTreeI()
 //     {
 //         RWLOCK_DESTROY();
 //     }
-//
+// 
 //     inline virtual void add_data_v(void* data)
 //     {
 //         WRITE_LOCK();
 //         mset.insert(data);
 //         WRITE_UNLOCK();
 //     }
-//
+// 
 //     //perhaps locking here is unnecessary
 //     unsigned long size()
 //     {

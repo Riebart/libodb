@@ -7,5 +7,3 @@
 
 #include "ftlib.h"
 #include "zlib.h"
-#include "tcutil.h"
-#include "tchdb.h"

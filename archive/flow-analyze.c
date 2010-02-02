@@ -1,6 +1,5 @@
 #include "flow-analyze.h"
 #include "rbt.h"
-#include "kb.h"
 
 typedef struct link_data
 {
