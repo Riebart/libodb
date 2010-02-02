@@ -10,6 +10,8 @@
 
 #define RED_BLACK_MASK 0xFFFFFFFFFFFFFFFE
 #define LIST_MASK 0xFFFFFFFFFFFFFFFD
+#define HEAD_MASK 0xFFFFFFFFFFFFFFFE
+
 #define META_MASK 0xFFFFFFFFFFFFFFF8
 
 /// Get the value of the least-significant bit in the specified node's left pointer.
@@ -22,18 +24,40 @@
 /// @return 0 of the node is a singluar value, and 1 if the node contains a linked list in the data pointer.
 #define IS_LIST(x) (((uint64_t)(x->link[0])) & 0x2)
 
+#define IS_HEAD(x) (((uint64_t)(x->link[1])) & 0x1)
+
+/// Set a node as red.
 /// Get the value of the least-significant bit in the specified node's left pointer to 1.
-/// @param [in] x A pointer to the node to have its colour set. This is an in-place (and in-line) modification that re-assigns as a struct node*.
+/// @param [in] x A pointer to the node to have its colour set.
 #define SET_RED(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) | 0x1))
 
+/// Set a node as black.
 /// Get the value of the least-significant bit in the specified node's left pointer to 0.
-/// @param [in,out] x A pointer to the node to have its colour set. This is an in-place (and in-line) modification that re-assigns as a struct node*.
+/// @param [in] x A pointer to the node to have its colour set.
 /// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_BLACK(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & RED_BLACK_MASK))
 
+/// Set a node as containing a duplicate list.
+/// Set the value of the second-least-significant bit in the specified node's left pointer to 1.
+/// @param [in] x A pointer to the node to have its data-type set.
 #define SET_LIST(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) | 0x2))
 
+/// Set a node as containing a single value.
+/// Set the value of the second-least-significant bit in the specified node's left pointer to 0.
+/// @param [in] x A pointer to the node to have its data-type set.
+/// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_VALUE(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & LIST_MASK))
+
+/// Set a node as being the head of a node block.
+/// This sets the least-significant bit of the right child pointer to 1.
+/// @param [in] x A pointer to the node to have its memory location identifier set.
+#define SET_HEAD(x) ((x->link[1]) = (struct tree_node*)(((uint64_t)(x->link[1])) | 0x1))
+
+/// Set a node as being the tail of a node block.
+/// This sets the least-significant bit of the right child pointer to 0.
+/// @param [in] x A pointer to the node to have its memory location identifier set.
+/// @todo This currently will only work on 64-bit architectures! Fix that.
+#define SET_TAIL(x) ((x->link[1]) = (struct tree_node*)(((uint64_t)(x->link[1])) & HEAD_MASK))
 
 /// Set the three least-significant bits in the specified node's specified pointer to 0 for use when dereferencing.
 /// By setting the three least-significant bits to zero this strips out all possible 'extra' data in the pointer. Since malloc guarantees 8-byte alignment, this means the smallest three bits in each pointer are 'open' for storage. Should they ever be used for something, this macro will empty them all when dereferencing (Since it uses a bitwise AND, it is no more work to empty all three than it is just the one used for red-black information).
@@ -46,8 +70,16 @@
 /// Set x equal to y without destroying the meta-data in x.
 /// This is accomplished by first stripping the meta-data from y then isolating the meta-data and OR-ing it back into the stripped version of y. This value is then assigned to x.
 /// @warning Whenever setting a pointer in the link array of a node, SET_LINK must be used to preserve the meta-data.
+/// @param [in,out] x A pointer to the link to be set. The meta data of this link is not destroyed during the process.
+/// @param [in] y A pointer to the location for x to end up pointing to.
 /// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_LINK(x, y) (x = (struct tree_node*)((((uint64_t)(y)) & META_MASK) | (((uint64_t)(x)) & 0x7)))
+
+/// Get the data out of a node.
+/// Since a node can contain either a single value or a linked list, this takes care of determining how to retrieve the data. Since every piece of data in the linked list is equal under this comparison function it just grabs the first piece.
+/// @param [in] x The node to get the data from.
+/// @return A pointer to the data from x. If x contains a linked list the data returned is that contained in the head of the list.
+#define GET_DATA(x) (IS_LIST(x) ? (((struct list_node*)(x->data))->data) : (x->data))
 
 using namespace std;
 
@@ -58,14 +90,13 @@ using namespace std;
 ///
 /// Since binary search trees do not handle duplicate values particuarly well (They tend to imbalance them), this embeds a linked list into each node that needs to monitor duplicates. The boolean value of whether or not a node contains duplicates is stored in the second-least significant bit of the left child pointer. Since I believe that I'm guaranteed at least four byte alignment I don't think this will be an issue.
 ///
+/// Since tree nodes are allocated in pairs, one is the head and one is the tail. This is determined by the least-significant bit in the right child pointer.
+///
 /// Implementation is based on the  tutorial at Eternally Confuzzled (http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_rbtree.aspx) and some notes in a blog (http://www.canonware.com/~ttt/2008/04/left-leaning-red-black-trees-are-hard.html)
-/// @todo Make use of drop_duplicates.
-/// @todo Allow duplicate values in the tree.
+/// @todo Fix destructor, it needs to destroy them in some controlled fashion. Perhaps implementing a "MARK_FIRST" that marks the lest-significant bit in the right child pointer when it is the first in a 'pair' of nodes?
 /// @todo Make use of the merge function.
 /// @todo Deletion.
-/// @todo Change general stopping case (in insert) so that duplicates can exist.
 /// @todo Fix the use of goto in the insert function.
-/// @todo Fix return value of the insertion function.
 class RedBlackTreeI : public Index
 {
 public:
@@ -81,12 +112,33 @@ public:
         
         // Initialize the false root
         false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
+        
+        // Since we've got nothing to start, set the spare node to NULL
+        spare_node = NULL;
+    }
+    
+    ~RedBlackTreeI()
+    {
+        if (root != NULL)
+            free_n(root);
+        
+        free(false_root);
+    }
+    
+    uint64_t size()
+    {
+        return count;
+    }
+    
+    int assert()
+    {
+        return assert_n(root);
     }
 
 private:
     /// Tree node structure
     /// By using a top-down algorithm, it is possible to avoid pointers to anything other than children and hence reduce memory overhead. By embedding the red/black bit into the least significant bit of the left link there is no additional memory overhead.
-    /// The link array holds the left (index 0) and right (index 1) child pointers. It simplifies the code by reducing symmetric cases to a single block of code.
+    /// The link array holds the left (index 0) and right (index 1) child pointers. It simplifies the code by reducing symmetric cases to a single block of code.4
     struct tree_node
     {
         struct tree_node* link[2];
@@ -100,14 +152,6 @@ private:
         struct list_node* next;
         void* data;
     };
-    
-    inline void* get_data(struct tree_node* n)
-    {
-        if (IS_LIST(n))
-            return (((struct list_node*)(n->data))->data);
-        else
-            return (n->data);
-    }
 
     /// Root node of the tree.
     struct tree_node* root;
@@ -128,6 +172,10 @@ private:
     /// Set up a false root so we can talk about the root's parent without worrying about the fact that it doesn't actually exist.
     /// This allows us to perform rotations involving the root without it being a particular issue.
     struct tree_node* false_root;
+    
+    /// Spare node to overcome some issues with tcmalloc.
+    /// tcmalloc seems to, by default, allocate 32 bytes for a malloc(24) call. To overcome this when allocating for a node, space is allocated for two nodes (48 bytes) which incurs no 'extra'. This pointer keeps track of the 'spare' portion since a malloc needs only happen every second addition of a node.
+    struct tree_node* spare_node;
     
     RWLOCK_T;
 
@@ -168,34 +216,68 @@ private:
         // The first rotation turns the inside grandchild into an outside grandchild and so the second rotation resolves the outside grandchild situation.
         return single_rotation(n, dir);
     }
-
-    /// Add a piece of raw data to the tree.
-    /// Takes care of allocating space for, and initialization of, a new node. Then calls RedBlackTreeI::add_data_n to perform the real work.
-    /// @param [in] rawdata Pointer to the raw data.
-    inline void add_data_v(void* rawdata)
+    
+    /// Take care of allocating and handling new nodes
+    /// Since tcmalloc has issues with allocs of sizes that aren't a multiple of 16 we have to do some memory management of our own.
+    /// This method takes care of allocating the blocks of memory and initializing the nodes' values (NULL children, red bit set, head/tail set).
+    /// @param [in] rawdata A pointer to the data that this node will represent.
+    /// @return A pointer to a tree node representing the specificed data.
+    inline struct tree_node* make_node(void* rawdata)
     {
+        struct tree_node* n;
+        
         // Alloc space for a new node.
-        struct tree_node* n = (struct tree_node*)malloc(sizeof(struct tree_node));
-
+        // If we've got no spare space...
+        if (spare_node == NULL)
+        {
+            // Allocate space for two nodes and set n to be the first of the two.
+            n = (struct tree_node*)malloc(2 * sizeof(struct tree_node));
+            
+            // Set the spare to be the second.
+            // Since spare_node of of type struct tree_node*, adding 1 incremenets the position by sizeof(struct tree_node) bytes.
+            spare_node = n + 1;
+            
+            // Because of how the destructor works, if we leave the data as uninitialized, it may be null and this block will never be considered.
+            spare_node->data = (void*)1;
+            
+            // To keep some warnings down, automatically set the children to NULL.
+            spare_node->link[0] = NULL;
+            spare_node->link[1] = NULL;
+            
+            if (spare_node->data == NULL)
+                printf("!");
+        }
+        // If we've got some spare space.
+        else
+        {
+            // Take it and mark that we need to allocate more space next time.
+            n = spare_node;
+            spare_node = NULL;
+        }
+        
         // Set the data pointer.
         n->data = rawdata;
-
+        
         // Make sure both children are marked as NULL, since NULL is the sentinel value for us.
         n->link[0] = NULL;
         n->link[1] = NULL;
-
+        
+        // Depending on whether or not we just allocated memory, n will either be the 'head' or the 'tail' of that block. Mark it as such here.
+        // If spare_node is NULL now, then it is the tail; otherwise, it is the head.
+        if (spare_node != NULL)
+            SET_HEAD(n);
+        
         // Since all new nodes are red, mark this node red.
         SET_RED(n);
-
-        // Call the insertion worker function.
-        count += add_data_n(n);
+        
+        return n;
     }
 
-    /// Add a node to the tree.
-    /// @param [in] n Pointer to the new, initialized, node that represents the new data.
-    /// @retval true The insertion succeeded and the node is now a part of the tree.
-    /// @retval false The insertion failed. Currently this happens when the specified data compares as equal to a piece of data already in the tree.
-    bool add_data_n(struct tree_node* n)
+    /// Add a piece of raw data to the tree.
+    /// This function calls RedBlackTreeI::make_node to create a tree node when needed. This is only done when needed to avoid unnecessary frees. Because of the custom memory management, an unnecessary free would be exceptionally difficult to handle, so instead nodes are only created when they are guaranteed to be used.
+    /// (The only time a node won't be used is if duplicates are not allowed and the value already exists in the tree.)
+    /// @param [in] rawdata Pointer to the raw data.
+    inline void add_data_v(void* rawdata)
     {
         // Keep track of whether a node was added or not. This handles whether or not to free the new node.
         int ret = 0;
@@ -206,33 +288,34 @@ private:
         // If the tree is empty, that's easy.
         if (root == NULL)
         {
-            root = n;
+            root = make_node(rawdata);
             ret = 1;
         }
         else
         {
             // The real root sits as the false root's right child.
             false_root->link[1] = root;
-
+            
             // The parent/grandparent/great-grandparent pointers and and iterator.
             // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
             struct tree_node *p, *gp, *ggp;
             struct tree_node *i;
-
+            
             // Initialize them:
             ggp = false_root;
             gp = NULL;
             p = NULL;
             i = root;
-
+            
             // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
             uint8_t dir = 0, prev_dir = 1;
-
+            
             while (true)
             {
                 // If we're at a leaf, insert the new node and be done with it.
                 if (i == NULL)
                 {
+                    struct tree_node* n = make_node(rawdata);
                     SET_LINK(p->link[dir], n);
                     i = n;
                     ret = 1;
@@ -259,7 +342,7 @@ private:
                 {
                     // Select the direction based on whether the grandparent is a right or left child.
                     // This way we know how to inform the tree about the changes we're going to make.
-                    int dir2 = ((ggp->link[1]) == gp);
+                    int dir2 = (STRIP(ggp->link[1]) == gp);
                     
                     // If the iterator sits as an outside child, perform a single rotation to resolve the violation.
                     // I think this can be replaced by a straight integer comparison... I'm not 100% sure though.
@@ -272,12 +355,12 @@ private:
                     else
                         SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
                 }
-
-/**************/skip:
+                
+                /**************/skip:
                 
                 // At the moment no duplicates are allowed.
                 // Currently this also handles the general stopping case.
-                c = compare(n->data, get_data(i));
+                c = compare(rawdata, GET_DATA(i));
                 if (c == 0)
                 {
                     if (ret == 0)
@@ -296,24 +379,22 @@ private:
                             }
                             
                             first->next = (struct list_node*)(i->data);
-                            first->data = n->data;
+                            first->data = rawdata;
                             i->data = first;
                             ret = 1;
                         }
-                        
-                        free(n);
                     }
                     
                     break;
                 }
-
+                
                 // Track back the last traversed direction.
                 prev_dir = dir;
-
+                
                 // Update the new direction to traverse
                 // If the comparison results that the new data is greater than the current data, move right.
                 dir = (c > 0);
-
+                
                 // Update the various context pointers.
                 // Bring the great-grandparent into the mix when we get far enough down.
                 if (gp != NULL)
@@ -323,59 +404,74 @@ private:
                 p = i;
                 i = STRIP(i->link[dir]);
             }
-
+            
+            // Because the root of the tree may have changed, set the root back to the right-link of the false root (That is why we kept it around).
             root = STRIP(false_root->link[1]);
         }
-
-        SET_BLACK(root);
-
-        return ret;
-    }
-    
-public:
-    ~RedBlackTreeI()
-    {
-        if (root != NULL)
-            free_n(root);
         
-        free(false_root);
+        // Because the root is always black, set it black before we leave.
+        SET_BLACK(root);
+        
+        // Increment the count by whether or not we ended up adding a node.
+        count += ret;
     }
     
     void free_n(struct tree_node* n)
     {
-        struct tree_node* child = STRIP(n->link[0]);
-        
-        if (child != NULL)
-            free_n(child);
-        
-        child = STRIP(n->link[1]);
-        
-        if (child != NULL)
-            free_n(child);
-        
-        if (IS_LIST(n))
-            free_l((struct list_node*)(n->data));
-        
-        free(n);
-    }
-    
-    void free_l(struct list_node* l)
-    {
-        if (l != NULL)
+        // If this node is the head of a block, we can't free the block until the tail has been free_n-ed.
+        if (IS_HEAD(n))
         {
-            free_l(l->next);
-            free(l);
+            // If the tail hasn't already been encountered (evidenced by tail->data != NULL), take care of it and its subtree.
+            if ((n+1)->data != NULL)
+                free_n2(n + 1);
+            
+            // Deal with this node and its subtree.
+            free_n2(n);
+            
+            // Free this block
+            free(n);
         }
+        // If this is a tail, just deal with this and its subtree. We'll get to its head eventually.
+        else
+            free_n2(n);
     }
     
-    uint64_t size()
+    void free_n2(struct tree_node* n)
     {
-        return count;
-    }
-    
-    int assert()
-    {
-        return assert_n(root);
+        // Make sure we never try to free a subtree twice.
+        if (n->data != NULL)
+        {
+            // Take care of this node's data, if it is a list.
+            // A recursive implementation blows up the stack too easily. Do this iterative approach instead.
+            if (IS_LIST(n))
+            {
+                struct list_node* l = (struct list_node*)(n->data);
+                while (l != NULL)
+                {
+                    n->data = l->next;
+                    free(l);
+                    l = (struct list_node*)(n->data);
+                }
+            }
+            
+            // Avoid an infinite loop if the tail is an ancestor of the head.
+            // By setting the data to NULL *before* checking the children, we can guarantee that we won't try to re-free the tail of any blocks.
+            n->data = NULL;
+            
+            // Get the left child pointer.
+            struct tree_node* child = STRIP(n->link[0]);
+            
+            // If it is sane, deal with it.
+            if (child != NULL)
+                free_n(child);
+            
+            // Get the right child pointer.
+            child = STRIP(n->link[1]);
+            
+            // If it is sane, deal with it.
+            if (child != NULL)
+                free_n(child);
+        }
     }
     
     int assert_n(struct tree_node* root)
@@ -397,12 +493,12 @@ public:
                     return 0;
                 }
                 
-            height_l = assert_n(left);
+                height_l = assert_n(left);
             height_r = assert_n(right);
             
             // Verify BST property.
-            if (((left != NULL) && (compare(get_data(left), get_data(root)) >= 0)) ||
-                ((right != NULL) && (compare(get_data(right), get_data(root)) <= 0)))
+            if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
+                ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
             {
                 FAIL("BST violation");
                 return 0;
@@ -473,44 +569,6 @@ public:
 //         uint64_t size = mset.size();
 //         WRITE_UNLOCK();
 //         return size;
-//     }
-// };
-
-// class KeyedRedBlackTreeI : public Index
-// {
-// private:
-//     struct node
-//     {
-//         struct node* next;
-//         void* data;
-//     };
-// 
-//     struct node* first;
-//     int (*compare)(void*, void*);
-//     void* (*merge)(void*, void*);
-//     uint64_t count;
-//     bool drop_duplicates;
-//     multimap<void*, void*> mmap;
-//     RWLOCK_T;
-// 
-// public:
-//     KeyedRedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
-//     {
-//         RWLOCK_INIT();
-//         this->ident = ident;
-//         count = 0;
-//     }
-// 
-//     inline virtual void add_data_v(void* data)
-//     {
-//         WRITE_LOCK();
-//         //mmap.insert(data);
-//         WRITE_UNLOCK();
-//     }
-// 
-//     unsigned long size()
-//     {
-//         return mmap.size();
 //     }
 // };
 

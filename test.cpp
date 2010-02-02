@@ -84,8 +84,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     ftime(&start);
     
     for (uint64_t i = 0 ; i < test_size ; i++)
-    {
+    {     
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
+        //v = 117;
         //v = i;
         dn = odb->add_data(&v, false);
         
@@ -98,13 +99,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     
     ftime(&end);
     
-    if ((((RedBlackTreeI*)ind[0])->assert()) != 0)
-        printf("P");
-    else
-    {
-        printf("F");
-        return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-    }
+//     if ((((RedBlackTreeI*)ind[0])->assert()) == 0)
+//     {
+//         printf("!");
+//         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+//     }
 
     //ftime(&start);
 
@@ -117,6 +116,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
     //ftime(&end);
 
+    printf("!");
+    getchar();
     delete odb;
 
     return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
