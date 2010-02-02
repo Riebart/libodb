@@ -45,9 +45,7 @@ add_executable (minimal minimal.cpp)
 
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal tcmalloc_minimal pthread odb)
-target_link_libraries(test pthread odb)
-
-
+target_link_libraries(test tcmalloc_minimal pthread odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)

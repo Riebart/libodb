@@ -76,6 +76,7 @@ inline void* BankDS::add_element(void* rawdata)
             // If posA is at the end of the bucket list...
             if (posA == list_size)
             {
+                /// @todo What about a realloc() here? Would it be appropriate?
                 // Create a new bucket list that is twice the size of the old one.
                 char** temp = (char**)malloc(2 * list_size * sizeof(char*));
 
