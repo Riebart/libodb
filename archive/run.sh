@@ -2,6 +2,7 @@
 # Arg1: filename
 # Arg2: fully qualified path
 # Arg3: Number of files to process
+# Arg4: Output for stdout
 
 sedLoc=$(echo -n $2 |  sed 's/\//\\\//g')
 files=$(ls -1 $2 | tr "\n" "\ " | sed 's/\(.*\).$/\1/g' | sed "s/ / $sedLoc/g" | sed "s/\(.*\)$/$sedLoc\1/g")

@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 2.6)
 # to the root binary directory of the project as ${TM-PROJECT_BINARY_DIR}.)
 project (TM-PROJECT)
 
-#set(CMAKE_C_COMPILER "gcc-3.4")
-#set(CMAKE_CXX_COMPILER "g++-3.4")
+set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_COMPILER "g++")
 
 #set(CMAKE_CXX_FLAGS "-Wall -O0 -g")
 #set(CMAKE_CXX_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
@@ -37,6 +37,7 @@ add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedli
 #add_executable (helloDemo demo.cxx demo_b.cxx)
 add_executable (test test.cpp)
 add_executable (minimal minimal.cpp)
+add_executable (demo demo.c)
 
 # Link the executable to the Hello library.
 #target_link_libraries (helloDemo Hello)
@@ -46,6 +47,7 @@ add_executable (minimal minimal.cpp)
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal tcmalloc_minimal pthread odb)
 target_link_libraries(test tcmalloc_minimal pthread odb)
+target_link_libraries(demo z ft tcmalloc_minimal odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
