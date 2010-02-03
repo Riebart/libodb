@@ -46,7 +46,7 @@ using namespace std;
 ///object (list node)
 class RedBlackTreeI : public Index
 {
-private:
+public:
     /// Standard constructor
     /// @param [in] ident Identifier to maintain data integrity; all new data
     ///is checked against this identifier that the data is appropriate for
@@ -82,6 +82,7 @@ private:
     ///black-height of the tree.
     int assert();
 
+private:
     /// Tree node structure.
     /// By using a top-down algorithm, it is possible to avoid pointers to anything
     ///other than children and hence reduce memory overhead. By embedding the
