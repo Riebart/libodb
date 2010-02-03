@@ -9,6 +9,8 @@
 #include "index.hpp"
 
 /// @todo Apparently dropping duplicates segfaults. Fix that.
+/// @todo Apparently queries don't work, fix those.
+/// (See minimal test case: p=10000, N=100000)
 class LinkedListI : public Index
 {
 public:

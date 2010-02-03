@@ -1,5 +1,7 @@
 /// File for testing framework
-/// This file is used for testing the database framework. Here you will find methods and examples that use the framework and test it to make sure it functions properly.
+/// This file is used for testing the database framework. Here you will find 
+///methods and examples that use the framework and test it to make sure it 
+///functions properly.
 /// @file test.cpp
 /// @Author Travis
 /// @warning Specifying too many elements for testing can eat up your RAMs
@@ -47,8 +49,12 @@ void usage()
 /// Function for testing the database.
 /// @param [in] element_size The size of the elements to be inserted
 /// @param [in] test_size The number of elements to be inserted
-/// @param [in] test_type The type of test to be done. As of now, a 0 indicates that the test should run against the BankDS, a 1 against the LinkedListDS
-/// @return Some duration obtained during the test. Could be the duration for insertion, query, deletion, or any combination (perhaps all of them). This gives flexibility for determining which events count towards the timing when muiltiple actions are performed each run.
+/// @param [in] test_type The type of test to be done. As of now, a 0 indicates 
+///that the test should run against the BankDS, a 1 against the LinkedListDS
+/// @return Some duration obtained during the test. Could be the duration for 
+///insertion, query, deletion, or any combination (perhaps all of them). This 
+///gives flexibility for determining which events count towards the timing when 
+///muiltiple actions are performed each run.
 double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 {
     ODB* odb;
@@ -125,7 +131,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
 int main (int argc, char ** argv)
 {
-    if (argc < 2)
+    if (argc < 5)
         usage();
 
     uint64_t element_size;

@@ -10,7 +10,7 @@ project (TM-PROJECT)
 
 #set(CMAKE_CXX_FLAGS "-Wall -O0 -g")
 #set(CMAKE_CXX_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -funroll-loops -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
@@ -26,7 +26,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 # Make sure the compiler can find include files from our Hello library.
 include_directories (${TM-PROJECT_SOURCE_DIR}/include)
 
-add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp)
+add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp)
 
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)

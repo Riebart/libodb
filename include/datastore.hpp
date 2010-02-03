@@ -11,6 +11,7 @@ class DataStore
     friend class IndexGroup;
     friend class Index;
     friend class LinkedListI;
+    friend class RedBlackTreeI;
 
 public:
     DataStore();
