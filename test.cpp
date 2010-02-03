@@ -58,114 +58,114 @@ void usage()
 double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 {
     ODB* odb;
-
+    
     switch (test_type)
     {
-    case 0:
-    {
-        odb = new ODB(new BankDS(sizeof(long)));
-        break;
+        case 0:
+        {
+            odb = new ODB(new BankDS(sizeof(long)));
+            break;
+        }
+        case 1:
+        {
+            odb = new ODB(new LinkedListDS(sizeof(long)));
+            break;
+        }
+        default:
+            FAIL("Incorrect test type.");
     }
-    case 1:
-    {
-        odb = new ODB(new LinkedListDS(sizeof(long)));
-        break;
-    }
-    default:
-        FAIL("Incorrect test type.");
-    }
-
+    
     struct timeb start;
     struct timeb end;
-
+    
     long v;
-
+    
     Index* ind[NUM_TABLES];
     ODB* res[NUM_QUERIES];
     DataObj* dn;
-
+    
     for (int i = 0 ; i < NUM_TABLES ; i++)
         ind[i] = odb->create_index(Index::RedBlackTree, ODB::NONE, compare);
-
+    
     ftime(&start);
-
+    
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
         dn = odb->add_data(&v, false);
-
+        
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
             ind[j]->add_data(dn);
     }
-
+    
     //printf("%lu\n", ind[0]->size());
-
+    
     ftime(&end);
-
-//     if ((((RedBlackTreeI*)ind[0])->assert()) == 0)
-//     {
-//         printf("!");
-//         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-//     }
-
-    //ftime(&start);
-
-    //#pragma omp parallel for
-    for (int j = 0 ; j < NUM_QUERIES ; j++)
-    {
-        res[j] = ind[0]->query(condition);
-        printf("%lu:", res[j]->size());
-    }
-
-    //ftime(&end);
-
-//     printf("!");
-//     getchar();
-    delete odb;
-
-    return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+    
+    //     if ((((RedBlackTreeI*)ind[0])->assert()) == 0)
+    //     {
+        //         printf("!");
+        //         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+        //     }
+        
+        //ftime(&start);
+        
+        //#pragma omp parallel for
+        for (int j = 0 ; j < NUM_QUERIES ; j++)
+        {
+            res[j] = ind[0]->query(condition);
+            printf("%lu:", res[j]->size());
+        }
+        
+        //ftime(&end);
+        
+        //     printf("!");
+        //     getchar();
+        delete odb;
+        
+        return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 }
 
 int main (int argc, char ** argv)
 {
     if (argc < 5)
         usage();
-
+    
     uint64_t element_size;
     uint64_t test_size;
     uint32_t test_num;
     uint32_t test_type;
-
+    
     sscanf(argv[1], "%lu", &element_size);
     sscanf(argv[2], "%lu", &test_size);
     sscanf(argv[3], "%u", &test_num);
     sscanf(argv[4], "%u", &test_type);
-
+    
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
-
+    
     double duration = 0, min = 100, max = -1, cur;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
         cur = odb_test(element_size, test_size, test_type);
-
+        
         if (cur > max)
             max = cur;
-
+        
         if (cur < min)
             min = cur;
-
+        
         duration += cur;
-
+        
         printf(".");
         //printf(" %f\n", cur);
         fflush(stdout);
-
+        
         //printf("%lu", ((uint64_t)malloc(1)) & test_type);
     }
-
+    
     if (test_num > 2)
     {
         duration -= (max + min);
@@ -174,12 +174,12 @@ int main (int argc, char ** argv)
     }
     else
         printf(" ");
-
+    
     duration /= test_num;
-
+    
     printf("Average time per run of %f.\n\nPress Enter to continue\n", duration);
-
+    
     fgetc(stdin);
-
+    
     return EXIT_SUCCESS;
 }
