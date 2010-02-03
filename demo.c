@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
     if (argc < 2)
     {
-        printf("Use run.sh in the archive folder.\n");
+        printf("Use run.sh in the archive folder.\n\tExample: ./archive/run.sh ./demo /media/disk/flowdata/ 288 out.txt\n\n\tThis will read in the first 288 (24 hours worth) files from /media/disk/flowdata/ and direct \n\tstdout to \"out.txt\"\n");
         return EXIT_SUCCESS;
     }
 
