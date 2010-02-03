@@ -26,7 +26,7 @@ int main (int argc, char ** argv)
     }
 
     ODB* res = ind->query(condition);
-    
+
     printf("Query contains %lu items.\n", res->size());
     printf("Actual number: %ld.\n", n);
 
