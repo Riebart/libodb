@@ -51,3 +51,26 @@ target_link_libraries(demo z ft tcmalloc_minimal odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
+
+
+SET(CPACK_GENERATOR "TGZ;DEB;RPM")
+SET(CPACK_PACKAGE_NAME "tm-odb")
+#SET(CPACK_PACKAGE_VERSION "0.1.1")
+SET(CPACK_PACKAGE_VERSION_MAJOR "0")
+SET(CPAGK_PACKAGE_VERSION_MINOR "1")
+SET(CPACK_PACKAGE_VERSION_PATCH "1")
+SET(CPACK_PACKAGE_CONTACT "travis_friesen@ieee.org")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A fast and lightweight datastore")
+
+#for the DEB package
+SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "")
+
+#for RPM
+SET(CPACK_RPM_PACKAGE_RELEASE "1")
+
+#build the packages
+INCLUDE(CPack)
+
+
+
