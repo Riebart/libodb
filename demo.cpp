@@ -115,7 +115,7 @@ uint32_t read_flows(ODB* odb, FILE *fp)
     ftio_get_ver(&ftio, &ftv);
 
     fts3rec_compute_offsets(&fo, &ftv);
-    
+
     num_records = 0;
     while ((fts3rec = (struct fts3rec_v5_gen*)ftio_read(&ftio)))
     {
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
     int num_files;
     int i;
     ODB* odb;
-    
+
     odb = new ODB(ODB::BANK_DS, sizeof(struct fts3rec_v5_gen));
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr);
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, ".");
         fflush(stderr);
-        
+
         fp = fopen(argv[i+2], "rb");
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 

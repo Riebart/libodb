@@ -42,7 +42,7 @@ private:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     DataObj();
-    
+
     /// Standard constructor
     /// This initializes the two data fields in the object to something useful.
     ///Since all accesses to this class are privileged, the rule here is that
@@ -204,7 +204,7 @@ class Index : public IndexGroup
     /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
     ///to bypass integrity checking.
     friend class BankDS;
-    
+
     /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
     ///to bypass integrity checking.
     friend class BankIDS;
@@ -216,7 +216,7 @@ class Index : public IndexGroup
     /// Allows LinkedListIDS to access the Index::add_data_v function in
     ///LinkedListIDS::populate to bypass integrity checking.
     friend class LinkedListIDS;
-    
+
 public:
     /// Add a piece of data to this Index.
     /// A DataObj instance must be inserted as it contains the necessary
@@ -252,7 +252,7 @@ protected:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     Index();
-    
+
     /// Add raw data to this Index, bypassing integrity checks.
     /// This is called by the Index::add_data function after integrity checks
     ///have passed. It is also called by the specific implementations of the
@@ -271,16 +271,16 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
-    
+
     /// Comparator function.
     int (*compare)(void*, void*);
-    
+
     /// Merge function.
     void* (*merge)(void*, void*);
-    
+
     /// Number of elements in the tree.
     uint64_t count;
-    
+
     /// Indicator on whether or not to drop duplicates.
     bool drop_duplicates;
 };

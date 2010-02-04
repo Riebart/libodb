@@ -12,8 +12,11 @@
 /// @todo This segfaults, find out why and fix it.
 class LinkedListDS : public DataStore
 {
+    /// Since the constructors are protected, ODB needs to be able to create new
+    ///datastores.
+    friend class ODB;
+
 public:
-    LinkedListDS(uint64_t datalen);
     virtual ~LinkedListDS();
 
 protected:
@@ -30,7 +33,8 @@ protected:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     LinkedListDS();
-    
+
+    LinkedListDS(uint64_t datalen);
     LinkedListDS(DataStore* parent, uint64_t datalen);
 
     virtual void init(DataStore* parent, uint64_t datalen);
@@ -54,16 +58,16 @@ protected:
 class LinkedListIDS : public LinkedListDS
 {
     friend class LinkedListDS;
-    
+
 protected:
     /// Protected default constructor.
     /// By reserving the default constructor as protected the compiler cannot
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     LinkedListIDS();
-    
+
     LinkedListIDS(DataStore* parent = NULL);
-    
+
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
 };

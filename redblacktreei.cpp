@@ -101,7 +101,7 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
 
     // Initialize the false root
     false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
-    
+
     // Initialize the data stores that will handle the memory allocation for the various nodes.
     treeds = new BankDS(sizeof(struct tree_node));
     listds = new BankDS(sizeof(struct list_node));
@@ -225,7 +225,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 //                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
 //                 SET_RED(i);
 //                 SET_BLACK(left);
-//                 SET_BLACK(right);  
+//                 SET_BLACK(right);
 //             }
 //             // Note that the above two cases cover any tree modifications we might do.
 //             // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
@@ -247,9 +247,9 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
                                 SET_RED(i);
                                 SET_BLACK(left);
-                                SET_BLACK(right);  
+                                SET_BLACK(right);
                             }
-                            else 
+                            else
                                 goto skip;
                         }
                         else

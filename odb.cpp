@@ -6,7 +6,7 @@ uint32_t ODB::num_unique = 0;
 ODB::ODB(DatastoreType dt, uint32_t datalen)
 {
     DataStore* data;
-    
+
     switch (dt)
     {
     case BANK_DS:
@@ -32,7 +32,7 @@ ODB::ODB(DatastoreType dt, uint32_t datalen)
 ODB::ODB(DatastoreType dt, int ident, uint32_t datalen)
 {
     DataStore* data;
-    
+
     switch (dt)
     {
     case BANK_DS:
@@ -53,7 +53,7 @@ ODB::ODB(DatastoreType dt, int ident, uint32_t datalen)
 
     init(data, ident, datalen);
 }
-        
+
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)
 {
     init(data, ident, datalen);

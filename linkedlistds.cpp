@@ -57,13 +57,13 @@ void* LinkedListDS::add_data(void* rawdata)
 void* LinkedListDS::get_addr()
 {
     struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     deleted_list.push_back(0);
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 

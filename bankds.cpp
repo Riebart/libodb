@@ -17,21 +17,21 @@ inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
     *(data) = (char*)malloc(cap * datalen);
-    
+
     // Initialize the cursor position and data count
     posA = 0;
     posB = 0;
     data_count = 0;
-    
+
     // Number of bytes currently available for pointers to buckets. When that is exceeded this list must be grown.
     list_size = sizeof(char*);
-    
+
     // Initialize a few other values.
     this->cap = cap;
     cap_size = cap * datalen;
     this->datalen = datalen;
     this->parent = parent;
-    
+
     RWLOCK_INIT();
 }
 
@@ -61,56 +61,56 @@ inline void* BankDS::add_data(void* rawdata)
 {
     // Get the next free location.
     void* ret = get_addr();
-    
+
     // Copy the data into the datastore.
     memcpy(ret, rawdata, datalen);
-    
+
     return ret;
 }
 
 inline void* BankDS::get_addr()
 {
     void* ret;
-    
+
     WRITE_LOCK();
     // Check if any locations are marked as empty. If none are...
     if (deleted.empty())
     {
         // Store the data location to be returned later.
         ret = *(data + posA) + posB;
-        
+
         // Increment the pointer in the bucket.
         posB += datalen;
-        
+
         // If the pointer now points to the end of the current bucket, make another.
         if (posB == cap_size)
         {
             // Reset the cursor position to the beginning of the bucket.
             posB = 0;
-            
+
             // Move the cursor to the next bucket.
             posA += sizeof(char*);
-            
+
             // If posA is at the end of the bucket list...
             if (posA == list_size)
             {
-                /// @todo What about a realloc() here? Would it be appropriate? 
+                /// @todo What about a realloc() here? Would it be appropriate?
                 // Create a new bucket list that is twice the size of the old one.
                 char** temp = (char**)malloc(2 * list_size * sizeof(char*));
-                
+
                 // Copy existing contents to the new list.
                 memcpy(temp, data, list_size * sizeof(char*));
-                
+
                 // Free the old one.
                 free(data);
-                
+
                 // Bring the new one into use.
                 data = temp;
-                
+
                 // Make sure ot update how big we 'think' the list is.
                 list_size *= 2;
             }
-            
+
             // Allocate a new bucket.
             *(data + posA) = (char*)malloc(cap * datalen);
         }
@@ -120,19 +120,19 @@ inline void* BankDS::get_addr()
     {
         // Get the top one.
         ret = deleted.top();
-        
+
         // Pop the stack.
         deleted.pop();
     }
-    
+
     // Increment the number of data items in the datastore.
     data_count++;
-    
+
     WRITE_UNLOCK();
-    
+
     // Return the pointer to the data.
     return ret;
-    
+
     // This is for reference in case I need it again. It is nontrivial, so I am hesitant to discard it.
     // It computes the absolute 0-based index of the cursor position.
     // return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->datalen - 1);
@@ -191,34 +191,34 @@ uint64_t BankDS::size()
 void BankDS::populate(Index* index)
 {
     READ_LOCK();
-    
+
     // Index over the whole datastore and add each item to the index.
     // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             index->add_data_v(*(data + i) + j);
-        
+
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v(*(data + posA) + j);
-        
+
     READ_UNLOCK();
 }
 
 void BankIDS::populate(Index* index)
 {
     READ_LOCK();
-    
+
     // Index over the whole datastore and add each item to the index.
     // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             index->add_data_v((void*)(*(char*)(*(data + i) + j)));
-        
+
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v((void*)(*(char*)(*(data + posA) + j)));
-    
+
     READ_UNLOCK();
 }
 

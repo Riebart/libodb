@@ -40,16 +40,12 @@ using namespace std;
 ///(http://www.canonware.com/~ttt/2008/04/left-leaning-red-black-trees-are-hard.html)
 /// @todo Make use of the merge function.
 /// @todo Deletion.
-/// @todo Fix the use of goto in the insert function.
-/// @todo Fix memory usage. Summary: tcmalloc allocates 32 bytes for a 24-byte
-///object (tree nodes) and standard malloc allocates 24 bytes for a 16-byte
-///object (list node)
 class RedBlackTreeI : public Index
 {
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
-    
+
 public:
     /// Destructor that employs a partial-recursion
     /// Recursion is employed to free the tree nodes (because the tree height is
@@ -86,7 +82,7 @@ private:
                   int (*compare)(void*, void*),
                   void* (*merge)(void*, void*),
                   bool drop_duplicates);
-                  
+
     /// Tree node structure.
     /// By using a top-down algorithm, it is possible to avoid pointers to anything
     ///other than children and hence reduce memory overhead. By embedding the
@@ -121,10 +117,10 @@ private:
     /// This allows us to perform rotations involving the root without it
     ///being a particular issue.
     struct tree_node* false_root;
-    
+
     /// DataStore used for managing the memory used for tree nodes.
     DataStore* treeds;
-    
+
     /// DataStore used for managing the memory used for embedded linked list ndoes.
     DataStore* listds;
 

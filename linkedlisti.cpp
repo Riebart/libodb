@@ -11,7 +11,7 @@ LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)
     this->merge = merge;
     this->drop_duplicates = drop_duplicates;
     count = 0;
-    
+
     nodeds = new BankDS(sizeof(struct node));
 }
 
@@ -21,8 +21,6 @@ LinkedListI::~LinkedListI()
     RWLOCK_DESTROY();
 }
 
-//TODO: My spidey-senses tell me this function can be improved. Also, it
-//likely too big to be inlined.
 inline void LinkedListI::add_data_v(void* data)
 {
     WRITE_LOCK();

@@ -22,7 +22,7 @@ protected:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     DataStore();
-    
+
     virtual void* add_data(void* rawdata);
     virtual void* get_addr();
     virtual void* get_at(uint64_t index);
@@ -32,7 +32,10 @@ protected:
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
     virtual uint64_t size();
-    virtual uint32_t get_datalen() { return datalen; };
+    virtual uint32_t get_datalen()
+    {
+        return datalen;
+    };
 
     DataStore* parent;
     uint32_t datalen;
