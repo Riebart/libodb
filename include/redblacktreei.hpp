@@ -80,7 +80,7 @@ public:
     /// @retval 0 If the tree is an invalid red-black tree.
     /// @retval >0 If the tree is a valid red-black tree then it returns the
     ///black-height of the tree.
-    int assert();
+    int rbt_verify();
 
 private:
     /// Tree node structure.
@@ -174,7 +174,7 @@ private:
     /// @retval 0 If the sub-tree is an invalid red-black tree.
     /// @retval >0 If the sub-tree is a valid red-black tree then it returns the
     ///black-height of the sub-tree.
-    int assert_n(struct tree_node* root);
+    int rbt_verify_n(struct tree_node* root);
 
     /// Perform a general query and insert the results.
     /// Recursion is used

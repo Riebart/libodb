@@ -111,9 +111,9 @@ uint64_t RedBlackTreeI::size()
     return count;
 }
 
-int RedBlackTreeI::assert()
+int RedBlackTreeI::rbt_verify()
 {
-    return assert_n(root);
+    return rbt_verify_n(root);
 }
 
 inline struct RedBlackTreeI::tree_node* RedBlackTreeI::single_rotation(struct tree_node* n, int dir)
@@ -352,7 +352,7 @@ void RedBlackTreeI::free_n(struct tree_node* n)
     free(n);
 }
 
-int RedBlackTreeI::assert_n(struct tree_node* root)
+int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
     int height_l, height_r;
 
@@ -371,8 +371,8 @@ int RedBlackTreeI::assert_n(struct tree_node* root)
                 return 0;
             }
 
-        height_l = assert_n(left);
-        height_r = assert_n(right);
+        height_l = rbt_verify_n(left);
+        height_r = rbt_verify_n(right);
 
         // Verify BST property.
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||

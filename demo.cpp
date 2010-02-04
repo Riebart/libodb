@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
         fflush(stderr);
     }
 
-    printf("%lu records processed.", total_num);
+    printf("%lu records processed.\n", total_num);
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;
