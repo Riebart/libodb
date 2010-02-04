@@ -206,22 +206,50 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 i = n;
                 ret = 1;
             }
-            // If not, check for a any colour flips that we can do on the way down.
-            // This ensures that no backtracking is needed.
-            //  - First make sure that they are both non-NULL.
-
-            else if (((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL)) && (IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1]))))
-            {
-                // If the children are both red, perform a colour flip that makes the parent red and the children black.
-                SET_RED(i);
-                SET_BLACK(STRIP(i->link[0]));
-                SET_BLACK(STRIP(i->link[1]));
-            }
-            // Note that the above two cases cover any tree modifications we might do.
-            // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
-            //  - I use a goto because calling a function requires passing ALL of the context across. I'm want to test the performance differences this way and the 'proper' way.
+//             // If not, check for a any colour flips that we can do on the way down.
+//             // This ensures that no backtracking is needed.
+//             //  - First make sure that they are both non-NULL.
+//             else if (((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL)) && (IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1]))))
+//             {
+//                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
+//                 SET_RED(i);
+//                 SET_BLACK(left);
+//                 SET_BLACK(right);  
+//             }
+//             // Note that the above two cases cover any tree modifications we might do.
+//             // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
+//             //  - I use a goto because calling a function requires passing ALL of the context across. I'm want to test the performance differences this way and the 'proper' way.
+//             else
+//                 goto skip;
             else
-                goto skip;
+            {
+                struct tree_node* left = STRIP(i->link[0]);
+                if (left != NULL)
+                {
+                    if (IS_RED(left))
+                    {
+                        struct tree_node* right = STRIP(i->link[1]);
+                        if (right != NULL)
+                        {
+                            if (IS_RED(right))
+                            {
+                                // If the children are both red, perform a colour flip that makes the parent red and the children black.
+                                SET_RED(i);
+                                SET_BLACK(left);
+                                SET_BLACK(right);  
+                            }
+                            else 
+                                goto skip;
+                        }
+                        else
+                            goto skip;
+                    }
+                    else
+                        goto skip;
+                }
+                else
+                    goto skip;
+            }
 
             // If the addition of the new red node, or the colour flip introduces a red violation, repair it.
             if ((p != NULL) && (IS_RED(i) && IS_RED(p)))

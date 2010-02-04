@@ -58,6 +58,7 @@ inline ODB* IndexGroup::query(bool (*condition)(void*))
     DataStore* ds = parent->clone();
 
     // Iterate and query with the non-public member.
+    #pragma omp parallel for
     for (uint32_t i = 0 ; i < indices.size() ; i++)
         indices[i]->query(condition, ds);
 
@@ -72,12 +73,14 @@ inline int IndexGroup::get_ident()
 
 inline void IndexGroup::add_data_v(void* data)
 {
+    #pragma omp parallel for
     for (uint32_t i = 0 ; i < indices.size() ; i++)
         indices[i]->add_data_v(data);
 }
 
 inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
 {
+    #pragma omp parallel for
     for (uint32_t i = 0 ; i < indices.size() ; i++)
         indices[i]->query(condition, ds);
 }

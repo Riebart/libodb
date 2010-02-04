@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <omp.h>
 
 using namespace std;
 
