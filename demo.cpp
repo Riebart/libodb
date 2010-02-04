@@ -4,9 +4,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/timeb.h>
+#include <zlib.h>
 
-#include "ftlib.h"
-#include "zlib.h"
+extern "C"
+{
+#include <ftlib.h>
+}
+
+#include "odb.hpp"
 
 uint32_t read_flows(FILE *fp)
 {
