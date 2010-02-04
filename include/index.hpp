@@ -67,6 +67,7 @@ private:
 ///IndexGroups for further abstraction.
 /// This means that a uniform interface can be presented to any machine learning
 ///or artificial intelligence systems placed on top of this backend.
+/// @todo Make the names public functions for IndexGroup, Index and Datastore more uniform (If it isn't obvious, make it so).
 class IndexGroup
 {
     /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
