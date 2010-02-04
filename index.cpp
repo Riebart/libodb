@@ -55,7 +55,7 @@ inline bool IndexGroup::add_data(DataObj* data)
 inline ODB* IndexGroup::query(bool (*condition)(void*))
 {
     // Clone the prent.
-    DataStore* ds = parent->clone();
+    DataStore* ds = parent->clone_indirect();
 
     // Iterate and query with the non-public member.
     uint32_t n = indices.size();
@@ -98,6 +98,11 @@ uint64_t IndexGroup::size()
 
 // ============================================================================
 
+Index::Index()
+{
+    // Implemented because something, somewhere, needs it when linking. Not sure where.
+}
+
 inline bool Index::add_data(DataObj* data)
 {
     if (data->ident == ident)
@@ -113,7 +118,7 @@ inline bool Index::add_data(DataObj* data)
 inline ODB* Index::query(bool (*condition)(void*))
 {
     // Clone the parent.
-    DataStore* ds = parent->clone();
+    DataStore* ds = parent->clone_indirect();
 
     // Query
     query(condition, ds);

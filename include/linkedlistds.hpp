@@ -8,10 +8,12 @@
 #include "index.hpp"
 #include "datastore.hpp"
 
+/// @todo Implement remove_addr and fix remove_at
+/// @todo This segfaults, find out why and fix it.
 class LinkedListDS : public DataStore
 {
 public:
-    LinkedListDS(uint64_t datalen, DataStore* parent = NULL);
+    LinkedListDS(uint64_t datalen);
     virtual ~LinkedListDS();
 
 protected:
@@ -23,7 +25,16 @@ protected:
     };
 #pragma pack()
 
-    virtual void* add_element(void* rawdata);
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    LinkedListDS();
+    
+    LinkedListDS(DataStore* parent, uint64_t datalen);
+
+    virtual void init(DataStore* parent, uint64_t datalen);
+    virtual void* add_data(void* rawdata);
     virtual void* get_addr();
     virtual bool del_at(uint64_t index);
     virtual void* get_at(uint64_t index);
@@ -31,6 +42,7 @@ protected:
     virtual uint64_t size();
     virtual void cleanup();
     virtual DataStore* clone();
+    virtual DataStore* clone_indirect();
 
     struct datanode * bottom;
     std::vector<bool> deleted_list;
@@ -38,14 +50,21 @@ protected:
     RWLOCK_T;
 };
 
+/// @todo Implement deletion: remove_at, remove_addr
 class LinkedListIDS : public LinkedListDS
 {
-public:
-    LinkedListIDS(DataStore* parent = NULL);
-
+    friend class LinkedListDS;
+    
 protected:
-    virtual void* add_element(void* rawdata);
-    virtual void* get_addr();
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    LinkedListIDS();
+    
+    LinkedListIDS(DataStore* parent = NULL);
+    
+    virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
 };
 

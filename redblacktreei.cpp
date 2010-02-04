@@ -2,10 +2,20 @@
 #include "datastore.hpp"
 #include "bankds.hpp"
 
-#define RED_BLACK_MASK 0xFFFFFFFFFFFFFFFE
-#define LIST_MASK 0xFFFFFFFFFFFFFFFD
+#define X64_HEAD 0xFFFFFFFF00000000
+#define RED_BLACK_MASK_BASE 0xFFFFFFFE
+#define LIST_MASK_BASE 0xFFFFFFFD
+#define META_MASK_BASE 0xFFFFFFF8
 
-#define META_MASK 0xFFFFFFFFFFFFFFF8
+#if __amd64__ || _WIN64
+#define RED_BLACK_MASK (X64_HEAD | RED_BLACK_MASK_BASE)
+#define LIST_MASK (X64_HEAD | LIST_MASK_BASE)
+#define META_MASK (X64_HEAD | META_MASK_BASE)
+#else
+#define RED_BLACK_MASK RED_BLACK_MASK_BASE
+#define LIST_MASK LIST_MASK_BASE
+#define META_MASK META_MASK_BASE
+#endif
 
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer.
@@ -30,7 +40,6 @@
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 0.
 /// @param [in] x A pointer to the node to have its colour set.
-/// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_BLACK(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & RED_BLACK_MASK))
 
 /// Set a node as containing a duplicate list.
@@ -43,7 +52,6 @@
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 0.
 /// @param [in] x A pointer to the node to have its data-type set.
-/// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_VALUE(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & LIST_MASK))
 
 /// Set the three least-significant bits in the specified node's specified pointer
@@ -58,7 +66,6 @@
 ///must be STRIP()-ed.
 /// @param [in] x A pointer to the link to be stripped.
 /// @return A pointer to a node without the meta-data embedded in the address.
-/// @todo This currently will only work on 64-bit architectures! Fix that.
 #define STRIP(x) ((struct tree_node*)(((uint64_t)x) & META_MASK))
 
 /// Set x equal to y without destroying the meta-data in x.
@@ -70,7 +77,6 @@
 /// @param [in,out] x A pointer to the link to be set. The meta data of this
 ///link is not destroyed during the process.
 /// @param [in] y A pointer to the location for x to end up pointing to.
-/// @todo This currently will only work on 64-bit architectures! Fix that.
 #define SET_LINK(x, y) (x = (struct tree_node*)((((uint64_t)(y)) & META_MASK) | (((uint64_t)(x)) & 0x7)))
 
 /// Get the data out of a node.
@@ -103,9 +109,9 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
 
 RedBlackTreeI::~RedBlackTreeI()
 {
-    // Start the recursion to free the tree at the root.
-    if (root != NULL)
-        free_n(root);
+    // Just free the datastores.
+    delete treeds;
+    delete listds;
 
     // Free the false root we malloced in the constructor.
     free(false_root);
@@ -355,36 +361,6 @@ skip:
     count += ret;
 }
 
-void RedBlackTreeI::free_n(struct tree_node* n)
-{
-    // Take care of the children, one at a time.
-    struct tree_node* child = STRIP(n->link[0]);
-
-    if (child != NULL)
-        free_n(child);
-
-    child = STRIP(n->link[1]);
-
-    if (child != NULL)
-        free_n(child);
-
-    // Take care of this node's data, if it is a list.
-    // A recursive implementation blows up the stack too easily. Do this iterative approach instead.
-    if (IS_LIST(n))
-    {
-        struct list_node* l = (struct list_node*)(n->data);
-        while (l != NULL)
-        {
-            n->data = l->next;
-            free(l);
-            l = (struct list_node*)(n->data);
-        }
-    }
-
-    // Finally, free this node.
-    free(n);
-}
-
 int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
     int height_l, height_r;
@@ -457,14 +433,14 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
         while (curr != NULL)
         {
             if (condition(curr->data))
-                ds->add_element(curr->data);
+                ds->add_data(curr->data);
 
             curr = curr->next;
         }
     }
     else
         if (condition(root->data))
-            ds->add_element(root->data);
+            ds->add_data(root->data);
 }
 
 // #include <set>

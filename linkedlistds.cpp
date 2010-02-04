@@ -1,7 +1,17 @@
 #include "linkedlistds.hpp"
 #include "datastore.hpp"
 
-LinkedListDS::LinkedListDS(uint64_t datalen, DataStore* parent)
+LinkedListDS::LinkedListDS(uint64_t datalen)
+{
+    init(NULL, datalen);
+}
+
+LinkedListDS::LinkedListDS(DataStore* parent, uint64_t datalen)
+{
+    init(parent, datalen);
+}
+
+void LinkedListDS::init(DataStore* parent, uint64_t datalen)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
@@ -10,7 +20,7 @@ LinkedListDS::LinkedListDS(uint64_t datalen, DataStore* parent)
     this->parent = parent;
 }
 
-LinkedListIDS::LinkedListIDS(DataStore* parent) : LinkedListDS(sizeof(char*), parent)
+LinkedListIDS::LinkedListIDS(DataStore* parent) : LinkedListDS(parent, sizeof(char*))
 {
 }
 
@@ -30,7 +40,7 @@ LinkedListDS::~LinkedListDS()
     RWLOCK_DESTROY();
 }
 
-void* LinkedListDS::add_element(void* rawdata)
+void* LinkedListDS::add_data(void* rawdata)
 {
     struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
     memcpy(&(new_element->data), rawdata, datalen);
@@ -57,14 +67,9 @@ void* LinkedListDS::get_addr()
     return &(new_element->data);
 }
 
-void* LinkedListIDS::add_element(void* rawdata)
+void* LinkedListIDS::add_data(void* rawdata)
 {
-    return LinkedListDS::add_element(&rawdata);
-}
-
-void* LinkedListIDS::get_addr()
-{
-    return (void*)(*((char*)(LinkedListDS::get_addr())));
+    return LinkedListDS::add_data(&rawdata);
 }
 
 // returns false if index is out of range, or if element was already
@@ -148,6 +153,11 @@ uint64_t LinkedListDS::size()
 }
 
 DataStore* LinkedListDS::clone()
+{
+    return new LinkedListDS(datalen);
+}
+
+DataStore* LinkedListDS::clone_indirect()
 {
     return new LinkedListIDS(this);
 }

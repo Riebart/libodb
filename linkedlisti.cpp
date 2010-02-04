@@ -1,5 +1,6 @@
 #include "linkedlisti.hpp"
 #include "datastore.hpp"
+#include "bankds.hpp"
 
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
@@ -10,21 +11,13 @@ LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)
     this->merge = merge;
     this->drop_duplicates = drop_duplicates;
     count = 0;
+    
+    nodeds = new BankDS(sizeof(struct node));
 }
 
 LinkedListI::~LinkedListI()
 {
-    //Should I WRITE_LOCK() this?
-    struct node * curr=first;
-    struct node * prev;
-
-    while (curr!=NULL)
-    {
-        prev=curr;
-        curr=curr->next;
-        free(prev);
-    }
-
+    delete nodeds;
     RWLOCK_DESTROY();
 }
 
@@ -35,7 +28,7 @@ inline void LinkedListI::add_data_v(void* data)
     WRITE_LOCK();
     if (first == NULL)
     {
-        first = (struct node*)malloc(sizeof(struct node));
+        first = (struct node*)(nodeds->get_addr());
         first->next = NULL;
         first->data = data;
         count = 1;
@@ -55,7 +48,7 @@ inline void LinkedListI::add_data_v(void* data)
                     return;
             }
 
-            struct node* new_node = (struct node*)malloc(sizeof(struct node));
+            struct node* new_node = (struct node*)(nodeds->get_addr());
             new_node->data = data;
             new_node->next = first;
             first = new_node;
@@ -86,7 +79,7 @@ inline void LinkedListI::add_data_v(void* data)
                         return;
                 }
 
-                struct node* new_node = (struct node*)malloc(sizeof(struct node*) + sizeof(void*));
+                struct node* new_node = (struct node*)(nodeds->get_addr());
                 new_node->data = data;
 
                 if (curr->next == NULL)
@@ -129,6 +122,7 @@ bool LinkedListI::del(void* data)
             if (curr->next != NULL)
             {
                 curr->next = curr->next->next;
+                nodeds->remove_addr(curr);
                 ret = true;
             }
         }
@@ -160,6 +154,7 @@ bool LinkedListI::del(uint64_t n)
         }
 
         curr->next = curr->next->next;
+        nodeds->remove_addr(curr);
         ret = true;
     }
     WRITE_UNLOCK();
@@ -206,7 +201,7 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
     while (curr != NULL)
     {
         if (condition(curr->data))
-            ds->add_element(&(curr->data));
+            ds->add_data(&(curr->data));
 
         curr = curr->next;
     }

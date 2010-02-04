@@ -16,7 +16,7 @@ int main (int argc, char ** argv)
     long v, p = 10000, n = 0;
 
     ODB odb(new BankDS(sizeof(long)));
-    Index* ind = odb.create_index(Index::LinkedList, ODB::NONE, compare);
+    Index* ind = odb.create_index(Index::RedBlackTree, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100000 ; i++)
     {
@@ -26,7 +26,7 @@ int main (int argc, char ** argv)
     }
 
     ODB* res = ind->query(condition);
-
+    
     printf("Query contains %lu items.\n", res->size());
     printf("Actual number: %ld.\n", n);
 

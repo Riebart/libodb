@@ -90,12 +90,12 @@ IndexGroup* ODB::create_group()
 
 void ODB::add_data(void* rawdata)
 {
-    all->add_data_v(data->add_element(rawdata));
+    all->add_data_v(data->add_data(rawdata));
 }
 
 DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
-    dataobj->data = data->add_element(rawdata);
+    dataobj->data = data->add_data(rawdata);
 
     if (add_to_all)
         all->add_data_v(dataobj->data);

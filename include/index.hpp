@@ -37,6 +37,12 @@ class DataObj
     friend class IndexGroup;
 
 private:
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    DataObj();
+    
     /// Standard constructor
     /// This initializes the two data fields in the object to something useful.
     ///Since all accesses to this class are privileged, the rule here is that
@@ -68,7 +74,6 @@ private:
 ///IndexGroups for further abstraction.
 /// This means that a uniform interface can be presented to any machine learning
 ///or artificial intelligence systems placed on top of this backend.
-/// @todo Make the names public functions for IndexGroup, Index and Datastore more uniform (If it isn't obvious, make it so).
 class IndexGroup
 {
     /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
@@ -137,10 +142,10 @@ public:
     virtual uint64_t size();
 
 protected:
-    /// Default constructor.
-    /// Provided explicitly so that should anything be needed in the future the
-    ///scaffolding exists. This is protected because a user should never be
-    ///instantiating one of these.
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
     IndexGroup();
 
     /// Standard constructor.
@@ -194,18 +199,24 @@ private:
 /// Since each DataStore implementation will implement DataStore::populate
 ///differently, each specific DataStore implementation requires privileged access
 ///to Index::add_data_v.
-/// @todo Move some of the stuff common to all index tables (compare, merge,
-///count, ...) into here.
 class Index : public IndexGroup
 {
     /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
     ///to bypass integrity checking.
     friend class BankDS;
+    
+    /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
+    ///to bypass integrity checking.
+    friend class BankIDS;
 
     /// Allows LinkedListDS to access the Index::add_data_v function in
     ///LinkedListDS::populate to bypass integrity checking.
     friend class LinkedListDS;
 
+    /// Allows LinkedListIDS to access the Index::add_data_v function in
+    ///LinkedListIDS::populate to bypass integrity checking.
+    friend class LinkedListIDS;
+    
 public:
     /// Enum defining the specific index implementations available.
     /// Index implementations starting with "Keyed" are key-value index tables, all
@@ -215,6 +226,7 @@ public:
     ///tables however require a keygen function that generates a key from a piece
     ///of data.
     /// @todo Actually implement all of these. :)
+    /// @todo Should they be in all caps for convention's sake?
     typedef enum { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
 
     /// Add a piece of data to this Index.
@@ -246,6 +258,12 @@ public:
     virtual uint64_t size();
 
 protected:
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    Index();
+    
     /// Add raw data to this Index, bypassing integrity checks.
     /// This is called by the Index::add_data function after integrity checks
     ///have passed. It is also called by the specific implementations of the
@@ -264,6 +282,18 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    /// Comparator function.
+    int (*compare)(void*, void*);
+    
+    /// Merge function.
+    void* (*merge)(void*, void*);
+    
+    /// Number of elements in the tree.
+    uint64_t count;
+    
+    /// Indicator on whether or not to drop duplicates.
+    bool drop_duplicates;
 };
 
 #include "linkedlisti.hpp"

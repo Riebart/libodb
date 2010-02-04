@@ -41,23 +41,17 @@ using namespace std;
 class BankDS : public DataStore
 {
 public:
-    /// Unique constructor for a BankDS object.
-    /// Since BankDS requires only three parameters, two of which have default
-    ///values and the third is required in all situations, a single constructor
-    ///is all that is needed.
+    /// Unique public constructor for a BankDS object.
+    /// By presenting only this constructor as public, the user can't botch
+    ///instantiating a new BankDS object.
     /// @param [in] data_size The length (in bytes) of each unit of data.
     /// @param [in] cap The number of items to store in each block. (The default
     ///value is 102400 = 4096*25 as it has shown to have very good performance
     ///and guarantees memory alignment)
-    /// @param [in] parent A pointer to the DataStore that spawned this one
-    ///through a BankDS::clone operation. This parameter will rarely be supplied
-    ///by the user.
-    /// @todo Modify it so that cap*datalen falls onto a page boundary. Thing is,
-    ///there is no guarantee that it is 'starting' on a page boundary.
     /// @todo Move a constructor that takes parent to a private/protected location,
     ///only presenting the two-parameter version to the user.
-    BankDS(uint64_t data_size, uint64_t cap = 102400, DataStore* parent = NULL);
-
+    BankDS(uint64_t data_size, uint64_t cap = 102400);
+    
     /// Destructor for a BankDS object.
     /// Since BankDS performs most of the memory handling itself there is a
     ///non-trivial destruction process that is required to free all of that
@@ -65,12 +59,41 @@ public:
     virtual ~BankDS();
 
 protected:
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    BankDS();
+    
+    /// Complete constructor for a BankDS object
+    /// Since BankDS requires only three parameters, two of which have default
+    ///values and the third is required in all situations, a single constructor
+    ///is all that is needed. This protected version is differentiated from the
+    ///public version by placing the parent argument first.
+    /// @param [in] parent A pointer to the DataStore that spawned this one
+    ///through a BankDS::clone operation. This parameter will rarely be supplied
+    ///by the user.
+    /// @param [in] data_size The length (in bytes) of each unit of data.
+    /// @param [in] cap The number of items to store in each block. (The default
+    ///value is 102400 = 4096*25 as it has shown to have very good performance
+    ///and guarantees memory alignment)
+    BankDS(DataStore* parent, uint64_t data_size, uint64_t cap = 102400);
+    
+    /// Initializer to save on code repetition.
+    /// Takes care of initializing everything, otherwise this code would appear
+    ///in several different constructors.
+    void init(DataStore* parent, uint64_t data_size, uint64_t cap);
+    
     /// Add a piece of raw data to the datastore.
     /// @param [in] rawdata A pointer to the the location of the data to be added.
     /// @return A pointer to the location of the added data in the datastore.
     ///By returning a pointer this reduces the lookup overhead to a minimal level.
-    virtual void* add_element(void* rawdata);
+    virtual void* add_data(void* rawdata);
     
+    /// Get the address of the space occupied by the next element (drop in replacement
+    ///for malloc).
+    /// This is almost identical to add_element, except it does not perform a memcpy.
+    /// @return A pointer to the location of the next empty 'slot'.
     virtual void* get_addr();
 
     /// Index into the datastore to retrieve a pointer to the data at the requested
@@ -89,6 +112,13 @@ protected:
     /// @retval false The deletion failed and the location was not marked as
     ///free. This is most likely due to the case that index was out of bounds.
     virtual bool remove_at(uint64_t index);
+    
+    /// Mark the specified location as free (drop in replacement for free).
+    /// No checking is done to verify that this is even a part of this datastore.
+    /// @param [in] addr Address to mark as free for data.
+    /// @retval true Always returns true, indicating the specified location is
+    ///always marked as free for the next addition.
+    virtual bool remove_addr(void* addr);
 
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.
@@ -100,16 +130,18 @@ protected:
     ///the new index table be populated with the existing data. That job is
     ///performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
-    /// @todo Populating an IndexGroup?
-    /// @todo Boost performance. Move from indexing to pointer arithmetic.
     virtual void populate(Index* index);
 
+    /// Clone the datastore and return the same type but with no data.
+    /// @return A pointer to an indirect datastore (an instance of BankDS) that
+    ///references back to this instance of BankDS as its parent.
+    virtual DataStore* clone();
+    
     /// Clone the datastore and return an indirect version.
     /// @return A pointer to an indirect datastore (an instance of BankIDS) that
     ///references back to this instance of BankDS as its parent.
-    /// @todo Split this into clone() and clone_indirect().
-    virtual DataStore* clone();
-
+    virtual DataStore* clone_indirect();
+    
     /// List of pointers to the buckets.
     /// This contains a series of char* pointers to the various buckets. It
     ///starts with enough space for one bucket and double each time it needs
@@ -157,24 +189,33 @@ protected:
 ///data, it stores the pointers to data that resides elsewhere in memory. By
 ///overriding the BankDS::add_element and BankDS::get_at to add a single operation
 ///before the base versions the indirection is achieved with minimal code.
+/// @todo Implement proper removal functions.
+/// @todo implement a custom thin stack for the freed pointers. Do it on top of a BankDS?
 class BankIDS : public BankDS
 {
-public:
+    /// Allows BankDS to create an indirect copy of itself.
+    friend class BankDS;
+    
+protected:
+    /// Protected default constructor.
+    /// By reserving the default constructor as protected the compiler cannot
+    ///generate one on its own and allow the user to instantiate a DataStore
+    ///instance.
+    BankIDS();
+    
     /// Unique constructor for a BankIDS object.
     /// Since BankIDS requires only two parameters (since data_size is automatically
     ///set to sizeof(char*)), both of which can be default, only one constructor
-    ///is needed.
-    /// @param [in] cap The number of items to store in each block. (The default
-    ///value is 102400 = 4096*25 as it has shown to have very good performance
-    ///and guarantees memory alignment)
+    ///is needed. This protected version is differentiated from the
+    ///public version by placing the parent argument first.
     /// @param [in] parent A pointer to the DataStore that spawned this one
     ///through a BankDS::clone operation. This parameter will rarely be supplied
     ///by the user.
-    /// @todo Move a constructor that takes parent to a private/protected
-    ///location, only presenting the two-parameter version to the user.
-    BankIDS(uint64_t cap = 102400, DataStore* parent = NULL);
-
-protected:
+    /// @param [in] cap The number of items to store in each block. (The default
+    ///value is 102400 = 4096*25 as it has shown to have very good performance
+    ///and guarantees memory alignment)
+    BankIDS(DataStore* parent = NULL, uint64_t cap = 102400);
+    
     /// Add a piece of raw data to the datastore.
     /// This function adds a single address-of (&) operation to perform the
     ///necessary indirection on the input.
@@ -182,9 +223,7 @@ protected:
     ///added.
     /// @return A pointer to the location of the added data in the datastore.
     ///By returning a pointer this reduces the lookup overhead to a minimal level.
-    virtual void* add_element(void* rawdata);
-    
-    virtual void* get_addr();
+    virtual void* add_data(void* rawdata);
 
     /// Index into the datastore to retrieve a pointer to the data at the
     ///requested location.
@@ -194,6 +233,14 @@ protected:
     /// @param [in] index A value indicating where to look into the datastore.
     /// @return Returns a pointer to the desired data.
     virtual void* get_at(uint64_t index);
+    
+    /// Populate a given index table with all items in this datastore.
+    /// It is conceivable that, when a new index table is created
+    ///(by ODB::create_index) on top of a datastore that already contains data,
+    ///the new index table be populated with the existing data. That job is
+    ///performed by this function.
+    /// @param [in] index A pointer to the index table to be populated.
+    virtual void populate(Index* index);
 };
 
 #endif

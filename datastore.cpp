@@ -10,7 +10,7 @@ DataStore::~DataStore()
 {
 }
 
-void* DataStore::add_element(void* rawdata)
+void* DataStore::add_data(void* rawdata)
 {
     return NULL;
 }
@@ -30,11 +30,21 @@ bool DataStore::remove_at(uint64_t index)
     return false;
 }
 
+bool DataStore::remove_addr(void* index)
+{
+    return false;
+}
+
 void DataStore::populate(Index* index)
 {
 }
 
 DataStore* DataStore::clone()
+{
+    return NULL;
+}
+
+DataStore* DataStore::clone_indirect()
 {
     return NULL;
 }

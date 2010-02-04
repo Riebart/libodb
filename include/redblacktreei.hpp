@@ -46,22 +46,11 @@ using namespace std;
 ///object (list node)
 class RedBlackTreeI : public Index
 {
+    /// Since the constructor is protected, ODB needs to be able to create new
+    ///index tables.
+    friend class ODB;
+    
 public:
-    /// Standard constructor
-    /// @param [in] ident Identifier to maintain data integrity; all new data
-    ///is checked against this identifier that the data is appropriate for
-    ///addition into this index table.
-    /// @param [in] compare Comparison function used to sort this tree.
-    /// @param [in] merge Merge function used when duplicates are encountered
-    ///in the tree. If merge is NULL then items are stored in a linked list
-    ///embedded in the tree node (So as not to bloat and/or unbalance the tree).
-    /// @param [in] drop_duiplicates A boolean value indicating whether or not
-    ///the tree should allow duplicates.
-    RedBlackTreeI(int ident,
-                  int (*compare)(void*, void*),
-                  void* (*merge)(void*, void*),
-                  bool drop_duplicates);
-
     /// Destructor that employs a partial-recursion
     /// Recursion is employed to free the tree nodes (because the tree height is
     ///kept very small) and an interative algorithm is applied when freeing the
@@ -83,6 +72,21 @@ public:
     int rbt_verify();
 
 private:
+    /// Standard constructor
+    /// @param [in] ident Identifier to maintain data integrity; all new data
+    ///is checked against this identifier that the data is appropriate for
+    ///addition into this index table.
+    /// @param [in] compare Comparison function used to sort this tree.
+    /// @param [in] merge Merge function used when duplicates are encountered
+    ///in the tree. If merge is NULL then items are stored in a linked list
+    ///embedded in the tree node (So as not to bloat and/or unbalance the tree).
+    /// @param [in] drop_duiplicates A boolean value indicating whether or not
+    ///the tree should allow duplicates.
+    RedBlackTreeI(int ident,
+                  int (*compare)(void*, void*),
+                  void* (*merge)(void*, void*),
+                  bool drop_duplicates);
+                  
     /// Tree node structure.
     /// By using a top-down algorithm, it is possible to avoid pointers to anything
     ///other than children and hence reduce memory overhead. By embedding the
@@ -111,19 +115,6 @@ private:
     /// Root node of the tree.
     struct tree_node* root;
 
-    /// Comparator function.
-    int (*compare)(void*, void*);
-
-    /// Merge function.
-    void* (*merge)(void*, void*);
-
-    /// Number of elements in the tree.
-    uint64_t count;
-
-    /// Indicator on whether or not to drop duplicates. CURRENTLY ASSUMED TO
-    ///ALWAYS BE TRUE.
-    bool drop_duplicates;
-
     /// False root for use when inserting.
     /// Set up a false root so we can talk about the root's parent without
     ///worrying about the fact that it doesn't actually exist.
@@ -131,7 +122,10 @@ private:
     ///being a particular issue.
     struct tree_node* false_root;
     
+    /// DataStore used for managing the memory used for tree nodes.
     DataStore* treeds;
+    
+    /// DataStore used for managing the memory used for embedded linked list ndoes.
     DataStore* listds;
 
     RWLOCK_T;
