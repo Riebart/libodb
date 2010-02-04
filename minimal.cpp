@@ -15,8 +15,8 @@ int main (int argc, char ** argv)
 {
     long v, p = 10000, n = 0;
 
-    ODB odb(new BankDS(sizeof(long)));
-    Index* ind = odb.create_index(Index::RedBlackTree, ODB::NONE, compare);
+    ODB odb(ODB::BANK_DS, sizeof(long));
+    Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100000 ; i++)
     {

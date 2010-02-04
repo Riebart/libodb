@@ -1,22 +1,22 @@
 #include "bankds.hpp"
 
-BankDS::BankDS(uint64_t data_size, uint64_t cap)
+BankDS::BankDS(uint64_t datalen, uint64_t cap)
 {
-    init(NULL, data_size, cap);
+    init(NULL, datalen, cap);
 }
 
-BankDS::BankDS(DataStore* parent, uint64_t data_size, uint64_t cap)
+BankDS::BankDS(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
-    init(parent, data_size, cap);
+    init(parent, datalen, cap);
 }
 
-inline void BankDS::init(DataStore* parent, uint64_t data_size, uint64_t cap)
+inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
     data = (char**)malloc(sizeof(char*));
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
-    *(data) = (char*)malloc(cap * data_size);
+    *(data) = (char*)malloc(cap * datalen);
     
     // Initialize the cursor position and data count
     posA = 0;
@@ -28,8 +28,8 @@ inline void BankDS::init(DataStore* parent, uint64_t data_size, uint64_t cap)
     
     // Initialize a few other values.
     this->cap = cap;
-    cap_size = cap * data_size;
-    this->data_size = data_size;
+    cap_size = cap * datalen;
+    this->datalen = datalen;
     this->parent = parent;
     
     RWLOCK_INIT();
@@ -63,7 +63,7 @@ inline void* BankDS::add_data(void* rawdata)
     void* ret = get_addr();
     
     // Copy the data into the datastore.
-    memcpy(ret, rawdata, data_size);
+    memcpy(ret, rawdata, datalen);
     
     return ret;
 }
@@ -80,7 +80,7 @@ inline void* BankDS::get_addr()
         ret = *(data + posA) + posB;
         
         // Increment the pointer in the bucket.
-        posB += data_size;
+        posB += datalen;
         
         // If the pointer now points to the end of the current bucket, make another.
         if (posB == cap_size)
@@ -112,7 +112,7 @@ inline void* BankDS::get_addr()
             }
             
             // Allocate a new bucket.
-            *(data + posA) = (char*)malloc(cap * data_size);
+            *(data + posA) = (char*)malloc(cap * datalen);
         }
     }
     // If there are empty locations...
@@ -135,7 +135,7 @@ inline void* BankDS::get_addr()
     
     // This is for reference in case I need it again. It is nontrivial, so I am hesitant to discard it.
     // It computes the absolute 0-based index of the cursor position.
-    // return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
+    // return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->datalen - 1);
 }
 
 inline void* BankIDS::add_data(void* rawdata)
@@ -148,7 +148,7 @@ inline void* BankDS::get_at(uint64_t index)
 {
     READ_LOCK();
     // Get the location in memory of the data item at location index.
-    void* ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size;
+    void* ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen;
     READ_UNLOCK();
     return ret;
 }
@@ -167,7 +167,7 @@ bool BankDS::remove_at(uint64_t index)
     {
         WRITE_LOCK();
         // Push the memory location onto the stack.
-        deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * data_size);
+        deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen);
         WRITE_UNLOCK();
 
         // Return success
@@ -196,10 +196,10 @@ void BankDS::populate(Index* index)
     // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
-        for (uint64_t j = 0 ; j < cap_size ; j += data_size)
+        for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             index->add_data_v(*(data + i) + j);
         
-    for (uint64_t j = 0 ; j < posB ; j += data_size)
+    for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v(*(data + posA) + j);
         
     READ_UNLOCK();
@@ -213,10 +213,10 @@ void BankIDS::populate(Index* index)
     // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
-        for (uint64_t j = 0 ; j < cap_size ; j += data_size)
+        for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             index->add_data_v((void*)(*(char*)(*(data + i) + j)));
         
-    for (uint64_t j = 0 ; j < posB ; j += data_size)
+    for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v((void*)(*(char*)(*(data + posA) + j)));
     
     READ_UNLOCK();
@@ -225,7 +225,7 @@ void BankIDS::populate(Index* index)
 DataStore* BankDS::clone()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new BankDS(this, data_size, cap);
+    return new BankDS(this, datalen, cap);
 }
 
 DataStore* BankDS::clone_indirect()

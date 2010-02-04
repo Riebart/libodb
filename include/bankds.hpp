@@ -173,7 +173,7 @@ protected:
     uint64_t cap_size;
 
     /// The size (in bytes) of each piece of data.
-    uint64_t data_size;
+    uint64_t datalen;
 
     /// Stack containing the memory locations of any deleted items.
     stack<void*> deleted;

@@ -32,8 +32,10 @@ protected:
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
     virtual uint64_t size();
+    virtual uint32_t get_datalen() { return datalen; };
 
     DataStore* parent;
+    uint32_t datalen;
 };
 
 #endif

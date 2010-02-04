@@ -218,17 +218,6 @@ class Index : public IndexGroup
     friend class LinkedListIDS;
     
 public:
-    /// Enum defining the specific index implementations available.
-    /// Index implementations starting with "Keyed" are key-value index tables, all
-    ///others are value-only index tables. Note that a value-only index table has
-    ///less storage overhead but must perform comparisons directly on the data
-    ///and may result in more complicated compare functions. Key-value index
-    ///tables however require a keygen function that generates a key from a piece
-    ///of data.
-    /// @todo Actually implement all of these. :)
-    /// @todo Should they be in all caps for convention's sake?
-    typedef enum { LinkedList, KeyedLinkedList, RedBlackTree, KeyedRedBlackTree } IndexType;
-
     /// Add a piece of data to this Index.
     /// A DataObj instance must be inserted as it contains the necessary
     ///information to ensure that data integrity is maintained through the insertion.

@@ -2,21 +2,66 @@
 
 uint32_t ODB::num_unique = 0;
 
-ODB::ODB(DataStore* data)
-{
-    this->ident = num_unique;
-    num_unique++;
 
-    this->datalen = datalen;
-    all = new IndexGroup(ident, data);
-    dataobj = new DataObj(ident);
-    this->data = data;
+ODB::ODB(DatastoreType dt, uint32_t datalen)
+{
+    DataStore* data;
+    
+    switch (dt)
+    {
+    case BANK_DS:
+    {
+        data = new BankDS(datalen);
+        break;
+    }
+    case LINKED_LIST_DS:
+    {
+        data = new LinkedListDS(datalen);
+        break;
+    }
+    default:
+    {
+        data = new BankDS(datalen);
+    }
+    }
+
+    init(data, num_unique, datalen);
+    num_unique++;
 }
 
-ODB::ODB(DataStore* data, int ident)
+ODB::ODB(DatastoreType dt, int ident, uint32_t datalen)
+{
+    DataStore* data;
+    
+    switch (dt)
+    {
+    case BANK_DS:
+    {
+        data = new BankDS(datalen);
+        break;
+    }
+    case LINKED_LIST_DS:
+    {
+        data = new LinkedListDS(datalen);
+        break;
+    }
+    default:
+    {
+        data = new BankDS(datalen);
+    }
+    }
+
+    init(data, ident, datalen);
+}
+        
+ODB::ODB(DataStore* data, int ident, uint32_t datalen)
+{
+    init(data, ident, datalen);
+}
+
+void ODB::init(DataStore* data, int ident, uint32_t datalen)
 {
     this->ident = ident;
-
     this->datalen = datalen;
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
@@ -46,7 +91,7 @@ ODB::~ODB()
     }
 }
 
-Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
+Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), uint32_t keylen)
 {
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
     bool do_not_populate = flags & DO_NOT_POPULATE;
@@ -55,18 +100,20 @@ Index* ODB::create_index(Index::IndexType type, int flags, int (*compare)(void*,
 
     switch (type)
     {
-    case Index::LinkedList:
+    case LINKED_LIST:
     {
         new_index = new LinkedListI(ident, compare, merge, drop_duplicates);
         break;
     }
-    case Index::RedBlackTree:
+    case RED_BLACK_TREE:
     {
         new_index = new RedBlackTreeI(ident, compare, merge, drop_duplicates);
         break;
     }
     default:
+    {
         FAIL("Invalid index type.");
+    }
     }
 
     new_index->parent = data;

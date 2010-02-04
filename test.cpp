@@ -63,12 +63,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     {
     case 0:
     {
-        odb = new ODB(new BankDS(sizeof(long)));
+        odb = new ODB(ODB::BANK_DS, element_size);
+        
         break;
     }
     case 1:
     {
-        odb = new ODB(new LinkedListDS(sizeof(long)));
+        odb = new ODB(ODB::LINKED_LIST_DS, element_size);
         break;
     }
     default:
@@ -85,7 +86,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(Index::RedBlackTree, ODB::NONE, compare);
+        ind[i] = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     ftime(&start);
 

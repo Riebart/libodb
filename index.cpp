@@ -59,13 +59,15 @@ inline ODB* IndexGroup::query(bool (*condition)(void*))
 
     // Iterate and query with the non-public member.
     uint32_t n = indices.size();
+    
+    // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
         #pragma omp parallel for
         for (uint32_t i = 0 ; i < n ; i++)
             indices[i]->query(condition, ds);
 
     // Wrap in an ODB and return.
-    return new ODB(ds, ident);
+    return new ODB(ds, ident, parent->get_datalen());
 }
 
 inline int IndexGroup::get_ident()
@@ -76,6 +78,8 @@ inline int IndexGroup::get_ident()
 inline void IndexGroup::add_data_v(void* data)
 {
     uint32_t n = indices.size();
+    
+    // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
         #pragma omp parallel for
         for (uint32_t i = 0 ; i < n ; i++)
@@ -85,6 +89,8 @@ inline void IndexGroup::add_data_v(void* data)
 inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
 {
     uint32_t n = indices.size();
+    
+    // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
         #pragma omp parallel for
         for (uint32_t i = 0 ; i < n ; i++)
@@ -124,7 +130,7 @@ inline ODB* Index::query(bool (*condition)(void*))
     query(condition, ds);
 
     // Wrap in ODB and return.
-    return new ODB(ds, ident);
+    return new ODB(ds, ident, parent->get_datalen());
 }
 
 uint64_t Index::size()
