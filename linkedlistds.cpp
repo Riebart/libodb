@@ -44,9 +44,27 @@ void* LinkedListDS::add_element(void* rawdata)
     return &(new_element->data);
 }
 
+void* LinkedListDS::get_addr()
+{
+    struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
+    
+    WRITE_LOCK();
+    new_element->next=bottom;
+    bottom=new_element;
+    deleted_list.push_back(0);
+    WRITE_UNLOCK();
+    
+    return &(new_element->data);
+}
+
 void* LinkedListIDS::add_element(void* rawdata)
 {
     return LinkedListDS::add_element(&rawdata);
+}
+
+void* LinkedListIDS::get_addr()
+{
+    return (void*)(*((char*)(LinkedListDS::get_addr())));
 }
 
 // returns false if index is out of range, or if element was already

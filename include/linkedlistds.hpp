@@ -24,6 +24,7 @@ protected:
 #pragma pack()
 
     virtual void* add_element(void* rawdata);
+    virtual void* get_addr();
     virtual bool del_at(uint64_t index);
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
@@ -44,6 +45,7 @@ public:
 
 protected:
     virtual void* add_element(void* rawdata);
+    virtual void* get_addr();
     virtual void* get_at(uint64_t index);
 };
 

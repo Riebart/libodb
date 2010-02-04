@@ -1,5 +1,6 @@
 #include "redblacktreei.hpp"
 #include "datastore.hpp"
+#include "bankds.hpp"
 
 #define RED_BLACK_MASK 0xFFFFFFFFFFFFFFFE
 #define LIST_MASK 0xFFFFFFFFFFFFFFFD
@@ -94,6 +95,10 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
 
     // Initialize the false root
     false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
+    
+    // Initialize the data stores that will handle the memory allocation for the various nodes.
+    treeds = new BankDS(sizeof(struct tree_node));
+    listds = new BankDS(sizeof(struct list_node));
 }
 
 RedBlackTreeI::~RedBlackTreeI()
@@ -148,7 +153,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct tr
 inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 {
     // Alloc space for a new node.
-    struct tree_node* n = (struct tree_node*)malloc(sizeof(struct tree_node));
+    struct tree_node* n = (struct tree_node*)(treeds->get_addr());
 
     // Set the data pointer.
     n->data = rawdata;
@@ -284,13 +289,13 @@ skip:
                     if (!drop_duplicates)
                     {
                         // Allocate a new list item for the linked list.
-                        struct list_node* first = (struct list_node*)malloc(sizeof(struct list_node));
+                        struct list_node* first = (struct list_node*)(listds->get_addr());
 
                         // If we don't have a list, start one.
                         if (!IS_LIST(i))
                         {
                             // Allocate the head
-                            struct list_node* second = (struct list_node*)malloc(sizeof(struct list_node));
+                            struct list_node* second = (struct list_node*)(listds->get_addr());
 
                             // Set the end of it to point to NULL to 'terminate' it.
                             second->next = NULL;

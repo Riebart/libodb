@@ -70,6 +70,8 @@ protected:
     /// @return A pointer to the location of the added data in the datastore.
     ///By returning a pointer this reduces the lookup overhead to a minimal level.
     virtual void* add_element(void* rawdata);
+    
+    virtual void* get_addr();
 
     /// Index into the datastore to retrieve a pointer to the data at the requested
     ///location.
@@ -181,6 +183,8 @@ protected:
     /// @return A pointer to the location of the added data in the datastore.
     ///By returning a pointer this reduces the lookup overhead to a minimal level.
     virtual void* add_element(void* rawdata);
+    
+    virtual void* get_addr();
 
     /// Index into the datastore to retrieve a pointer to the data at the
     ///requested location.

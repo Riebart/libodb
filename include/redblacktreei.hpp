@@ -130,6 +130,9 @@ private:
     /// This allows us to perform rotations involving the root without it
     ///being a particular issue.
     struct tree_node* false_root;
+    
+    DataStore* treeds;
+    DataStore* listds;
 
     RWLOCK_T;
 

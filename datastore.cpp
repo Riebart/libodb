@@ -15,6 +15,11 @@ void* DataStore::add_element(void* rawdata)
     return NULL;
 }
 
+void* DataStore::get_addr()
+{
+    return NULL;
+}
+
 void* DataStore::get_at(uint64_t index)
 {
     return NULL;

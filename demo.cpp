@@ -41,59 +41,59 @@ extern "C"
 
 #include "odb.hpp"
 
-int compare_time_dur(void* a, void* b)
+inline int compare_time_dur(void* a, void* b)
 {
     struct fts3rec_v5_gen* a_r = (struct fts3rec_v5_gen*)a;
     struct fts3rec_v5_gen* b_r = (struct fts3rec_v5_gen*)b;
     return ((a_r->Last - a_r->First) - (b_r->Last - b_r->First));
 }
 
-int compare_time_start(void* a, void* b)
+inline int compare_time_start(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->First) - (((struct fts3rec_v5_gen*)b)->First));
 }
 
-int compare_num_octs(void* a, void* b)
+inline int compare_num_octs(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->dOctets) - (((struct fts3rec_v5_gen*)b)->dOctets));
 }
 
-int compare_num_pkts(void* a, void* b)
+inline int compare_num_pkts(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->dPkts) - (((struct fts3rec_v5_gen*)b)->dPkts));
 }
 
-int compare_prot(void* a, void* b)
+inline int compare_prot(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->prot) - (((struct fts3rec_v5_gen*)b)->prot));
 }
 
-int compare_src_as(void* a, void* b)
+inline int compare_src_as(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->src_as) - (((struct fts3rec_v5_gen*)b)->src_as));
 }
 
-int compare_dst_as(void* a, void* b)
+inline int compare_dst_as(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->dst_as) - (((struct fts3rec_v5_gen*)b)->dst_as));
 }
 
-int compare_src_addr(void* a, void* b)
+inline int compare_src_addr(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->srcaddr) - (((struct fts3rec_v5_gen*)b)->srcaddr));
 }
 
-int compare_dst_addr(void* a, void* b)
+inline int compare_dst_addr(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->dstaddr) - (((struct fts3rec_v5_gen*)b)->dstaddr));
 }
 
-int compare_src_port(void* a, void* b)
+inline int compare_src_port(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->srcport) - (((struct fts3rec_v5_gen*)b)->srcport));
 }
 
-int compare_dst_port(void* a, void* b)
+inline int compare_dst_port(void* a, void* b)
 {
     return ((((struct fts3rec_v5_gen*)a)->dstport) - (((struct fts3rec_v5_gen*)b)->dstport));
 }
@@ -143,13 +143,13 @@ int main(int argc, char *argv[])
     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_dst_addr);
     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_src_port);
     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_dst_port);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_src_as);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_dst_as);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_prot);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_num_octs);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_num_pkts);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_time_dur);
-    odb->create_index(Index::RedBlackTree, ODB::NONE, compare_time_start);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_src_as);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_dst_as);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_prot);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_num_octs);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_num_pkts);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_time_dur);
+//     odb->create_index(Index::RedBlackTree, ODB::NONE, compare_time_start);
 
     if (argc < 2)
     {
@@ -165,6 +165,9 @@ int main(int argc, char *argv[])
 
     for (i = 0 ; i < num_files ; i++)
     {
+        fprintf(stderr, ".");
+        fflush(stderr);
+        
         fp = fopen(argv[i+2], "rb");
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 
@@ -186,9 +189,6 @@ int main(int argc, char *argv[])
 
         fclose(fp);
         fflush(stdout);
-        
-        fprintf(stderr, ".");
-        fflush(stderr);
     }
 
     printf("%lu records processed.\n", total_num);

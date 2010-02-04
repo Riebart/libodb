@@ -76,7 +76,7 @@ inline void* BankDS::add_element(void* rawdata)
             // If posA is at the end of the bucket list...
             if (posA == list_size)
             {
-                /// @todo What about a realloc() here? Would it be appropriate?
+                /// @todo What about a realloc() here? Would it be appropriate? Also in BankDS::get_addr().
                 // Create a new bucket list that is twice the size of the old one.
                 char** temp = (char**)malloc(2 * list_size * sizeof(char*));
 
@@ -123,10 +123,53 @@ inline void* BankDS::add_element(void* rawdata)
     // return (bank->cap * bank->posA / sizeof(char*) + bank->posB / bank->data_size - 1);
 }
 
+inline void* BankDS::get_addr()
+{
+    void* ret;
+    WRITE_LOCK();
+    
+    if (deleted.empty())
+    {
+        ret = *(data + posA) + posB;
+        posB += data_size;
+        
+        if (posB == cap_size)
+        {
+            posB = 0;
+            posA += sizeof(char*);
+            if (posA == list_size)
+            {
+                char** temp = (char**)malloc(2 * list_size * sizeof(char*));
+                memcpy(temp, data, list_size * sizeof(char*));
+                free(data);
+                data = temp;
+                list_size *= 2;
+            }
+            
+            *(data + posA) = (char*)malloc(cap * data_size);
+        }
+    }
+    else
+    {
+        ret = deleted.top();
+        deleted.pop();
+    }
+    
+    data_count++;
+    WRITE_UNLOCK();
+    
+    return ret;
+}
+
 inline void* BankIDS::add_element(void* rawdata)
 {
     // Perform the ncessary indirection. This adds the address of the pointer (of size sizeof(char*)), not the data.
     return BankDS::add_element(&rawdata);
+}
+
+inline void* BankIDS::get_addr()
+{
+    return ((void*)(*((char*)(BankDS::get_addr()))));
 }
 
 inline void* BankDS::get_at(uint64_t index)
