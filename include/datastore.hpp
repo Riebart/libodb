@@ -16,6 +16,7 @@ class DataStore
 public:
     DataStore();
     virtual ~DataStore();
+    uint32_t get_datalen() { return datalen; };
 
 protected:
     virtual void* add_element(void* rawdata);
@@ -25,6 +26,8 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual uint64_t size();
+    
+    uint32_t datalen;
 
     DataStore* parent;
 };

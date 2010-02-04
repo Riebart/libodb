@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "odb.hpp"
+#include "index.hpp"
 
 bool condition(void* a)
 {
@@ -15,8 +16,8 @@ int main (int argc, char ** argv)
 {
     long v, p = 10000, n = 0;
 
-    ODB odb(new BankDS(sizeof(long)));
-    Index* ind = odb.create_index(Index::LinkedList, ODB::NONE, compare);
+    ODB odb(ODB::BANKDS, sizeof(long));
+    Index* ind = odb.create_index(ODB::LINKED_LIST, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100000 ; i++)
     {
