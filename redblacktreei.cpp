@@ -103,8 +103,8 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
     false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
 
     // Initialize the data stores that will handle the memory allocation for the various nodes.
-    treeds = new BankDS(sizeof(struct tree_node));
-    listds = new BankDS(sizeof(struct list_node));
+    treeds = new BankDS(NULL, sizeof(struct tree_node));
+    listds = new BankDS(NULL, sizeof(struct list_node));
 }
 
 RedBlackTreeI::~RedBlackTreeI()

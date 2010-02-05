@@ -44,7 +44,10 @@ class BankDS : public DataStore
     ///datastores.
     friend class ODB;
 
+    /// Allows LinkedListI to create a Bankds object to manage its memory.
     friend class LinkedListI;
+
+    /// Allows LinkedListI to create a pair of Bankds objects to manage its memory.
     friend class RedBlackTreeI;
 
 public:
@@ -60,17 +63,6 @@ protected:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     BankDS();
-
-    /// Unique public constructor for a BankDS object.
-    /// By presenting only this constructor as public, the user can't botch
-    ///instantiating a new BankDS object.
-    /// @param [in] data_size The length (in bytes) of each unit of data.
-    /// @param [in] cap The number of items to store in each block. (The default
-    ///value is 102400 = 4096*25 as it has shown to have very good performance
-    ///and guarantees memory alignment)
-    /// @todo Move a constructor that takes parent to a private/protected location,
-    ///only presenting the two-parameter version to the user.
-    BankDS(uint64_t data_size, uint64_t cap = 102400);
 
     /// Complete constructor for a BankDS object
     /// Since BankDS requires only three parameters, two of which have default
@@ -137,6 +129,7 @@ protected:
     ///the new index table be populated with the existing data. That job is
     ///performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
+    /// @todo Verify this works now that I've monkeyed it into using pointers.
     virtual void populate(Index* index);
 
     /// Clone the datastore and return the same type but with no data.
@@ -200,6 +193,10 @@ protected:
 /// @todo implement a custom thin stack for the freed pointers. Do it on top of a BankDS?
 class BankIDS : public BankDS
 {
+    /// Since the constructors are protected, ODB needs to be able to create new
+    ///datastores.
+    friend class ODB;
+
     /// Allows BankDS to create an indirect copy of itself.
     friend class BankDS;
 
@@ -221,6 +218,9 @@ protected:
     /// @param [in] cap The number of items to store in each block. (The default
     ///value is 102400 = 4096*25 as it has shown to have very good performance
     ///and guarantees memory alignment)
+    /// @todo Make proper use of the parent pointers where necessary.
+    ///(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
+    ///Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
     BankIDS(DataStore* parent = NULL, uint64_t cap = 102400);
 
     /// Add a piece of raw data to the datastore.
@@ -247,7 +247,18 @@ protected:
     ///the new index table be populated with the existing data. That job is
     ///performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
+    /// @todo Verify this works now that I've monkeyed it into using pointers.
     virtual void populate(Index* index);
 };
+
+// class BankVDS : public BankDS
+// {
+// protected:
+//     BankVDS();
+//     BankVDS(DataStore* parent = NULL, uint32_t avg_datalen, uint32_t (*len)(void*), uint64_t cap = 102400);
+//     virtual void* add_data(void* rawdata);
+//     virtual void* get_at(uint64_t index);
+//     virtual void populate(Index* index);
+// }
 
 #endif

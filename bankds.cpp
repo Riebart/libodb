@@ -1,10 +1,5 @@
 #include "bankds.hpp"
 
-BankDS::BankDS(uint64_t datalen, uint64_t cap)
-{
-    init(NULL, datalen, cap);
-}
-
 BankDS::BankDS(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
     init(parent, datalen, cap);

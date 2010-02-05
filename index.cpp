@@ -67,7 +67,7 @@ inline ODB* IndexGroup::query(bool (*condition)(void*))
             indices[i]->query(condition, ds);
 
     // Wrap in an ODB and return.
-    return new ODB(ds, ident, parent->get_datalen());
+    return new ODB(ds, ident, parent->datalen);
 }
 
 inline int IndexGroup::get_ident()
@@ -130,7 +130,7 @@ inline ODB* Index::query(bool (*condition)(void*))
     query(condition, ds);
 
     // Wrap in ODB and return.
-    return new ODB(ds, ident, parent->get_datalen());
+    return new ODB(ds, ident, parent->datalen);
 }
 
 uint64_t Index::size()

@@ -1,9 +1,14 @@
 #include "odb.hpp"
+#include <string.h>
 
 uint32_t ODB::num_unique = 0;
 
+inline uint32_t ODB::len_v(void* rawdata)
+{
+    return strlen((const char*)rawdata);
+}
 
-ODB::ODB(DatastoreType dt, uint32_t datalen)
+ODB::ODB(FixedDatastoreType dt, uint32_t datalen)
 {
     DataStore* data;
 
@@ -11,17 +16,17 @@ ODB::ODB(DatastoreType dt, uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(datalen);
+        data = new BankDS(NULL, datalen);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(datalen);
+        data = new LinkedListDS(NULL, datalen);
         break;
     }
     default:
     {
-        data = new BankDS(datalen);
+        FAIL("Invalid datastore type.");
     }
     }
 
@@ -29,7 +34,7 @@ ODB::ODB(DatastoreType dt, uint32_t datalen)
     num_unique++;
 }
 
-ODB::ODB(DatastoreType dt, int ident, uint32_t datalen)
+ODB::ODB(FixedDatastoreType dt, int ident, uint32_t datalen)
 {
     DataStore* data;
 
@@ -37,21 +42,72 @@ ODB::ODB(DatastoreType dt, int ident, uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(datalen);
+        data = new BankDS(NULL, datalen);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(datalen);
+        data = new LinkedListDS(NULL, datalen);
         break;
     }
     default:
     {
-        data = new BankDS(datalen);
+        FAIL("Invalid datastore type.");
     }
     }
 
     init(data, ident, datalen);
+}
+
+ODB::ODB(IndirectDatastoreType dt)
+{
+    DataStore* data;
+
+    switch (dt)
+    {
+    case BANK_I_DS:
+    {
+        data = new BankIDS(NULL);
+        break;
+    }
+    case LINKED_LIST_I_DS:
+    {
+        data = new LinkedListIDS(NULL);
+        break;
+    }
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+
+    init(data, num_unique, sizeof(void*));
+    num_unique++;
+}
+
+ODB::ODB(IndirectDatastoreType dt, int ident)
+{
+    DataStore* data;
+
+    switch (dt)
+    {
+    case BANK_I_DS:
+    {
+        data = new BankIDS(NULL);
+        break;
+    }
+    case LINKED_LIST_I_DS:
+    {
+        data = new LinkedListIDS(NULL);
+        break;
+    }
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+
+    init(data, ident, sizeof(void*));
 }
 
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)

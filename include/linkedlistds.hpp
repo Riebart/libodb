@@ -34,7 +34,6 @@ protected:
     ///instance.
     LinkedListDS();
 
-    LinkedListDS(uint64_t datalen);
     LinkedListDS(DataStore* parent, uint64_t datalen);
 
     virtual void init(DataStore* parent, uint64_t datalen);
@@ -57,6 +56,10 @@ protected:
 /// @todo Implement deletion: remove_at, remove_addr
 class LinkedListIDS : public LinkedListDS
 {
+    /// Since the constructors are protected, ODB needs to be able to create new
+    ///datastores.
+    friend class ODB;
+
     friend class LinkedListDS;
 
 protected:

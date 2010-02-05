@@ -1,11 +1,6 @@
 #include "linkedlistds.hpp"
 #include "datastore.hpp"
 
-LinkedListDS::LinkedListDS(uint64_t datalen)
-{
-    init(NULL, datalen);
-}
-
 LinkedListDS::LinkedListDS(DataStore* parent, uint64_t datalen)
 {
     init(parent, datalen);
@@ -154,7 +149,7 @@ uint64_t LinkedListDS::size()
 
 DataStore* LinkedListDS::clone()
 {
-    return new LinkedListDS(datalen);
+    return new LinkedListDS(this, datalen);
 }
 
 DataStore* LinkedListDS::clone_indirect()

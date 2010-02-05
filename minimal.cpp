@@ -13,14 +13,15 @@ int compare(void* a, void* b)
 
 int main (int argc, char ** argv)
 {
-    long v, p = 10000, n = 0;
+    long v, p = 1000, n = 0;
 
     ODB odb(ODB::BANK_DS, sizeof(long));
-    Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+    Index* ind = odb.create_index(ODB::LINKED_LIST, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100000 ; i++)
     {
-        v = (i + ((rand() % (2 * p + 1)) - p));
+        //v = (i + ((rand() % (2 * p + 1)) - p));
+        v = -(i - p);
         if (v < 0) n++;
         odb.add_data(&v);
     }
