@@ -63,13 +63,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     {
     case 0:
     {
-        odb = new ODB(ODB::BANK_DS, element_size);
+        odb = new ODB(ODB::BANK_I_DS);
 
         break;
     }
     case 1:
     {
-        odb = new ODB(ODB::LINKED_LIST_DS, element_size);
+        odb = new ODB(ODB::LINKED_LIST_I_DS);
         break;
     }
     default:
@@ -80,13 +80,14 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     struct timeb end;
 
     long v;
+    long *vp;
 
     Index* ind[NUM_TABLES];
     ODB* res[NUM_QUERIES];
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare);
+        ind[i] = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     ftime(&start);
 
@@ -95,7 +96,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
-        dn = odb->add_data(&v, false);
+        
+        vp = (long*)malloc(element_size);
+        memcpy(vp, &v, element_size);
+        
+        dn = odb->add_data(vp, false);
 
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)

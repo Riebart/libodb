@@ -73,6 +73,7 @@ protected:
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
+    virtual void populate(Index* index);
 };
 
 #endif

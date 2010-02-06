@@ -64,7 +64,7 @@ void* LinkedListDS::get_addr()
 
 void* LinkedListIDS::add_data(void* rawdata)
 {
-    return LinkedListDS::add_data(&rawdata);
+    return (void*)(*((char**)(LinkedListDS::add_data(&rawdata))));
 }
 
 // returns false if index is out of range, or if element was already
@@ -89,11 +89,27 @@ bool LinkedListDS::del_at(uint64_t index)
 void LinkedListDS::populate(Index* index)
 {
     struct datanode* curr = bottom;
-
+    
     READ_LOCK();
     while (curr != NULL)
     {
         index->add_data_v(&(curr->data));
+        curr = curr->next;
+    }
+    READ_UNLOCK();
+}
+
+void LinkedListIDS::populate(Index* index)
+{
+    struct datanode* curr = bottom;
+    
+    READ_LOCK();
+    while (curr != NULL)
+    {
+        // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
+        char** a = (char**)(&(curr->data));
+        void* b = (void*)(*a);
+        index->add_data_v(b);
         curr = curr->next;
     }
     READ_UNLOCK();
@@ -121,7 +137,7 @@ void * LinkedListDS::get_at(uint64_t index)
 
 inline void* LinkedListIDS::get_at(uint64_t index)
 {
-    return (void*)(*((char*)(LinkedListDS::get_at(index))));
+    return (void*)(*((char**)(LinkedListDS::get_at(index))));
 }
 
 // Performs the sweep of a mark-and-sweep. starting at the back,

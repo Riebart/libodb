@@ -136,7 +136,7 @@ inline void* BankDS::get_addr()
 inline void* BankIDS::add_data(void* rawdata)
 {
     // Perform the ncessary indirection. This adds the address of the pointer (of size sizeof(char*)), not the data.
-    return BankDS::add_data(&rawdata);
+    return (void*)(*((char**)(BankDS::add_data(&rawdata))));
 }
 
 inline void* BankDS::get_at(uint64_t index)
@@ -151,8 +151,8 @@ inline void* BankDS::get_at(uint64_t index)
 inline void* BankIDS::get_at(uint64_t index)
 {
     // Perform the necessary dereferencing and casting.
-    // Since you can't dereference a void*, cast it to a char*. Since dereferencing a char* ends up with a char, be sure to cast that into a void* for returning.
-    return (void*)(*((char*)(BankDS::get_at(index))));
+    // Since you can't dereference a void*, cast it to a char**. Since dereferencing a char** ends up with a char*, be sure to cast that into a void* for returning.
+    return (void*)(*((char**)(BankDS::get_at(index))));
 }
 
 bool BankDS::remove_at(uint64_t index)
@@ -209,10 +209,10 @@ void BankIDS::populate(Index* index)
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
-            index->add_data_v((void*)(*(char*)(*(data + i) + j)));
+            index->add_data_v((void*)(*(char**)(*(data + i) + j)));
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
-        index->add_data_v((void*)(*(char*)(*(data + posA) + j)));
+        index->add_data_v((void*)(*(char**)(*(data + posA) + j)));
 
     READ_UNLOCK();
 }
