@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "odb.hpp"
 
@@ -20,8 +21,7 @@ int main (int argc, char ** argv)
 
     for (long i = 0 ; i < 100000 ; i++)
     {
-        //v = (i + ((rand() % (2 * p + 1)) - p));
-        v = -(i - p);
+        v = (i + ((rand() % (2 * p + 1)) - p));
         if (v < 0) n++;
         odb.add_data(&v);
     }

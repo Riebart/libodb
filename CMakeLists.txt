@@ -71,6 +71,3 @@ SET(CPACK_RPM_PACKAGE_RELEASE "1")
 
 #build the packages
 INCLUDE(CPack)
-
-
-

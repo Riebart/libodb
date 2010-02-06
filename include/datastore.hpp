@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+// The datastores will probably need these for locking. Include it once here.
+#include "common.hpp"
+
 class Index;
 
 class DataStore

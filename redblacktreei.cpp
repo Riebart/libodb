@@ -1,6 +1,7 @@
 #include "redblacktreei.hpp"
-#include "datastore.hpp"
 #include "bankds.hpp"
+
+using namespace std;
 
 #define X64_HEAD 0xFFFFFFFF00000000
 #define RED_BLACK_MASK_BASE 0xFFFFFFFE
@@ -408,55 +409,3 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
         if (condition(root->data))
             ds->add_data(root->data);
 }
-
-// #include <set>
-//
-// using namespace std;
-//
-// class RedBlackTreeI : public Index
-// {
-// private:
-//     struct node
-//     {
-//         struct node* next;
-//         void* data;
-//     };
-//
-//     struct node* first;
-//     int (*compare)(void*, void*);
-//     void* (*merge)(void*, void*);
-//     uint64_t count;
-//     bool drop_duplicates;
-//     multiset<void*> mset;
-//     RWLOCK_T;
-//
-// public:
-//     RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool no)
-//     {
-//         RWLOCK_INIT();
-//         this->ident = ident;
-//         count = 0;
-//     }
-//
-//     //TODO: proper memory deletion, etc - wait, is it done?
-//     ~RedBlackTreeI()
-//     {
-//         RWLOCK_DESTROY();
-//     }
-//
-//     inline virtual void add_data_v(void* data)
-//     {
-//         WRITE_LOCK();
-//         mset.insert(data);
-//         WRITE_UNLOCK();
-//     }
-//
-//     //perhaps locking here is unnecessary
-//     unsigned long size()
-//     {
-//         WRITE_LOCK();
-//         uint64_t size = mset.size();
-//         WRITE_UNLOCK();
-//         return size;
-//     }
-// };

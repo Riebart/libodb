@@ -4,13 +4,8 @@
 #include <vector>
 #include <stdint.h>
 
-#include "datastore.hpp"
+#include "common.hpp"
 #include "index.hpp"
-
-#include "bankds.hpp"
-#include "linkedlistds.hpp"
-
-using namespace std;
 
 // Forward declarations
 class IndexGroup;
@@ -76,8 +71,8 @@ private:
     static uint32_t num_unique;
     int ident;
     uint32_t datalen;
-    vector<Index*> tables;
-    vector<IndexGroup*> groups;
+    std::vector<Index*> tables;
+    std::vector<IndexGroup*> groups;
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;

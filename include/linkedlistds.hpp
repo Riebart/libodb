@@ -1,12 +1,11 @@
 #ifndef LINKEDLISTDS_HPP
 #define LINKEDLISTDS_HPP
 
-#include <deque>
 #include <vector>
-#include <stdint.h>
 
-#include "index.hpp"
 #include "datastore.hpp"
+
+class Index;
 
 /// @todo Implement remove_addr and fix remove_at
 /// @todo This segfaults, find out why and fix it.

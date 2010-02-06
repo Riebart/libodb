@@ -5,14 +5,9 @@
 #ifndef BANKDS_HPP
 #define BANKDS_HPP
 
-#include <stdint.h>
-#include <string.h>
 #include <stack>
 
-#include "index.hpp"
 #include "datastore.hpp"
-
-using namespace std;
 
 /// A datastore backend that works based on large buckets of memory.
 /// The BankDS datastore works around the principle of approximately contiguous
@@ -176,7 +171,7 @@ protected:
     uint64_t datalen;
 
     /// Stack containing the memory locations of any deleted items.
-    stack<void*> deleted;
+    std::stack<void*> deleted;
 
     /// Locking.
     RWLOCK_T;

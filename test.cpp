@@ -9,9 +9,13 @@
 #include <stdlib.h>
 #include <sys/timeb.h>
 #include <stdio.h>
+#include <string.h>
 #include <omp.h>
 
 #include "odb.hpp"
+
+// NOT ALLOWED!
+#include "redblacktreei.hpp"
 
 #define SPREAD 500
 #define NUM_TABLES 1

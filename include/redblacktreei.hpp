@@ -1,15 +1,7 @@
 #ifndef REDBLACKTREEI_HPP
 #define REDBLACKTREEI_HPP
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "common.hpp"
-#include "lock.hpp"
 #include "index.hpp"
-
-using namespace std;
 
 /// Implementation of a top-down red-black tree.
 /// A red-black tree is a flavour of self-balancing binary search tree that

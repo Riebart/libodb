@@ -1,5 +1,21 @@
-#include "odb.hpp"
 #include <string.h>
+
+#include "odb.hpp"
+
+// Utility headers.
+#include "common.hpp"
+
+// Include the 'main' type header files.
+#include "datastore.hpp"
+#include "index.hpp"
+
+// Include the various types of index tables and datastores.
+#include "linkedlisti.hpp"
+#include "redblacktreei.hpp"
+#include "bankds.hpp"
+#include "linkedlistds.hpp"
+
+using namespace std;
 
 uint32_t ODB::num_unique = 0;
 

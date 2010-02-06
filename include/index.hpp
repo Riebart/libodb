@@ -7,9 +7,9 @@
 
 #include <vector>
 #include <stdint.h>
-#include <omp.h>
 
-using namespace std;
+// Every index table will need this, so just include it once here.
+#include "lock.hpp"
 
 class ODB;
 class DataStore;
@@ -187,7 +187,7 @@ private:
     /// An expanding list of pointers to the IndexGroups contained in this group.
     ///These are iterated over whenever data is added or a query is run.
     /// @todo Move to something homegrown?
-    vector<IndexGroup*> indices;
+    std::vector<IndexGroup*> indices;
 };
 
 /// Superclass for all specific implementations of indices (linked lists, redblack
@@ -284,10 +284,5 @@ protected:
     /// Indicator on whether or not to drop duplicates.
     bool drop_duplicates;
 };
-
-#include "linkedlisti.hpp"
-#include "redblacktreei.hpp"
-//#include "skiplisti.hpp"
-//#include "triei.hpp"
 
 #endif

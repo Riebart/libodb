@@ -1,11 +1,6 @@
 #ifndef LINKEDLISTI_HPP
 #define LINKEDLISTI_HPP
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "lock.hpp"
 #include "index.hpp"
 
 /// @todo Apparently queries don't work, fix those. (See minimal test case: p=10000, N=100000)

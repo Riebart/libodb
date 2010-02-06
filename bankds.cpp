@@ -1,4 +1,8 @@
+#include <string.h>
 #include "bankds.hpp"
+#include "index.hpp"
+
+using namespace std;
 
 BankDS::BankDS(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
