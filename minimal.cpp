@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "odb.hpp"
+#include "index.hpp"
 
 bool condition(void* a)
 {
@@ -17,7 +19,7 @@ int main (int argc, char ** argv)
     long v, p = 1000, n = 0;
 
     ODB odb(ODB::BANK_DS, sizeof(long));
-    Index* ind = odb.create_index(ODB::LINKED_LIST, ODB::NONE, compare);
+    Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100000 ; i++)
     {

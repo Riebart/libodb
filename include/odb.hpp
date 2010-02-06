@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #include "common.hpp"
-#include "index.hpp"
 
 // Forward declarations
 class IndexGroup;
