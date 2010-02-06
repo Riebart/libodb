@@ -37,7 +37,7 @@ LinkedListDS::~LinkedListDS()
 
 void* LinkedListDS::add_data(void* rawdata)
 {
-    struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
+    struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(datalen + sizeof(struct datanode*)));
     memcpy(&(new_element->data), rawdata, datalen);
 
     WRITE_LOCK();
@@ -51,7 +51,7 @@ void* LinkedListDS::add_data(void* rawdata)
 
 void* LinkedListDS::get_addr()
 {
-    struct datanode* new_element = (struct datanode*)malloc(datalen + sizeof(struct datanode*));
+    struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(datalen + sizeof(struct datanode*)));
 
     WRITE_LOCK();
     new_element->next=bottom;
@@ -89,7 +89,7 @@ bool LinkedListDS::del_at(uint64_t index)
 void LinkedListDS::populate(Index* index)
 {
     struct datanode* curr = bottom;
-    
+
     READ_LOCK();
     while (curr != NULL)
     {
@@ -102,13 +102,13 @@ void LinkedListDS::populate(Index* index)
 void LinkedListIDS::populate(Index* index)
 {
     struct datanode* curr = bottom;
-    
+
     READ_LOCK();
     while (curr != NULL)
     {
         // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
-        char** a = (char**)(&(curr->data));
-        void* b = (void*)(*a);
+        char** a = reinterpret_cast<char**>(&(curr->data));
+        void* b = reinterpret_cast<void*>(*a);
         index->add_data_v(b);
         curr = curr->next;
     }
@@ -137,7 +137,7 @@ void * LinkedListDS::get_at(uint64_t index)
 
 inline void* LinkedListIDS::get_at(uint64_t index)
 {
-    return (void*)(*((char**)(LinkedListDS::get_at(index))));
+    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(LinkedListDS::get_at(index))));
 }
 
 // Performs the sweep of a mark-and-sweep. starting at the back,

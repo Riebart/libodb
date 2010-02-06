@@ -44,10 +44,10 @@ public:
     typedef enum { LINKED_LIST, KEYED_LINKED_LIST, RED_BLACK_TREE, KEYED_RED_BLACK_TREE } IndexType;
 
     typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
-    
+
     /// @todo Verify that these work as intended: "Just add a pointer to wherever the data sits in memory"
     typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
-    
+
     /// @todo Implement these.
     typedef enum { BANK_V_DS, LINKED_LIST_V_DS } VariableDatastoreType;
 
@@ -65,7 +65,7 @@ public:
 
 private:
     static uint32_t len_v(void* rawdata);
-    
+
     ODB(FixedDatastoreType, int ident, uint32_t datalen);
     ODB(IndirectDatastoreType, int ident);
     ODB(VariableDatastoreType dt, int ident, uint32_t avg_datalen = 64, uint32_t (*len)(void*) = ODB::len_v);

@@ -22,37 +22,37 @@
 /// @param [in] x A pointer to the node to have its colour checked.
 /// @return 0 if the node is black, and 1 if the node is red (This follows the
 ///conventions of C that 0 is a boolean false, and non-zero is a boolean true).
-#define IS_RED(x) (((uint64_t)(x->link[0])) & 0x1)
+#define IS_RED(x) ((reinterpret_cast<uint64_t>(x->link[0])) & 0x1)
 
 /// Get whether or not this node contains a linked list for duplicates.
 /// @param [in] x A pointer to the node to have its duplicate-status checked.
 /// @return 0 of the node is a singluar value, and 1 if the node contains a
 ///linked list in the data pointer.
-#define IS_LIST(x) (((uint64_t)(x->link[0])) & 0x2)
+#define IS_LIST(x) ((reinterpret_cast<uint64_t>(x->link[0])) & 0x2)
 
 /// Set a node as red.
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 1.
 /// @param [in] x A pointer to the node to have its colour set.
-#define SET_RED(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) | 0x1))
+#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x1)))
 
 /// Set a node as black.
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 0.
 /// @param [in] x A pointer to the node to have its colour set.
-#define SET_BLACK(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & RED_BLACK_MASK))
+#define SET_BLACK(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_MASK)))
 
 /// Set a node as containing a duplicate list.
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 1.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_LIST(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) | 0x2))
+#define SET_LIST(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
 
 /// Set a node as containing a single value.
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 0.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_VALUE(x) ((x->link[0]) = (struct tree_node*)(((uint64_t)(x->link[0])) & LIST_MASK))
+#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & LIST_MASK)))
 
 /// Set the three least-significant bits in the specified node's specified pointer
 ///to 0 for use when dereferencing.
@@ -66,7 +66,7 @@
 ///must be STRIP()-ed.
 /// @param [in] x A pointer to the link to be stripped.
 /// @return A pointer to a node without the meta-data embedded in the address.
-#define STRIP(x) ((struct tree_node*)(((uint64_t)x) & META_MASK))
+#define STRIP(x) (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 
 /// Set x equal to y without destroying the meta-data in x.
 /// This is accomplished by first stripping the meta-data from y then isolating
@@ -77,7 +77,7 @@
 /// @param [in,out] x A pointer to the link to be set. The meta data of this
 ///link is not destroyed during the process.
 /// @param [in] y A pointer to the location for x to end up pointing to.
-#define SET_LINK(x, y) (x = (struct tree_node*)((((uint64_t)(y)) & META_MASK) | (((uint64_t)(x)) & 0x7)))
+#define SET_LINK(x, y) (x = (reinterpret_cast<struct tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & 0x7))))
 
 /// Get the data out of a node.
 /// Since a node can contain either a single value or a linked list, this takes
@@ -87,7 +87,7 @@
 /// @param [in] x The node to get the data from.
 /// @return A pointer to the data from x. If x contains a linked list the data
 ///returned is that contained in the head of the list.
-#define GET_DATA(x) (IS_LIST(x) ? (((struct list_node*)(x->data))->data) : (x->data))
+#define GET_DATA(x) (IS_LIST(x) ? ((reinterpret_cast<struct list_node*>(x->data))->data) : (x->data))
 
 RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
@@ -159,7 +159,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct tr
 inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 {
     // Alloc space for a new node.
-    struct tree_node* n = (struct tree_node*)(treeds->get_addr());
+    struct tree_node* n = reinterpret_cast<struct tree_node*>(treeds->get_addr());
 
     // Set the data pointer.
     n->data = rawdata;
@@ -209,6 +209,8 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
         while (true)
         {
+            // Note that the below two cases cover any tree modifications we might do that aren't tree rotations. Nothing else can cause a tree rotation to happen.
+            // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
             // If we're at a leaf, insert the new node and be done with it.
             if (i == NULL)
             {
@@ -217,49 +219,15 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 i = n;
                 ret = 1;
             }
-//             // If not, check for a any colour flips that we can do on the way down.
-//             // This ensures that no backtracking is needed.
-//             //  - First make sure that they are both non-NULL.
-//             else if (((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL)) && (IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1]))))
-//             {
-//                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
-//                 SET_RED(i);
-//                 SET_BLACK(left);
-//                 SET_BLACK(right);
-//             }
-//             // Note that the above two cases cover any tree modifications we might do.
-//             // If no tree modifications are done, then we don't need to check for any red violations as we are assuming the tree is a valid RBT when we start.
-//             //  - I use a goto because calling a function requires passing ALL of the context across. I'm want to test the performance differences this way and the 'proper' way.
-//             else
-//                 goto skip;
-            else
+            // If not, check for a any colour flips that we can do on the way down.
+            // This ensures that no backtracking is needed.
+            //  - First make sure that they are both non-NULL.
+            else if ((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL) && IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1])))
             {
-                struct tree_node* left = STRIP(i->link[0]);
-                if (left != NULL)
-                {
-                    if (IS_RED(left))
-                    {
-                        struct tree_node* right = STRIP(i->link[1]);
-                        if (right != NULL)
-                        {
-                            if (IS_RED(right))
-                            {
-                                // If the children are both red, perform a colour flip that makes the parent red and the children black.
-                                SET_RED(i);
-                                SET_BLACK(left);
-                                SET_BLACK(right);
-                            }
-                            else
-                                goto skip;
-                        }
-                        else
-                            goto skip;
-                    }
-                    else
-                        goto skip;
-                }
-                else
-                    goto skip;
+                // If the children are both red, perform a colour flip that makes the parent red and the children black.
+                SET_RED(i);
+                SET_BLACK(STRIP(i->link[0]));
+                SET_BLACK(STRIP(i->link[1]));
             }
 
             // If the addition of the new red node, or the colour flip introduces a red violation, repair it.
@@ -281,8 +249,6 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                     SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
             }
 
-skip:
-
             // At the moment no duplicates are allowed.
             // Currently this also handles the general stopping case.
             c = compare(rawdata, GET_DATA(i));
@@ -295,13 +261,13 @@ skip:
                     if (!drop_duplicates)
                     {
                         // Allocate a new list item for the linked list.
-                        struct list_node* first = (struct list_node*)(listds->get_addr());
+                        struct list_node* first = reinterpret_cast<struct list_node*>(listds->get_addr());
 
                         // If we don't have a list, start one.
                         if (!IS_LIST(i))
                         {
                             // Allocate the head
-                            struct list_node* second = (struct list_node*)(listds->get_addr());
+                            struct list_node* second = reinterpret_cast<struct list_node*>(listds->get_addr());
 
                             // Set the end of it to point to NULL to 'terminate' it.
                             second->next = NULL;

@@ -143,13 +143,13 @@ int main(int argc, char *argv[])
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_port);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_port);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_as);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_as);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_prot);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_octs);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_pkts);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_dur);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_start);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_as);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_as);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_prot);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_octs);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_pkts);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_dur);
+//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_start);
 
     if (argc < 2)
     {

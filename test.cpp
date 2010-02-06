@@ -13,7 +13,7 @@
 
 #include "odb.hpp"
 
-#define SPREAD 50
+#define SPREAD 500
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
 
@@ -42,7 +42,7 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf("Usage: test <element size> <number of elements> <number of tests> <test type>\n\tWhere: test_type=0 => BANK, test_type=1 => LL\n");
+    printf("Usage: test <element size> <number of elements> <number of tests> <test type> <index type>\n\tWhere: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\n\tWhere: index type {1-bit: on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE");
     exit(EXIT_SUCCESS);
 }
 
@@ -55,25 +55,80 @@ void usage()
 ///insertion, query, deletion, or any combination (perhaps all of them). This
 ///gives flexibility for determining which events count towards the timing when
 ///muiltiple actions are performed each run.
-double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
+double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type)
 {
+    ODB::IndexType itype;
+    ODB::IndexOps iopts;
+    
+    bool use_indirect = false;
     ODB* odb;
 
-    switch (test_type)
+    switch (test_type & 1)
     {
     case 0:
     {
-        odb = new ODB(ODB::BANK_I_DS);
+        switch ((test_type >> 1) % 4)
+        {
+        case 0:
+        {
+            odb = new ODB(ODB::BANK_DS, element_size);
+            break;
+        }
+        case 1:
+        {
+            use_indirect = true;
+            odb = new ODB(ODB::BANK_I_DS);
+            break;
+        }
+        default:
+            FAIL("Incorrect test type.");
+        }
 
         break;
     }
     case 1:
     {
-        odb = new ODB(ODB::LINKED_LIST_I_DS);
+        switch ((test_type >> 1) % 4)
+        {
+        case 0:
+        {
+            odb = new ODB(ODB::LINKED_LIST_DS, element_size);
+            break;
+        }
+        case 1:
+        {
+            use_indirect = true;
+            odb = new ODB(ODB::LINKED_LIST_I_DS);
+            break;
+        }
+        default:
+            FAIL("Incorrect test type.");
+        }
         break;
     }
     default:
         FAIL("Incorrect test type.");
+    }
+    
+    if (index_type & 1)
+        iopts = ODB::DROP_DUPLICATES;
+    else
+        iopts = ODB::NONE;
+    
+    switch (index_type >> 1)
+    {
+        case 0:
+        {
+            itype = ODB::RED_BLACK_TREE;
+            break;
+        }
+        case 1:
+        {
+            itype = ODB::LINKED_LIST;
+            break;
+        }
+        default:
+            FAIL("Incorrect index type.");
     }
 
     struct timeb start;
@@ -87,7 +142,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+        ind[i] = odb->create_index(itype, iopts, compare);
 
     ftime(&start);
 
@@ -96,11 +151,16 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
-        
-        vp = (long*)malloc(element_size);
-        memcpy(vp, &v, element_size);
-        
-        dn = odb->add_data(vp, false);
+
+        /// @todo Free the memory when running indirect datastore tests.
+        if (use_indirect)
+        {
+            vp = (long*)malloc(element_size);
+            memcpy(vp, &v, element_size);
+            dn = odb->add_data(vp, false);
+        }
+        else
+            dn = odb->add_data(&v, false);
 
         //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
@@ -111,11 +171,14 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
     ftime(&end);
 
-//     if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
-//     {
-//         printf("!");
-//         return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-//     }
+    if ((index_type >> 1) == 0)
+    {
+        if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
+        {
+            printf("!");
+            return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+        }
+    }
 
     //ftime(&start);
 
@@ -129,8 +192,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
     //ftime(&end);
 
-    //     printf("!");
-    //     getchar();
     delete odb;
 
     return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
@@ -138,25 +199,85 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type)
 
 int main (int argc, char ** argv)
 {
-    if (argc < 5)
+    if (argc < 6)
         usage();
 
     uint64_t element_size;
     uint64_t test_size;
     uint32_t test_num;
     uint32_t test_type;
+    uint32_t index_type;
 
     sscanf(argv[1], "%lu", &element_size);
     sscanf(argv[2], "%lu", &test_size);
     sscanf(argv[3], "%u", &test_num);
     sscanf(argv[4], "%u", &test_type);
+    sscanf(argv[5], "%u", &index_type);
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
+
+    printf("DS Type: ");
+    switch (test_type & 1)
+    {
+    case 0:
+    {
+        printf("Bank ");
+        break;
+    }
+    case 1:
+    {
+        printf("LinkedList ");
+        break;
+    }
+    default:
+        FAIL("Incorrect test type.");
+    }
+
+    switch ((test_type >> 1) % 4)
+    {
+    case 0:
+    {
+        printf("Fixed");
+        break;
+    }
+    case 1:
+    {
+        printf("Indirect (Memory is not freed!)");
+        break;
+    }
+    default:
+        FAIL("Incorrect test type.");
+    }
+    printf("\n");
+    
+    printf("Index Type: ");
+    
+    if (index_type & 1)
+        printf("DROP_DUPLICATES ");
+    else
+        printf("NONE ");
+    
+    switch (index_type >> 1)
+    {
+        case 0:
+        {
+            printf("Red-black tree");
+            break;
+        }
+        case 1:
+        {
+            printf("Linked list");
+            break;
+        }
+        default:
+            FAIL("Incorrect index type.");
+    }
+    printf("\n");
 
     double duration = 0, min = 100, max = -1, cur;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
-        cur = odb_test(element_size, test_size, test_type);
+        cur = odb_test(element_size, test_size, test_type, index_type);
 
         if (cur > max)
             max = cur;
