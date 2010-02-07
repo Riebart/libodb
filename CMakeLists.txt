@@ -51,7 +51,11 @@ target_link_libraries(demo z ft tcmalloc_minimal odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
+<<<<<<< local
+install(FILES include/odb.hpp include/index.hpp DESTINATION include)
+=======
 install(FILES include/odb.hpp include/index.hpp DESTINATION /usr/include)
+>>>>>>> other
 
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")
 SET(CPACK_PACKAGE_NAME "tm-odb")

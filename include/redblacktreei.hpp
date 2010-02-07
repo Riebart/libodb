@@ -2,6 +2,7 @@
 #define REDBLACKTREEI_HPP
 
 #include "index.hpp"
+#include "lock.hpp"
 
 /// Implementation of a top-down red-black tree.
 /// A red-black tree is a flavour of self-balancing binary search tree that

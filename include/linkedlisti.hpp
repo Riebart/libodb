@@ -2,6 +2,7 @@
 #define LINKEDLISTI_HPP
 
 #include "index.hpp"
+#include "lock.hpp"
 
 /// @todo Apparently queries don't work, fix those. (See minimal test case: p=10000, N=100000)
 class LinkedListI : public Index

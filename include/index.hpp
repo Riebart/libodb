@@ -8,8 +8,6 @@
 #include <vector>
 #include <stdint.h>
 
-// Every index table will need this, so just include it once here.
-#include "lock.hpp"
 
 class ODB;
 class DataStore;
