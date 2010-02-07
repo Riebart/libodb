@@ -10,12 +10,12 @@ project (TM-PROJECT)
 
 #set(CMAKE_CXX_FLAGS "-Wall -O0 -g")
 #set(CMAKE_CXX_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -O3 -funroll-loops -fopenmp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -O2 -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 #this is probably the wrong way to do this: setting compile-time defines
-#add_definitions(-DPTHREAD_LOCK_SPIN)
+add_definitions(-DPTHREAD_LOCK_SPIN)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
@@ -39,11 +39,6 @@ add_executable (test test.cpp)
 add_executable (minimal minimal.cpp)
 add_executable (demo demo.cpp)
 
-# Link the executable to the Hello library.
-#target_link_libraries (helloDemo Hello)
-
-#target_link_libraries(pthread state c profiler)
-
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal tcmalloc_minimal pthread odb)
 target_link_libraries(test tcmalloc_minimal pthread odb)
@@ -51,12 +46,9 @@ target_link_libraries(demo z ft tcmalloc_minimal odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
-<<<<<<< local
 install(FILES include/odb.hpp include/index.hpp DESTINATION include)
-=======
-install(FILES include/odb.hpp include/index.hpp DESTINATION /usr/include)
->>>>>>> other
 
+#Package generation directives
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")
 SET(CPACK_PACKAGE_NAME "tm-odb")
 #SET(CPACK_PACKAGE_VERSION "0.1.1")
