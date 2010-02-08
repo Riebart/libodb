@@ -11,6 +11,7 @@ class IndexGroup;
 class Index;
 class DataStore;
 class DataObj;
+class WorkQueue;
 
 /// @todo Add the add_data overload that will accept a data length. Enforce it for variable-size data only?
 class ODB
@@ -75,6 +76,7 @@ private:
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;
+    WorkQueue * work_queue;
 };
 
 #endif

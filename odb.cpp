@@ -15,6 +15,10 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
+#include "workqueue.hpp"
+//this should be done more intelligently
+#define NUM_THREADS 5
+
 using namespace std;
 
 uint32_t ODB::num_unique = 0;
@@ -138,6 +142,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
     this->data = data;
+    work_queue = new WorkQueue(NUM_THREADS);
 }
 
 ODB::~ODB()
@@ -145,6 +150,7 @@ ODB::~ODB()
     delete all;
     delete data;
     delete dataobj;
+    delete work_queue;
 
     IndexGroup* curr;
 
