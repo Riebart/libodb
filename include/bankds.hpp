@@ -246,14 +246,4 @@ protected:
     virtual void populate(Index* index);
 };
 
-// class BankVDS : public BankDS
-// {
-// protected:
-//     BankVDS();
-//     BankVDS(DataStore* parent = NULL, uint32_t avg_datalen, uint32_t (*len)(void*), uint64_t cap = 102400);
-//     virtual void* add_data(void* rawdata);
-//     virtual void* get_at(uint64_t index);
-//     virtual void populate(Index* index);
-// }
-
 #endif
