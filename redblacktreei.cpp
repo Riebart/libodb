@@ -106,6 +106,8 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
     // Initialize the data stores that will handle the memory allocation for the various nodes.
     treeds = new BankDS(NULL, sizeof(struct tree_node));
     listds = new BankDS(NULL, sizeof(struct list_node));
+
+    tree_root = (struct rb_root*)calloc(1, sizeof(struct rb_root));
 }
 
 RedBlackTreeI::~RedBlackTreeI()
@@ -175,6 +177,33 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
     return n;
 }
 
+#ifdef LINUX_RBT
+void RedBlackTreeI::add_data_v(void* rawdata)
+{
+    struct rb_node **new_node = &(tree_root->rb_node), *parent = NULL;
+
+    while (*new_node)
+    {
+        void* cur_data = (*((struct rb_data_node*)(*new_node))).data;
+        int res = compare(rawdata, cur_data);
+
+        parent = *new_node;
+        if (res < 0)
+            new_node = &((*new_node)->rb_left);
+        else if (res > 0)
+            new_node = &((*new_node)->rb_right);
+        else
+            return;
+    }
+
+    struct rb_data_node* new_data_node = (struct rb_data_node*)(malloc(sizeof(rb_data_node)));
+    new_data_node->data = rawdata;
+    rb_link_node(&new_data_node->node, parent, new_node);
+    rb_insert_color(&new_data_node->node, tree_root);
+
+    count++;
+}
+#else
 void RedBlackTreeI::add_data_v(void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
@@ -327,6 +356,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     // Increment the counter for the number of items in the tree.
     count += ret;
 }
+#endif
 
 int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
@@ -373,10 +403,23 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
     }
 }
 
+#ifdef LINUX_RBT
+void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
+{
+    struct rb_node* cur;
+    for (cur = rb_first(tree_root); cur; cur = rb_next(cur))
+    {
+        void* cur_data = ((struct rb_data_node*)cur)->data;
+        if (condition(cur_data))
+            ds->add_data(cur_data);
+    }
+}
+#else
 void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
 {
     query(root, condition, ds);
 }
+#endif
 
 void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), DataStore* ds)
 {

@@ -139,17 +139,17 @@ int main(int argc, char *argv[])
     ODB* odb;
 
     odb = new ODB(ODB::BANK_DS, sizeof(struct fts3rec_v5_gen));
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_port);
-    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_port);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_as);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_as);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_prot);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_octs);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_pkts);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_dur);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_start);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_addr);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_addr);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_as);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_as);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_prot);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_num_octs);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_num_pkts);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_time_dur);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_time_start);
 
     if (argc < 2)
     {
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         fclose(fp);
         fflush(stdout);
     }
-
+    
     printf("%lu records processed.\n", total_num);
     fprintf(stderr, "\n");
 

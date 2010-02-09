@@ -1,6 +1,8 @@
 #ifndef REDBLACKTREEI_HPP
 #define REDBLACKTREEI_HPP
 
+#include "rbtree.h"
+
 #include "index.hpp"
 #include "lock.hpp"
 
@@ -116,6 +118,14 @@ private:
 
     /// DataStore used for managing the memory used for embedded linked list ndoes.
     DataStore* listds;
+
+    struct rb_root* tree_root;
+
+    struct rb_data_node
+    {
+        struct rb_node node;
+        void* data;
+    };
 
     RWLOCK_T;
 
