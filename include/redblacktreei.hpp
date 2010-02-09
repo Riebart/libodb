@@ -126,6 +126,8 @@ private:
         struct rb_node node;
         void* data;
     };
+    
+    void fix(uint64_t dirs, uint8_t height);
 
     RWLOCK_T;
 

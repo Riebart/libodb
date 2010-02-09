@@ -206,6 +206,9 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 #else
 void RedBlackTreeI::add_data_v(void* rawdata)
 {
+    uint64_t dirs = 0;
+    uint8_t height = 0;
+    
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
     int ret = 0;
 
@@ -225,17 +228,17 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
         // The parent/grandparent/great-grandparent pointers and and iterator.
         // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
-        struct tree_node *p, *gp, *ggp;
+        struct tree_node *p;//, *gp, *ggp;
         struct tree_node *i;
 
-        // Initialize them:
-        ggp = false_root;
-        gp = NULL;
+//         // Initialize them:
+//         ggp = false_root;
+//         gp = NULL;
         p = NULL;
         i = root;
 
         // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
-        uint8_t dir = 0, prev_dir = 1;
+        uint8_t dir = 0;//, prev_dir = 1;
 
         while (true)
         {
@@ -248,36 +251,38 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 SET_LINK(p->link[dir], n);
                 i = n;
                 ret = 1;
+                        
+                fix(dirs, height);
             }
-            // If not, check for a any colour flips that we can do on the way down.
-            // This ensures that no backtracking is needed.
-            //  - First make sure that they are both non-NULL.
-            else if ((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL) && IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1])))
-            {
-                // If the children are both red, perform a colour flip that makes the parent red and the children black.
-                SET_RED(i);
-                SET_BLACK(STRIP(i->link[0]));
-                SET_BLACK(STRIP(i->link[1]));
-            }
-
-            // If the addition of the new red node, or the colour flip introduces a red violation, repair it.
-            if ((p != NULL) && (IS_RED(i) && IS_RED(p)))
-            {
-                // Select the direction based on whether the grandparent is a right or left child.
-                // This way we know how to inform the tree about the changes we're going to make.
-                int dir2 = (STRIP(ggp->link[1]) == gp);
-
-                // If the iterator sits as an outside child, perform a single rotation to resolve the violation.
-                // I think this can be replaced by a straight integer comparison... I'm not 100% sure though.
-                //if (i == STRIP(p->link[prev_dir]))
-                if (dir == prev_dir)
-                    // The direction of the rotation is in the opposite direction of the last link.
-                    //  - i.e: If this is a right child, the rotation is a left rotation.
-                    SET_LINK(ggp->link[dir2], single_rotation(gp, !prev_dir));
-                // Since inside children are harder to resolve, a double rotation is necessary to resolve the violation.
-                else
-                    SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
-            }
+//             // If not, check for a any colour flips that we can do on the way down.
+//             // This ensures that no backtracking is needed.
+//             //  - First make sure that they are both non-NULL.
+//             else if ((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL) && IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1])))
+//             {
+//                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
+//                 SET_RED(i);
+//                 SET_BLACK(STRIP(i->link[0]));
+//                 SET_BLACK(STRIP(i->link[1]));
+//             }
+// 
+//             // If the addition of the new red node, or the colour flip introduces a red violation, repair it.
+//             if ((p != NULL) && (IS_RED(i) && IS_RED(p)))
+//             {
+//                 // Select the direction based on whether the grandparent is a right or left child.
+//                 // This way we know how to inform the tree about the changes we're going to make.
+//                 int dir2 = (STRIP(ggp->link[1]) == gp);
+// 
+//                 // If the iterator sits as an outside child, perform a single rotation to resolve the violation.
+//                 // I think this can be replaced by a straight integer comparison... I'm not 100% sure though.
+//                 //if (i == STRIP(p->link[prev_dir]))
+//                 if (dir == prev_dir)
+//                     // The direction of the rotation is in the opposite direction of the last link.
+//                     //  - i.e: If this is a right child, the rotation is a left rotation.
+//                     SET_LINK(ggp->link[dir2], single_rotation(gp, !prev_dir));
+//                 // Since inside children are harder to resolve, a double rotation is necessary to resolve the violation.
+//                 else
+//                     SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
+//             }
 
             // At the moment no duplicates are allowed.
             // Currently this also handles the general stopping case.
@@ -328,19 +333,22 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 break;
             }
 
-            // Track back the last traversed direction.
-            prev_dir = dir;
+//             // Track back the last traversed direction.
+//             prev_dir = dir;
 
             // Update the new direction to traverse
             // If the comparison results that the new data is greater than the current data, move right.
             dir = (c > 0);
+            
+            dirs = dirs | (dir << height);
+            height++;
 
-            // Update the various context pointers.
-            // Bring the great-grandparent into the mix when we get far enough down.
-            if (gp != NULL)
-                ggp = gp;
-
-            gp = p;
+//             // Update the various context pointers.
+//             // Bring the great-grandparent into the mix when we get far enough down.
+//             if (gp != NULL)
+//                 ggp = gp;
+// 
+//             gp = p;
             p = i;
             i = STRIP(i->link[dir]);
         }
@@ -358,16 +366,86 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 }
 #endif
 
+void RedBlackTreeI::fix(uint64_t dirs, uint8_t height)
+{
+    struct tree_node* trail[height + 2];
+    trail[0] = false_root;
+    trail[1] = root;
+    
+    struct tree_node* cur = root;
+    
+    uint8_t i = 0;
+    for ( ; i < height ; i++)
+    {
+        cur = STRIP(cur->link[(dirs & (1 << i)) >> i]);
+        trail[i+2] = cur;
+    }
+    
+    uint8_t dir;
+    // The initial i-- sets us as the grandparent of the newly inserted node.
+    for ( i-- ; i > 0; i--)
+    {
+        dir = (dirs & (1 << (i - 1))) >> (i - 1);
+        
+        // If the parent of the new node (or general granchild) is red...
+        if ((STRIP(trail[i]->link[dir]) != NULL) && IS_RED(STRIP(trail[i]->link[dir])))
+        {
+            // and has a red sibling...
+            if ((STRIP(trail[i]->link[!dir]) != NULL) && IS_RED(STRIP(trail[i]->link[!dir])))
+            {
+                // colour flip them.
+                SET_RED(trail[i]);
+                SET_BLACK(STRIP(trail[i]->link[0]));
+                SET_BLACK(STRIP(trail[i]->link[1]));
+            }
+            // If its sibling is black and if either of its children are red...
+            else
+            {
+                uint8_t dir2;
+                
+                if (i < 2)
+                    dir2 = 1;
+                else
+                    dir2 = (dirs & (1 << (i - 2))) >> (i - 2);
+                
+                // Outside grandchild
+                struct tree_node* gc = STRIP(STRIP(trail[i]->link[dir])->link[dir]);
+                if ((gc != NULL) && IS_RED(gc))
+                    SET_LINK(trail[i-1]->link[dir2], single_rotation(trail[i], !dir));
+                else
+                {
+                    gc = STRIP(STRIP(trail[i]->link[dir])->link[!dir]);
+                    
+                    if ((gc != NULL) && IS_RED(gc))
+                        SET_LINK(trail[i-1]->link[dir2], double_rotation(trail[i], !dir));
+                }
+            }
+        }
+    }
+}
+
 int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
     int height_l, height_r;
 
     if (root == NULL)
+    {
+//         printf("_ ");
         return 1;
+    }
     else
     {
         struct tree_node* left = STRIP(root->link[0]);
         struct tree_node* right = STRIP(root->link[1]);
+        
+        height_l = rbt_verify_n(left);
+        height_r = rbt_verify_n(right);
+        
+//         printf("%ld", *(long*)root->data);
+//         if (IS_RED(root))
+//             printf("R ");
+//         else
+//             printf("B ");
 
         // Check for consecutive red links.
         if (IS_RED(root))
@@ -376,9 +454,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
                 FAIL("Red violation");
                 return 0;
             }
-
-        height_l = rbt_verify_n(left);
-        height_r = rbt_verify_n(right);
 
         // Verify BST property.
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
