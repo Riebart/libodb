@@ -79,24 +79,24 @@ class LinkedListVDS : public LinkedListDS
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
-    
+
 protected:
-    #pragma pack(1)
+#pragma pack(1)
     struct datanode
     {
         struct datanode* next;
         uint32_t datalen;
         char data;
     };
-    #pragma pack()
-    
+#pragma pack()
+
     LinkedListVDS();
-    
+
     LinkedListVDS(DataStore* parent, uint32_t (*len)(void*));
-    
+
     virtual void* add_data(void* rawdata);
     virtual void* add_data(void* rawdata, uint32_t datalen);
-    
+
     struct datanode * bottom;
     uint32_t (*len)(void*);
 };

@@ -44,9 +44,9 @@ LinkedListVDS::LinkedListVDS(DataStore* parent, uint32_t (*len)(void*)) : Linked
 inline void* LinkedListDS::add_data(void* rawdata)
 {
     void* ret = get_addr();
-    
+
     memcpy(ret, rawdata, datalen);
-    
+
     return ret;
 }
 
@@ -59,26 +59,26 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 {
     struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(nbytes + sizeof(uint32_t) + sizeof(struct datanode*)));
     memcpy(&(new_element->data), rawdata, nbytes);
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     deleted_list.push_back(0);
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 
 inline void* LinkedListDS::get_addr()
 {
     struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(datalen + sizeof(struct datanode*)));
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     deleted_list.push_back(0);
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 

@@ -60,10 +60,10 @@ inline void* BankDS::add_data(void* rawdata)
 {
     // Get the next free location.
     void* ret = get_addr();
-    
+
     // Copy the data into the datastore.
     memcpy(ret, rawdata, datalen);
-    
+
     return ret;
 }
 

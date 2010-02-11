@@ -63,7 +63,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 {
     ODB::IndexType itype;
     ODB::IndexOps iopts;
-    
+
     bool use_indirect = false;
     ODB* odb;
 
@@ -113,26 +113,26 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     default:
         FAIL("Incorrect test type.");
     }
-    
+
     if (index_type & 1)
         iopts = ODB::DROP_DUPLICATES;
     else
         iopts = ODB::NONE;
-    
+
     switch (index_type >> 1)
     {
-        case 0:
-        {
-            itype = ODB::RED_BLACK_TREE;
-            break;
-        }
-        case 1:
-        {
-            itype = ODB::LINKED_LIST;
-            break;
-        }
-        default:
-            FAIL("Incorrect index type.");
+    case 0:
+    {
+        itype = ODB::RED_BLACK_TREE;
+        break;
+    }
+    case 1:
+    {
+        itype = ODB::LINKED_LIST;
+        break;
+    }
+    default:
+        FAIL("Incorrect index type.");
     }
 
     struct timeb start;
@@ -156,7 +156,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
-        
+
         if (condition(&v)) n++;
 
         /// @todo Free the memory when running indirect datastore tests.
@@ -256,28 +256,28 @@ int main (int argc, char ** argv)
         FAIL("Incorrect test type.");
     }
     printf("\n");
-    
+
     printf("Index Type: ");
-    
+
     if (index_type & 1)
         printf("DROP_DUPLICATES ");
     else
         printf("NONE ");
-    
+
     switch (index_type >> 1)
     {
-        case 0:
-        {
-            printf("Red-black tree");
-            break;
-        }
-        case 1:
-        {
-            printf("Linked list");
-            break;
-        }
-        default:
-            FAIL("Incorrect index type.");
+    case 0:
+    {
+        printf("Red-black tree");
+        break;
+    }
+    case 1:
+    {
+        printf("Linked list");
+        break;
+    }
+    default:
+        FAIL("Incorrect index type.");
     }
     printf("\n");
 

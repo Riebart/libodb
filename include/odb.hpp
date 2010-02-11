@@ -87,20 +87,20 @@ inline void ODB::add_data(void* rawdata, uint32_t nbytes)
 inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     dataobj->data = data->add_data(rawdata);
-    
+
     if (add_to_all)
         all->add_data_v(dataobj->data);
-    
+
     return dataobj;
 }
 
 inline DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 {
     dataobj->data = data->add_data(rawdata, nbytes);
-    
+
     if (add_to_all)
         all->add_data_v(dataobj->data);
-    
+
     return dataobj;
 }
 

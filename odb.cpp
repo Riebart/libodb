@@ -129,7 +129,7 @@ ODB::ODB(IndirectDatastoreType dt, int ident)
 ODB::ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*))
 {
     DataStore* data;
-    
+
     switch (dt)
     {
     case LINKED_LIST_V_DS:
@@ -142,27 +142,27 @@ ODB::ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*))
         FAIL("Invalid datastore type.");
     }
     }
-    
+
     init(data, ident, sizeof(void*));
 }
 
 ODB::ODB(VariableDatastoreType dt, uint32_t (*len)(void*))
 {
     DataStore* data;
-    
+
     switch (dt)
     {
-        case LINKED_LIST_V_DS:
-        {
-            data = new LinkedListVDS(NULL, len);
-            break;
-        }
-        default:
-        {
-            FAIL("Invalid datastore type.");
-        }
+    case LINKED_LIST_V_DS:
+    {
+        data = new LinkedListVDS(NULL, len);
+        break;
     }
-    
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+
     init(data, num_unique, sizeof(void*));
     num_unique++;
 }
