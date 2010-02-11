@@ -140,7 +140,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     long v;
     long *vp;
-    uint64_t n = 0;
 
     Index* ind[NUM_TABLES];
     ODB* res[NUM_QUERIES];
@@ -157,8 +156,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         //v = 117;
         //v = i;
 
-        if (condition(&v)) n++;
-
         /// @todo Free the memory when running indirect datastore tests.
         if (use_indirect)
         {
@@ -169,12 +166,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         else
             dn = odb->add_data(&v, false);
 
-        //#pragma omp parallel for
         for (int j = 0 ; j < NUM_TABLES ; j++)
             ind[j]->add_data(dn);
     }
-
-    //printf("%lu\n", ind[0]->size());
 
     ftime(&end);
 
@@ -187,17 +181,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
     }
 
-    //ftime(&start);
 
     printf(":");
-    //#pragma omp parallel for
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {
         res[j] = ind[0]->query(condition);
-        printf("%ld:", (int64_t)(res[j]->size() - n));
+        printf("%ld:", (int64_t)(res[j]->size()));
     }
-
-    //ftime(&end);
 
     delete odb;
 

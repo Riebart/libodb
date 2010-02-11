@@ -20,80 +20,77 @@ LinkedListI::~LinkedListI()
     RWLOCK_DESTROY();
 }
 
-inline void LinkedListI::add_data_v(void* data)
+inline void LinkedListI::add_data_v(void* rawdata)
 {
     WRITE_LOCK();
+
+    // When the list is empty, make a new node and set it as the head of the list.
     if (first == NULL)
     {
-        first = (struct node*)(nodeds->get_addr());
+        first = reinterpret_cast<struct node*>(nodeds->get_addr());
         first->next = NULL;
-        first->data = data;
+        first->data = rawdata;
         count = 1;
     }
     else
     {
-        int comp = compare(data, first->data);
+        // Special case when we need to insert before the head of the list since we need to update the 'first' pointer.
+        int comp = compare(rawdata, first->data);
 
+        // If the new data comes before the head.
         if (comp <= 0)
         {
+            // If we have equality...
             if (comp == 0)
             {
+                // Merge them, if we want.
                 if (merge != NULL)
-                    first->data = merge(data, first->data);
+                    first->data = merge(rawdata, first->data);
 
+                // If we don't allow duplicates, return now.
                 if (drop_duplicates)
+                {
+                    WRITE_UNLOCK();
                     return;
+                }
             }
 
-            struct node* new_node = (struct node*)(nodeds->get_addr());
-            new_node->data = data;
+            // If we're still around, make a new node, assign its data and next, and make it the head of the list.
+            struct node* new_node = reinterpret_cast<struct node*>(nodeds->get_addr());
+            new_node->data = rawdata;
             new_node->next = first;
             first = new_node;
         }
+        // If we're not inserting before the head of the list...
         else
         {
             struct node* curr = first;
 
-            if (first->next != NULL)
+            // As long as the next node is not NULL and the new data belongs before it.
+            while ((curr->next != NULL) && (comp = compare(rawdata, curr->next->data)) && (comp > 0))
+                curr = curr->next;
+
+            if (comp == 0)
             {
-                comp = compare(data, curr->next->data);
+                if (merge != NULL)
+                    curr->next->data = merge(rawdata, curr->next->data);
 
-                while ((curr->next->next != NULL) && (comp > 0))
+                if (drop_duplicates)
                 {
-                    curr = curr->next;
-                    comp = compare(data, curr->next->data);
-                }
-
-                if (comp > 0)
-                    curr = curr->next;
-
-                if (comp == 0)
-                {
-                    if (merge != NULL)
-                        curr->data = merge(data, curr->data);
-
-                    if (drop_duplicates)
-                        return;
-                }
-
-                struct node* new_node = (struct node*)(nodeds->get_addr());
-                new_node->data = data;
-
-                if (curr->next == NULL)
-                {
-                    curr->next = new_node;
-                    new_node->next = NULL;
-                }
-                else
-                {
-                    new_node->next = curr->next;
-                    curr->next = new_node;
+                    WRITE_UNLOCK();
+                    return;
                 }
             }
+
+            struct node* new_node = reinterpret_cast<struct node*>(nodeds->get_addr());
+            new_node->data = rawdata;
+            new_node->next = curr->next;
+            curr->next = new_node;
         }
 
         count++;
     }
+
     WRITE_UNLOCK();
 }
 
