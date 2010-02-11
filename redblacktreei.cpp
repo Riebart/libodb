@@ -209,7 +209,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 {
     uint64_t dirs = 0;
     uint8_t height = 0;
-    
+
     int ret = 0;
     int c;
 
@@ -236,7 +236,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 SET_LINK(p->link[dir], n);
                 i = n;
                 ret = 1;
-                        
+
                 fix(dirs, height);
             }
 
@@ -282,7 +282,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     count += ret;
 }
 #endif
-#ifndef LINUX_RBT 
+#ifndef LINUX_RBT
 #ifndef DEFER_RBT
 void RedBlackTreeI::add_data_v(void* rawdata)
 {
@@ -444,22 +444,22 @@ void RedBlackTreeI::fix(uint64_t dirs, uint8_t height)
     struct tree_node* trail[height + 2];
     trail[0] = false_root;
     trail[1] = root;
-    
+
     struct tree_node* cur = root;
-    
+
     uint8_t i = 0;
     for ( ; i < height ; i++)
     {
         cur = STRIP(cur->link[((uint64_t)(dirs & ((uint64_t)1 << i))) >> i]);
         trail[i+2] = cur;
     }
-    
+
     uint8_t dir;
     // The initial i-- sets us as the grandparent of the newly inserted node.
     for ( i-- ; i > 0; i--)
     {
         dir = ((uint64_t)(dirs & ((uint64_t)1 << (i - 1)))) >> (i - 1);
-        
+
         // If the parent of the new node (or general granchild) is red...
         if ((STRIP(trail[i]->link[dir]) != NULL) && IS_RED(STRIP(trail[i]->link[dir])))
         {
@@ -475,12 +475,12 @@ void RedBlackTreeI::fix(uint64_t dirs, uint8_t height)
             else
             {
                 uint8_t dir2;
-                
+
                 if (i < 2)
                     dir2 = 1;
                 else
                     dir2 = ((uint64_t)(dirs & ((uint64_t)1 << (i - 2)))) >> (i - 2);
-                
+
                 // Outside grandchild
                 struct tree_node* gc = STRIP(STRIP(trail[i]->link[dir])->link[dir]);
                 if ((gc != NULL) && IS_RED(gc))
@@ -488,7 +488,7 @@ void RedBlackTreeI::fix(uint64_t dirs, uint8_t height)
                 else
                 {
                     gc = STRIP(STRIP(trail[i]->link[dir])->link[!dir]);
-                    
+
                     if ((gc != NULL) && IS_RED(gc))
                         SET_LINK(trail[i-1]->link[dir2], double_rotation(trail[i], !dir));
                 }
@@ -510,10 +510,10 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
     {
         struct tree_node* left = STRIP(root->link[0]);
         struct tree_node* right = STRIP(root->link[1]);
-        
+
         height_l = rbt_verify_n(left);
         height_r = rbt_verify_n(right);
-        
+
 //         printf("%ld", *(long*)root->data);
 //         if (IS_RED(root))
 //             printf("R ");

@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
         fclose(fp);
         fflush(stdout);
     }
-    
+
     printf("%lu records processed.\n", total_num);
     fprintf(stderr, "\n");
 
