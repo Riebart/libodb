@@ -1,7 +1,9 @@
 
 #include "workqueue.hpp"
 #include "workitembase.hpp"
+#include "locklessqueue.h"
 #include <time.h>
+
 
 void * thread_run(void * queue);
 
@@ -31,6 +33,7 @@ void WorkQueue::add_work_item(WorkItemBase * newItem, int priority)
 {
 
     queue.push_back(newItem);
+//     lq.push_top(newItem);
     
 }
 
@@ -56,8 +59,19 @@ void * thread_run(void * queue)
         curr_item=((std::deque<WorkItemBase *> *)queue)->front();
         ((std::deque<WorkItemBase *> *)queue)->pop_front();
         
-        curr_item->do_work();
+        curr_item->execute();
     }
+/*
+    struct LocklessQueue * lq=(struct LocklessQueue *)queue;
+    while (1)
+    {
+        void* data;
+        while ( (data=lq->pop_back()) == NULL )
+        {
+            nanosleep(&sleep_time, NULL);
+        }
+        
+    }*/
     
     return NULL;
 }
