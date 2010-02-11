@@ -140,6 +140,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     long v;
     long *vp;
+    uint64_t n = 0;
 
     Index* ind[NUM_TABLES];
     ODB* res[NUM_QUERIES];
@@ -155,6 +156,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
+        
+        if (condition(&v)) n++;
 
         /// @todo Free the memory when running indirect datastore tests.
         if (use_indirect)
@@ -191,7 +194,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {
         res[j] = ind[0]->query(condition);
-        printf("%lu:", res[j]->size());
+        printf("%ld:", (int64_t)(res[j]->size() - n));
     }
 
     //ftime(&end);

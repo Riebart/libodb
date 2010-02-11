@@ -14,6 +14,11 @@ void* DataStore::add_data(void* rawdata)
     return NULL;
 }
 
+void* DataStore::add_data(void* rawdata, uint32_t nbytes)
+{
+    return add_data(rawdata);
+}
+
 void* DataStore::get_addr()
 {
     return NULL;

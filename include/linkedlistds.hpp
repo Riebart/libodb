@@ -8,7 +8,6 @@
 class Index;
 
 /// @todo Implement remove_addr and fix remove_at
-/// @todo This segfaults, find out why and fix it.
 class LinkedListDS : public DataStore
 {
     /// Since the constructors are protected, ODB needs to be able to create new
@@ -52,7 +51,6 @@ protected:
     RWLOCK_T;
 };
 
-/// @todo Implement deletion: remove_at, remove_addr
 class LinkedListIDS : public LinkedListDS
 {
     /// Since the constructors are protected, ODB needs to be able to create new
@@ -60,6 +58,7 @@ class LinkedListIDS : public LinkedListDS
     friend class ODB;
 
     friend class LinkedListDS;
+    friend class LinkedListVDS;
 
 protected:
     /// Protected default constructor.
@@ -68,11 +67,38 @@ protected:
     ///instance.
     LinkedListIDS();
 
-    LinkedListIDS(DataStore* parent = NULL);
+    LinkedListIDS(DataStore* parent);
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
+};
+
+class LinkedListVDS : public LinkedListDS
+{
+    /// Since the constructors are protected, ODB needs to be able to create new
+    ///datastores.
+    friend class ODB;
+    
+protected:
+    #pragma pack(1)
+    struct datanode
+    {
+        struct datanode* next;
+        uint32_t datalen;
+        char data;
+    };
+    #pragma pack()
+    
+    LinkedListVDS();
+    
+    LinkedListVDS(DataStore* parent, uint32_t (*len)(void*));
+    
+    virtual void* add_data(void* rawdata);
+    virtual void* add_data(void* rawdata, uint32_t datalen);
+    
+    struct datanode * bottom;
+    uint32_t (*len)(void*);
 };
 
 #endif

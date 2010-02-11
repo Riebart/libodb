@@ -126,6 +126,47 @@ ODB::ODB(IndirectDatastoreType dt, int ident)
     init(data, ident, sizeof(void*));
 }
 
+ODB::ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*))
+{
+    DataStore* data;
+    
+    switch (dt)
+    {
+    case LINKED_LIST_V_DS:
+    {
+        data = new LinkedListVDS(NULL, len);
+        break;
+    }
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+    
+    init(data, ident, sizeof(void*));
+}
+
+ODB::ODB(VariableDatastoreType dt, uint32_t (*len)(void*))
+{
+    DataStore* data;
+    
+    switch (dt)
+    {
+        case LINKED_LIST_V_DS:
+        {
+            data = new LinkedListVDS(NULL, len);
+            break;
+        }
+        default:
+        {
+            FAIL("Invalid datastore type.");
+        }
+    }
+    
+    init(data, num_unique, sizeof(void*));
+    num_unique++;
+}
+
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)
 {
     init(data, ident, datalen);
@@ -205,26 +246,6 @@ IndexGroup* ODB::create_group()
     IndexGroup* g = new IndexGroup(ident, data);
     groups.push_back(g);
     return g;
-}
-
-void ODB::add_data(void* rawdata)
-{
-    all->add_data_v(data->add_data(rawdata));
-}
-
-DataObj* ODB::add_data(void* rawdata, bool add_to_all)
-{
-    dataobj->data = data->add_data(rawdata);
-
-    if (add_to_all)
-        all->add_data_v(dataobj->data);
-
-    return dataobj;
-}
-
-inline void ODB::add_to_index(DataObj* d, IndexGroup* i)
-{
-    i->add_data(d);
 }
 
 uint64_t ODB::size()

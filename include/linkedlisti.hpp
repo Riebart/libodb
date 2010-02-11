@@ -5,6 +5,7 @@
 #include "lock.hpp"
 
 /// @todo Apparently queries don't work, fix those. (See minimal test case: p=10000, N=100000)
+/// @todo Apparently falls apart when DROP_DUPLICATES is set.
 class LinkedListI : public Index
 {
     /// Since the constructor is protected, ODB needs to be able to create new

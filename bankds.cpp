@@ -60,10 +60,10 @@ inline void* BankDS::add_data(void* rawdata)
 {
     // Get the next free location.
     void* ret = get_addr();
-
+    
     // Copy the data into the datastore.
     memcpy(ret, rawdata, datalen);
-
+    
     return ret;
 }
 
@@ -176,7 +176,7 @@ bool BankDS::remove_at(uint64_t index)
         return false;
 }
 
-bool BankDS::remove_addr(void* addr)
+inline bool BankDS::remove_addr(void* addr)
 {
     deleted.push(addr);
     return true;

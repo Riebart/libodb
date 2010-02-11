@@ -5,12 +5,8 @@
 #include <stdint.h>
 
 #include "common.hpp"
-
-// Forward declarations
-class IndexGroup;
-class Index;
-class DataStore;
-class DataObj;
+#include "index.hpp"
+#include "datastore.hpp"
 
 /// @todo Add the add_data overload that will accept a data length. Enforce it for variable-size data only?
 class ODB
@@ -43,27 +39,28 @@ public:
     typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
 
     /// @todo Implement these.
-    typedef enum { BANK_V_DS, LINKED_LIST_V_DS } VariableDatastoreType;
+    typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
     ODB(FixedDatastoreType dt, uint32_t datalen);
     ODB(IndirectDatastoreType dt);
-    ODB(VariableDatastoreType dt, uint32_t avg_datalen = 64, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(VariableDatastoreType dt, uint32_t (*len)(void*) = ODB::len_v);
 
     ~ODB();
     Index* create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);
     IndexGroup* create_group();
     void add_data(void* raw_data);
+    void add_data(void* raw_data, uint32_t nbytes);
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
-    void add_to_index(DataObj* d, IndexGroup* i);
+    DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     uint64_t size();
 
 private:
     static uint32_t len_v(void* rawdata);
 
-    ODB(FixedDatastoreType, int ident, uint32_t datalen);
-    ODB(IndirectDatastoreType, int ident);
-    ODB(VariableDatastoreType dt, int ident, uint32_t avg_datalen = 64, uint32_t (*len)(void*) = ODB::len_v);
-    ODB(DataStore *, int ident, uint32_t datalen);
+    ODB(FixedDatastoreType dt, int ident, uint32_t datalen);
+    ODB(IndirectDatastoreType dt, int ident);
+    ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen);
 
@@ -76,5 +73,35 @@ private:
     IndexGroup* all;
     DataObj* dataobj;
 };
+
+inline void ODB::add_data(void* rawdata)
+{
+    all->add_data_v(data->add_data(rawdata));
+}
+
+inline void ODB::add_data(void* rawdata, uint32_t nbytes)
+{
+    all->add_data_v(data->add_data(rawdata, nbytes));
+}
+
+inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
+{
+    dataobj->data = data->add_data(rawdata);
+    
+    if (add_to_all)
+        all->add_data_v(dataobj->data);
+    
+    return dataobj;
+}
+
+inline DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
+{
+    dataobj->data = data->add_data(rawdata, nbytes);
+    
+    if (add_to_all)
+        all->add_data_v(dataobj->data);
+    
+    return dataobj;
+}
 
 #endif

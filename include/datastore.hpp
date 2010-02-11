@@ -27,6 +27,7 @@ protected:
     DataStore();
 
     virtual void* add_data(void* rawdata);
+    virtual void* add_data(void* rawdata, uint32_t nbytes);
     virtual void* get_addr();
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
