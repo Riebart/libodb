@@ -121,11 +121,13 @@ private:
 
     struct rb_root* tree_root;
 
+    #pragma pack(1)
     struct rb_data_node
     {
         struct rb_node node;
         void* data;
     };
+    #pragma pack()
 
     void fix(uint64_t dirs, uint8_t height);
 
