@@ -26,7 +26,7 @@ add_definitions(-DPTHREAD_LOCK_SPIN)
 # Make sure the compiler can find include files from our Hello library.
 include_directories (${TM-PROJECT_SOURCE_DIR}/include)
 
-add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp iterator.cpp)
+add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp)
 
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)

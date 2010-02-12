@@ -1,8 +1,10 @@
 #ifndef REDBLACKTREEI_HPP
 #define REDBLACKTREEI_HPP
 
-#include "index.hpp"
+#include <stack>
+
 #include "lock.hpp"
+#include "index.hpp"
 
 /// Implementation of a top-down red-black tree.
 /// A red-black tree is a flavour of self-balancing binary search tree that
@@ -190,6 +192,30 @@ private:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
+};
+
+class RBTIterator : public Iterator
+{
+    friend class RedBlackTreeI;
+    
+public:
+    virtual ~RBTIterator();
+    virtual DataObj* next();
+    virtual DataObj* prev();
+    virtual DataObj* data();
+    virtual void* data_v();
+    
+protected:
+    struct tree_node
+    {
+        struct tree_node* link[2];
+        void* data;
+    };
+    
+    RBTIterator();
+    RBTIterator(int ident);
+    
+    std::stack<void*> trail;
 };
 
 #endif

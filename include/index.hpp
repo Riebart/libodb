@@ -291,4 +291,20 @@ protected:
     bool drop_duplicates;
 };
 
+class Iterator
+{
+    public:
+        virtual ~Iterator();
+        virtual DataObj* next();
+        virtual DataObj* prev();
+        virtual DataObj* data();
+        virtual void* data_v();
+        
+    protected:
+        Iterator();
+        Iterator(int ident);
+        
+        DataObj* dataobj;
+};
+
 #endif

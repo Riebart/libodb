@@ -1,6 +1,5 @@
 #include "redblacktreei.hpp"
 #include "bankds.hpp"
-#include "iterator.hpp"
 
 using namespace std;
 
@@ -442,4 +441,53 @@ inline Iterator* RedBlackTreeI::it_last()
 inline Iterator* RedBlackTreeI::it_middle(DataObj* data)
 {
     return NULL;
+}
+
+RBTIterator::RBTIterator()
+{
+}
+
+RBTIterator::RBTIterator(int ident) : Iterator::Iterator(ident)
+{
+}
+
+RBTIterator::~RBTIterator()
+{
+    delete dataobj;
+}
+
+inline DataObj* RBTIterator::next()
+{
+    if (STRIP(reinterpret_cast<struct tree_node*>(trail.top())->link[1]) != NULL)
+    {
+        struct tree_node* curr = STRIP(reinterpret_cast<struct tree_node*>(trail.top())->link[1]);
+        
+        while (curr != NULL)
+        {
+            trail.push(curr);
+            curr = STRIP(curr->link[0]);
+        }
+    }
+    else
+    {
+        trail.pop();
+    }
+    
+    dataobj->data = reinterpret_cast<struct tree_node*>(trail.top())->data;
+    return dataobj;
+}
+
+inline DataObj* RBTIterator::prev()
+{
+    return NULL;
+}
+
+inline DataObj* RBTIterator::data()
+{
+    return NULL;
+}
+
+inline void* RBTIterator::data_v()
+{
+    return reinterpret_cast<struct tree_node*>(trail.top())->data;
 }

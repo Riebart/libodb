@@ -164,3 +164,37 @@ inline Iterator* Index::it_middle(DataObj* data)
 {
     return NULL;
 }
+
+Iterator::Iterator()
+{
+}
+
+Iterator::Iterator(int ident)
+{
+    dataobj = new DataObj(ident);
+}
+
+Iterator::~Iterator()
+{
+}
+
+DataObj* Iterator::next()
+{
+    return NULL;
+}
+
+DataObj* Iterator::prev()
+{
+    return NULL;
+}
+
+DataObj* Iterator::data()
+{
+    return NULL;
+}
+
+void* Iterator::data_v()
+{
+    return NULL;
+}
+
