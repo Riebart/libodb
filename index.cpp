@@ -149,3 +149,52 @@ inline void Index::add_data_v(void*)
 inline void Index::query(bool (*condition)(void*), DataStore* ds)
 {
 }
+
+inline Iterator* Index::it_first()
+{
+    return NULL;
+}
+
+inline Iterator* Index::it_last()
+{
+    return NULL;
+}
+
+inline Iterator* Index::it_middle(DataObj* data)
+{
+    return NULL;
+}
+
+Iterator::Iterator()
+{
+}
+
+Iterator::Iterator(int ident)
+{
+    dataobj = new DataObj(ident);
+}
+
+Iterator::~Iterator()
+{
+}
+
+DataObj* Iterator::next()
+{
+    return NULL;
+}
+
+DataObj* Iterator::prev()
+{
+    return NULL;
+}
+
+DataObj* Iterator::data()
+{
+    return NULL;
+}
+
+void* Iterator::data_v()
+{
+    return NULL;
+}
+

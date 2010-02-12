@@ -8,9 +8,9 @@
 #include <vector>
 #include <stdint.h>
 
-
 class ODB;
 class DataStore;
+class Iterator;
 
 /// Class container for giving the user access to a secure piece of data to
 ///manually add to index tables and index groups.
@@ -27,12 +27,18 @@ class DataObj
 {
     /// Requires ability to set the data field.
     friend class ODB;
+    
+    /// Requires ability to read the ident field.
+    friend class IndexGroup;
 
     /// Requires ability to read the ident field.
     friend class Index;
-
-    /// Requires ability to read the ident field.
-    friend class IndexGroup;
+    
+    friend class RedBlackTreeI;
+    
+    friend class Iterator;
+    
+    friend class RBTIterator;
 
 private:
     /// Protected default constructor.
@@ -243,6 +249,10 @@ public:
     /// Get the size of this Index.
     /// @return The number of items in this datastore.
     virtual uint64_t size();
+    
+    virtual Iterator* it_first();
+    virtual Iterator* it_last();
+    virtual Iterator* it_middle(DataObj* data);
 
 protected:
     /// Protected default constructor.
@@ -281,6 +291,22 @@ protected:
 
     /// Indicator on whether or not to drop duplicates.
     bool drop_duplicates;
+};
+
+class Iterator
+{
+    public:
+        virtual ~Iterator();
+        virtual DataObj* next();
+        virtual DataObj* prev();
+        virtual DataObj* data();
+        virtual void* data_v();
+        
+    protected:
+        Iterator();
+        Iterator(int ident);
+        
+        DataObj* dataobj;
 };
 
 #endif

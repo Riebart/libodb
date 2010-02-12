@@ -8,7 +8,9 @@ total_noblank=$(echo $counts_noblank | bc)
 total_comments=$(echo "$total_noblank - $total_nocomments" | bc)
 total_total=$(echo $counts_total | bc)
 total_blank=$(echo "$total_total - $total_noblank" | bc)
+files=$(cat <(find ./archive/*pp) <(find ./include/*pp) <(find ./*pp) <(find ./archive/*.c) <(find ./archive/*.h))
 
+echo "File processed: $files"
 echo "Total lines:                    $total_total"
 echo "Total non-blank lines:          $total_noblank"
 echo "Total non-blank/comment lines:  $total_nocomments"

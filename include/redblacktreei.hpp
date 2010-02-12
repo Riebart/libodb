@@ -1,8 +1,10 @@
 #ifndef REDBLACKTREEI_HPP
 #define REDBLACKTREEI_HPP
 
-#include "index.hpp"
+#include <stack>
+
 #include "lock.hpp"
+#include "index.hpp"
 
 /// Implementation of a top-down red-black tree.
 /// A red-black tree is a flavour of self-balancing binary search tree that
@@ -38,6 +40,8 @@ class RedBlackTreeI : public Index
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
+    
+    friend class RBTIterator;
 
 public:
     /// Destructor that employs a partial-recursion
@@ -59,6 +63,10 @@ public:
     /// @retval >0 If the tree is a valid red-black tree then it returns the
     ///black-height of the tree.
     int rbt_verify();
+    
+    virtual Iterator* it_first();
+    virtual Iterator* it_last();
+    virtual Iterator* it_middle(DataObj* data);
 
 private:
     /// Standard constructor
@@ -85,7 +93,7 @@ private:
     ///It simplifies the code by reducing symmetric cases to a single block of code.
     struct tree_node
     {
-        struct tree_node* link[2];
+        struct RedBlackTreeI::tree_node* link[2];
         void* data;
     };
 
@@ -97,7 +105,7 @@ private:
     ///child pointer of the tree node.
     struct list_node
     {
-        struct list_node* next;
+        struct RedBlackTreeI::list_node* next;
         void* data;
     };
 
@@ -184,6 +192,24 @@ private:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
+};
+
+class RBTIterator : public Iterator
+{
+    friend class RedBlackTreeI;
+    
+public:
+    virtual ~RBTIterator();
+    virtual DataObj* next();
+    virtual DataObj* prev();
+    virtual DataObj* data();
+    virtual void* data_v();
+    
+protected:
+    RBTIterator();
+    RBTIterator(int ident);
+    
+    std::stack<struct RedBlackTreeI::tree_node*> trail;
 };
 
 #endif
