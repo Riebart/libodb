@@ -8,7 +8,6 @@
 #include "index.hpp"
 #include "datastore.hpp"
 
-/// @todo Add the add_data overload that will accept a data length. Enforce it for variable-size data only?
 class ODB
 {
     /// Allow IndexGroup objects to create a new specifically identified ODB
@@ -35,10 +34,8 @@ public:
 
     typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
 
-    /// @todo Verify that these work as intended: "Just add a pointer to wherever the data sits in memory"
     typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
 
-    /// @todo Implement these.
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
     ODB(FixedDatastoreType dt, uint32_t datalen);

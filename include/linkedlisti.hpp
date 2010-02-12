@@ -4,8 +4,6 @@
 #include "index.hpp"
 #include "lock.hpp"
 
-/// @todo Apparently queries don't work, fix those. (See minimal test case: p=10000, N=100000)
-/// @todo Apparently falls apart when DROP_DUPLICATES is set.
 /// @todo Handle duplicates with an embedded linked list (Like RBT) to reduce index-table-bloat.
 class LinkedListI : public Index
 {
