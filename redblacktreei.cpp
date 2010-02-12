@@ -353,14 +353,14 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
                 FAIL("Red violation");
                 return 0;
             }
-            
+
         //         printf("%ld", *(long*)root->data);
-        //         
+        //
         //         if (IS_RED(root))
         //             printf("R ");
         //         else
         //             printf("B ");
-        
+
         height_l = rbt_verify_n(left);
         height_r = rbt_verify_n(right);
 
@@ -428,13 +428,13 @@ inline Iterator* RedBlackTreeI::it_first()
 {
     RBTIterator* it = new RBTIterator(ident);
     struct RedBlackTreeI::tree_node* curr = root;
-    
+
     while (curr != NULL)
     {
         it->trail.push(curr);
         curr = STRIP(curr->link[0]);
     }
-    
+
     it->dataobj->data = GET_DATA(it->trail.top());
     return it;
 }
@@ -443,13 +443,13 @@ inline Iterator* RedBlackTreeI::it_last()
 {
     RBTIterator* it = new RBTIterator(ident);
     struct RedBlackTreeI::tree_node* curr = root;
-    
+
     while (curr != NULL)
     {
         it->trail.push(TAINT(curr));
         curr = STRIP(curr->link[1]);
     }
-    
+
     it->dataobj->data = GET_DATA(UNTAINT(it->trail.top()));
     return it;
 }
@@ -476,14 +476,14 @@ inline DataObj* RBTIterator::next()
 {
     if (trail.empty())
         return NULL;
-    
+
     if (STRIP(trail.top()->link[1]) != NULL)
     {
         struct RedBlackTreeI::tree_node* curr = trail.top();
         trail.pop();
         trail.push(TAINT(curr));
         curr = STRIP(curr->link[1]);
-        
+
         while (curr != NULL)
         {
             trail.push(curr);
@@ -493,14 +493,14 @@ inline DataObj* RBTIterator::next()
     else
     {
         trail.pop();
-        
+
         while ((!(trail.empty())) && (TAINTED(trail.top())))
             trail.pop();
-        
+
         if (trail.empty())
             return NULL;
     }
-    
+
     dataobj->data = GET_DATA(UNTAINT(trail.top()));
     return dataobj;
 }
@@ -509,14 +509,14 @@ inline DataObj* RBTIterator::prev()
 {
     if (trail.empty())
         return NULL;
-    
+
     if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
     {
         struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
         trail.pop();
         trail.push(UNTAINT(curr));
         curr = STRIP(curr->link[0]);
-        
+
         while (curr != NULL)
         {
             trail.push(TAINT(curr));
@@ -526,14 +526,14 @@ inline DataObj* RBTIterator::prev()
     else
     {
         trail.pop();
-        
+
         while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
             trail.pop();
-        
+
         if (trail.empty())
             return NULL;
     }
-    
+
     dataobj->data = GET_DATA(UNTAINT(trail.top()));
     return dataobj;
 }

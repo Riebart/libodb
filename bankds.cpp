@@ -93,11 +93,11 @@ inline void* BankDS::get_addr()
             // If posA is at the end of the bucket list...
             if (posA == list_size)
             {
-                // Make sure to update how big we 'think' the list is.                        
-                list_size *= 2;                                                               
-                                                                                            
-                // realloc us some new space.                                                 
-                data = reinterpret_cast<char**>(realloc(data, list_size * sizeof(char*)));    
+                // Make sure to update how big we 'think' the list is.
+                list_size *= 2;
+
+                // realloc us some new space.
+                data = reinterpret_cast<char**>(realloc(data, list_size * sizeof(char*)));
             }
 
             // Allocate a new bucket.

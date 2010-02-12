@@ -30,8 +30,9 @@ int main (int argc, char ** argv)
     do
     {
         printf("%ld\n", *(long*)(it->data_v()));
-    } while(it->next());
-    
+    }
+    while (it->next());
+
     ODB* res = ind->query(condition);
 
     printf("Query contains %lu items.\n", res->size());

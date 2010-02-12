@@ -27,17 +27,17 @@ class DataObj
 {
     /// Requires ability to set the data field.
     friend class ODB;
-    
+
     /// Requires ability to read the ident field.
     friend class IndexGroup;
 
     /// Requires ability to read the ident field.
     friend class Index;
-    
+
     friend class RedBlackTreeI;
-    
+
     friend class Iterator;
-    
+
     friend class RBTIterator;
 
 private:
@@ -249,7 +249,7 @@ public:
     /// Get the size of this Index.
     /// @return The number of items in this datastore.
     virtual uint64_t size();
-    
+
     virtual Iterator* it_first();
     virtual Iterator* it_last();
     virtual Iterator* it_middle(DataObj* data);
@@ -295,18 +295,18 @@ protected:
 
 class Iterator
 {
-    public:
-        virtual ~Iterator();
-        virtual DataObj* next();
-        virtual DataObj* prev();
-        virtual DataObj* data();
-        virtual void* data_v();
-        
-    protected:
-        Iterator();
-        Iterator(int ident);
-        
-        DataObj* dataobj;
+public:
+    virtual ~Iterator();
+    virtual DataObj* next();
+    virtual DataObj* prev();
+    virtual DataObj* data();
+    virtual void* data_v();
+
+protected:
+    Iterator();
+    Iterator(int ident);
+
+    DataObj* dataobj;
 };
 
 #endif
