@@ -7,6 +7,7 @@
 #include "common.hpp"
 #include "index.hpp"
 #include "datastore.hpp"
+#include "iterator.hpp"
 
 /// @todo Add the add_data overload that will accept a data length. Enforce it for variable-size data only?
 class ODB

@@ -1,5 +1,6 @@
 #include "redblacktreei.hpp"
 #include "bankds.hpp"
+#include "iterator.hpp"
 
 using namespace std;
 
@@ -408,4 +409,37 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
     else
         if (condition(root->data))
             ds->add_data(root->data);
+}
+
+inline Iterator* RedBlackTreeI::it_first()
+{
+    RBTIterator* it = new RBTIterator(ident);
+    struct tree_node* curr = root;
+    
+    while (curr != NULL)
+    {
+        it->trail.push(curr);
+        curr = STRIP(curr->link[0]);
+    }
+    
+    return it;
+}
+
+inline Iterator* RedBlackTreeI::it_last()
+{
+    RBTIterator* it = new RBTIterator(ident);
+    struct tree_node* curr = root;
+    
+    while (curr != NULL)
+    {
+        it->trail.push(curr);
+        curr = STRIP(curr->link[1]);
+    }
+    
+    return it;
+}
+
+inline Iterator* RedBlackTreeI::it_middle(DataObj* data)
+{
+    return NULL;
 }

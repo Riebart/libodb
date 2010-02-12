@@ -28,6 +28,13 @@ int main (int argc, char ** argv)
         odb.add_data(&v);
     }
 
+    Iterator* it = ind->it_first();
+    for (int i = 0 ; i < 10 ; i++)
+    {
+        it->next();
+        printf("\n%ld\n", *(long*)(it->data_v()));
+    }
+    
     ODB* res = ind->query(condition);
 
     printf("Query contains %lu items.\n", res->size());

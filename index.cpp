@@ -149,3 +149,18 @@ inline void Index::add_data_v(void*)
 inline void Index::query(bool (*condition)(void*), DataStore* ds)
 {
 }
+
+inline Iterator* Index::it_first()
+{
+    return NULL;
+}
+
+inline Iterator* Index::it_last()
+{
+    return NULL;
+}
+
+inline Iterator* Index::it_middle(DataObj* data)
+{
+    return NULL;
+}

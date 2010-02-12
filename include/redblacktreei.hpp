@@ -38,6 +38,8 @@ class RedBlackTreeI : public Index
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
+    
+    friend class RBTIterator;
 
 public:
     /// Destructor that employs a partial-recursion
@@ -59,6 +61,10 @@ public:
     /// @retval >0 If the tree is a valid red-black tree then it returns the
     ///black-height of the tree.
     int rbt_verify();
+    
+    virtual Iterator* it_first();
+    virtual Iterator* it_last();
+    virtual Iterator* it_middle(DataObj* data);
 
 private:
     /// Standard constructor
@@ -83,11 +89,11 @@ private:
     ///additional memory overhead.
     /// The link array holds the left (index 0) and right (index 1) child pointers.
     ///It simplifies the code by reducing symmetric cases to a single block of code.
-    struct tree_node
+    typedef struct tree_node
     {
         struct tree_node* link[2];
         void* data;
-    };
+    } tree_node_t;
 
     /// List node structure.
     /// For storing duplicates, instead of bloating and unbalancing the tree they
