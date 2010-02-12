@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "datastore.hpp"
+#include "lock.hpp"
 
 class Index;
 

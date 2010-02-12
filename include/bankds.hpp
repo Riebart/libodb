@@ -8,6 +8,7 @@
 #include <stack>
 
 #include "datastore.hpp"
+#include "lock.hpp"
 
 /// A datastore backend that works based on large buckets of memory.
 /// The BankDS datastore works around the principle of approximately contiguous

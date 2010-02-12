@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lock.hpp"
 
 #define FAIL(str...) { \
     if (errno != 0) { \
@@ -26,6 +25,8 @@
 #else
 #define DEBUG(str...) { }
 #endif
+
+#define OOM() FAIL("Out of memory, you twat.")
 
 #define NOT_IMPLEMENTED(str...) { \
         fprintf(stderr, "Function not yet implemented: %s\n", str); }\
