@@ -12,7 +12,7 @@ class WorkQueue
 {
 
 public:
-    WorkQueue(int n_num_threads);
+    WorkQueue(int n_num_threads=5);
     ~WorkQueue();
     void add_work_item(WorkItemBase * new_Item, int priority=0);
     inline uint32_t get_num_items() { return queue.size(); };
@@ -25,7 +25,7 @@ private:
 };
 
 
-
+extern WorkQueue work_queue;
 
 
 #endif
