@@ -35,25 +35,25 @@ using namespace std;
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 1.
 /// @param [in] x A pointer to the node to have its colour set.
-#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x1)))
+#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x1)))
 
 /// Set a node as black.
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 0.
 /// @param [in] x A pointer to the node to have its colour set.
-#define SET_BLACK(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_MASK)))
+#define SET_BLACK(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_MASK)))
 
 /// Set a node as containing a duplicate list.
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 1.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_LIST(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
+#define SET_LIST(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
 
 /// Set a node as containing a single value.
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 0.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & LIST_MASK)))
+#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & LIST_MASK)))
 
 /// Set the three least-significant bits in the specified node's specified pointer
 ///to 0 for use when dereferencing.
@@ -67,7 +67,7 @@ using namespace std;
 ///must be STRIP()-ed.
 /// @param [in] x A pointer to the link to be stripped.
 /// @return A pointer to a node without the meta-data embedded in the address.
-#define STRIP(x) (reinterpret_cast<struct tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
+#define STRIP(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 
 /// Set x equal to y without destroying the meta-data in x.
 /// This is accomplished by first stripping the meta-data from y then isolating
@@ -78,7 +78,7 @@ using namespace std;
 /// @param [in,out] x A pointer to the link to be set. The meta data of this
 ///link is not destroyed during the process.
 /// @param [in] y A pointer to the location for x to end up pointing to.
-#define SET_LINK(x, y) (x = (reinterpret_cast<struct tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & 0x7))))
+#define SET_LINK(x, y) (x = (reinterpret_cast<struct RedBlackTreeI::tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & 0x7))))
 
 /// Get the data out of a node.
 /// Since a node can contain either a single value or a linked list, this takes
@@ -88,7 +88,11 @@ using namespace std;
 /// @param [in] x The node to get the data from.
 /// @return A pointer to the data from x. If x contains a linked list the data
 ///returned is that contained in the head of the list.
-#define GET_DATA(x) (IS_LIST(x) ? ((reinterpret_cast<struct list_node*>(x->data))->data) : (x->data))
+#define GET_DATA(x) (IS_LIST(x) ? ((reinterpret_cast<struct RedBlackTreeI::list_node*>(x->data))->data) : (x->data))
+
+#define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) | 0x1))
+#define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
+#define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & 0x1)
 
 RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
@@ -333,7 +337,10 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
     int height_l, height_r;
 
     if (root == NULL)
+    {
+//         printf("_ ");
         return 1;
+    }
     else
     {
         struct tree_node* left = STRIP(root->link[0]);
@@ -346,7 +353,14 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
                 FAIL("Red violation");
                 return 0;
             }
-
+            
+        //         printf("%ld", *(long*)root->data);
+        //         
+        //         if (IS_RED(root))
+        //             printf("R ");
+        //         else
+        //             printf("B ");
+        
         height_l = rbt_verify_n(left);
         height_r = rbt_verify_n(right);
 
@@ -413,7 +427,7 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
 inline Iterator* RedBlackTreeI::it_first()
 {
     RBTIterator* it = new RBTIterator(ident);
-    struct tree_node* curr = root;
+    struct RedBlackTreeI::tree_node* curr = root;
     
     while (curr != NULL)
     {
@@ -421,20 +435,22 @@ inline Iterator* RedBlackTreeI::it_first()
         curr = STRIP(curr->link[0]);
     }
     
+    it->dataobj->data = GET_DATA(it->trail.top());
     return it;
 }
 
 inline Iterator* RedBlackTreeI::it_last()
 {
     RBTIterator* it = new RBTIterator(ident);
-    struct tree_node* curr = root;
+    struct RedBlackTreeI::tree_node* curr = root;
     
     while (curr != NULL)
     {
-        it->trail.push(curr);
+        it->trail.push(TAINT(curr));
         curr = STRIP(curr->link[1]);
     }
     
+    it->dataobj->data = GET_DATA(UNTAINT(it->trail.top()));
     return it;
 }
 
@@ -458,9 +474,15 @@ RBTIterator::~RBTIterator()
 
 inline DataObj* RBTIterator::next()
 {
-    if (STRIP(reinterpret_cast<struct tree_node*>(trail.top())->link[1]) != NULL)
+    if (trail.empty())
+        return NULL;
+    
+    if (STRIP(trail.top()->link[1]) != NULL)
     {
-        struct tree_node* curr = STRIP(reinterpret_cast<struct tree_node*>(trail.top())->link[1]);
+        struct RedBlackTreeI::tree_node* curr = trail.top();
+        trail.pop();
+        trail.push(TAINT(curr));
+        curr = STRIP(curr->link[1]);
         
         while (curr != NULL)
         {
@@ -471,23 +493,60 @@ inline DataObj* RBTIterator::next()
     else
     {
         trail.pop();
+        
+        while ((!(trail.empty())) && (TAINTED(trail.top())))
+            trail.pop();
+        
+        if (trail.empty())
+            return NULL;
     }
     
-    dataobj->data = reinterpret_cast<struct tree_node*>(trail.top())->data;
+    dataobj->data = GET_DATA(UNTAINT(trail.top()));
     return dataobj;
 }
 
 inline DataObj* RBTIterator::prev()
 {
-    return NULL;
+    if (trail.empty())
+        return NULL;
+    
+    if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
+    {
+        struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
+        trail.pop();
+        trail.push(UNTAINT(curr));
+        curr = STRIP(curr->link[0]);
+        
+        while (curr != NULL)
+        {
+            trail.push(TAINT(curr));
+            curr = STRIP(curr->link[1]);
+        }
+    }
+    else
+    {
+        trail.pop();
+        
+        while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            trail.pop();
+        
+        if (trail.empty())
+            return NULL;
+    }
+    
+    dataobj->data = GET_DATA(UNTAINT(trail.top()));
+    return dataobj;
 }
 
 inline DataObj* RBTIterator::data()
 {
-    return NULL;
+    return dataobj;
 }
 
 inline void* RBTIterator::data_v()
 {
-    return reinterpret_cast<struct tree_node*>(trail.top())->data;
+    if (trail.empty())
+        return NULL;
+    else
+        return dataobj->data;
 }

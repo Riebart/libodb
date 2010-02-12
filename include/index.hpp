@@ -27,12 +27,14 @@ class DataObj
 {
     /// Requires ability to set the data field.
     friend class ODB;
+    
+    /// Requires ability to read the ident field.
+    friend class IndexGroup;
 
     /// Requires ability to read the ident field.
     friend class Index;
-
-    /// Requires ability to read the ident field.
-    friend class IndexGroup;
+    
+    friend class RedBlackTreeI;
     
     friend class Iterator;
     

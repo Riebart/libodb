@@ -181,7 +181,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
     }
 
-
     printf(":");
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {

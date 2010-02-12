@@ -91,11 +91,11 @@ private:
     ///additional memory overhead.
     /// The link array holds the left (index 0) and right (index 1) child pointers.
     ///It simplifies the code by reducing symmetric cases to a single block of code.
-    typedef struct tree_node
+    struct tree_node
     {
-        struct tree_node* link[2];
+        struct RedBlackTreeI::tree_node* link[2];
         void* data;
-    } tree_node_t;
+    };
 
     /// List node structure.
     /// For storing duplicates, instead of bloating and unbalancing the tree they
@@ -105,7 +105,7 @@ private:
     ///child pointer of the tree node.
     struct list_node
     {
-        struct list_node* next;
+        struct RedBlackTreeI::list_node* next;
         void* data;
     };
 
@@ -206,16 +206,10 @@ public:
     virtual void* data_v();
     
 protected:
-    struct tree_node
-    {
-        struct tree_node* link[2];
-        void* data;
-    };
-    
     RBTIterator();
     RBTIterator(int ident);
     
-    std::stack<void*> trail;
+    std::stack<struct RedBlackTreeI::tree_node*> trail;
 };
 
 #endif
