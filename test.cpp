@@ -303,7 +303,7 @@ int main (int argc, char ** argv)
 
     printf("Average time per run of %f.\n\nPress Enter to continue\n", duration);
 
-    fgetc(stdin);
+//    fgetc(stdin);
 
     return EXIT_SUCCESS;
 }
