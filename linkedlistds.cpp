@@ -1,4 +1,6 @@
 #include <string.h>
+
+#include "common.hpp"
 #include "index.hpp"
 #include "linkedlistds.hpp"
 
@@ -57,7 +59,9 @@ inline void* LinkedListVDS::add_data(void* rawdata)
 
 inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 {
-    struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(nbytes + sizeof(uint32_t) + sizeof(struct datanode*)));
+    struct datanode* new_element;
+    SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
+    
     memcpy(&(new_element->data), rawdata, nbytes);
 
     WRITE_LOCK();
@@ -71,7 +75,8 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 
 inline void* LinkedListDS::get_addr()
 {
-    struct datanode* new_element = reinterpret_cast<struct datanode*>(malloc(datalen + sizeof(struct datanode*)));
+    struct datanode* new_element;
+    SAFE_MALLOC(struct datanode*, new_element, datalen + sizeof(struct datanode*));
 
     WRITE_LOCK();
     new_element->next=bottom;

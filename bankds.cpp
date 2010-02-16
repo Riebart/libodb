@@ -1,4 +1,6 @@
 #include <string.h>
+
+#include "common.hpp"
 #include "bankds.hpp"
 #include "index.hpp"
 
@@ -12,10 +14,11 @@ BankDS::BankDS(DataStore* parent, uint64_t datalen, uint64_t cap)
 inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
-    data = (char**)malloc(sizeof(char*));
+    SAFE_MALLOC(char**, data, sizeof(char*));
+    
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
-    *(data) = (char*)malloc(cap * datalen);
+    SAFE_MALLOC(char*, *(data), cap * datalen);
 
     // Initialize the cursor position and data count
     posA = 0;
@@ -101,7 +104,7 @@ inline void* BankDS::get_addr()
             }
 
             // Allocate a new bucket.
-            *(data + posA) = reinterpret_cast<char*>(malloc(cap * datalen));
+            SAFE_MALLOC(char*, *(data + posA), cap * datalen);
         }
     }
     // If there are empty locations...
