@@ -16,7 +16,7 @@ inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
 {
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
     SAFE_MALLOC(char**, data, sizeof(char*));
-    
+
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
     SAFE_MALLOC(char*, *(data), cap * datalen);

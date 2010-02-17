@@ -224,10 +224,10 @@ inline Iterator* LinkedListI::it_last()
 {
     LLIterator* it = new LLIterator(ident);
     struct LinkedListI::node* curr = first;
-    
+
     while ((curr->next) != NULL)
         curr = curr->next;
-    
+
     it->cursor = curr;
     it->dataobj->data = GET_DATA(curr);
     return it;
@@ -252,12 +252,12 @@ LLIterator::~LLIterator()
 }
 
 inline DataObj* LLIterator::next()
-{ 
+{
     if ((dataobj->data) == NULL)
         return NULL;
-    
+
     cursor = cursor->next;
-    
+
     if (cursor == NULL)
     {
         dataobj->data = NULL;

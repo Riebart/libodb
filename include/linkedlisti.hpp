@@ -4,13 +4,12 @@
 #include "index.hpp"
 #include "lock.hpp"
 
-/// @todo Handle duplicates with an embedded linked list (Like RBT) to reduce index-table-bloat.
 class LinkedListI : public Index
 {
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
-    
+
     friend class LLIterator;
 
 public:
@@ -19,7 +18,7 @@ public:
     bool del(uint64_t n);
     int prune(int (*condition)(void*));
     uint64_t size();
-    
+
     virtual Iterator* it_first();
     virtual Iterator* it_last();
     virtual Iterator* it_middle(DataObj* data);
@@ -44,18 +43,18 @@ protected:
 class LLIterator : public Iterator
 {
     friend class LinkedListI;
-    
-    public:
-        virtual ~LLIterator();
-        virtual DataObj* next();
-        virtual DataObj* data();
-        virtual void* data_v();
-        
-    protected:
-        LLIterator();
-        LLIterator(int ident);
-        
-        struct LinkedListI::node* cursor;
+
+public:
+    virtual ~LLIterator();
+    virtual DataObj* next();
+    virtual DataObj* data();
+    virtual void* data_v();
+
+protected:
+    LLIterator();
+    LLIterator(int ident);
+
+    struct LinkedListI::node* cursor;
 };
 
 #endif

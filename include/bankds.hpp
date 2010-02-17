@@ -184,8 +184,6 @@ protected:
 ///data, it stores the pointers to data that resides elsewhere in memory. By
 ///overriding the BankDS::add_element and BankDS::get_at to add a single operation
 ///before the base versions the indirection is achieved with minimal code.
-/// @todo Implement proper removal functions.
-/// @todo implement a custom thin stack for the freed pointers. Do it on top of a BankDS?
 class BankIDS : public BankDS
 {
     /// Since the constructors are protected, ODB needs to be able to create new

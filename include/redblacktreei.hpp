@@ -33,14 +33,12 @@
 ///(http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_rbtree.aspx)
 ///and some notes in a blog
 ///(http://www.canonware.com/~ttt/2008/04/left-leaning-red-black-trees-are-hard.html)
-/// @todo Make use of the merge function.
-/// @todo Deletion.
 class RedBlackTreeI : public Index
 {
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
-    
+
     friend class RBTIterator;
 
 public:
@@ -63,7 +61,7 @@ public:
     /// @retval >0 If the tree is a valid red-black tree then it returns the
     ///black-height of the tree.
     int rbt_verify();
-    
+
     virtual Iterator* it_first();
     virtual Iterator* it_last();
     virtual Iterator* it_middle(DataObj* data);
@@ -197,17 +195,17 @@ private:
 class RBTIterator : public Iterator
 {
     friend class RedBlackTreeI;
-    
+
 public:
     virtual ~RBTIterator();
     virtual DataObj* next();
     virtual DataObj* data();
     virtual void* data_v();
-    
+
 protected:
     RBTIterator();
     RBTIterator(int ident);
-    
+
     struct RedBlackTreeI::list_node* cursor;
     std::stack<struct RedBlackTreeI::tree_node*> trail;
 };

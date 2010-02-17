@@ -8,7 +8,6 @@
 
 class Index;
 
-/// @todo Implement remove_addr and fix remove_at
 class LinkedListDS : public DataStore
 {
     /// Since the constructors are protected, ODB needs to be able to create new

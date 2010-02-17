@@ -62,7 +62,7 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 {
     struct datanode* new_element;
     SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
-    
+
     memcpy(&(new_element->data), rawdata, nbytes);
 
     WRITE_LOCK();

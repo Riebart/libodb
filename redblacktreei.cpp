@@ -480,7 +480,7 @@ inline DataObj* RBTIterator::next()
 {
     if (dataobj->data == NULL)
         return NULL;
-    
+
     if ((cursor != NULL) && ((cursor->next) != NULL))
     {
         cursor = cursor->next;
@@ -514,7 +514,7 @@ inline DataObj* RBTIterator::next()
                 return NULL;
             }
         }
-        
+
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
         if (IS_LIST(UNTAINT(trail.top())))
         {
@@ -524,7 +524,7 @@ inline DataObj* RBTIterator::next()
         else
             dataobj->data = top->data;
     }
-    
+
     return dataobj;
 }
 

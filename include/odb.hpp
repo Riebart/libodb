@@ -28,8 +28,7 @@ public:
     ///and may result in more complicated compare functions. Key-value index
     ///tables however require a keygen function that generates a key from a piece
     ///of data.
-    /// @todo Actually implement all of these. :)
-    typedef enum { LINKED_LIST, KEYED_LINKED_LIST, RED_BLACK_TREE, KEYED_RED_BLACK_TREE } IndexType;
+    typedef enum { LINKED_LIST, RED_BLACK_TREE } IndexType;
 
     typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
 
@@ -42,8 +41,8 @@ public:
     ODB(VariableDatastoreType dt, uint32_t (*len)(void*) = ODB::len_v);
 
     ~ODB();
-    
-    /// Merging of nodes implies dropping duplicates post merge.
+
+    /// @warning Merging of nodes implies dropping duplicates post merge.
     Index* create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);
     IndexGroup* create_group();
     void add_data(void* raw_data);
