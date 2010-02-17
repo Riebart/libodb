@@ -4,6 +4,7 @@
 
 // Utility headers.
 #include "common.hpp"
+#include "lock.hpp"
 
 // Include the 'main' type header files.
 #include "datastore.hpp"

@@ -1,8 +1,8 @@
+#include "index.hpp"
+
 #include <omp.h>
 
 #include "odb.hpp"
-#include "datastore.hpp"
-#include "index.hpp"
 
 using namespace std;
 

@@ -1,7 +1,8 @@
+#include "bankds.hpp"
+
 #include <string.h>
 
 #include "common.hpp"
-#include "bankds.hpp"
 #include "index.hpp"
 
 using namespace std;

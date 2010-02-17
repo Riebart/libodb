@@ -4,7 +4,6 @@
 #include <vector>
 #include <stdint.h>
 
-#include "common.hpp"
 #include "index.hpp"
 #include "datastore.hpp"
 

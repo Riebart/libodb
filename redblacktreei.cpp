@@ -1,4 +1,6 @@
 #include "redblacktreei.hpp"
+
+#include "common.hpp"
 #include "bankds.hpp"
 
 using namespace std;

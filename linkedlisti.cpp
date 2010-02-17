@@ -1,4 +1,5 @@
 #include "linkedlisti.hpp"
+
 #include "bankds.hpp"
 
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
@@ -195,7 +196,7 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
     while (curr != NULL)
     {
         if (condition(curr->data))
-            ds->add_data(&(curr->data));
+            ds->add_data(curr->data);
 
         curr = curr->next;
     }

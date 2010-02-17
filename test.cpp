@@ -16,6 +16,7 @@
 
 // NOT ALLOWED!
 #include "redblacktreei.hpp"
+#include "common.hpp"
 
 #define SPREAD 500
 #define NUM_TABLES 1
@@ -184,7 +185,17 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     printf(":");
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {
-        res[j] = ind[0]->query(condition);
+        res[j] = ind[j]->query(condition);
+//         Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+//         
+//         Iterator* it = ind2->it_first();
+//         do
+//         {
+//             printf("%ld\n", *(long*)(it->data_v()));
+//         }
+//         while (it->next());
+//         
+//         printf("%ld:", (int64_t)(ind2->size()));
         printf("%ld:", (int64_t)(res[j]->size()));
     }
 

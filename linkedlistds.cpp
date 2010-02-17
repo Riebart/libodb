@@ -1,8 +1,9 @@
+#include "linkedlistds.hpp"
+
 #include <string.h>
 
 #include "common.hpp"
 #include "index.hpp"
-#include "linkedlistds.hpp"
 
 LinkedListDS::LinkedListDS(DataStore* parent, uint64_t datalen)
 {
