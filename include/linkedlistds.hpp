@@ -38,7 +38,8 @@ protected:
     virtual void init(DataStore* parent, uint64_t datalen);
     virtual void* add_data(void* rawdata);
     virtual void* get_addr();
-    virtual bool del_at(uint64_t index);
+    virtual bool remove_at(uint64_t index);
+    virtual bool remove_addr(void* addr);
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
     virtual uint64_t size();

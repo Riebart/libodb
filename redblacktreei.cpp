@@ -264,8 +264,10 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                 // If we haven't added the node...
                 if (ret == 0)
                 {
+                    if (merge != NULL)
+                        i->data = merge(rawdata, i->data);
                     // And we're allowing duplicates...
-                    if (!drop_duplicates)
+                    else if (!drop_duplicates)
                     {
                         // Allocate a new list item for the linked list.
                         struct list_node* first = reinterpret_cast<struct list_node*>(listds->get_addr());
@@ -476,67 +478,53 @@ RBTIterator::~RBTIterator()
 
 inline DataObj* RBTIterator::next()
 {
-    if (trail.empty())
+    if (dataobj->data == NULL)
         return NULL;
-
-    if (STRIP(trail.top()->link[1]) != NULL)
+    
+    if ((cursor != NULL) && ((cursor->next) != NULL))
     {
-        struct RedBlackTreeI::tree_node* curr = trail.top();
-        trail.pop();
-        trail.push(TAINT(curr));
-        curr = STRIP(curr->link[1]);
-
-        while (curr != NULL)
-        {
-            trail.push(curr);
-            curr = STRIP(curr->link[0]);
-        }
+        cursor = cursor->next;
+        dataobj->data = cursor->data;
     }
     else
     {
-        trail.pop();
-
-        while ((!(trail.empty())) && (TAINTED(trail.top())))
-            trail.pop();
-
-        if (trail.empty())
-            return NULL;
-    }
-
-    dataobj->data = GET_DATA(UNTAINT(trail.top()));
-    return dataobj;
-}
-
-inline DataObj* RBTIterator::prev()
-{
-    if (trail.empty())
-        return NULL;
-
-    if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
-    {
-        struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
-        trail.pop();
-        trail.push(UNTAINT(curr));
-        curr = STRIP(curr->link[0]);
-
-        while (curr != NULL)
+        if (STRIP(trail.top()->link[1]) != NULL)
         {
+            struct RedBlackTreeI::tree_node* curr = trail.top();
+            trail.pop();
             trail.push(TAINT(curr));
             curr = STRIP(curr->link[1]);
-        }
-    }
-    else
-    {
-        trail.pop();
 
-        while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            while (curr != NULL)
+            {
+                trail.push(curr);
+                curr = STRIP(curr->link[0]);
+            }
+        }
+        else
+        {
             trail.pop();
 
-        if (trail.empty())
-            return NULL;
-    }
+            while ((!(trail.empty())) && (TAINTED(trail.top())))
+                trail.pop();
 
-    dataobj->data = GET_DATA(UNTAINT(trail.top()));
+            if (trail.empty())
+            {
+                dataobj->data = NULL;
+                return NULL;
+            }
+        }
+        
+        struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
+        if (IS_LIST(UNTAINT(trail.top())))
+        {
+            cursor = reinterpret_cast<struct RedBlackTreeI::list_node*>(top->data);
+            dataobj->data = cursor->data;
+        }
+        else
+            dataobj->data = top->data;
+    }
+    
     return dataobj;
 }
 
@@ -547,8 +535,5 @@ inline DataObj* RBTIterator::data()
 
 inline void* RBTIterator::data_v()
 {
-    if (trail.empty())
-        return NULL;
-    else
-        return dataobj->data;
+    return dataobj->data;
 }

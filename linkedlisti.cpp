@@ -2,6 +2,8 @@
 
 #include "bankds.hpp"
 
+#define GET_DATA(x) (x->data)
+
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
     RWLOCK_INIT();
@@ -46,7 +48,11 @@ inline void LinkedListI::add_data_v(void* rawdata)
             {
                 // Merge them, if we want.
                 if (merge != NULL)
+                {
                     first->data = merge(rawdata, first->data);
+                    WRITE_UNLOCK();
+                    return;
+                }
 
                 // If we don't allow duplicates, return now.
                 if (drop_duplicates)
@@ -74,7 +80,11 @@ inline void LinkedListI::add_data_v(void* rawdata)
             if (comp == 0)
             {
                 if (merge != NULL)
+                {
                     curr->next->data = merge(rawdata, curr->next->data);
+                    WRITE_UNLOCK();
+                    return;
+                }
 
                 if (drop_duplicates)
                 {
@@ -201,3 +211,72 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
         curr = curr->next;
     }
 }
+
+inline Iterator* LinkedListI::it_first()
+{
+    LLIterator* it = new LLIterator(ident);
+    it->cursor = first;
+    it->dataobj->data = GET_DATA(first);
+    return it;
+}
+
+inline Iterator* LinkedListI::it_last()
+{
+    LLIterator* it = new LLIterator(ident);
+    struct LinkedListI::node* curr = first;
+    
+    while ((curr->next) != NULL)
+        curr = curr->next;
+    
+    it->cursor = curr;
+    it->dataobj->data = GET_DATA(curr);
+    return it;
+}
+
+inline Iterator* LinkedListI::it_middle(DataObj* data)
+{
+    return NULL;
+}
+
+LLIterator::LLIterator()
+{
+}
+
+LLIterator::LLIterator(int ident) : Iterator::Iterator(ident)
+{
+}
+
+LLIterator::~LLIterator()
+{
+    delete dataobj;
+}
+
+inline DataObj* LLIterator::next()
+{ 
+    if ((dataobj->data) == NULL)
+        return NULL;
+    
+    cursor = cursor->next;
+    
+    if (cursor == NULL)
+    {
+        dataobj->data = NULL;
+        return NULL;
+    }
+    else
+    {
+        dataobj->data = GET_DATA(cursor);
+        return dataobj;
+    }
+}
+
+inline DataObj* LLIterator::data()
+{
+    return dataobj;
+}
+
+inline void* LLIterator::data_v()
+{
+    return dataobj->data;
+}
+

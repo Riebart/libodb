@@ -95,7 +95,7 @@ inline void* LinkedListIDS::add_data(void* rawdata)
 
 // returns false if index is out of range, or if element was already
 // marked as deleted
-bool LinkedListDS::del_at(uint64_t index)
+bool LinkedListDS::remove_at(uint64_t index)
 {
     WRITE_LOCK();
     if (deleted_list.size() > index)
@@ -103,13 +103,19 @@ bool LinkedListDS::del_at(uint64_t index)
         bool ret=deleted_list[index];
         deleted_list[index]=1;
         WRITE_UNLOCK();
-        return ret;
+        return !ret;
     }
     else
     {
         WRITE_UNLOCK();
         return 0;
     }
+}
+
+/// @todo Efficient deletion by pointer requires a doubly-linked list... Uhoh!
+bool LinkedListDS::remove_addr(void* addr)
+{
+    return false;
 }
 
 void LinkedListDS::populate(Index* index)

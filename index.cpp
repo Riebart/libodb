@@ -183,11 +183,6 @@ DataObj* Iterator::next()
     return NULL;
 }
 
-DataObj* Iterator::prev()
-{
-    return NULL;
-}
-
 DataObj* Iterator::data()
 {
     return NULL;

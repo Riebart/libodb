@@ -125,7 +125,6 @@ protected:
     ///the new index table be populated with the existing data. That job is
     ///performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
-    /// @todo Verify this works now that I've monkeyed it into using pointers.
     virtual void populate(Index* index);
 
     /// Clone the datastore and return the same type but with no data.
@@ -243,7 +242,6 @@ protected:
     ///the new index table be populated with the existing data. That job is
     ///performed by this function.
     /// @param [in] index A pointer to the index table to be populated.
-    /// @todo Verify this works now that I've monkeyed it into using pointers.
     virtual void populate(Index* index);
 };
 
