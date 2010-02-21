@@ -25,6 +25,7 @@ inline uint32_t ODB::len_v(void* rawdata)
     return strlen((const char*)rawdata);
 }
 
+/// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
 {
     if (prune == NULL)
@@ -223,17 +224,18 @@ ODB::~ODB()
     }
 }
 
+/// @todo Handle these failures gracefully instead.
 Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
 {
     if (compare == NULL)
         FAIL("Comparison function cannot be NULL.");
-    
+
     if (keylen < -1)
         FAIL("When specifying keylen, value must be >= 0");
-    
+
     if (((keylen == -1) && (keygen != NULL)) || ((keylen >= -1) && (keygen == NULL)))
         FAIL("Keygen != NULL and keylen >= 0 must be satisfied together or neither.");
-    
+
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
     bool do_not_populate = flags & DO_NOT_POPULATE;
     bool drop_duplicates = flags & DROP_DUPLICATES;
