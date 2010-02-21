@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <omp.h>
+#include <unistd.h>
 
 #include "odb.hpp"
 
@@ -47,8 +48,13 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf("Usage: test <element size> <number of elements> <number of tests> <test type> <index type>\n\tWhere: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\n\tWhere: index type {1-bit: on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE");
-    exit(EXIT_SUCCESS);
+    printf(" Usage test -[ntTie]\n"
+        "\t-n\tNumber of elements (default=10000)\n"
+        "\t-t\tNumber of tests (default=1)\n"
+        "\t-T\tTest type (default=0)\n"
+        "\t-i\tIndex types (default=0)\n"
+        "\t-e\tElement size, in bytes (default=8)\n\n"
+        "Where: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE\n");
 }
 
 /// Function for testing the database.
@@ -206,20 +212,40 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
 int main (int argc, char ** argv)
 {
-    if (argc < 6)
-        usage();
-
-    uint64_t element_size;
-    uint64_t test_size;
-    uint32_t test_num;
-    uint32_t test_type;
-    uint32_t index_type;
-
-    sscanf(argv[1], "%lu", &element_size);
-    sscanf(argv[2], "%lu", &test_size);
-    sscanf(argv[3], "%u", &test_num);
-    sscanf(argv[4], "%u", &test_type);
-    sscanf(argv[5], "%u", &index_type);
+    uint64_t element_size = 8;
+    uint64_t test_size = 10000;
+    uint32_t test_num = 1;
+    uint32_t test_type = 0;
+    uint32_t index_type = 0;
+    
+    int ch;
+    
+    //Parse the options. TODO: validity checks
+    while ( (ch = getopt(argc, argv, "etnTi")) != -1)
+    {
+        switch (ch)
+        {
+            case 'e':
+                sscanf(optarg, "%lu", &element_size);
+                break;
+            case 't':
+                sscanf(optarg, "%lu", &test_size);
+                break;
+            case 'n':
+                sscanf(optarg, "%u", &test_num);
+                break;
+            case 'T':
+                sscanf(optarg, "%u", &test_type);
+                break;
+            case 'i':
+                sscanf(optarg, "%u", &index_type);
+                break;
+            default:
+                usage();
+                return EXIT_FAILURE;
+        }       
+        
+    }
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
 
