@@ -25,6 +25,7 @@ protected:
     virtual void* add_data(void* rawdata);
     virtual void* add_data(void* rawdata, uint32_t nbytes);
     virtual void* get_addr();
+    virtual void* get_addr(uint32_t nbytes);
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
@@ -32,11 +33,17 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
+    
+    /// Get the size of the datastore.
+    /// @return The number of items in this datastore.
     virtual uint64_t size();
 
     DataStore* parent;
     bool (*prune)(void* rawdata);
     uint32_t datalen;
+    
+    /// The number of items in this datastore.
+    uint64_t data_count;
 
 public:
     static bool prune_false(void* rawdata);

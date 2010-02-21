@@ -167,33 +167,6 @@ bool LinkedListI::del(uint64_t n)
     return ret;
 }
 
-int LinkedListI::prune(int (*condition)(void*))
-{
-    struct node* curr = first;
-    int ret = 0;
-
-    WRITE_LOCK();
-    while (condition(first->data) > 0)
-    {
-        ret++;
-        first = first->next;
-    }
-
-    while (curr->next != NULL)
-    {
-        if (condition(curr->next->data) > 0)
-        {
-            ret++;
-            curr->next = curr->next->next;
-        }
-        else
-            curr = curr->next;
-    }
-    WRITE_UNLOCK();
-
-    return ret;
-}
-
 uint64_t LinkedListI::size()
 {
     return count;
@@ -201,6 +174,7 @@ uint64_t LinkedListI::size()
 
 void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 {
+    READ_LOCK();
     struct node* curr = first;
 
     while (curr != NULL)
@@ -210,6 +184,7 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 
         curr = curr->next;
     }
+    READ_UNLOCK();
 }
 
 inline Iterator* LinkedListI::it_first()

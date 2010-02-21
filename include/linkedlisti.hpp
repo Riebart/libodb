@@ -16,7 +16,6 @@ public:
     ~LinkedListI();
     bool del(void* data);
     bool del(uint64_t n);
-    int prune(int (*condition)(void*));
     uint64_t size();
 
     virtual Iterator* it_first();

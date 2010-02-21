@@ -233,8 +233,8 @@ Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*)
     if (keylen < -1)
         FAIL("When specifying keylen, value must be >= 0");
 
-    if (((keylen == -1) && (keygen != NULL)) || ((keylen >= -1) && (keygen == NULL)))
-        FAIL("Keygen != NULL and keylen >= 0 must be satisfied together or neither.");
+    if (((keylen == -1) && (keygen != NULL)) || ((keylen != -1) && (keygen == NULL)))
+        FAIL("Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
 
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
     bool do_not_populate = flags & DO_NOT_POPULATE;

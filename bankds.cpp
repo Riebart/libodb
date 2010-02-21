@@ -12,6 +12,10 @@ BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen
     init(parent, prune, datalen, cap);
 }
 
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*), cap)
+{
+}
+
 inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
@@ -37,10 +41,6 @@ inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64
     this->prune = prune;
 
     RWLOCK_INIT();
-}
-
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*), cap)
-{
 }
 
 BankDS::~BankDS()
@@ -154,8 +154,9 @@ inline void* BankIDS::get_at(uint64_t index)
     return reinterpret_cast<void*>(*(reinterpret_cast<char**>(BankDS::get_at(index))));
 }
 
-bool BankDS::remove_at(uint64_t index)
+inline bool BankDS::remove_at(uint64_t index)
 {
+    WRITE_LOCK();
     // Perform sanity check.
     if (index < data_count)
     {
@@ -168,21 +169,33 @@ bool BankDS::remove_at(uint64_t index)
         return true;
     }
     else
+    {
+        WRITE_UNLOCK();
         return false;
+    }
 }
 
 inline bool BankDS::remove_addr(void* addr)
 {
+    WRITE_LOCK();
+    for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
+        if ((addr < (*(data + i))) || (addr >= ((*(data + i)) + cap_size)))
+            return false;
+        
+    if ((addr < (*(data + posA))) || (addr >= ((*(data + posA)) + posB)))
+        return false;
+    
     deleted.push(addr);
+    WRITE_UNLOCK();
     return true;
 }
 
-uint64_t BankDS::size()
+inline uint64_t BankDS::remove_sweep()
 {
-    return data_count;
+    return 0;
 }
 
-void BankDS::populate(Index* index)
+inline void BankDS::populate(Index* index)
 {
     READ_LOCK();
 
@@ -199,10 +212,9 @@ void BankDS::populate(Index* index)
     READ_UNLOCK();
 }
 
-void BankIDS::populate(Index* index)
+inline void BankIDS::populate(Index* index)
 {
     READ_LOCK();
-
     // Index over the whole datastore and add each item to the index.
     // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
     // Last bucket needs to be handled specially.
@@ -212,17 +224,17 @@ void BankIDS::populate(Index* index)
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
-
+    
     READ_UNLOCK();
 }
 
-DataStore* BankDS::clone()
+inline DataStore* BankDS::clone()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
     return new BankDS(this, prune, datalen, cap);
 }
 
-DataStore* BankDS::clone_indirect()
+inline DataStore* BankDS::clone_indirect()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
     return new BankIDS(this, prune, cap);

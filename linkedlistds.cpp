@@ -19,7 +19,7 @@ LinkedListVDS::LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), ui
     this->len = len;
 }
 
-void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
+inline void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
@@ -27,6 +27,7 @@ void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_
     bottom = NULL;
     this->parent = parent;
     this->prune = prune;
+    data_count = 0;
 }
 
 //TODO: free memory
@@ -54,6 +55,20 @@ inline void* LinkedListDS::add_data(void* rawdata)
     return ret;
 }
 
+inline void* LinkedListDS::get_addr()
+{
+    struct datanode* new_element;
+    SAFE_MALLOC(struct datanode*, new_element, datalen + sizeof(struct datanode*));
+    
+    WRITE_LOCK();
+    new_element->next=bottom;
+    bottom=new_element;
+    data_count++;
+    WRITE_UNLOCK();
+    
+    return &(new_element->data);
+}
+
 inline void* LinkedListVDS::add_data(void* rawdata)
 {
     return add_data(rawdata, len(rawdata));
@@ -61,115 +76,131 @@ inline void* LinkedListVDS::add_data(void* rawdata)
 
 inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 {
-    struct datanode* new_element;
-    SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
+    void* ret = get_addr(nbytes);
 
-    memcpy(&(new_element->data), rawdata, nbytes);
+    memcpy(ret, rawdata, nbytes);
 
-    WRITE_LOCK();
-    new_element->next=bottom;
-    bottom=new_element;
-    deleted_list.push_back(0);
-    WRITE_UNLOCK();
-
-    return &(new_element->data);
+    return ret;
 }
 
-inline void* LinkedListDS::get_addr()
+inline void* LinkedListVDS::get_addr()
+{
+    return NULL;
+}
+
+inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 {
     struct datanode* new_element;
-    SAFE_MALLOC(struct datanode*, new_element, datalen + sizeof(struct datanode*));
-
+    SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
+    
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
-    deleted_list.push_back(0);
+    data_count++;
     WRITE_UNLOCK();
-
+    
     return &(new_element->data);
 }
 
 inline void* LinkedListIDS::add_data(void* rawdata)
 {
-    return (void*)(*((char**)(LinkedListDS::add_data(&rawdata))));
+    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(LinkedListDS::add_data(&rawdata))));
 }
 
-// returns false if index is out of range, or if element was already
-// marked as deleted
-/// @todo there's no point in not unlinking these right now... Why don't we?
-bool LinkedListDS::remove_at(uint64_t index)
+inline bool LinkedListDS::remove_at(uint64_t index)
 {
-    WRITE_LOCK();
-    if (deleted_list.size() > index)
-    {
-        bool ret = (bool)deleted_list[index];
-        deleted_list[index] = 1;
-        WRITE_UNLOCK();
-        return !ret;
-    }
-    else
-    {
-        WRITE_UNLOCK();
-        return 0;
-    }
-}
-
-/// @todo there's no point in not unlinking these right now... Why don't we?
-bool LinkedListDS::remove_addr(void* addr)
-{
-    WRITE_LOCK();
-    struct datanode* curr = bottom;
-    uint64_t i = 0;
-
-    while ((curr != NULL) && ((&(curr->data)) != addr))
-    {
-        i++;
-        curr = curr->next;
-    }
-
-    if (curr == NULL)
+    // Assume index is 0-based
+    if (index >= data_count)
         return false;
     else
     {
-        bool ret = (bool)deleted_list[i];
-        deleted_list[i] = 1;
-        WRITE_UNLOCK();
-        return !ret;
+        WRITE_LOCK();
+        void* temp;
+        
+        // Handle removing the first item differently, as we need to re-point the bottom pointer.
+        if (index == 0)
+        {
+            temp = bottom;
+            bottom = bottom->next;
+        }
+        else
+        {
+            struct datanode* curr = bottom;
+            
+            for (uint64_t i = 1 ; i < index ; i++)
+                curr = curr->next;
+            
+            temp = curr->next;
+            curr->next = curr->next->next;
+        }
+        
+        WRITE_UNLOCK();        
+        free(temp);
+        return true;
     }
 }
 
-uint64_t LinkedListDS::remove_sweep()
+inline bool LinkedListDS::remove_addr(void* addr)
 {
     WRITE_LOCK();
-    uint64_t i = 0;
-    //uint64_t N = deleted_list.size();
-    struct datanode* curr = bottom;
-
-    while (deleted_list[i])
+    void* temp;
+    
+    // Handle removing the first item differently, as we need to re-point the bottom pointer.
+    if ((&(bottom->data)) == addr)
     {
-        void* temp = curr;
-        curr = curr->next;
-        free(temp);
-        i++;
+        temp = bottom;
+        bottom = bottom->next;
     }
-
-    while (prune(&(curr->data)))
+    else
     {
-
+        struct datanode* curr = bottom;
+        
+        while (((curr->next) != NULL) && ((&(curr->next->data)) != addr))
+            curr = curr->next;
+        
+        if ((curr->next) == NULL)
+            return false;
+        
+        temp = curr->next;
+        curr->next = curr->next->next;
     }
-
-//     while ((curr->next) != NULL)
-//     {
-//         if
-//         curr = curr->next;
-//         i++;
-//     }
-    WRITE_UNLOCK();
-
-    return 0;
+    
+    WRITE_UNLOCK();        
+    free(temp);
+    return true;
 }
 
-void LinkedListDS::populate(Index* index)
+inline uint64_t LinkedListDS::remove_sweep()
+{
+    uint64_t count = 0;
+    
+    void* temp;
+    while (prune(bottom))
+    {
+        temp = bottom;
+        bottom = bottom->next;
+        free(temp);
+        count++;
+    }
+    
+    struct datanode* curr = NULL;
+    while ((curr->next) != NULL)
+    {
+        if (prune(curr->next))
+        {
+            temp = curr->next;
+            curr->next = curr->next->next;
+            free(temp);
+            count++;
+        }
+        else
+            curr = curr->next;
+    }
+    
+    return count;
+}
+
+inline void LinkedListDS::populate(Index* index)
 {
     struct datanode* curr = bottom;
 
@@ -182,7 +213,7 @@ void LinkedListDS::populate(Index* index)
     READ_UNLOCK();
 }
 
-void LinkedListIDS::populate(Index* index)
+inline void LinkedListIDS::populate(Index* index)
 {
     struct datanode* curr = bottom;
 
@@ -200,7 +231,7 @@ void LinkedListIDS::populate(Index* index)
 
 // Get the pointer to data for a given index
 // WARNING: O(n) complexity. Avoid.
-void * LinkedListDS::get_at(uint64_t index)
+inline void* LinkedListDS::get_at(uint64_t index)
 {
     struct datanode * cur_item=bottom;
     uint32_t cur_index=0;
@@ -223,35 +254,12 @@ inline void* LinkedListIDS::get_at(uint64_t index)
     return reinterpret_cast<void*>(*(reinterpret_cast<char**>(LinkedListDS::get_at(index))));
 }
 
-// Performs the sweep of a mark-and-sweep. starting at the back,
-// frees all data that has been marked as deleted. O(n).
-void LinkedListDS::cleanup()
-{
-    uint32_t cur_index=deleted_list.size();
-    uint32_t remaining_items=cur_index;
-
-    while (cur_index > 0)
-    {
-        cur_index--;
-
-    }
-
-    // since all marked data has been freed, we can safely
-    // create a new vector of 0s
-    deleted_list.assign(remaining_items, 0);
-}
-
-uint64_t LinkedListDS::size()
-{
-    return deleted_list.size();
-}
-
-DataStore* LinkedListDS::clone()
+inline DataStore* LinkedListDS::clone()
 {
     return new LinkedListDS(this, prune, datalen);
 }
 
-DataStore* LinkedListDS::clone_indirect()
+inline DataStore* LinkedListDS::clone_indirect()
 {
     return new LinkedListIDS(this, prune);
 }

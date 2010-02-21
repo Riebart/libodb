@@ -226,25 +226,24 @@ int main (int argc, char ** argv)
         switch (ch)
         {
             case 'e':
-                sscanf(optarg, "%lu", &element_size);
+                sscanf(argv[optind], "%lu", &element_size);
                 break;
             case 't':
-                sscanf(optarg, "%lu", &test_size);
+                sscanf(argv[optind], "%lu", &test_size);
                 break;
             case 'n':
-                sscanf(optarg, "%u", &test_num);
+                sscanf(argv[optind], "%u", &test_num);
                 break;
             case 'T':
-                sscanf(optarg, "%u", &test_type);
+                sscanf(argv[optind], "%u", &test_type);
                 break;
             case 'i':
-                sscanf(optarg, "%u", &index_type);
+                sscanf(argv[optind], "%u", &index_type);
                 break;
             default:
                 usage();
                 return EXIT_FAILURE;
         }       
-        
     }
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);

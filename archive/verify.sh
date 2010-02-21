@@ -5,8 +5,8 @@ do
     for (( i=0 ; i<=1 ; i++ ))
     do
         i2=$(echo "2*$i" | bc)
-        echo -n "./test 8 $1 10 $j $i2..."
-        ./test 8 $1 10 $j $i2 | grep "^:.*$"
+        echo -n "./test -e 8 -t $1 -n 10 -T $j -i $i2..."
+        ./test -e 8 -t $1 -n 10 -T $j -i $i2 | grep "^:.*$"
     done
 done
 
@@ -17,7 +17,7 @@ do
     for (( i=0 ; i<=1 ; i++ ))
     do
         i2=$(echo "2*$i+1" | bc)
-        echo -n "./test 8 $1 10 $j $i2..."
-        ./test 8 $1 10 $j $i2 | grep "^:.*$"
+        echo -n "./test -e 8 -t $1 -n 10 -T $j -i $i2..."
+        ./test -e 8 -t $1 -n 10 -T $j -i $i2 | grep "^:.*$"
     done
 done

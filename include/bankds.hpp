@@ -109,15 +109,14 @@ protected:
     virtual bool remove_at(uint64_t index);
 
     /// Mark the specified location as free (drop in replacement for free).
-    /// No checking is done to verify that this is even a part of this datastore.
     /// @param [in] addr Address to mark as free for data.
-    /// @retval true Always returns true, indicating the specified location is
-    ///always marked as free for the next addition.
+    /// @retval true The specified location is a part of this datastore and was
+    ///marked as free.
+    /// @retval false The specified location is not a part of this datastore and
+    ///was left untouched.
     virtual bool remove_addr(void* addr);
-
-    /// Get the size of the datastore.
-    /// @return The number of items in this datastore.
-    virtual uint64_t size();
+    
+    virtual uint64_t remove_sweep();
 
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created
@@ -151,9 +150,6 @@ protected:
     ///'cursor' is.
     /// This actually holds a byte-offset to avoid unnecessary arithmetic.
     uint64_t posB;
-
-    /// The number of items in this datastore.
-    uint64_t data_count;
 
     /// The number of buckets that can be created before BankDS::data needs to
     ///grow.

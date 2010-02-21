@@ -42,13 +42,10 @@ protected:
     virtual uint64_t remove_sweep();
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
-    virtual uint64_t size();
-    virtual void cleanup();
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
 
     struct datanode * bottom;
-    std::vector<bool> deleted_list;
     uint64_t datalen;
     RWLOCK_T;
 };
@@ -98,6 +95,8 @@ protected:
 
     virtual void* add_data(void* rawdata);
     virtual void* add_data(void* rawdata, uint32_t datalen);
+    virtual void* get_addr();
+    virtual void* get_addr(uint32_t nbytes);
 
     struct datanode * bottom;
     uint32_t (*len)(void*);

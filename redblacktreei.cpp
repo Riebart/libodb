@@ -122,6 +122,7 @@ RedBlackTreeI::~RedBlackTreeI()
 
     // Free the false root we malloced in the constructor.
     free(false_root);
+    RWLOCK_DESTROY();
 }
 
 uint64_t RedBlackTreeI::size()
@@ -188,6 +189,8 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
     // For storing the comparison value, means only one call to the compare function.
     int c;
+    
+    WRITE_LOCK();
 
     // If the tree is empty, that's easy.
     if (root == NULL)
@@ -334,12 +337,16 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
     // Increment the counter for the number of items in the tree.
     count += ret;
+    
+    WRITE_UNLOCK();
 }
 
 int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
     int height_l, height_r;
 
+    READ_LOCK();
+    
     if (root == NULL)
     {
 //         printf("_ ");
@@ -354,6 +361,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         if (IS_RED(root))
             if (((left != NULL) && IS_RED(left)) || ((right != NULL) && IS_RED(right)))
             {
+                READ_UNLOCK();
                 FAIL("Red violation");
                 return 0;
             }
@@ -372,6 +380,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
                 ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
         {
+            READ_UNLOCK();
             FAIL("BST violation");
             return 0;
         }
@@ -379,21 +388,30 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         // Verify black height
         if ((height_l != 0) && (height_r != 0) && (height_l != height_r))
         {
+            READ_UNLOCK();
             FAIL("Black violation");
             return 0;
         }
 
         // Only count black nodes
         if ((height_r != 0) && (height_l != 0))
+        {
+            READ_UNLOCK();
             return height_r + (1 - IS_RED(root));
+        }
         else
+        {
+            READ_UNLOCK();
             return 0;
+        }
     }
 }
 
 void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
 {
+    READ_LOCK();
     query(root, condition, ds);
+    READ_UNLOCK();
 }
 
 void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), DataStore* ds)
