@@ -27,6 +27,9 @@ inline uint32_t ODB::len_v(void* rawdata)
 
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
 
     switch (dt)
@@ -53,6 +56,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
 
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen)
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
 
     switch (dt)
@@ -78,6 +84,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
 
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
 
     switch (dt)
@@ -104,6 +113,9 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
 
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
 
     switch (dt)
@@ -129,27 +141,33 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
 
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*))
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
-    
+
     switch (dt)
     {
-        case LINKED_LIST_V_DS:
-        {
-            data = new LinkedListVDS(NULL, prune, len);
-            break;
-        }
-        default:
-        {
-            FAIL("Invalid datastore type.");
-        }
+    case LINKED_LIST_V_DS:
+    {
+        data = new LinkedListVDS(NULL, prune, len);
+        break;
     }
-    
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+
     init(data, num_unique, sizeof(void*));
     num_unique++;
 }
 
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*))
 {
+    if (prune == NULL)
+        FAIL("Pruning function cannot be NULL.");
+
     DataStore* data;
 
     switch (dt)

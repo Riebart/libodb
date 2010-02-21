@@ -19,7 +19,7 @@ protected:
     ///generate one on its own and allow the user to instantiate a DataStore
     ///instance.
     DataStore();
-    
+
     virtual ~DataStore();
 
     virtual void* add_data(void* rawdata);

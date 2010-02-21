@@ -120,13 +120,13 @@ bool LinkedListDS::remove_addr(void* addr)
     WRITE_LOCK();
     struct datanode* curr = bottom;
     uint64_t i = 0;
-    
+
     while ((curr != NULL) && ((&(curr->data)) != addr))
     {
         i++;
         curr = curr->next;
     }
-    
+
     if (curr == NULL)
         return false;
     else
@@ -144,7 +144,7 @@ uint64_t LinkedListDS::remove_sweep()
     uint64_t i = 0;
     //uint64_t N = deleted_list.size();
     struct datanode* curr = bottom;
-    
+
     while (deleted_list[i])
     {
         void* temp = curr;
@@ -152,20 +152,20 @@ uint64_t LinkedListDS::remove_sweep()
         free(temp);
         i++;
     }
-    
+
     while (prune(&(curr->data)))
     {
-        
+
     }
-    
+
 //     while ((curr->next) != NULL)
 //     {
-//         if 
+//         if
 //         curr = curr->next;
 //         i++;
 //     }
     WRITE_UNLOCK();
-    
+
     return 0;
 }
 
