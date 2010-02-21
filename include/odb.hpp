@@ -36,9 +36,9 @@ public:
 
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, uint32_t datalen);
-    ODB(IndirectDatastoreType dt);
-    ODB(VariableDatastoreType dt, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata));
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = ODB::len_v);
 
     ~ODB();
 
@@ -54,9 +54,9 @@ public:
 private:
     static uint32_t len_v(void* rawdata);
 
-    ODB(FixedDatastoreType dt, int ident, uint32_t datalen);
-    ODB(IndirectDatastoreType dt, int ident);
-    ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = ODB::len_v);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen);

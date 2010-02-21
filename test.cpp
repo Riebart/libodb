@@ -76,13 +76,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::BANK_DS, element_size);
+            odb = new ODB(ODB::BANK_DS, DataStore::prune_false, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::BANK_I_DS);
+            odb = new ODB(ODB::BANK_I_DS, DataStore::prune_false);
             break;
         }
         default:
@@ -97,13 +97,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::LINKED_LIST_DS, element_size);
+            odb = new ODB(ODB::LINKED_LIST_DS, DataStore::prune_false, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::LINKED_LIST_I_DS);
+            odb = new ODB(ODB::LINKED_LIST_I_DS, DataStore::prune_false);
             break;
         }
         default:
@@ -186,16 +186,16 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     for (int j = 0 ; j < NUM_QUERIES ; j++)
     {
         res[j] = ind[j]->query(condition);
-        Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
-
-        Iterator* it = ind2->it_first();
-        do
-        {
-            printf("%ld\n", *(long*)(it->data_v()));
-        }
-        while (it->next());
-
-        printf("%ld:", (int64_t)(ind2->size()));
+//         Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+// 
+//         Iterator* it = ind2->it_first();
+//         do
+//         {
+//             printf("%ld\n", *(long*)(it->data_v()));
+//         }
+//         while (it->next());
+// 
+//         printf("%ld:", (int64_t)(ind2->size()));
         printf("%ld:", (int64_t)(res[j]->size()));
     }
 

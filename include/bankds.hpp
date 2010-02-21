@@ -72,12 +72,12 @@ protected:
     /// @param [in] cap The number of items to store in each block. (The default
     ///value is 102400 = 4096*25 as it has shown to have very good performance
     ///and guarantees memory alignment)
-    BankDS(DataStore* parent, uint64_t data_size, uint64_t cap = 102400);
+    BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint64_t cap = 102400);
 
     /// Initializer to save on code repetition.
     /// Takes care of initializing everything, otherwise this code would appear
     ///in several different constructors.
-    void init(DataStore* parent, uint64_t data_size, uint64_t cap);
+    virtual void init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint64_t cap);
 
     /// Add a piece of raw data to the datastore.
     /// @param [in] rawdata A pointer to the the location of the data to be added.
@@ -214,7 +214,7 @@ protected:
     /// @todo Make proper use of the parent pointers where necessary.
     ///(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
     ///Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
-    BankIDS(DataStore* parent = NULL, uint64_t cap = 102400);
+    BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap = 102400);
 
     /// Add a piece of raw data to the datastore.
     /// This function adds a single address-of (&) operation to perform the

@@ -5,22 +5,28 @@
 #include "common.hpp"
 #include "index.hpp"
 
-LinkedListDS::LinkedListDS(DataStore* parent, uint64_t datalen)
+LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
 {
-    init(parent, datalen);
+    init(parent, prune, datalen);
 }
 
-void LinkedListDS::init(DataStore* parent, uint64_t datalen)
+LinkedListIDS::LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata)) : LinkedListDS(parent, prune, sizeof(char*))
+{
+}
+
+LinkedListVDS::LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*)) : LinkedListDS(parent, prune, 0)
+{
+    this->len = len;
+}
+
+void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
     this->datalen = datalen;
     bottom = NULL;
     this->parent = parent;
-}
-
-LinkedListIDS::LinkedListIDS(DataStore* parent) : LinkedListDS(parent, sizeof(char*))
-{
+    this->prune = prune;
 }
 
 //TODO: free memory
@@ -37,11 +43,6 @@ LinkedListDS::~LinkedListDS()
     }
 
     RWLOCK_DESTROY();
-}
-
-LinkedListVDS::LinkedListVDS(DataStore* parent, uint32_t (*len)(void*)) : LinkedListDS(parent, 0)
-{
-    this->len = len;
 }
 
 inline void* LinkedListDS::add_data(void* rawdata)
@@ -95,6 +96,7 @@ inline void* LinkedListIDS::add_data(void* rawdata)
 
 // returns false if index is out of range, or if element was already
 // marked as deleted
+/// @todo there's no point in not unlinking these right now... Why don't we?
 bool LinkedListDS::remove_at(uint64_t index)
 {
     WRITE_LOCK();
@@ -112,18 +114,19 @@ bool LinkedListDS::remove_at(uint64_t index)
     }
 }
 
+/// @todo there's no point in not unlinking these right now... Why don't we?
 bool LinkedListDS::remove_addr(void* addr)
 {
     WRITE_LOCK();
     struct datanode* curr = bottom;
     uint64_t i = 0;
-
+    
     while ((curr != NULL) && ((&(curr->data)) != addr))
     {
         i++;
         curr = curr->next;
     }
-
+    
     if (curr == NULL)
         return false;
     else
@@ -133,6 +136,37 @@ bool LinkedListDS::remove_addr(void* addr)
         WRITE_UNLOCK();
         return !ret;
     }
+}
+
+uint64_t LinkedListDS::remove_sweep()
+{
+    WRITE_LOCK();
+    uint64_t i = 0;
+    //uint64_t N = deleted_list.size();
+    struct datanode* curr = bottom;
+    
+    while (deleted_list[i])
+    {
+        void* temp = curr;
+        curr = curr->next;
+        free(temp);
+        i++;
+    }
+    
+    while (prune(&(curr->data)))
+    {
+        
+    }
+    
+//     while ((curr->next) != NULL)
+//     {
+//         if 
+//         curr = curr->next;
+//         i++;
+//     }
+    WRITE_UNLOCK();
+    
+    return 0;
 }
 
 void LinkedListDS::populate(Index* index)
@@ -214,10 +248,10 @@ uint64_t LinkedListDS::size()
 
 DataStore* LinkedListDS::clone()
 {
-    return new LinkedListDS(this, datalen);
+    return new LinkedListDS(this, prune, datalen);
 }
 
 DataStore* LinkedListDS::clone_indirect()
 {
-    return new LinkedListIDS(this);
+    return new LinkedListIDS(this, prune);
 }

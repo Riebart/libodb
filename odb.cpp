@@ -25,7 +25,7 @@ inline uint32_t ODB::len_v(void* rawdata)
     return strlen((const char*)rawdata);
 }
 
-ODB::ODB(FixedDatastoreType dt, uint32_t datalen)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
 {
     DataStore* data;
 
@@ -33,12 +33,12 @@ ODB::ODB(FixedDatastoreType dt, uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, datalen);
+        data = new BankDS(NULL, prune, datalen);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, datalen);
+        data = new LinkedListDS(NULL, prune, datalen);
         break;
     }
     default:
@@ -51,7 +51,7 @@ ODB::ODB(FixedDatastoreType dt, uint32_t datalen)
     num_unique++;
 }
 
-ODB::ODB(FixedDatastoreType dt, int ident, uint32_t datalen)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen)
 {
     DataStore* data;
 
@@ -59,12 +59,12 @@ ODB::ODB(FixedDatastoreType dt, int ident, uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, datalen);
+        data = new BankDS(NULL, prune, datalen);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, datalen);
+        data = new LinkedListDS(NULL, prune, datalen);
         break;
     }
     default:
@@ -76,7 +76,7 @@ ODB::ODB(FixedDatastoreType dt, int ident, uint32_t datalen)
     init(data, ident, datalen);
 }
 
-ODB::ODB(IndirectDatastoreType dt)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
 {
     DataStore* data;
 
@@ -84,12 +84,12 @@ ODB::ODB(IndirectDatastoreType dt)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL);
+        data = new BankIDS(NULL, prune);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL);
+        data = new LinkedListIDS(NULL, prune);
         break;
     }
     default:
@@ -102,7 +102,7 @@ ODB::ODB(IndirectDatastoreType dt)
     num_unique++;
 }
 
-ODB::ODB(IndirectDatastoreType dt, int ident)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
 {
     DataStore* data;
 
@@ -110,12 +110,12 @@ ODB::ODB(IndirectDatastoreType dt, int ident)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL);
+        data = new BankIDS(NULL, prune);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL);
+        data = new LinkedListIDS(NULL, prune);
         break;
     }
     default:
@@ -127,45 +127,45 @@ ODB::ODB(IndirectDatastoreType dt, int ident)
     init(data, ident, sizeof(void*));
 }
 
-ODB::ODB(VariableDatastoreType dt, int ident, uint32_t (*len)(void*))
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*))
 {
     DataStore* data;
-
+    
     switch (dt)
     {
-    case LINKED_LIST_V_DS:
-    {
-        data = new LinkedListVDS(NULL, len);
-        break;
+        case LINKED_LIST_V_DS:
+        {
+            data = new LinkedListVDS(NULL, prune, len);
+            break;
+        }
+        default:
+        {
+            FAIL("Invalid datastore type.");
+        }
     }
-    default:
-    {
-        FAIL("Invalid datastore type.");
-    }
-    }
-
-    init(data, ident, sizeof(void*));
-}
-
-ODB::ODB(VariableDatastoreType dt, uint32_t (*len)(void*))
-{
-    DataStore* data;
-
-    switch (dt)
-    {
-    case LINKED_LIST_V_DS:
-    {
-        data = new LinkedListVDS(NULL, len);
-        break;
-    }
-    default:
-    {
-        FAIL("Invalid datastore type.");
-    }
-    }
-
+    
     init(data, num_unique, sizeof(void*));
     num_unique++;
+}
+
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*))
+{
+    DataStore* data;
+
+    switch (dt)
+    {
+    case LINKED_LIST_V_DS:
+    {
+        data = new LinkedListVDS(NULL, prune, len);
+        break;
+    }
+    default:
+    {
+        FAIL("Invalid datastore type.");
+    }
+    }
+
+    init(data, ident, sizeof(void*));
 }
 
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)

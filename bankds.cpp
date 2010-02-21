@@ -7,12 +7,12 @@
 
 using namespace std;
 
-BankDS::BankDS(DataStore* parent, uint64_t datalen, uint64_t cap)
+BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
-    init(parent, datalen, cap);
+    init(parent, prune, datalen, cap);
 }
 
-inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
+inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
     SAFE_MALLOC(char**, data, sizeof(char*));
@@ -34,11 +34,12 @@ inline void BankDS::init(DataStore* parent, uint64_t datalen, uint64_t cap)
     cap_size = cap * datalen;
     this->datalen = datalen;
     this->parent = parent;
+    this->prune = prune;
 
     RWLOCK_INIT();
 }
 
-BankIDS::BankIDS(DataStore* parent, uint64_t cap) : BankDS(parent, sizeof(char*), cap)
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*), cap)
 {
 }
 
@@ -218,11 +219,11 @@ void BankIDS::populate(Index* index)
 DataStore* BankDS::clone()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new BankDS(this, datalen, cap);
+    return new BankDS(this, prune, datalen, cap);
 }
 
 DataStore* BankDS::clone_indirect()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new BankIDS(this, cap);
+    return new BankIDS(this, prune, cap);
 }
