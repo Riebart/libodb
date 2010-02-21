@@ -48,7 +48,8 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf(" Usage test -[ntTie]\n"
+    printf(" Usage test -[ntTieh]\n"
+        "\t-h\tPrint this help message\n"
         "\t-n\tNumber of elements (default=10000)\n"
         "\t-t\tNumber of tests (default=1)\n"
         "\t-T\tTest type (default=0)\n"
@@ -221,7 +222,7 @@ int main (int argc, char ** argv)
     int ch;
     
     //Parse the options. TODO: validity checks
-    while ( (ch = getopt(argc, argv, "etnTi")) != -1)
+    while ( (ch = getopt(argc, argv, "etnTih")) != -1)
     {
         switch (ch)
         {
@@ -240,6 +241,7 @@ int main (int argc, char ** argv)
             case 'i':
                 sscanf(argv[optind], "%u", &index_type);
                 break;
+            case 'h':
             default:
                 usage();
                 return EXIT_FAILURE;
