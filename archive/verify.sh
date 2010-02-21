@@ -20,7 +20,7 @@ do
 done
 
 echo ""
-echo "Batch 2..."
+echo "Batch 2 (DROP_DUPLICATES)..."
 for (( j=0 ; j<=3 ; j++ ))
 do
     for (( i=0 ; i<=1 ; i++ ))
@@ -32,7 +32,7 @@ do
     done
 done
 
-echo "Verifying batch 1 (Assuming 0.0 is authoritative)..."
+echo -n "Verifying batch 1 (Assuming 0.0 is authoritative)..."
 auth=$(cat "0.0")
 for (( j=0 ; j<=3 ; j++ ))
 do
@@ -44,11 +44,13 @@ do
             echo "FAIL: -T=$j, -i=$i2"
             i=2
             j=4
+        else
+            echo -n "OK "
         fi
     done
 done
 
-echo "Verifying batch 2 (Assuming 0.1 is authoritative)..."
+echo -en "\nVerifying batch 2 (Assuming 0.1 is authoritative)..."
 auth=$(cat "0.1")
 for (( j=0 ; j<=3 ; j++ ))
 do
@@ -60,11 +62,13 @@ do
             echo "FAIL: -T=$j, -i=$i2"
             i=2
             j=4
+        else
+            echo -n "OK "
         fi
     done
 done
 
-echo "Removing temp files..."
+echo -e "\nRemoving temp files..."
 for (( j=0 ; j<=3 ; j++ ))
 do
     for (( i=0 ; i<=3 ; i++ ))
