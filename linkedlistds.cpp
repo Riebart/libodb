@@ -117,13 +117,13 @@ bool LinkedListDS::remove_addr(void* addr)
     WRITE_LOCK();
     struct datanode* curr = bottom;
     uint64_t i = 0;
-    
+
     while ((curr != NULL) && ((&(curr->data)) != addr))
     {
         i++;
         curr = curr->next;
     }
-    
+
     if (curr == NULL)
         return false;
     else
