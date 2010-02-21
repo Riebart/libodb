@@ -43,7 +43,7 @@ public:
     ~ODB();
 
     /// @warning Merging of nodes implies dropping duplicates post merge.
-    Index* create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);
+    Index* create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, int32_t keylen = -1);
     IndexGroup* create_group();
     void add_data(void* raw_data);
     void add_data(void* raw_data, uint32_t nbytes);
