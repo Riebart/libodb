@@ -220,19 +220,6 @@ inline Iterator* LinkedListI::it_first()
     return it;
 }
 
-inline Iterator* LinkedListI::it_last()
-{
-    LLIterator* it = new LLIterator(ident);
-    struct LinkedListI::node* curr = first;
-
-    while ((curr->next) != NULL)
-        curr = curr->next;
-
-    it->cursor = curr;
-    it->dataobj->data = GET_DATA(curr);
-    return it;
-}
-
 inline Iterator* LinkedListI::it_middle(DataObj* data)
 {
     return NULL;

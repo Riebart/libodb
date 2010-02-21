@@ -100,8 +100,8 @@ bool LinkedListDS::remove_at(uint64_t index)
     WRITE_LOCK();
     if (deleted_list.size() > index)
     {
-        bool ret=deleted_list[index];
-        deleted_list[index]=1;
+        bool ret = (bool)deleted_list[index];
+        deleted_list[index] = 1;
         WRITE_UNLOCK();
         return !ret;
     }
@@ -112,10 +112,27 @@ bool LinkedListDS::remove_at(uint64_t index)
     }
 }
 
-/// @todo Efficient deletion by pointer requires a doubly-linked list... Uhoh!
 bool LinkedListDS::remove_addr(void* addr)
 {
-    return false;
+    WRITE_LOCK();
+    struct datanode* curr = bottom;
+    uint64_t i = 0;
+    
+    while ((curr != NULL) && ((&(curr->data)) != addr))
+    {
+        i++;
+        curr = curr->next;
+    }
+    
+    if (curr == NULL)
+        return false;
+    else
+    {
+        bool ret = (bool)deleted_list[i];
+        deleted_list[i] = 1;
+        WRITE_UNLOCK();
+        return !ret;
+    }
 }
 
 void LinkedListDS::populate(Index* index)

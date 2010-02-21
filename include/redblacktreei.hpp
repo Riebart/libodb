@@ -63,7 +63,6 @@ public:
     int rbt_verify();
 
     virtual Iterator* it_first();
-    virtual Iterator* it_last();
     virtual Iterator* it_middle(DataObj* data);
 
 private:

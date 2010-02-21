@@ -443,21 +443,6 @@ inline Iterator* RedBlackTreeI::it_first()
     return it;
 }
 
-inline Iterator* RedBlackTreeI::it_last()
-{
-    RBTIterator* it = new RBTIterator(ident);
-    struct RedBlackTreeI::tree_node* curr = root;
-
-    while (curr != NULL)
-    {
-        it->trail.push(TAINT(curr));
-        curr = STRIP(curr->link[1]);
-    }
-
-    it->dataobj->data = GET_DATA(UNTAINT(it->trail.top()));
-    return it;
-}
-
 inline Iterator* RedBlackTreeI::it_middle(DataObj* data)
 {
     return NULL;

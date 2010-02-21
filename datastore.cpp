@@ -40,6 +40,11 @@ bool DataStore::remove_addr(void* index)
     return false;
 }
 
+uint64_t DataStore::remove_sweep()
+{
+    return 0;
+}
+
 void DataStore::populate(Index* index)
 {
 }
