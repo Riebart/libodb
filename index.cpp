@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include "odb.hpp"
+#include "datastore.hpp"
 
 using namespace std;
 

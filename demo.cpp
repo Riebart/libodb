@@ -41,6 +41,9 @@ extern "C"
 
 #include "odb.hpp"
 
+/// @todo NOT ALLOWED!
+#include "datastore.hpp"
+
 inline int compare_time_dur(void* a, void* b)
 {
     struct fts3rec_v5_gen* a_r = (struct fts3rec_v5_gen*)a;

@@ -1,12 +1,17 @@
 #ifndef ODB_HPP
 #define ODB_HPP
 
-#include <vector>
 #include <stdint.h>
+#include <string.h>
 
-#include "common.hpp"
 #include "index.hpp"
-#include "datastore.hpp"
+
+inline uint32_t len_v(void* rawdata)
+{
+    return strlen((const char*)rawdata);
+}
+
+class DataStore;
 
 class ODB
 {
@@ -70,35 +75,5 @@ private:
     IndexGroup* all;
     DataObj* dataobj;
 };
-
-inline void ODB::add_data(void* rawdata)
-{
-    all->add_data_v(data->add_data(rawdata));
-}
-
-inline void ODB::add_data(void* rawdata, uint32_t nbytes)
-{
-    all->add_data_v(data->add_data(rawdata, nbytes));
-}
-
-inline DataObj* ODB::add_data(void* rawdata, bool add_to_all)
-{
-    dataobj->data = data->add_data(rawdata);
-
-    if (add_to_all)
-        all->add_data_v(dataobj->data);
-
-    return dataobj;
-}
-
-inline DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
-{
-    dataobj->data = data->add_data(rawdata, nbytes);
-
-    if (add_to_all)
-        all->add_data_v(dataobj->data);
-
-    return dataobj;
-}
 
 #endif

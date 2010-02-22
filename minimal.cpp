@@ -3,6 +3,9 @@
 
 #include "odb.hpp"
 
+/// @todo NOT ALLOWED!
+#include "datastore.hpp"
+
 bool condition(void* a)
 {
     return ((*(long*)a) < 0);
