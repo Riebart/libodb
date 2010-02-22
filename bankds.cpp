@@ -182,10 +182,10 @@ inline bool BankDS::remove_addr(void* addr)
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         if ((addr < (*(data + i))) || (addr >= ((*(data + i)) + cap_size)))
             return false;
-        
+
     if ((addr < (*(data + posA))) || (addr >= ((*(data + posA)) + posB)))
         return false;
-    
+
     deleted.push(addr);
     WRITE_UNLOCK();
     return true;
@@ -194,17 +194,17 @@ inline bool BankDS::remove_addr(void* addr)
 inline vector<void*>* BankDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
-    
+
     READ_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(*(data + i) + j))
                 marked->push_back(*(data + i) + j);
-        
+
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         if (prune(*(data + posA) + j))
             marked->push_back(*(data + posA) + j);
-        
+
     READ_UNLOCK();
     sort(marked->begin(), marked->end(), addr_compare);
     return marked;
@@ -220,9 +220,9 @@ inline void BankDS::populate(Index* index)
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             index->add_data_v(*(data + i) + j);
-        
-        for (uint64_t j = 0 ; j < posB ; j += datalen)
-            index->add_data_v(*(data + posA) + j);
+
+    for (uint64_t j = 0 ; j < posB ; j += datalen)
+        index->add_data_v(*(data + posA) + j);
 
     READ_UNLOCK();
 }
@@ -239,7 +239,7 @@ inline void BankIDS::populate(Index* index)
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         index->add_data_v(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
-    
+
     READ_UNLOCK();
 }
 

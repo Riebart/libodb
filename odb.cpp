@@ -277,16 +277,16 @@ IndexGroup* ODB::create_group()
 void ODB::remove_sweep()
 {
     vector<void*>* marked = data->remove_sweep();
-    
+
     for (uint32_t i = 0 ; i < tables.size() ; i++)
         tables[i]->remove_sweep(marked);
-    
+
     for (uint32_t i = 0 ; i < marked->size() ; i++)
     {
         void* addr = marked->at(i);
         free(addr);
     }
-    
+
     delete marked;
 }
 

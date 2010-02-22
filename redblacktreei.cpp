@@ -184,7 +184,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
     // For storing the comparison value, means only one call to the compare function.
     int c;
-    
+
     WRITE_LOCK();
 
     // If the tree is empty, that's easy.
@@ -332,7 +332,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 
     // Increment the counter for the number of items in the tree.
     count += ret;
-    
+
     WRITE_UNLOCK();
 }
 
@@ -341,7 +341,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
     int height_l, height_r;
 
     READ_LOCK();
-    
+
     if (root == NULL)
     {
 //         printf("_ ");
@@ -449,7 +449,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
 
 inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
 {
-    #pragma omp parallel for
+#pragma omp parallel for
     for (uint32_t i = 0 ; i < marked->size() ; i++)
         remove(marked->at(i));
 }

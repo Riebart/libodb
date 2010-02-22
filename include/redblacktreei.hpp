@@ -183,7 +183,7 @@ private:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
-    
+
     virtual bool remove(void* addr);
     virtual void remove_sweep(std::vector<void*>* marked);
 };

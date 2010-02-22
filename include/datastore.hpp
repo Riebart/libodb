@@ -34,7 +34,7 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
-    
+
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.
     virtual uint64_t size();
@@ -42,7 +42,7 @@ protected:
     DataStore* parent;
     bool (*prune)(void* rawdata);
     uint32_t datalen;
-    
+
     /// The number of items in this datastore.
     uint64_t data_count;
 

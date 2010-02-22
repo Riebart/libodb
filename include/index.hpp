@@ -216,7 +216,7 @@ class Index : public IndexGroup
 {
     /// Allows ODB to call remove_sweep.
     friend class ODB;
-    
+
     /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
     ///to bypass integrity checking.
     friend class BankDS;
@@ -264,7 +264,7 @@ public:
     ///then this does not necessarily return the number of items in the table,
     ///but rather the number of items in the table as well as in all embedded lists.
     virtual uint64_t size();
-    
+
     /// Remove an item from the index table. This matches memory location exactly.
     /// @param [in] data A piece of data representing what is to be removed.
     /// @retval true The removal succeeded and the index table was updated accordingly.
@@ -274,7 +274,7 @@ public:
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the 'first' item in the index table.
     virtual Iterator* it_first();
-    
+
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the specified data.
     /// @todo Really need to implement these.
@@ -305,13 +305,13 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
-    
+
     /// Remove an item from the index table. This matches memory location exactly.
     /// @param [in] data A piece of data representing what is to be removed.
     /// @retval true The removal succeeded and the index table was updated accordingly.
     /// @retval false The data was not found in the index and no changes were made.
     virtual bool remove(void* rawdata);
-    
+
     /// Sweep the datastore and perform batch deletions from the specified list.
     /// @param [in] marked List of locations to remove from this index table.
     virtual void remove_sweep(std::vector<void*>* marked);

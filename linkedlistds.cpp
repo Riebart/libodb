@@ -62,13 +62,13 @@ inline void* LinkedListDS::get_addr()
 {
     struct datanode* new_element;
     SAFE_MALLOC(struct datanode*, new_element, datalen + sizeof(struct datanode*));
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     data_count++;
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 
@@ -95,13 +95,13 @@ inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 {
     struct datanode* new_element;
     SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
-    
+
     WRITE_LOCK();
     new_element->next=bottom;
     bottom=new_element;
     data_count++;
     WRITE_UNLOCK();
-    
+
     return &(new_element->data);
 }
 
@@ -119,7 +119,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
     {
         WRITE_LOCK();
         void* temp;
-        
+
         // Handle removing the first item differently, as we need to re-point the bottom pointer.
         if (index == 0)
         {
@@ -129,15 +129,15 @@ inline bool LinkedListDS::remove_at(uint64_t index)
         else
         {
             struct datanode* curr = bottom;
-            
+
             for (uint64_t i = 1 ; i < index ; i++)
                 curr = curr->next;
-            
+
             temp = curr->next;
             curr->next = curr->next->next;
         }
-        
-        WRITE_UNLOCK();        
+
+        WRITE_UNLOCK();
         free(temp);
         return true;
     }
@@ -147,7 +147,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
 {
     WRITE_LOCK();
     void* temp;
-    
+
     // Handle removing the first item differently, as we need to re-point the bottom pointer.
     if ((&(bottom->data)) == addr)
     {
@@ -157,18 +157,18 @@ inline bool LinkedListDS::remove_addr(void* addr)
     else
     {
         struct datanode* curr = bottom;
-        
+
         while (((curr->next) != NULL) && ((&(curr->next->data)) != addr))
             curr = curr->next;
-        
+
         if ((curr->next) == NULL)
             return false;
-        
+
         temp = curr->next;
         curr->next = curr->next->next;
     }
-    
-    WRITE_UNLOCK();        
+
+    WRITE_UNLOCK();
     free(temp);
     return true;
 }
@@ -176,14 +176,14 @@ inline bool LinkedListDS::remove_addr(void* addr)
 std::vector<void*>* LinkedListDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
-    
+
     READ_LOCK();
     while (prune(bottom))
     {
         marked->push_back(bottom);
         bottom = bottom->next;
     }
-    
+
     struct datanode* curr = NULL;
     while ((curr->next) != NULL)
     {
@@ -196,7 +196,7 @@ std::vector<void*>* LinkedListDS::remove_sweep()
             curr = curr->next;
     }
     READ_UNLOCK();
-    
+
     sort(marked->begin(), marked->end(), addr_compare);
     return marked;
 }
