@@ -125,11 +125,6 @@ RedBlackTreeI::~RedBlackTreeI()
     RWLOCK_DESTROY();
 }
 
-uint64_t RedBlackTreeI::size()
-{
-    return count;
-}
-
 int RedBlackTreeI::rbt_verify()
 {
     return rbt_verify_n(root);
@@ -444,6 +439,19 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
     else
         if (condition(root->data))
             ds->add_data(root->data);
+}
+
+/// @todo THIS NEEDS TO BE IMPLEMENTED!
+inline bool RedBlackTreeI::remove(void* rawdata)
+{
+    return false;
+}
+
+inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
+{
+    #pragma omp parallel for
+    for (uint32_t i = 0 ; i < marked->size() ; i++)
+        remove(marked->at(i));
 }
 
 inline Iterator* RedBlackTreeI::it_first()

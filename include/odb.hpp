@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdint.h>
 
+#include "common.hpp"
 #include "index.hpp"
 #include "datastore.hpp"
 
@@ -38,7 +39,7 @@ public:
 
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen);
     ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata));
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = ODB::len_v);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = len_v);
 
     ~ODB();
 
@@ -49,14 +50,13 @@ public:
     void add_data(void* raw_data, uint32_t nbytes);
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
+    void remove_sweep();
     uint64_t size();
 
 private:
-    static uint32_t len_v(void* rawdata);
-
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
     ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = len_v);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen);

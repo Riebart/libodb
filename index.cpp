@@ -139,7 +139,7 @@ inline ODB* Index::query(bool (*condition)(void*))
 
 uint64_t Index::size()
 {
-    return 0;
+    return count;
 }
 
 inline void Index::add_data_v(void*)
@@ -147,6 +147,20 @@ inline void Index::add_data_v(void*)
 }
 
 inline void Index::query(bool (*condition)(void*), DataStore* ds)
+{
+}
+
+inline bool Index::remove(DataObj* data)
+{
+    return remove(data->data);
+}
+
+inline bool Index::remove(void* rawdata)
+{
+    return false;
+}
+
+inline void Index::remove_sweep(vector<void*>* marked)
 {
 }
 

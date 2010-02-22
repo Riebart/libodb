@@ -1,5 +1,6 @@
 #include "bankds.hpp"
 
+#include <algorithm>
 #include <string.h>
 
 #include "common.hpp"
@@ -192,20 +193,21 @@ inline bool BankDS::remove_addr(void* addr)
 
 inline vector<void*>* BankDS::remove_sweep()
 {
-    vector<void*>* deleted = new vector<void*>();
+    vector<void*>* marked = new vector<void*>();
     
     READ_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(*(data + i) + j))
-                deleted->push_back(*(data + i) + j);
+                marked->push_back(*(data + i) + j);
         
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         if (prune(*(data + posA) + j))
-            deleted->push_back(*(data + posA) + j);
+            marked->push_back(*(data + posA) + j);
         
     READ_UNLOCK();
-    return 0;
+    sort(marked->begin(), marked->end(), addr_compare);
+    return marked;
 }
 
 inline void BankDS::populate(Index* index)

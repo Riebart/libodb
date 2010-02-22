@@ -1,4 +1,5 @@
 #include <string.h>
+#include <vector>
 
 #include "odb.hpp"
 
@@ -19,11 +20,6 @@
 using namespace std;
 
 uint32_t ODB::num_unique = 0;
-
-inline uint32_t ODB::len_v(void* rawdata)
-{
-    return strlen((const char*)rawdata);
-}
 
 /// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
@@ -276,6 +272,22 @@ IndexGroup* ODB::create_group()
     IndexGroup* g = new IndexGroup(ident, data);
     groups.push_back(g);
     return g;
+}
+
+void ODB::remove_sweep()
+{
+    vector<void*>* marked = data->remove_sweep();
+    
+    for (uint32_t i = 0 ; i < tables.size() ; i++)
+        tables[i]->remove_sweep(marked);
+    
+    for (uint32_t i = 0 ; i < marked->size() ; i++)
+    {
+        void* addr = marked->at(i);
+        free(addr);
+    }
+    
+    delete marked;
 }
 
 uint64_t ODB::size()

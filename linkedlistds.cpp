@@ -1,7 +1,7 @@
 #include "linkedlistds.hpp"
 
+#include <algorithm>
 #include <string.h>
-#include <vector>
 
 #include "common.hpp"
 #include "index.hpp"
@@ -175,12 +175,12 @@ inline bool LinkedListDS::remove_addr(void* addr)
 
 std::vector<void*>* LinkedListDS::remove_sweep()
 {
-    vector<void*>* deleted = new vector<void*>();
+    vector<void*>* marked = new vector<void*>();
     
     READ_LOCK();
     while (prune(bottom))
     {
-        deleted->push_back(bottom);
+        marked->push_back(bottom);
         bottom = bottom->next;
     }
     
@@ -189,7 +189,7 @@ std::vector<void*>* LinkedListDS::remove_sweep()
     {
         if (prune(curr->next))
         {
-            deleted->push_back(curr->next);
+            marked->push_back(curr->next);
             curr->next = curr->next->next;
         }
         else
@@ -197,7 +197,8 @@ std::vector<void*>* LinkedListDS::remove_sweep()
     }
     READ_UNLOCK();
     
-    return deleted;
+    sort(marked->begin(), marked->end(), addr_compare);
+    return marked;
 }
 
 inline void LinkedListDS::populate(Index* index)

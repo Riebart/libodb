@@ -5,7 +5,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <stdint.h>
+#include <string.h>
 
 #define FAIL(str...) { \
     if (errno != 0) { \
@@ -36,7 +37,15 @@
 
 #define NOT_IMPLEMENTED(str...) { \
         fprintf(stderr, "Function not yet implemented: %s\n", str); }\
+         
+ inline uint32_t len_v(void* rawdata)
+ {
+     return strlen((const char*)rawdata);
+ }
  
-
+ inline int64_t addr_compare(void* a, void* b)
+ {
+     return (reinterpret_cast<int64_t>(b) - reinterpret_cast<int64_t>(a));
+ }
 
 #endif

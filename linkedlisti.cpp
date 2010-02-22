@@ -2,6 +2,8 @@
 
 #include "bankds.hpp"
 
+using namespace std;
+
 #define GET_DATA(x) (x->data)
 
 LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
@@ -105,14 +107,14 @@ inline void LinkedListI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
-bool LinkedListI::del(void* data)
+bool LinkedListI::remove(void* data)
 {
     bool ret = false;
 
     WRITE_LOCK();
     if (first != NULL)
     {
-        if (compare(first->data, data) == 0)
+        if (compare(data, first->data) == 0)
         {
             first = first->next;
             ret = true;
@@ -137,41 +139,6 @@ bool LinkedListI::del(void* data)
     return ret;
 }
 
-bool LinkedListI::del(uint64_t n)
-{
-    bool ret = false;
-
-    WRITE_LOCK();
-    if (n == 0)
-    {
-        first = first->next;
-        ret = true;
-    }
-    else if (n <= count)
-    {
-        struct node* curr = first;
-        uint64_t i = 0;
-
-        while (i < (n - 1))
-        {
-            curr = curr->next;
-            i++;
-        }
-
-        curr->next = curr->next->next;
-        nodeds->remove_addr(curr);
-        ret = true;
-    }
-    WRITE_UNLOCK();
-
-    return ret;
-}
-
-uint64_t LinkedListI::size()
-{
-    return count;
-}
-
 void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 {
     READ_LOCK();
@@ -185,6 +152,10 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
         curr = curr->next;
     }
     READ_UNLOCK();
+}
+
+inline void LinkedListI::remove_sweep(vector<void*>* marked)
+{
 }
 
 inline Iterator* LinkedListI::it_first()

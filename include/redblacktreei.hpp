@@ -2,6 +2,7 @@
 #define REDBLACKTREEI_HPP
 
 #include <stack>
+#include <vector>
 
 #include "lock.hpp"
 #include "index.hpp"
@@ -48,13 +49,6 @@ public:
     ///embedded lists (Because a recursive algorithm here could easily blow up
     ///the stack).
     ~RedBlackTreeI();
-
-    /// Get the number of elements in the tree.
-    /// @return The number of elements added to the tree. This includes the items
-    ///in embedded lists if duplicates are allowed. If duplicates are allowed
-    ///then this does not necessarily return the number of items in the tree,
-    ///but rather the number of items in the tree as well as in all embedded lists.
-    uint64_t size();
 
     /// Check the properties of this red-black tree to verify that it works.
     /// @retval 0 If the tree is an invalid red-black tree.
@@ -189,6 +183,9 @@ private:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
+    
+    virtual bool remove(void* addr);
+    virtual void remove_sweep(std::vector<void*>* marked);
 };
 
 class RBTIterator : public Iterator

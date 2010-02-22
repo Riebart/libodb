@@ -1,6 +1,8 @@
 #ifndef LINKEDLISTI_HPP
 #define LINKEDLISTI_HPP
 
+#include <vector>
+
 #include "index.hpp"
 #include "lock.hpp"
 
@@ -14,9 +16,6 @@ class LinkedListI : public Index
 
 public:
     ~LinkedListI();
-    bool del(void* data);
-    bool del(uint64_t n);
-    uint64_t size();
 
     virtual Iterator* it_first();
     virtual Iterator* it_middle(DataObj* data);
@@ -32,6 +31,8 @@ protected:
 
     virtual void add_data_v(void* data);
     void query(bool (*condition)(void*), DataStore* ds);
+    virtual bool remove(void* data);
+    virtual void remove_sweep(std::vector<void*>* marked);
 
     DataStore* nodeds;
     struct node* first;
