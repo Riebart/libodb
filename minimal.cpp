@@ -3,15 +3,17 @@
 
 #include "odb.hpp"
 
-/// @todo NOT ALLOWED!
-#include "datastore.hpp"
+inline bool prune_false(void* rawdata)
+{
+    return false;
+}
 
-bool condition(void* a)
+inline bool condition(void* a)
 {
     return ((*(long*)a) < 0);
 }
 
-int compare(void* a, void* b)
+inline int compare(void* a, void* b)
 {
     return (*(int*)b - *(int*)a);
 }
@@ -20,7 +22,7 @@ int main (int argc, char ** argv)
 {
     long v, p = 1000;
 
-    ODB odb(ODB::LINKED_LIST_DS, DataStore::prune_false, sizeof(long));
+    ODB odb(ODB::LINKED_LIST_DS, prune_false, sizeof(long));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)

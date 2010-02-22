@@ -46,7 +46,7 @@ protected:
     /// The number of items in this datastore.
     uint64_t data_count;
 
-public:
+private:
     static bool prune_false(void* rawdata);
     static bool prune_true(void* rawdata);
 };

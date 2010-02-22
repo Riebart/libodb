@@ -19,12 +19,15 @@
 #include "redblacktreei.hpp"
 /// @todo NOT ALLOWED!
 #include "common.hpp"
-/// @todo NOT ALLOWED!
-#include "datastore.hpp"
 
 #define SPREAD 500
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
+
+inline bool prune_false(void* rawdata)
+{
+    return false;
+}
 
 /// Example of a condtional function for use in general queries.
 /// @ingroup example
@@ -86,13 +89,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::BANK_DS, DataStore::prune_false, element_size);
+            odb = new ODB(ODB::BANK_DS, prune_false, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::BANK_I_DS, DataStore::prune_false);
+            odb = new ODB(ODB::BANK_I_DS, prune_false);
             break;
         }
         default:
@@ -107,13 +110,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::LINKED_LIST_DS, DataStore::prune_false, element_size);
+            odb = new ODB(ODB::LINKED_LIST_DS, prune_false, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::LINKED_LIST_I_DS, DataStore::prune_false);
+            odb = new ODB(ODB::LINKED_LIST_I_DS, prune_false);
             break;
         }
         default:
