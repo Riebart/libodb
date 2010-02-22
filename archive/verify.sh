@@ -7,6 +7,9 @@ else
     N=$1
 fi
 
+subdir=$(date | md5sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+mkdir -p $subdir
+
 echo -n "Batch 1 "
 for (( j=0 ; j<=3 ; j++ ))
 do
@@ -14,7 +17,7 @@ do
     do
         echo -n "."
         i2=$(echo "2*$i" | bc)
-        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"$j.$i2")
+        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
     done
 done
 
@@ -25,18 +28,18 @@ do
     do
         echo -n "."
         i2=$(echo "2*$i+1" | bc)
-        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"$j.$i2")
+        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
     done
 done
 
 echo -en "\nVerifying batch 1 (Assuming 0.0 is authoritative)..."
-auth=$(cat "0.0")
+auth=$(cat "./$subdir/0.0")
 for (( j=0 ; j<=3 ; j++ ))
 do
     for (( i=0 ; i<=1 ; i++ ))
     do
         i2=$(echo "2*$i" | bc)
-        curr=$(cat "$j.$i2")
+        curr=$(cat "./$subdir/$j.$i2")
         if [ "$auth" != "$curr" ]; then
             echo "FAIL: -T=$j, -i=$i2"
             i=2
@@ -48,13 +51,13 @@ do
 done
 
 echo -en "\nVerifying batch 2 (Assuming 0.1 is authoritative)..."
-auth=$(cat "0.1")
+auth=$(cat "./$subdir/0.1")
 for (( j=0 ; j<=3 ; j++ ))
 do
     for (( i=0 ; i<=1 ; i++ ))
     do
         i2=$(echo "2*$i+1" | bc)
-        curr=$(cat "$j.$i2")
+        curr=$(cat "./$subdir/$j.$i2")
         if [ "$auth" != "$curr" ]; then
             echo "FAIL: -T=$j, -i=$i2"
             i=2
@@ -66,10 +69,4 @@ do
 done
 
 echo -e "\nRemoving temp files..."
-for (( j=0 ; j<=3 ; j++ ))
-do
-    for (( i=0 ; i<=3 ; i++ ))
-    do
-        rm "$j.$i"
-    done
-done
+rm -r $subdir
