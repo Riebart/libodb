@@ -116,7 +116,7 @@ protected:
     ///was left untouched.
     virtual bool remove_addr(void* addr);
     
-    virtual uint64_t remove_sweep();
+    virtual std::vector<void*>* remove_sweep();
 
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created

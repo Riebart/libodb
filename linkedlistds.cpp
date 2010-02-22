@@ -1,9 +1,12 @@
 #include "linkedlistds.hpp"
 
 #include <string.h>
+#include <vector>
 
 #include "common.hpp"
 #include "index.hpp"
+
+using namespace std;
 
 LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
 {
@@ -170,17 +173,15 @@ inline bool LinkedListDS::remove_addr(void* addr)
     return true;
 }
 
-inline uint64_t LinkedListDS::remove_sweep()
+std::vector<void*>* LinkedListDS::remove_sweep()
 {
-    uint64_t count = 0;
+    vector<void*>* deleted = new vector<void*>();
     
-    void* temp;
+    READ_LOCK();
     while (prune(bottom))
     {
-        temp = bottom;
+        deleted->push_back(bottom);
         bottom = bottom->next;
-        free(temp);
-        count++;
     }
     
     struct datanode* curr = NULL;
@@ -188,16 +189,15 @@ inline uint64_t LinkedListDS::remove_sweep()
     {
         if (prune(curr->next))
         {
-            temp = curr->next;
+            deleted->push_back(curr->next);
             curr->next = curr->next->next;
-            free(temp);
-            count++;
         }
         else
             curr = curr->next;
     }
+    READ_UNLOCK();
     
-    return count;
+    return deleted;
 }
 
 inline void LinkedListDS::populate(Index* index)

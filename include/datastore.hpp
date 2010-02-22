@@ -1,6 +1,7 @@
 #ifndef DATASTORE_HPP
 #define DATASTORE_HPP
 
+#include <vector>
 #include <stdint.h>
 
 class Index;
@@ -29,7 +30,7 @@ protected:
     virtual void* get_at(uint64_t index);
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
-    virtual uint64_t remove_sweep();
+    virtual std::vector<void*>* remove_sweep();
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();

@@ -1,8 +1,6 @@
 #ifndef LINKEDLISTDS_HPP
 #define LINKEDLISTDS_HPP
 
-#include <vector>
-
 #include "datastore.hpp"
 #include "lock.hpp"
 
@@ -39,7 +37,7 @@ protected:
     virtual void* get_addr();
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
-    virtual uint64_t remove_sweep();
+    virtual std::vector<void*>* remove_sweep();
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
     virtual DataStore* clone();
