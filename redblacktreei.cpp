@@ -1,7 +1,7 @@
 #include "redblacktreei.hpp"
-
-#include "common.hpp"
 #include "bankds.hpp"
+#include "common.hpp"
+#include "utility.hpp"
 
 using namespace std;
 
@@ -108,10 +108,12 @@ RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*me
 
     // Initialize the false root
     false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
+    if (false_root == NULL)
+        OOM();
 
     // Initialize the data stores that will handle the memory allocation for the various nodes.
-    treeds = new BankDS(NULL, DataStore::prune_false, sizeof(struct tree_node));
-    listds = new BankDS(NULL, DataStore::prune_false, sizeof(struct list_node));
+    treeds = new BankDS(NULL, prune_false, sizeof(struct tree_node));
+    listds = new BankDS(NULL, prune_false, sizeof(struct list_node));
 }
 
 RedBlackTreeI::~RedBlackTreeI()

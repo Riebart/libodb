@@ -1,5 +1,5 @@
-#include "common.hpp"
 #include "datastore.hpp"
+#include "utility.hpp"
 
 DataStore::DataStore()
 {

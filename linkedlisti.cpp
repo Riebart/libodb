@@ -1,6 +1,6 @@
 #include "linkedlisti.hpp"
-
 #include "bankds.hpp"
+#include "utility.hpp"
 
 using namespace std;
 
@@ -16,7 +16,7 @@ LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)
     this->drop_duplicates = drop_duplicates;
     count = 0;
 
-    nodeds = new BankDS(NULL, DataStore::prune_false, sizeof(struct node));
+    nodeds = new BankDS(NULL, prune_false, sizeof(struct node));
 }
 
 LinkedListI::~LinkedListI()

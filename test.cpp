@@ -15,9 +15,9 @@
 
 #include "odb.hpp"
 
-/// @todo NOT ALLOWED!
+/// @todo NOT ALLOWED! (Needed for Verify)
 #include "redblacktreei.hpp"
-/// @todo NOT ALLOWED!
+/// @todo NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
 
 #define SPREAD 500
