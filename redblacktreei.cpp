@@ -25,7 +25,7 @@ using namespace std;
 /// @param [in] x A pointer to the node to have its colour checked.
 /// @return 0 if the node is black, and 1 if the node is red (This follows the
 ///conventions of C that 0 is a boolean false, and non-zero is a boolean true).
-#define IS_RED(x) ((reinterpret_cast<uint64_t>(x->link[0])) & 0x1)
+#define IS_RED(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & 0x1))
 
 /// Get whether or not this node contains a linked list for duplicates.
 /// @param [in] x A pointer to the node to have its duplicate-status checked.
@@ -96,7 +96,7 @@ using namespace std;
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 #define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & 0x1)
 
-RedBlackTreeI::RedBlackTreeI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = ident;
@@ -185,10 +185,10 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 void RedBlackTreeI::add_data_v(void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
-    int ret = 0;
+    uint8_t ret = 0;
 
     // For storing the comparison value, means only one call to the compare function.
-    int c;
+    int32_t c;
 
     WRITE_LOCK();
 
@@ -203,7 +203,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
         // The real root sits as the false root's right child.
         false_root->link[1] = root;
 
-        // The parent/grandparent/great-grandparent pointers and and iterator.
+        // The parent/grandparent/great-grandparent pointers and an iterator.
         // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
         struct tree_node *p, *gp, *ggp;
         struct tree_node *i;
@@ -232,7 +232,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
             // If not, check for a any colour flips that we can do on the way down.
             // This ensures that no backtracking is needed.
             //  - First make sure that they are both non-NULL.
-            else if ((STRIP(i->link[0]) != NULL) && (STRIP(i->link[1]) != NULL) && IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1])))
+            else if (IS_RED(STRIP(i->link[0])) && IS_RED(STRIP(i->link[1])))
             {
                 // If the children are both red, perform a colour flip that makes the parent red and the children black.
                 SET_RED(i);
@@ -241,11 +241,11 @@ void RedBlackTreeI::add_data_v(void* rawdata)
             }
 
             // If the addition of the new red node, or the colour flip introduces a red violation, repair it.
-            if ((p != NULL) && (IS_RED(i) && IS_RED(p)))
+            if ((IS_RED(i) && IS_RED(p)))
             {
                 // Select the direction based on whether the grandparent is a right or left child.
                 // This way we know how to inform the tree about the changes we're going to make.
-                int dir2 = (STRIP(ggp->link[1]) == gp);
+                uint8_t dir2 = (STRIP(ggp->link[1]) == gp);
 
                 // If the iterator sits as an outside child, perform a single rotation to resolve the violation.
                 // I think this can be replaced by a straight integer comparison... I'm not 100% sure though.
@@ -357,7 +357,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 
         // Check for consecutive red links.
         if (IS_RED(root))
-            if (((left != NULL) && IS_RED(left)) || ((right != NULL) && IS_RED(right)))
+            if (IS_RED(left) || IS_RED(right))
             {
                 FAIL("Red violation");
                 return 0;
@@ -439,15 +439,175 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
             ds->add_data(root->data);
 }
 
-/// @todo THIS NEEDS TO BE IMPLEMENTED!
 inline bool RedBlackTreeI::remove(void* rawdata)
 {
-    return false;
+    uint8_t ret = 0;
+    
+    if (root != NULL)
+    {
+        // The real root sits as the false root's right child.
+        false_root->link[1] = root;
+        
+        // The parent/grandparent/great-grandparent pointers, a pointer to the found node and an iterator.
+        // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
+        struct tree_node *p, *gp;
+        struct tree_node *i;
+        struct tree_node *f;
+
+        // Initialize them.
+        gp = NULL;
+        p = NULL;
+        i = false_root;
+        f = NULL;
+        
+        // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
+        uint8_t dir = 1, prev_dir;
+        
+        // For storing the comparison value, means only one call to the compare function.
+        int32_t c;
+        
+        // Find the node we're removing.
+        while (STRIP(i->link[dir]) != NULL)
+        {
+            // Keep track of the direction we just went, for rotation purposes.
+            prev_dir = dir;
+            
+            // Update our context.
+            gp = p;
+            p = i;
+            i = i->link[dir];
+            
+            c = compare(rawdata, GET_DATA(i));
+            dir = (c > 0);
+            
+            // If our desired node is here...
+            if (c == 0)
+            {
+                ret = 1;
+                // Check the embedded list if there is one.
+                if (IS_LIST(i))
+                {
+                    // Get the head.
+                    struct list_node* curr = reinterpret_cast<struct list_node*>(i->data);
+                    
+                    // If the desired location is at the head of the list...
+                    if (rawdata == (curr->data))
+                    {
+                        // If there are only two items in the list..
+                        if ((curr->next->next) == NULL)
+                        {
+                            // Remove the embedded list.
+                            void* temp = curr->next->data;
+                            listds->remove_addr(curr->next);
+                            listds->remove_addr(curr);
+                            i->data = temp;
+                            
+                            // Mark it as being a value only (no embedded list).
+                            SET_VALUE(i);
+                        }
+                        else
+                        {
+                            // Removed the head and reset the data field in the tree node.
+                            i->data = curr->next;
+                            listds->remove_addr(curr);
+                        }
+                    }
+                    // Otherwise, start looking into the embedded list.
+                    else
+                    {
+                        // Since we're done with the head, start at the next position.
+                        while ((curr->next) != NULL)
+                        {
+                            // If we've found it.
+                            if (rawdata == (curr->next->data))
+                            {
+                                // Unlink and free it, then break.
+                                struct list_node* temp = curr->next->next;
+                                listds->remove_addr(curr->next);
+                                curr->next = temp;
+                                break;
+                            }
+                            // Otherwise, keep looking.
+                            else
+                                curr = curr->next;
+                        }
+                    }
+                    
+                    // Since we found the address in an embedded list, leave.
+                    WRITE_UNLOCK();
+                    count -= ret;
+                    return true;
+                }
+                else
+                {
+                    // Store the found node;
+                    f = i;
+                }
+            }
+            
+            // Push down a red node.
+            // If this and its next child are black...
+            if ((!IS_RED(i)) && (!IS_RED(STRIP(i->link[dir]))))
+            {
+                // If the child of i opposite of where we are going is red...
+                if (IS_RED(STRIP(i->link[!dir])))
+                {
+                    p = STRIP(p->link[prev_dir]);
+                    SET_LINK(p->link[prev_dir], single_rotation(i, dir));
+                }
+                // Otherwise...
+                else
+                {
+                    struct tree_node* s = STRIP(p->link[prev_dir]);
+                    
+                    if (s != NULL)
+                    {
+                        // Reverse colour flip situation.
+                        if ((!IS_RED(s->link[0])) && (!IS_RED(s->link[1])))
+                        {
+                            SET_BLACK(p);
+                            SET_RED(s);
+                            SET_RED(i);
+                        }
+                        // Rotation situation.
+                        else
+                        {
+                            // Select rotation direction based on that direction the parent is from the grandparent.
+                            uint8_t dir2 = (STRIP(gp->link[1]) == p);
+                            
+                            if (IS_RED(s->link[prev_dir]))
+                                SET_LINK(gp->link[dir2], double_rotation(p, prev_dir));
+                            else
+                                SET_LINK(gp->link[dir2], single_rotation(p, prev_dir));
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Replace and remove the tree node if found.
+        if (f != NULL)
+        {
+            f->data = i->data;
+            SET_LINK(p->link[(p->link[1] == i)], i->link[(i->link[0] == NULL)]);
+            treeds->remove_addr(i);
+            ret = 1;
+        }
+        
+        // Update the tree root and make it black.
+        root = STRIP(false_root->link[1]);
+        
+        if (root != NULL)
+            SET_BLACK(root);
+    }
+    
+    WRITE_UNLOCK();
+    count -= ret;
+    return ret;
 }
 
 inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
 {
-#pragma omp parallel for
     for (uint32_t i = 0 ; i < marked->size() ; i++)
         remove(marked->at(i));
 }

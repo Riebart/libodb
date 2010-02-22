@@ -7,7 +7,7 @@ else
     N=$1
 fi
 
-subdir=$(date | md5sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+subdir=$(date | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
 mkdir -p $subdir
 
 echo -n "Batch 1 "
@@ -21,7 +21,10 @@ do
     done
 done
 
-echo -en "\nBatch 2 (DROP_DUPLICATES) "
+echo -en "\t\t\t"
+cat "./$subdir/0.0" | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/'
+
+echo -en "Batch 2 (DROP_DUPLICATES) "
 for (( j=0 ; j<=3 ; j++ ))
 do
     for (( i=0 ; i<=1 ; i++ ))
@@ -32,7 +35,10 @@ do
     done
 done
 
-echo -en "\nVerifying batch 1 (Assuming 0.0 is authoritative)..."
+echo -en "\t"
+cat "./$subdir/0.1" | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/'
+
+echo -en "Verifying batch 1 (Assuming 0.0 is authoritative)..."
 auth=$(cat "./$subdir/0.0")
 for (( j=0 ; j<=3 ; j++ ))
 do

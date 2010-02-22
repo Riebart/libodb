@@ -251,7 +251,7 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 }
 
 /// @todo Handle these failures gracefully instead.
-Index* ODB::create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
+Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
 {
     if (compare == NULL)
         FAIL("Comparison function cannot be NULL.");

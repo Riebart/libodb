@@ -317,7 +317,7 @@ protected:
     virtual void remove_sweep(std::vector<void*>* marked);
 
     /// Comparator function.
-    int (*compare)(void*, void*);
+    int32_t (*compare)(void*, void*);
 
     /// Merge function.
     void* (*merge)(void*, void*);
