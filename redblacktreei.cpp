@@ -129,7 +129,10 @@ RedBlackTreeI::~RedBlackTreeI()
 
 int RedBlackTreeI::rbt_verify()
 {
-    return rbt_verify_n(root);
+    READ_LOCK();
+    int ret = rbt_verify_n(root);
+    READ_UNLOCK();
+    return ret;
 }
 
 inline struct RedBlackTreeI::tree_node* RedBlackTreeI::single_rotation(struct tree_node* n, int dir)
@@ -342,8 +345,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 {
     int height_l, height_r;
 
-    READ_LOCK();
-
     if (root == NULL)
     {
 //         printf("_ ");
@@ -358,7 +359,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         if (IS_RED(root))
             if (((left != NULL) && IS_RED(left)) || ((right != NULL) && IS_RED(right)))
             {
-                READ_UNLOCK();
                 FAIL("Red violation");
                 return 0;
             }
@@ -377,7 +377,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
                 ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
         {
-            READ_UNLOCK();
             FAIL("BST violation");
             return 0;
         }
@@ -385,7 +384,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         // Verify black height
         if ((height_l != 0) && (height_r != 0) && (height_l != height_r))
         {
-            READ_UNLOCK();
             FAIL("Black violation");
             return 0;
         }
@@ -393,12 +391,10 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         // Only count black nodes
         if ((height_r != 0) && (height_l != 0))
         {
-            READ_UNLOCK();
             return height_r + (1 - IS_RED(root));
         }
         else
         {
-            READ_UNLOCK();
             return 0;
         }
     }

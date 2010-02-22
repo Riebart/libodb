@@ -156,6 +156,30 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
 
 inline void LinkedListI::remove_sweep(vector<void*>* marked)
 {
+    WRITE_LOCK();
+    void* temp;
+
+    while ((first != NULL) && (search(marked, first->data)))
+    {
+        temp = first;
+        first = first->next;
+        nodeds->remove_addr(temp);
+    }
+
+    struct node* curr = first;
+
+    while ((curr->next) != NULL)
+    {
+        if (search(marked, curr->next->data))
+        {
+            temp = curr->next;
+            curr->next = curr->next->next;
+            nodeds->remove_addr(temp);
+        }
+        else
+            curr = curr->next;
+    }
+    WRITE_UNLOCK();
 }
 
 inline Iterator* LinkedListI::it_first()

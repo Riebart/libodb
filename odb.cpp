@@ -233,20 +233,20 @@ void ODB::add_data(void* rawdata, uint32_t nbytes)
 DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 {
     dataobj->data = data->add_data(rawdata);
-    
+
     if (add_to_all)
         all->add_data_v(dataobj->data);
-    
+
     return dataobj;
 }
 
 DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 {
     dataobj->data = data->add_data(rawdata, nbytes);
-    
+
     if (add_to_all)
         all->add_data_v(dataobj->data);
-    
+
     return dataobj;
 }
 
@@ -307,16 +307,16 @@ IndexGroup* ODB::create_group()
 void ODB::remove_sweep()
 {
     vector<void*>* marked = data->remove_sweep();
-    
+
     for (uint32_t i = 0 ; i < tables.size() ; i++)
         tables[i]->remove_sweep(marked);
-    
+
     for (uint32_t i = 0 ; i < marked->size() ; i++)
     {
         void* addr = marked->at(i);
         free(addr);
     }
-    
+
     delete marked;
 }
 

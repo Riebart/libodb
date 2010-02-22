@@ -55,13 +55,13 @@ int compare(void* a, void* b)
 void usage()
 {
     printf(" Usage test -[ntTieh]\n"
-        "\t-h\tPrint this help message\n"
-        "\t-n\tNumber of elements (default=10000)\n"
-        "\t-t\tNumber of tests (default=1)\n"
-        "\t-T\tTest type (default=0)\n"
-        "\t-i\tIndex types (default=0)\n"
-        "\t-e\tElement size, in bytes (default=8)\n\n"
-        "Where: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE\n");
+           "\t-h\tPrint this help message\n"
+           "\t-n\tNumber of elements (default=10000)\n"
+           "\t-t\tNumber of tests (default=1)\n"
+           "\t-T\tTest type (default=0)\n"
+           "\t-i\tIndex types (default=0)\n"
+           "\t-e\tElement size, in bytes (default=8)\n\n"
+           "Where: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE\n");
 }
 
 /// Function for testing the database.
@@ -224,34 +224,34 @@ int main (int argc, char ** argv)
     uint32_t test_num = 1;
     uint32_t test_type = 0;
     uint32_t index_type = 0;
-    
+
     int ch;
-    
+
     //Parse the options. TODO: validity checks
     while ( (ch = getopt(argc, argv, "etnTih")) != -1)
     {
         switch (ch)
         {
-            case 'e':
-                sscanf(argv[optind], "%lu", &element_size);
-                break;
-            case 't':
-                sscanf(argv[optind], "%lu", &test_size);
-                break;
-            case 'n':
-                sscanf(argv[optind], "%u", &test_num);
-                break;
-            case 'T':
-                sscanf(argv[optind], "%u", &test_type);
-                break;
-            case 'i':
-                sscanf(argv[optind], "%u", &index_type);
-                break;
-            case 'h':
-            default:
-                usage();
-                return EXIT_FAILURE;
-        }       
+        case 'e':
+            sscanf(argv[optind], "%lu", &element_size);
+            break;
+        case 't':
+            sscanf(argv[optind], "%lu", &test_size);
+            break;
+        case 'n':
+            sscanf(argv[optind], "%u", &test_num);
+            break;
+        case 'T':
+            sscanf(argv[optind], "%u", &test_type);
+            break;
+        case 'i':
+            sscanf(argv[optind], "%u", &index_type);
+            break;
+        case 'h':
+        default:
+            usage();
+            return EXIT_FAILURE;
+        }
     }
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
