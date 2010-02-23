@@ -54,13 +54,14 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf(" Usage test -[ntTieh]\n"
+    printf(" Usage test -[ntTiehm]\n"
            "\t-h\tPrint this help message\n"
            "\t-n\tNumber of elements (default=10000)\n"
            "\t-t\tNumber of tests (default=1)\n"
            "\t-T\tTest type (default=0)\n"
            "\t-i\tIndex types (default=0)\n"
-           "\t-e\tElement size, in bytes (default=8)\n\n"
+           "\t-e\tElement size, in bytes (default=8)\n"
+           "\t-m\tMemory limit, in pages (default=1000000, ie, a lot)\n\n"
            "Where: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE\n");
 }
 
@@ -73,7 +74,7 @@ void usage()
 ///insertion, query, deletion, or any combination (perhaps all of them). This
 ///gives flexibility for determining which events count towards the timing when
 ///muiltiple actions are performed each run.
-double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type)
+double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type, uint32_t max_mem)
 {
     ODB::IndexType itype;
     ODB::IndexOps iopts;
@@ -148,6 +149,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     default:
         FAIL("Incorrect index type.");
     }
+    
+    odb->mem_limit = max_mem;
 
     struct timeb start;
     struct timeb end;
@@ -224,11 +227,12 @@ int main (int argc, char ** argv)
     uint32_t test_num = 1;
     uint32_t test_type = 0;
     uint32_t index_type = 0;
+    uint32_t max_mem = 1000000;
 
     int ch;
 
     //Parse the options. TODO: validity checks
-    while ( (ch = getopt(argc, argv, "etnTih")) != -1)
+    while ( (ch = getopt(argc, argv, "etnTihm")) != -1)
     {
         switch (ch)
         {
@@ -246,6 +250,9 @@ int main (int argc, char ** argv)
             break;
         case 'i':
             sscanf(argv[optind], "%u", &index_type);
+            break;
+        case 'm':
+            sscanf(argv[optind], "%u", &max_mem);
             break;
         case 'h':
         default:
@@ -312,12 +319,14 @@ int main (int argc, char ** argv)
     default:
         FAIL("Incorrect index type.");
     }
+    
+    printf("\nMax memory: %d\n", max_mem);
     printf("\n");
 
     double duration = 0, min = 100, max = -1, cur;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
-        cur = odb_test(element_size, test_size, test_type, index_type);
+        cur = odb_test(element_size, test_size, test_type, index_type, max_mem);
 
         if (cur > max)
             max = cur;

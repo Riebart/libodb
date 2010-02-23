@@ -17,9 +17,74 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
+
+
 using namespace std;
 
 uint32_t ODB::num_unique = 0;
+
+
+
+
+#include <time.h>
+#include <unistd.h>
+#include <pthread.h>
+
+pthread_t mem_thread;
+int running = 0;
+
+
+void * mem_checker(void * arg)
+{
+    
+    running =1;
+
+    ODB * parent = (ODB*)arg;
+    uint32_t vsize, rsize;
+    
+    pid_t pid=getpid();
+    
+    
+    char path[50];
+    sprintf(path, "/proc/%d/statm", pid);
+    
+    
+    FILE * stat_file=fopen(path, "r");
+    
+    
+    struct timespec ts;
+    
+    ts.tv_sec=0;
+    ts.tv_nsec=1000;
+    
+    
+    while (1)
+    {
+        //get memory usage - there might be an easier way to do this
+        rewind(stat_file);
+        fscanf(stat_file, "%d %d", &vsize, &rsize);
+        
+        if (rsize > parent->mem_limit)
+        {
+//             FAIL("Memory usage exceeds limit: %d > %d", rsize, parent->mem_limit);
+        }
+        else
+        {
+            parent->remove_sweep();
+        }
+            
+    
+        nanosleep(&ts, NULL);
+    }
+    
+    return NULL;
+    
+}
+
+
+
+
+
 
 /// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
@@ -195,6 +260,13 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
     this->data = data;
+    
+    //just to get us started
+    mem_limit=9999999999;
+    
+    
+    if (running==0)
+        pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
 }
 
 ODB::~ODB()

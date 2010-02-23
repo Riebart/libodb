@@ -57,6 +57,10 @@ public:
     DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     void remove_sweep();
     uint64_t size();
+    
+    //the memory limit, in pages
+    uint64_t mem_limit;
+    
 
 private:
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
