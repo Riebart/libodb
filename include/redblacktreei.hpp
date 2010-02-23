@@ -4,7 +4,6 @@
 #include <stack>
 #include <vector>
 
-#include "lock.hpp"
 #include "index.hpp"
 
 /// Implementation of a top-down red-black tree.
@@ -115,8 +114,6 @@ private:
 
     /// DataStore used for managing the memory used for embedded linked list ndoes.
     DataStore* listds;
-
-    RWLOCK_T;
 
     /// Perform a single tree rotation in one direction.
     /// @param [in] n Pointer to the top node of the rotation.

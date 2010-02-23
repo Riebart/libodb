@@ -195,10 +195,12 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
     this->data = data;
+    RWLOCK_INIT();
 }
 
 ODB::~ODB()
 {
+    WRITE_LOCK();
     delete all;
     delete data;
     delete dataobj;
@@ -218,6 +220,8 @@ ODB::~ODB()
         tables.pop_back();
         delete curr;
     }
+    WRITE_UNLOCK();
+    RWLOCK_DESTROY();
 }
 
 void ODB::add_data(void* rawdata)
@@ -253,6 +257,8 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 /// @todo Handle these failures gracefully instead.
 Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
 {
+    READ_LOCK();
+    
     if (compare == NULL)
         FAIL("Comparison function cannot be NULL.");
 
@@ -294,6 +300,7 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
     if (!do_not_populate)
         data->populate(new_index);
 
+    READ_UNLOCK();
     return new_index;
 }
 
@@ -306,6 +313,7 @@ IndexGroup* ODB::create_group()
 
 void ODB::remove_sweep()
 {
+    WRITE_LOCK();
     vector<void*>* marked = data->remove_sweep();
 
     for (uint32_t i = 0 ; i < tables.size() ; i++)
@@ -313,6 +321,7 @@ void ODB::remove_sweep()
 
     data->remove_cleanup(marked);
 
+    WRITE_UNLOCK();
     delete marked;
 }
 

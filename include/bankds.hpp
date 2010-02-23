@@ -176,9 +176,6 @@ protected:
 
     /// Stack containing the memory locations of any deleted items.
     std::stack<void*> deleted;
-
-    /// Locking.
-    RWLOCK_T;
 };
 
 /// A datastore backend that does not contain data, but rather pointers to data

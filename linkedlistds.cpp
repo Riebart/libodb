@@ -37,6 +37,7 @@ inline void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), 
 //TODO: free memory
 LinkedListDS::~LinkedListDS()
 {
+    WRITE_LOCK();
     struct datanode * curr = bottom;
     struct datanode * prev;
 
@@ -46,7 +47,7 @@ LinkedListDS::~LinkedListDS()
         curr=curr->next;
         free(prev);
     }
-
+    WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
 
@@ -234,15 +235,16 @@ inline void* LinkedListDS::get_at(uint64_t index)
     struct datanode * cur_item=bottom;
     uint32_t cur_index=0;
 
+    READ_LOCK();
     while (cur_index < index && cur_item != NULL)
     {
         cur_index++;
         cur_item=cur_item->next;
     }
 
+    READ_UNLOCK();
     if (cur_item != NULL)
         return &(cur_item->data);
-
     else
         return NULL;
 }

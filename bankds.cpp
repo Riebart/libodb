@@ -47,6 +47,7 @@ inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64
 
 BankDS::~BankDS()
 {
+    WRITE_LOCK();
     // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).
     // In order to free the 'last' bucket, have no start condition which leaves posA at the appropriate value.
     // Since posA is unsigned, stop when posA==0.
@@ -59,7 +60,7 @@ BankDS::~BankDS()
 
     // Free the list of buckets.
     free(data);
-
+    WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
 
@@ -158,7 +159,6 @@ inline void* BankIDS::get_at(uint64_t index)
 
 inline bool BankDS::remove_at(uint64_t index)
 {
-    WRITE_LOCK();
     // Perform sanity check.
     if (index < data_count)
     {
@@ -171,10 +171,7 @@ inline bool BankDS::remove_at(uint64_t index)
         return true;
     }
     else
-    {
-        WRITE_UNLOCK();
         return false;
-    }
 }
 
 inline bool BankDS::remove_addr(void* addr)
@@ -214,8 +211,10 @@ inline vector<void*>* BankDS::remove_sweep()
 
 inline void BankDS::remove_cleanup(std::vector<void*>* marked)
 {
+    WRITE_LOCK();
     for (uint32_t i = 0 ; i < marked->size() ; i++)
         deleted.push(marked->at(i));
+    WRITE_UNLOCK();
 }
 
 inline void BankDS::populate(Index* index)

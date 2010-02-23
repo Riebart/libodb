@@ -8,6 +8,8 @@
 #include <vector>
 #include <stdint.h>
 
+#include "lock.hpp"
+
 class ODB;
 class DataStore;
 class Iterator;
@@ -195,6 +197,8 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    RWLOCK_T;
 
 private:
     /// An STL implementation of a vector that stores pointers to the IndexGroups.
@@ -279,6 +283,12 @@ public:
     /// @return A pointer to an iterator that starts at the specified data.
     /// @todo Really need to implement these.
     virtual Iterator* it_middle(DataObj* data);
+    
+    /// Release the specified iterator.
+    /// This releases the memory held by the iterator and takes care of releasing
+    ///the read lock that was acquired then the iterator was created.
+    /// @param [in] it Iterator to release.
+    virtual void it_release(Iterator* it);
 
 protected:
     /// Protected default constructor.

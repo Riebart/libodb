@@ -175,6 +175,12 @@ inline Iterator* Index::it_middle(DataObj* data)
     return NULL;
 }
 
+inline void Index::it_release(Iterator* it)
+{
+    delete it;
+    READ_UNLOCK();
+}
+
 Iterator::Iterator()
 {
 }

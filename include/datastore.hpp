@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdint.h>
 
+#include "lock.hpp"
+
 class Index;
 
 class DataStore
@@ -46,6 +48,8 @@ protected:
 
     /// The number of items in this datastore.
     uint64_t data_count;
+    
+    RWLOCK_T;
 };
 
 #endif
