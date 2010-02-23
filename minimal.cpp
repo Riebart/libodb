@@ -22,7 +22,7 @@ int main (int argc, char ** argv)
 {
     long v, p = 1000;
 
-    ODB odb(ODB::LINKED_LIST_DS, prune, sizeof(long));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)
