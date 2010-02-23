@@ -120,6 +120,11 @@ protected:
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.
     virtual std::vector<void*>* remove_sweep();
+    
+    /// Clean up the pruned data by marking it available for reallocation.
+    /// @param [in] marked A vector of locations to memory that has been pruned
+    ///from all associated index tables and is ready to be reallocated.
+    virtual void remove_cleanup(std::vector<void*>* marked);
 
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created

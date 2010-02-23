@@ -192,6 +192,7 @@ inline bool BankDS::remove_addr(void* addr)
     return true;
 }
 
+/// @todo doesn't remove locations from pool for queries.
 inline vector<void*>* BankDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
@@ -207,8 +208,14 @@ inline vector<void*>* BankDS::remove_sweep()
             marked->push_back(*(data + posA) + j);
 
     READ_UNLOCK();
-    sort(marked->begin(), marked->end(), addr_compare);
+    sort(marked->begin(), marked->end());
     return marked;
+}
+
+inline void BankDS::remove_cleanup(std::vector<void*>* marked)
+{
+    for (uint32_t i = 0 ; i < marked->size() ; i++)
+        deleted.push(marked->at(i));
 }
 
 inline void BankDS::populate(Index* index)

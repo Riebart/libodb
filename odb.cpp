@@ -311,11 +311,7 @@ void ODB::remove_sweep()
     for (uint32_t i = 0 ; i < tables.size() ; i++)
         tables[i]->remove_sweep(marked);
 
-    for (uint32_t i = 0 ; i < marked->size() ; i++)
-    {
-        void* addr = marked->at(i);
-        free(addr);
-    }
+    data->remove_cleanup(marked);
 
     delete marked;
 }
