@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdint.h>
 
+#include "lock.hpp"
+
 class Index;
 
 class DataStore
@@ -31,6 +33,7 @@ protected:
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
     virtual std::vector<void*>* remove_sweep();
+    virtual void remove_cleanup(std::vector<void*>* marked);
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
@@ -45,6 +48,8 @@ protected:
 
     /// The number of items in this datastore.
     uint64_t data_count;
+    
+    RWLOCK_T;
 };
 
 #endif

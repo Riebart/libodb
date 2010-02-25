@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "index.hpp"
-#include "lock.hpp"
 
 class LinkedListI : public Index
 {
@@ -36,7 +35,6 @@ protected:
 
     DataStore* nodeds;
     struct node* first;
-    RWLOCK_T;
 };
 
 class LLIterator : public Iterator

@@ -2,7 +2,6 @@
 #define LINKEDLISTDS_HPP
 
 #include "datastore.hpp"
-#include "lock.hpp"
 
 class Index;
 
@@ -38,6 +37,7 @@ protected:
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
     virtual std::vector<void*>* remove_sweep();
+    virtual void remove_cleanup(std::vector<void*>* marked);
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
     virtual DataStore* clone();
@@ -45,7 +45,6 @@ protected:
 
     struct datanode * bottom;
     uint64_t datalen;
-    RWLOCK_T;
 };
 
 class LinkedListIDS : public LinkedListDS

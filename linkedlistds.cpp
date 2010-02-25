@@ -37,6 +37,7 @@ inline void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), 
 //TODO: free memory
 LinkedListDS::~LinkedListDS()
 {
+    WRITE_LOCK();
     struct datanode * curr = bottom;
     struct datanode * prev;
 
@@ -46,7 +47,7 @@ LinkedListDS::~LinkedListDS()
         curr=curr->next;
         free(prev);
     }
-
+    WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
 
@@ -174,32 +175,28 @@ inline bool LinkedListDS::remove_addr(void* addr)
     return true;
 }
 
+/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>* LinkedListDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
 
     READ_LOCK();
-    while (prune(bottom))
+    struct datanode* curr = bottom;
+    while (curr != NULL)
     {
-        marked->push_back(bottom);
-        bottom = bottom->next;
+        if (prune(&(curr->data)))
+            marked->push_back(&(curr->data));
+        
+        curr = curr->next;
     }
-
-    struct datanode* curr = NULL;
-    while ((curr->next) != NULL)
-    {
-        if (prune(curr->next))
-        {
-            marked->push_back(curr->next);
-            curr->next = curr->next->next;
-        }
-        else
-            curr = curr->next;
-    }
+    
     READ_UNLOCK();
-
-    sort(marked->begin(), marked->end(), addr_compare);
+    sort(marked->begin(), marked->end());
     return marked;
+}
+
+void LinkedListDS::remove_cleanup(vector<void*>* marked)
+{
 }
 
 inline void LinkedListDS::populate(Index* index)
@@ -238,15 +235,16 @@ inline void* LinkedListDS::get_at(uint64_t index)
     struct datanode * cur_item=bottom;
     uint32_t cur_index=0;
 
+    READ_LOCK();
     while (cur_index < index && cur_item != NULL)
     {
         cur_index++;
         cur_item=cur_item->next;
     }
 
+    READ_UNLOCK();
     if (cur_item != NULL)
         return &(cur_item->data);
-
     else
         return NULL;
 }

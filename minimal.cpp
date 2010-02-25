@@ -3,9 +3,9 @@
 
 #include "odb.hpp"
 
-inline bool prune_false(void* rawdata)
+inline bool prune(void* rawdata)
 {
-    return false;
+    return ((*(long*)rawdata) % 2 == 0);
 }
 
 inline bool condition(void* a)
@@ -22,7 +22,7 @@ int main (int argc, char ** argv)
 {
     long v, p = 1000;
 
-    ODB odb(ODB::LINKED_LIST_DS, prune_false, sizeof(long));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)
@@ -30,6 +30,8 @@ int main (int argc, char ** argv)
         v = (i + ((rand() % (2 * p + 1)) - p));
         odb.add_data(&v);
     }
+    
+    odb.remove_sweep();
 
     Iterator* it = ind->it_first();
     do

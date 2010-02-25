@@ -443,6 +443,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
 {
     uint8_t ret = 0;
     
+    WRITE_LOCK();
     if (root != NULL)
     {
         // The real root sits as the false root's right child.

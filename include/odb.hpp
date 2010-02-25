@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "index.hpp"
+#include "lock.hpp"
 
 inline uint32_t len_v(void* rawdata)
 {
@@ -78,6 +79,7 @@ private:
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;
+    RWLOCK_T;
 };
 
 #endif
