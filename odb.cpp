@@ -40,7 +40,9 @@ void * mem_checker(void * arg)
     running =1;
 
     ODB * parent = (ODB*)arg;
-    uint32_t vsize, rsize;
+    
+    uint64_t vsize, mem_limit=parent->mem_limit;
+    int64_t rsize;
     
     pid_t pid=getpid();
     
@@ -61,16 +63,27 @@ void * mem_checker(void * arg)
     while (1)
     {
         //get memory usage - there might be an easier way to do this
-        rewind(stat_file);
-        fscanf(stat_file, "%d %d", &vsize, &rsize);
-        
-        if (rsize > parent->mem_limit)
+
+        stat_file = freopen(path, "r", stat_file);
+        if (stat_file == NULL)
         {
-//             FAIL("Memory usage exceeds limit: %d > %d", rsize, parent->mem_limit);
+            FAIL("Unable to (re)open file");
+        }
+        
+        if (fscanf(stat_file, "%lu %ld", &vsize, &rsize) < 2)
+        {
+            FAIL("Failed retrieving rss");
+        }
+        
+//         printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
+        
+        if (rsize > mem_limit)
+        {
+            FAIL("Memory usage exceeds limit: %ld > %lu", rsize, mem_limit);
         }
         else
         {
-            parent->remove_sweep();
+//             parent->remove_sweep();
         }
             
     
@@ -262,8 +275,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     this->data = data;
     
     //just to get us started
-    mem_limit=9999999999;
-    
+    mem_limit=9999999999;    
     
     if (running==0)
         pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
