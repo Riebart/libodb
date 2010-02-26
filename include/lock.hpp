@@ -21,7 +21,25 @@
 #define LOCK_T
 #define RWLOCK_T pthread_rwlock_t rwlock
 
+#elif defined(GOOGLE_LOCK_SPIN)
 
+#include "spinlock/spinlock.h"
+
+#define READ_LOCK() lock.Lock()
+#define READ_UNLOCK() lock.Unlock()
+#define WRITE_LOCK() lock.Lock()
+#define WRITE_UNLOCK() lock.Unlock()
+#define LOCK()
+#define UNLOCK()
+
+#define RWLOCK_INIT()
+#define LOCK_INIT()
+
+#define RWLOCK_DESTROY()
+#define LOCK_DESTROY()
+
+#define LOCK_T
+#define RWLOCK_T SpinLock lock;
 
 #elif defined(PTHREAD_LOCK_SIMPLE)
 #include "pthread.h"

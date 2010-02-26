@@ -6,6 +6,10 @@
 #include <sys/timeb.h>
 #include <zlib.h>
 
+
+
+#include "odb.hpp"
+
 extern "C"
 {
 #include <ftlib.h>
@@ -39,7 +43,6 @@ extern "C"
 //     u_int16 dst_as;         /* AS of destination address */
 // };
 
-#include "odb.hpp"
 
 inline bool prune_false(void* rawdata)
 {
