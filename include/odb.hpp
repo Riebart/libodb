@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "index.hpp"
 #include "lock.hpp"
@@ -62,6 +63,9 @@ public:
     //the memory limit, in pages
     uint64_t mem_limit;
     
+    //to determine if the thread should stop
+    int is_running() { return running; };
+    
 
 private:
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
@@ -79,6 +83,9 @@ private:
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;
+    pthread_t mem_thread;
+    
+    int running;
     RWLOCK_T;
 };
 

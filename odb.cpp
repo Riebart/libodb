@@ -28,17 +28,10 @@ uint32_t ODB::num_unique = 0;
 
 #include <time.h>
 #include <unistd.h>
-#include <pthread.h>
-
-pthread_t mem_thread;
-int running = 0;
 
 
 void * mem_checker(void * arg)
 {
-    
-    running =1;
-
     ODB * parent = (ODB*)arg;
     
     uint64_t vsize, mem_limit=parent->mem_limit;
@@ -60,7 +53,7 @@ void * mem_checker(void * arg)
     ts.tv_nsec=1000;
     
     
-    while (1)
+    while (parent->is_running())
     {
         //get memory usage - there might be an easier way to do this
 
@@ -274,17 +267,23 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     dataobj = new DataObj(ident);
     this->data = data;
 
+    RWLOCK_INIT();
+        
     //just to get us started
     mem_limit=9999999999;    
     
-    if (running==0)
-        pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
-
-    RWLOCK_INIT();
+    running =1;
+    
+    pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
 }
 
 ODB::~ODB()
 {
+    //the join() introduces a delay of up to 1000nsec to the destructor
+    running=0;
+    pthread_join(mem_thread, NULL);
+    
+    
     WRITE_LOCK();
     delete all;
     delete data;
