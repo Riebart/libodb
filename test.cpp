@@ -239,10 +239,10 @@ int main (int argc, char ** argv)
         case 'e':
             sscanf(argv[optind], "%lu", &element_size);
             break;
-        case 't':
+        case 'n':
             sscanf(argv[optind], "%lu", &test_size);
             break;
-        case 'n':
+        case 't':
             sscanf(argv[optind], "%u", &test_num);
             break;
         case 'T':

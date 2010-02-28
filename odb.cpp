@@ -34,7 +34,7 @@ void * mem_checker(void * arg)
 {
     ODB * parent = (ODB*)arg;
     
-    uint64_t vsize, mem_limit=parent->mem_limit;
+    uint64_t vsize;
     int64_t rsize;
     
     pid_t pid=getpid();
@@ -70,9 +70,9 @@ void * mem_checker(void * arg)
         
 //         printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
         
-        if (rsize > mem_limit)
+        if (rsize > parent->mem_limit)
         {
-            FAIL("Memory usage exceeds limit: %ld > %lu", rsize, mem_limit);
+            FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
         }
         else
         {
@@ -82,6 +82,8 @@ void * mem_checker(void * arg)
     
         nanosleep(&ts, NULL);
     }
+    
+    fclose(stat_file);
     
     return NULL;
     

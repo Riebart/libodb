@@ -6,6 +6,8 @@
 #include <pthread.h>
 
 #include "index.hpp"
+
+//TODO: move this out, somehow
 #include "lock.hpp"
 
 inline uint32_t len_v(void* rawdata)
