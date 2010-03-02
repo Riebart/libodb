@@ -7,6 +7,8 @@ else
     N=$1
 fi
 
+success=1
+
 subdir=$(date | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
 mkdir -p $subdir
 
@@ -47,9 +49,10 @@ do
         i2=$(echo "2*$i" | bc)
         curr=$(cat "./$subdir/$j.$i2")
         if [ "$auth" != "$curr" ]; then
-            echo "FAIL: -T=$j, -i=$i2"
+            echo -n "FAIL: -T=$j, -i=$i2"
             i=2
             j=4
+            success=0
         else
             echo -n "OK "
         fi
@@ -65,14 +68,19 @@ do
         i2=$(echo "2*$i+1" | bc)
         curr=$(cat "./$subdir/$j.$i2")
         if [ "$auth" != "$curr" ]; then
-            echo "FAIL: -T=$j, -i=$i2"
+            echo -n "FAIL: -T=$j, -i=$i2"
             i=2
             j=4
+            success=0
         else
             echo -n "OK "
         fi
     done
 done
 
-echo -e "\nRemoving temp files..."
-rm -r $subdir
+if [ $success -eq 1 ]; then
+    echo -e "\nRemoving temp files..."
+    rm -r $subdir
+else
+    echo "Tests failed. Leaving temp files for analysis."
+fi

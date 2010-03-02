@@ -5,7 +5,7 @@
 
 inline bool prune(void* rawdata)
 {
-    return ((*(long*)rawdata) % 2 == 0);
+    return (((*(long*)rawdata) % 2) != 0);
 }
 
 inline bool condition(void* a)
@@ -25,7 +25,7 @@ int main (int argc, char ** argv)
     ODB odb(ODB::BANK_DS, prune, sizeof(long));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
-    for (long i = 0 ; i < 100 ; i++)
+    for (long i = 0 ; i < 15 ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
         odb.add_data(&v);

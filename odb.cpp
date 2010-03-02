@@ -325,6 +325,13 @@ void ODB::remove_sweep()
     delete marked;
 }
 
+void ODB::set_sweep(bool (*prune)(void*))
+{
+    WRITE_LOCK();
+    data->prune = prune;
+    WRITE_UNLOCK();
+}
+
 uint64_t ODB::size()
 {
     return data->size();

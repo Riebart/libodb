@@ -209,6 +209,26 @@ inline vector<void*>* BankDS::remove_sweep()
     return marked;
 }
 
+/// @todo doesn't remove locations from pool for queries.
+inline vector<void*>* BankIDS::remove_sweep()
+{
+    vector<void*>* marked = new vector<void*>();
+
+    READ_LOCK();
+    for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
+        for (uint64_t j = 0 ; j < cap_size ; j += datalen)
+            if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j)))))
+                marked->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j))));
+
+    for (uint64_t j = 0 ; j < posB ; j += datalen)
+        if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j)))))
+            marked->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
+
+    READ_UNLOCK();
+    sort(marked->begin(), marked->end());
+    return marked;
+}
+
 inline void BankDS::remove_cleanup(std::vector<void*>* marked)
 {
     WRITE_LOCK();

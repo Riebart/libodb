@@ -184,6 +184,7 @@ inline void LinkedListI::remove_sweep(vector<void*>* marked)
 
 inline Iterator* LinkedListI::it_first()
 {
+    READ_LOCK();
     LLIterator* it = new LLIterator(ident);
     it->cursor = first;
     it->dataobj->data = GET_DATA(first);
@@ -192,6 +193,7 @@ inline Iterator* LinkedListI::it_first()
 
 inline Iterator* LinkedListI::it_middle(DataObj* data)
 {
+    READ_LOCK();
     return NULL;
 }
 

@@ -10,7 +10,7 @@ inline uint32_t len_v(void* rawdata)
 
 inline bool search(std::vector<void*>* marked, void* addr)
 {
-    uint32_t start = 0, end = marked->size() - 1, midpoint = (start + end) / 2;;
+    int32_t start = 0, end = marked->size() - 1, midpoint = (start + end) / 2;;
     int64_t c;
 
     while (start <= end)
