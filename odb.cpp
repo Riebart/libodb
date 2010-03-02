@@ -17,9 +17,82 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
+
+
 using namespace std;
 
 uint32_t ODB::num_unique = 0;
+
+
+
+
+#include <time.h>
+#include <unistd.h>
+
+
+void * mem_checker(void * arg)
+{
+    ODB * parent = (ODB*)arg;
+    
+    uint64_t vsize;
+    int64_t rsize;
+    
+    pid_t pid=getpid();
+    
+    
+    char path[50];
+    sprintf(path, "/proc/%d/statm", pid);
+    
+    
+    FILE * stat_file=fopen(path, "r");
+    
+    
+    struct timespec ts;
+    
+    ts.tv_sec=0;
+    ts.tv_nsec=1000;
+    
+    
+    while (parent->is_running())
+    {
+        //get memory usage - there might be an easier way to do this
+
+        stat_file = freopen(path, "r", stat_file);
+        if (stat_file == NULL)
+        {
+            FAIL("Unable to (re)open file");
+        }
+        
+        if (fscanf(stat_file, "%lu %ld", &vsize, &rsize) < 2)
+        {
+            FAIL("Failed retrieving rss");
+        }
+        
+//         printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
+        
+        if (rsize > parent->mem_limit)
+        {
+            FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
+        }
+        else
+        {
+//             parent->remove_sweep();
+        }
+            
+    
+        nanosleep(&ts, NULL);
+    }
+    
+    fclose(stat_file);
+    
+    return NULL;
+    
+}
+
+
+
+
+
 
 /// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
@@ -195,11 +268,24 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
     this->data = data;
+
     RWLOCK_INIT();
+        
+    //just to get us started
+    mem_limit=9999999999;    
+    
+    running =1;
+    
+    pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
 }
 
 ODB::~ODB()
 {
+    //the join() introduces a delay of up to 1000nsec to the destructor
+    running=0;
+    pthread_join(mem_thread, NULL);
+    
+    
     WRITE_LOCK();
     delete all;
     delete data;

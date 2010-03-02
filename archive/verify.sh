@@ -19,7 +19,7 @@ do
     do
         echo -n "."
         i2=$(echo "2*$i" | bc)
-        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
+        res=$(./test -e 8 -n $N -t 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
     done
 done
 
@@ -33,7 +33,7 @@ do
     do
         echo -n "."
         i2=$(echo "2*$i+1" | bc)
-        res=$(./test -e 8 -t $N -n 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
+        res=$(./test -e 8 -n $N -t 10 -T $j -i $i2 2>"./$subdir/$j.$i2")
     done
 done
 

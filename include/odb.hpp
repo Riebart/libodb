@@ -3,8 +3,11 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "index.hpp"
+
+//TODO: move this out, somehow
 #include "lock.hpp"
 
 inline uint32_t len_v(void* rawdata)
@@ -59,6 +62,13 @@ public:
     void remove_sweep();
     void set_sweep(bool (*prune)(void*));
     uint64_t size();
+    
+    //the memory limit, in pages
+    uint64_t mem_limit;
+    
+    //to determine if the thread should stop
+    int is_running() { return running; };
+    
 
 private:
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
@@ -76,6 +86,9 @@ private:
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;
+    pthread_t mem_thread;
+    
+    int running;
     RWLOCK_T;
 };
 
