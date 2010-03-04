@@ -67,7 +67,7 @@ void usage()
            "\t-i\tIndex types (default=0)\n"
            "\t-e\tElement size, in bytes (default=8)\n"
            "\t-m\tMemory limit, in pages (default=1000000, ie, a lot)\n\n"
-           "Where: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE\n");
+           "Where: test type (T) {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type (i) {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE}\n");
 }
 
 /// Function for testing the database.
@@ -154,7 +154,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     default:
         FAIL("Incorrect index type.");
     }
-    
+
     odb->mem_limit = max_mem;
 
     struct timeb start;
@@ -208,9 +208,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     {
         res[j] = ind[j]->query(condition);
         Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
-        
-//         res[j]->set_sweep(prune_1);
-//         res[j]->remove_sweep();
+
+        res[j]->set_sweep(prune_1);
+        res[j]->remove_sweep();
 
         Iterator* it = ind2->it_first();
         do
@@ -327,7 +327,7 @@ int main (int argc, char ** argv)
     default:
         FAIL("Incorrect index type.");
     }
-    
+
     printf("\nMax memory: %d\n", max_mem);
     printf("\n");
 

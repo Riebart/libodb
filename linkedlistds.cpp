@@ -139,6 +139,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
             curr->next = curr->next->next;
         }
 
+        data_count--;
         WRITE_UNLOCK();
         free(temp);
         return true;
@@ -164,12 +165,16 @@ inline bool LinkedListDS::remove_addr(void* addr)
             curr = curr->next;
 
         if ((curr->next) == NULL)
+        {
+            WRITE_UNLOCK();
             return false;
+        }
 
         temp = curr->next;
         curr->next = curr->next->next;
     }
 
+    data_count--;
     WRITE_UNLOCK();
     free(temp);
     return true;
@@ -186,10 +191,10 @@ std::vector<void*>* LinkedListDS::remove_sweep()
     {
         if (prune(&(curr->data)))
             marked->push_back(&(curr->data));
-        
+
         curr = curr->next;
     }
-    
+
     READ_UNLOCK();
     sort(marked->begin(), marked->end());
     return marked;
@@ -197,6 +202,9 @@ std::vector<void*>* LinkedListDS::remove_sweep()
 
 void LinkedListDS::remove_cleanup(vector<void*>* marked)
 {
+    WRITE_LOCK();
+    data_count -= marked->size();
+    WRITE_UNLOCK();
 }
 
 inline void LinkedListDS::populate(Index* index)

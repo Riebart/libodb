@@ -62,14 +62,7 @@ inline ODB* IndexGroup::query(bool (*condition)(void*))
     // Clone the prent.
     DataStore* ds = parent->clone_indirect();
 
-    // Iterate and query with the non-public member.
-    uint32_t n = indices.size();
-
-    // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
-    if (n > 0)
-#pragma omp parallel for
-        for (uint32_t i = 0 ; i < n ; i++)
-            indices[i]->query(condition, ds);
+    query(condition, ds);
 
     // Wrap in an ODB and return.
     return new ODB(ds, ident, parent->datalen);
@@ -86,9 +79,14 @@ inline void IndexGroup::add_data_v(void* data)
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
+    {
+        if (n == 1)
+            indices[0]->add_data_v(data);
+        else
 #pragma omp parallel for
-        for (uint32_t i = 0 ; i < n ; i++)
-            indices[i]->add_data_v(data);
+            for (uint32_t i = 0 ; i < n ; i++)
+                indices[i]->add_data_v(data);
+    }
 }
 
 inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
@@ -97,9 +95,14 @@ inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
+    {
+        if (n == 1)
+            indices[0]->query(condition, ds);
+        else
 #pragma omp parallel for
-        for (uint32_t i = 0 ; i < n ; i++)
-            indices[i]->query(condition, ds);
+            for (uint32_t i = 0 ; i < n ; i++)
+                indices[i]->query(condition, ds);
+    }
 }
 
 uint64_t IndexGroup::size()

@@ -120,7 +120,7 @@ protected:
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.
     virtual std::vector<void*>* remove_sweep();
-    
+
     /// Clean up the pruned data by marking it available for reallocation.
     /// @param [in] marked A vector of locations to memory that has been pruned
     ///from all associated index tables and is ready to be reallocated.
@@ -234,7 +234,7 @@ protected:
     /// @param [in] index A value indicating where to look into the datastore.
     /// @return Returns a pointer to the desired data.
     virtual void* get_at(uint64_t index);
-    
+
     /// Sweep the datastore and mark data that satisfies the criterion for pruning.
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.

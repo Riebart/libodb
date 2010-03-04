@@ -165,6 +165,7 @@ inline bool BankDS::remove_at(uint64_t index)
         WRITE_LOCK();
         // Push the memory location onto the stack.
         deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen);
+        data_count--;
         WRITE_UNLOCK();
 
         // Return success
@@ -184,6 +185,7 @@ inline bool BankDS::remove_addr(void* addr)
     if ((addr < (*(data + posA))) || (addr >= ((*(data + posA)) + posB)))
         return false;
 
+    data_count--;
     deleted.push(addr);
     WRITE_UNLOCK();
     return true;
@@ -234,6 +236,7 @@ inline void BankDS::remove_cleanup(std::vector<void*>* marked)
     WRITE_LOCK();
     for (uint32_t i = 0 ; i < marked->size() ; i++)
         deleted.push(marked->at(i));
+    data_count -= marked->size();
     WRITE_UNLOCK();
 }
 

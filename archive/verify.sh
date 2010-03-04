@@ -82,5 +82,5 @@ if [ $success -eq 1 ]; then
     echo -e "\nRemoving temp files..."
     rm -r $subdir
 else
-    echo "Tests failed. Leaving temp files for analysis."
+    echo -e "\nTests failed. Leaving temp files for analysis."
 fi
