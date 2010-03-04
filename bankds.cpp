@@ -191,7 +191,6 @@ inline bool BankDS::remove_addr(void* addr)
     return true;
 }
 
-/// @todo doesn't remove locations from pool for queries.
 inline vector<void*>* BankDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
@@ -211,7 +210,6 @@ inline vector<void*>* BankDS::remove_sweep()
     return marked;
 }
 
-/// @todo doesn't remove locations from pool for queries.
 inline vector<void*>* BankIDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();

@@ -67,6 +67,8 @@ protected:
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
+    virtual std::vector<void*>* remove_sweep();
+    virtual void remove_cleanup(std::vector<void*>* marked);
     virtual void populate(Index* index);
 };
 

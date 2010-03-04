@@ -184,23 +184,54 @@ inline bool LinkedListDS::remove_addr(void* addr)
 std::vector<void*>* LinkedListDS::remove_sweep()
 {
     vector<void*>* marked = new vector<void*>();
-
+    
     READ_LOCK();
     struct datanode* curr = bottom;
     while (curr != NULL)
     {
         if (prune(&(curr->data)))
             marked->push_back(&(curr->data));
-
+        
         curr = curr->next;
     }
+    
+    READ_UNLOCK();
+    sort(marked->begin(), marked->end());
+    return marked;
+}
 
+/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
+std::vector<void*>* LinkedListIDS::remove_sweep()
+{
+    vector<void*>* marked = new vector<void*>();
+    
+    READ_LOCK();
+    struct datanode* curr = bottom;
+    while (curr != NULL)
+    {
+        // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
+        char** a = reinterpret_cast<char**>(&(curr->data));
+        void* b = reinterpret_cast<void*>(*a);
+        
+        if (prune(b))
+            marked->push_back(b);
+        
+        curr = curr->next;
+    }
+    
     READ_UNLOCK();
     sort(marked->begin(), marked->end());
     return marked;
 }
 
 void LinkedListDS::remove_cleanup(vector<void*>* marked)
+{
+    WRITE_LOCK();
+    data_count -= marked->size();
+    WRITE_UNLOCK();
+}
+
+void LinkedListIDS::remove_cleanup(vector<void*>* marked)
 {
     WRITE_LOCK();
     data_count -= marked->size();
