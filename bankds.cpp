@@ -74,7 +74,7 @@ inline void* BankDS::add_data(void* rawdata)
     memcpy(ret, rawdata, datalen-sizeof(time_t));
 
     // Stores a timestamp at the end of the data
-    *(time_t *)(ret+datalen-sizeof(time_t)) = time( NULL );
+    *(time_t *)(ret+datalen-sizeof(time_t)) = cur_time;
 
     return ret;
 }

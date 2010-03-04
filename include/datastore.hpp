@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <time.h>
 
 #include "lock.hpp"
 
@@ -50,6 +51,7 @@ protected:
     std::vector<ODB*> clones;
     bool (*prune)(void* rawdata);
     uint32_t datalen;
+    time_t cur_time;
 
     /// The number of items in this datastore.
     uint64_t data_count;

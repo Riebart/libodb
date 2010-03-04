@@ -44,6 +44,7 @@ void * mem_checker(void * arg)
 
     while (parent->is_running())
     {
+        parent->update_time(time(NULL));
         //get memory usage - there might be an easier way to do this
 
         stat_file = freopen(path, "r", stat_file);
@@ -251,6 +252,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     all = new IndexGroup(ident, data);
     dataobj = new DataObj(ident);
     this->data = data;
+    data->cur_time=time(NULL);
 
     RWLOCK_INIT();
 
@@ -411,4 +413,9 @@ bool (*ODB::get_prune())(void*)
 uint64_t ODB::size()
 {
     return data->size();
+}
+
+void ODB::update_time(time_t n_time)
+{
+    data->cur_time=n_time;
 }
