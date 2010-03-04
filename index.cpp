@@ -138,7 +138,9 @@ inline ODB* Index::query(bool (*condition)(void*))
     query(condition, ds);
 
     // Wrap in ODB and return.
-    return new ODB(ds, ident, parent->datalen);
+    ODB* odb = new ODB(ds, ident, parent->datalen);
+    ds->update_parent(odb);
+    return odb;
 }
 
 uint64_t Index::size()

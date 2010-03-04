@@ -69,7 +69,22 @@ inline DataStore* DataStore::clone_indirect()
     return NULL;
 }
 
+inline bool (*DataStore::get_prune())(void*)
+{
+    return prune;
+}
+
+inline void DataStore::set_prune(bool (*prune)(void*))
+{
+    this->prune = prune;
+}
+
 inline uint64_t DataStore::size()
 {
     return data_count;
+}
+
+inline void DataStore::update_parent(ODB* odb)
+{
+    parent->clones.push_back(odb);
 }

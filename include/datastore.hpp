@@ -6,6 +6,7 @@
 
 #include "lock.hpp"
 
+class ODB;
 class Index;
 
 class DataStore
@@ -37,18 +38,22 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
+    virtual bool (*get_prune())(void*);
+    virtual void set_prune(bool (*prune)(void*));
+    virtual void update_parent(ODB* odb);
 
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.
     virtual uint64_t size();
 
     DataStore* parent;
+    std::vector<ODB*> clones;
     bool (*prune)(void* rawdata);
     uint32_t datalen;
 
     /// The number of items in this datastore.
     uint64_t data_count;
-
+    
     RWLOCK_T;
 };
 

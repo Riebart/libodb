@@ -10,10 +10,13 @@
 //TODO: move this out, somehow
 #include "lock.hpp"
 
+#ifndef LEN_V
+#define LEN_V
 inline uint32_t len_v(void* rawdata)
 {
     return strlen((const char*)rawdata);
 }
+#endif
 
 class DataStore;
 
@@ -60,7 +63,8 @@ public:
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     void remove_sweep();
-    void set_sweep(bool (*prune)(void*));
+    void set_prune(bool (*prune)(void*));
+    virtual bool (*get_prune())(void*);
     uint64_t size();
 
     //the memory limit, in pages

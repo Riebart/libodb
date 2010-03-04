@@ -1,4 +1,5 @@
 #include "linkedlistds.hpp"
+#include "odb.hpp"
 #include "utility.hpp"
 
 #include <algorithm>
@@ -141,6 +142,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
 
         data_count--;
         WRITE_UNLOCK();
+        
         free(temp);
         return true;
     }
@@ -176,6 +178,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
 
     data_count--;
     WRITE_UNLOCK();
+    
     free(temp);
     return true;
 }
@@ -206,8 +209,17 @@ std::vector<void*>** LinkedListDS::remove_sweep()
         
         curr = curr->next;
     }
-    
     READ_UNLOCK();
+    
+    bool (*temp)(void*);
+    for (uint32_t i = 0 ; i < clones.size() ; i++)
+    {
+        temp = clones[i]->get_prune();
+        clones[i]->set_prune(prune);
+        clones[i]->remove_sweep();
+        clones[i]->set_prune(temp);
+    }
+    
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
@@ -245,8 +257,8 @@ std::vector<void*>** LinkedListIDS::remove_sweep()
         
         curr = curr->next;
     }
-    
     READ_UNLOCK();
+    
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }

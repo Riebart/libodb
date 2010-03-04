@@ -388,16 +388,24 @@ void ODB::remove_sweep()
         tables[i]->remove_sweep(marked[0]);
 
     data->remove_cleanup(marked[1]);
-
     WRITE_UNLOCK();
     delete marked;
 }
 
-void ODB::set_sweep(bool (*prune)(void*))
+void ODB::set_prune(bool (*prune)(void*))
 {
     WRITE_LOCK();
     data->prune = prune;
-    WRITE_UNLOCK();
+    WRITE_UNLOCK(); 
+}
+
+bool (*ODB::get_prune())(void*)
+{
+    bool (*temp)(void*);
+    READ_LOCK();
+    temp = data->prune;
+    READ_UNLOCK();
+    return temp;
 }
 
 uint64_t ODB::size()

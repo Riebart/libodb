@@ -209,7 +209,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         res[j] = ind[j]->query(condition);
         Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
-        res[j]->set_sweep(prune_1);
+        res[j]->set_prune(prune_1);
         res[j]->remove_sweep();
 
         Iterator* it = ind2->it_first();
