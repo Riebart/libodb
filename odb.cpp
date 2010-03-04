@@ -382,12 +382,12 @@ IndexGroup* ODB::create_group()
 void ODB::remove_sweep()
 {
     WRITE_LOCK();
-    vector<void*>* marked = data->remove_sweep();
+    vector<void*>** marked = data->remove_sweep();
 
     for (uint32_t i = 0 ; i < tables.size() ; i++)
-        tables[i]->remove_sweep(marked);
+        tables[i]->remove_sweep(marked[0]);
 
-    data->remove_cleanup(marked);
+    data->remove_cleanup(marked[1]);
 
     WRITE_UNLOCK();
     delete marked;

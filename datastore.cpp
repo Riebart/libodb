@@ -46,7 +46,7 @@ inline bool DataStore::remove_addr(void* index)
     return false;
 }
 
-inline std::vector<void*>* DataStore::remove_sweep()
+inline std::vector<void*>** DataStore::remove_sweep()
 {
     return NULL;
 }

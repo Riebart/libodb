@@ -191,41 +191,51 @@ inline bool BankDS::remove_addr(void* addr)
     return true;
 }
 
-inline vector<void*>* BankDS::remove_sweep()
+inline vector<void*>** BankDS::remove_sweep()
 {
-    vector<void*>* marked = new vector<void*>();
+    vector<void*>** marked = new vector<void*>*[2];
+    marked[0] = new vector<void*>();
+    marked[1] = marked[0];
 
     READ_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(*(data + i) + j))
-                marked->push_back(*(data + i) + j);
+                marked[0]->push_back(*(data + i) + j);
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         if (prune(*(data + posA) + j))
-            marked->push_back(*(data + posA) + j);
+            marked[0]->push_back(*(data + posA) + j);
 
     READ_UNLOCK();
-    sort(marked->begin(), marked->end());
+    sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
-inline vector<void*>* BankIDS::remove_sweep()
+inline vector<void*>** BankIDS::remove_sweep()
 {
-    vector<void*>* marked = new vector<void*>();
+    vector<void*>** marked = new vector<void*>*[2];
+    marked[0] = new vector<void*>();
+    marked[1] = new vector<void*>();
 
     READ_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j)))))
-                marked->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j))));
+            {
+                marked[0]->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j))));
+                marked[1]->push_back(*(data + i) + j);
+            }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j)))))
-            marked->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
+        {
+            marked[0]->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
+            marked[1]->push_back(*(data + posA) + j);
+        }
 
     READ_UNLOCK();
-    sort(marked->begin(), marked->end());
+    sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 

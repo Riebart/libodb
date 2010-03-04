@@ -119,7 +119,7 @@ protected:
     /// Sweep the datastore and mark data that satisfies the criterion for pruning.
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.
-    virtual std::vector<void*>* remove_sweep();
+    virtual std::vector<void*>** remove_sweep();
 
     /// Clean up the pruned data by marking it available for reallocation.
     /// @param [in] marked A vector of locations to memory that has been pruned
@@ -238,7 +238,7 @@ protected:
     /// Sweep the datastore and mark data that satisfies the criterion for pruning.
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.
-    virtual std::vector<void*>* remove_sweep();
+    virtual std::vector<void*>** remove_sweep();
 
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created

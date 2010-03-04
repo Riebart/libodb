@@ -181,59 +181,90 @@ inline bool LinkedListDS::remove_addr(void* addr)
 }
 
 /// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
-std::vector<void*>* LinkedListDS::remove_sweep()
+std::vector<void*>** LinkedListDS::remove_sweep()
 {
-    vector<void*>* marked = new vector<void*>();
+    vector<void*>** marked = new vector<void*>*[2];
+    marked[0] = new vector<void*>();
+    marked[1] = new vector<void*>();
     
     READ_LOCK();
     struct datanode* curr = bottom;
-    while (curr != NULL)
+    
+    if (prune(&(curr->data)))
     {
-        if (prune(&(curr->data)))
-            marked->push_back(&(curr->data));
+        marked[0]->push_back(&(curr->data));
+        marked[1]->push_back(NULL);
+    }
+    
+    while ((curr->next) != NULL)
+    {
+        if (prune(&((curr->next)->data)))
+        {
+            marked[0]->push_back(&((curr->next)->data));
+            marked[1]->push_back(curr);
+        }
         
         curr = curr->next;
     }
     
     READ_UNLOCK();
-    sort(marked->begin(), marked->end());
+    sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
 /// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
-std::vector<void*>* LinkedListIDS::remove_sweep()
+std::vector<void*>** LinkedListIDS::remove_sweep()
 {
-    vector<void*>* marked = new vector<void*>();
+    vector<void*>** marked = new vector<void*>*[2];
+    marked[0] = new vector<void*>();
+    marked[1] = new vector<void*>();
     
     READ_LOCK();
     struct datanode* curr = bottom;
-    while (curr != NULL)
+    
+    char** a = reinterpret_cast<char**>(&(curr->data));
+    void* b = reinterpret_cast<void*>(*a);
+    
+    if (prune(b))
+    {
+        marked[0]->push_back(b);
+        marked[1]->push_back(NULL);
+    }
+    
+    while ((curr->next) != NULL)
     {
         // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
-        char** a = reinterpret_cast<char**>(&(curr->data));
+        char** a = reinterpret_cast<char**>(&((curr->next)->data));
         void* b = reinterpret_cast<void*>(*a);
         
         if (prune(b))
-            marked->push_back(b);
+        {
+            marked[0]->push_back(b);
+            marked[1]->push_back(curr);
+        }
         
         curr = curr->next;
     }
     
     READ_UNLOCK();
-    sort(marked->begin(), marked->end());
+    sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
 void LinkedListDS::remove_cleanup(vector<void*>* marked)
 {
     WRITE_LOCK();
-    data_count -= marked->size();
-    WRITE_UNLOCK();
-}
-
-void LinkedListIDS::remove_cleanup(vector<void*>* marked)
-{
-    WRITE_LOCK();
+    // Remove all but the first item.
+    // We need to traverse last to first so we don't unlink any 'parents'.
+    struct datanode* curr;
+    void* temp;
+    for (int32_t i = marked->size()-1 ; i > 0 ; i--)
+    {
+        curr = reinterpret_cast<struct datanode*>(marked->at(i));
+        temp = curr->next;
+        curr->next = curr->next->next;
+        free(temp);
+    }
     data_count -= marked->size();
     WRITE_UNLOCK();
 }

@@ -36,7 +36,7 @@ protected:
     virtual void* get_addr();
     virtual bool remove_at(uint64_t index);
     virtual bool remove_addr(void* addr);
-    virtual std::vector<void*>* remove_sweep();
+    virtual std::vector<void*>** remove_sweep();
     virtual void remove_cleanup(std::vector<void*>* marked);
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
@@ -67,8 +67,7 @@ protected:
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
-    virtual std::vector<void*>* remove_sweep();
-    virtual void remove_cleanup(std::vector<void*>* marked);
+    virtual std::vector<void*>** remove_sweep();
     virtual void populate(Index* index);
 };
 
