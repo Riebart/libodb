@@ -204,7 +204,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     uint8_t ret = 0;
 
     // For storing the comparison value, means only one call to the compare function.
-    int32_t c;
+    int32_t c = 0;
 
     WRITE_LOCK();
 

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string.h>
+#include <time.h>
 
 #include "common.hpp"
 #include "index.hpp"
@@ -11,10 +12,10 @@ using namespace std;
 
 BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
-    init(parent, prune, datalen, cap);
+    init(parent, prune, datalen+sizeof(time_t), cap);
 }
 
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*), cap)
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*)-sizeof(time_t), cap)
 {
 }
 
@@ -68,9 +69,12 @@ inline void* BankDS::add_data(void* rawdata)
 {
     // Get the next free location.
     void* ret = get_addr();
-
+    
     // Copy the data into the datastore.
-    memcpy(ret, rawdata, datalen);
+    memcpy(ret, rawdata, datalen-sizeof(time_t));
+
+    // Stores a timestamp at the end of the data
+    *(time_t *)(ret+datalen-sizeof(time_t)) = time( NULL );
 
     return ret;
 }
@@ -138,7 +142,15 @@ inline void* BankDS::get_addr()
 inline void* BankIDS::add_data(void* rawdata)
 {
     // Perform the ncessary indirection. This adds the address of the pointer (of size sizeof(char*)), not the data.
-    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(BankDS::add_data(&rawdata))));
+//     return reinterpret_cast<void*>(*(reinterpret_cast<char**>(BankDS::add_data(&rawdata))));
+
+    // Get the next free location.
+    void* ret = get_addr();
+
+    // Copy the data into the datastore.
+    memcpy(ret, &rawdata, datalen);
+    
+    return ret;
 }
 
 inline void* BankDS::get_at(uint64_t index)
