@@ -142,7 +142,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
 
         data_count--;
         WRITE_UNLOCK();
-        
+
         free(temp);
         return true;
     }
@@ -178,7 +178,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
 
     data_count--;
     WRITE_UNLOCK();
-    
+
     free(temp);
     return true;
 }
@@ -189,16 +189,16 @@ std::vector<void*>** LinkedListDS::remove_sweep()
     vector<void*>** marked = new vector<void*>*[2];
     marked[0] = new vector<void*>();
     marked[1] = new vector<void*>();
-    
+
     READ_LOCK();
     struct datanode* curr = bottom;
-    
+
     if (prune(&(curr->data)))
     {
         marked[0]->push_back(&(curr->data));
         marked[1]->push_back(NULL);
     }
-    
+
     while ((curr->next) != NULL)
     {
         if (prune(&((curr->next)->data)))
@@ -206,11 +206,11 @@ std::vector<void*>** LinkedListDS::remove_sweep()
             marked[0]->push_back(&((curr->next)->data));
             marked[1]->push_back(curr);
         }
-        
+
         curr = curr->next;
     }
     READ_UNLOCK();
-    
+
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -219,7 +219,7 @@ std::vector<void*>** LinkedListDS::remove_sweep()
         clones[i]->remove_sweep();
         clones[i]->set_prune(temp);
     }
-    
+
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
@@ -230,35 +230,35 @@ std::vector<void*>** LinkedListIDS::remove_sweep()
     vector<void*>** marked = new vector<void*>*[2];
     marked[0] = new vector<void*>();
     marked[1] = new vector<void*>();
-    
+
     READ_LOCK();
     struct datanode* curr = bottom;
-    
+
     char** a = reinterpret_cast<char**>(&(curr->data));
     void* b = reinterpret_cast<void*>(*a);
-    
+
     if (prune(b))
     {
         marked[0]->push_back(b);
         marked[1]->push_back(NULL);
     }
-    
+
     while ((curr->next) != NULL)
     {
         // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
         char** a = reinterpret_cast<char**>(&((curr->next)->data));
         void* b = reinterpret_cast<void*>(*a);
-        
+
         if (prune(b))
         {
             marked[0]->push_back(b);
             marked[1]->push_back(curr);
         }
-        
+
         curr = curr->next;
     }
     READ_UNLOCK();
-    
+
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }

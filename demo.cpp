@@ -6,8 +6,6 @@
 #include <sys/timeb.h>
 #include <zlib.h>
 
-
-
 #include "odb.hpp"
 
 extern "C"
@@ -46,7 +44,11 @@ extern "C"
 
 inline bool prune_false(void* rawdata)
 {
-    return false;
+    struct fts3rec_v5_gen* data = reinterpret_cast<struct fts3rec_v5_gen*>(rawdata);
+    if (((data->srcport) >= 60000) && ((data->srcport) <= 65535))
+        return true;
+    else
+        return false;
 }
 
 inline int compare_time_dur(void* a, void* b)
@@ -185,6 +187,7 @@ int main(int argc, char *argv[])
         ftime(&start);
 
         num = read_flows(odb, fp);
+        odb->remove_sweep();
         total_num += num;
 
         ftime(&end);
@@ -199,7 +202,7 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    printf("%lu records processed.\n", total_num);
+    printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;

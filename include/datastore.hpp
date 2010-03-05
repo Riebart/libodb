@@ -53,7 +53,7 @@ protected:
 
     /// The number of items in this datastore.
     uint64_t data_count;
-    
+
     RWLOCK_T;
 };
 

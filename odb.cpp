@@ -384,8 +384,17 @@ void ODB::remove_sweep()
     WRITE_LOCK();
     vector<void*>** marked = data->remove_sweep();
 
-    for (uint32_t i = 0 ; i < tables.size() ; i++)
-        tables[i]->remove_sweep(marked[0]);
+    uint32_t n = tables.size();
+
+    if (n > 0)
+    {
+        if (n == 1)
+            tables[0]->remove_sweep(marked[0]);
+        else
+#pragma omp parallel for
+            for (uint32_t i = 0 ; i < tables.size() ; i++)
+                tables[i]->remove_sweep(marked[0]);
+    }
 
     data->remove_cleanup(marked[1]);
     WRITE_UNLOCK();
@@ -396,7 +405,7 @@ void ODB::set_prune(bool (*prune)(void*))
 {
     WRITE_LOCK();
     data->prune = prune;
-    WRITE_UNLOCK(); 
+    WRITE_UNLOCK();
 }
 
 bool (*ODB::get_prune())(void*)

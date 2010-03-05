@@ -117,9 +117,10 @@ RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* 
     count = 0;
 
     // Initialize the false root
-    false_root = (struct tree_node*)calloc(1, sizeof(struct tree_node));
-    if (false_root == NULL)
-        OOM();
+    SAFE_MALLOC(struct tree_node*, false_root, sizeof(struct tree_node));
+    false_root->data = NULL;
+    false_root->link[0] = NULL;
+    false_root->link[1] = NULL;
 
     // Initialize the data stores that will handle the memory allocation for the various nodes.
     treeds = new BankDS(NULL, prune_false, sizeof(struct tree_node));
