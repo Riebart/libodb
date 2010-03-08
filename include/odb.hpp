@@ -6,8 +6,6 @@
 #include <pthread.h>
 
 #include "index.hpp"
-
-//TODO: move this out, somehow
 #include "lock.hpp"
 
 #ifndef LEN_V

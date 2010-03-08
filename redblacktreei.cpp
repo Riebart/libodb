@@ -7,16 +7,16 @@ using namespace std;
 
 #define X64_HEAD 0xFFFFFFFF00000000
 #define RED_BLACK_MASK_BASE 0xFFFFFFFE
-#define LIST_MASK_BASE 0xFFFFFFFD
+#define TREE_MASK_BASE 0xFFFFFFFD
 #define META_MASK_BASE 0xFFFFFFF8
 
 #if __amd64__ || _WIN64
 #define RED_BLACK_MASK (X64_HEAD | RED_BLACK_MASK_BASE)
-#define LIST_MASK (X64_HEAD | LIST_MASK_BASE)
+#define TREE_MASK (X64_HEAD | TREE_MASK_BASE)
 #define META_MASK (X64_HEAD | META_MASK_BASE)
 #else
 #define RED_BLACK_MASK RED_BLACK_MASK_BASE
-#define LIST_MASK LIST_MASK_BASE
+#define TREE_MASK TREE_MASK_BASE
 #define META_MASK META_MASK_BASE
 #endif
 
@@ -34,7 +34,7 @@ using namespace std;
 /// @param [in] x A pointer to the node to have its duplicate-status checked.
 /// @retval 0 If the value is singular or NULL.
 /// @retval 1 If the node contains an embedded list.
-#define IS_LIST(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & 0x2))
+#define IS_TREE(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & 0x2))
 
 /// Get whether or not this node contains a linked list for duplicates.
 /// Performs an embedded NULL check.
@@ -59,13 +59,13 @@ using namespace std;
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 1.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_LIST(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
+#define SET_TREE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
 
 /// Set a node as containing a single value.
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 0.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & LIST_MASK)))
+#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & TREE_MASK)))
 
 /// Set the three least-significant bits in the specified node's specified pointer
 ///to 0 for use when dereferencing.
@@ -100,7 +100,7 @@ using namespace std;
 /// @param [in] x The node to get the data from.
 /// @return A pointer to the data from x. If x contains a linked list the data
 ///returned is that contained in the head of the list.
-#define GET_DATA(x) (IS_LIST(x) ? ((reinterpret_cast<struct RedBlackTreeI::list_node*>(x->data))->data) : (x->data))
+#define GET_DATA(x) (IS_VALUE(x) ? (x->data) : ((reinterpret_cast<struct tree_node*>(x->data))->data))
 
 #define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) | 0x1))
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
@@ -117,21 +117,13 @@ RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* 
     count = 0;
 
     // Initialize the false root
-    SAFE_MALLOC(struct tree_node*, false_root, sizeof(struct tree_node));
-    false_root->data = NULL;
-    false_root->link[0] = NULL;
-    false_root->link[1] = NULL;
-
-    // Initialize the data stores that will handle the memory allocation for the various nodes.
-    treeds = new BankDS(NULL, prune_false, sizeof(struct tree_node));
-    listds = new BankDS(NULL, prune_false, sizeof(struct list_node));
+    SAFE_CALLOC(struct tree_node*, false_root, 1, sizeof(struct tree_node));
 }
 
 RedBlackTreeI::~RedBlackTreeI()
 {
-    // Just free the datastores.
-    delete treeds;
-    delete listds;
+    // Recursively free the tree
+    free_n(root, drop_duplicates);
 
     // Free the false root we malloced in the constructor.
     free(false_root);
@@ -181,13 +173,22 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct tr
     return single_rotation(n, dir);
 }
 
-inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
+inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata, bool drop_duplicates)
 {
     // Alloc space for a new node.
-    struct tree_node* n = reinterpret_cast<struct tree_node*>(treeds->get_addr());
+    struct tree_node* n;
+    SAFE_MALLOC(struct tree_node*, n, sizeof(struct tree_node));
 
     // Set the data pointer.
-    n->data = rawdata;
+//     if (drop_duplicates)
+        n->data = rawdata;
+//     else
+//     {
+//         struct tree_node* n2;
+//         SAFE_CALLOC(struct tree_node*, n2, 1, sizeof(struct tree_node));
+//         n2->data = rawdata;
+//         n->data = n2;
+//     }
 
     // Make sure both children are marked as NULL, since NULL is the sentinel value for us.
     n->link[0] = NULL;
@@ -201,18 +202,30 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 
 void RedBlackTreeI::add_data_v(void* rawdata)
 {
+    WRITE_LOCK();
+    root = add_data_n(root, false_root, compare, merge, drop_duplicates, rawdata);
+    
+    // The information about whether a new node was added is encoded into the root.
+    if (TAINTED(root))
+    {
+        count++;
+        UNTAINT(root);
+    }
+    WRITE_UNLOCK();
+}
+
+struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* root, struct tree_node* false_root, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+{
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
     uint8_t ret = 0;
 
     // For storing the comparison value, means only one call to the compare function.
-    int32_t c;
-
-    WRITE_LOCK();
+    int32_t c = 0;
 
     // If the tree is empty, that's easy.
     if (root == NULL)
     {
-        root = make_node(rawdata);
+        false_root->link[1] = make_node(rawdata, drop_duplicates);
         ret = 1;
     }
     else
@@ -243,7 +256,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
             // If we're at a leaf, insert the new node and be done with it.
             if (i == NULL)
             {
-                struct tree_node* n = make_node(rawdata);
+                struct tree_node* n = make_node(rawdata, drop_duplicates);
                 SET_LINK(p->link[dir], n);
                 i = n;
                 ret = 1;
@@ -291,37 +304,38 @@ void RedBlackTreeI::add_data_v(void* rawdata)
                     // And we're allowing duplicates...
                     else if (!drop_duplicates)
                     {
-                        // Allocate a new list item for the linked list.
-                        struct list_node* first = reinterpret_cast<struct list_node*>(listds->get_addr());
-
-                        // If we don't have a list, start one.
-                        if (!IS_LIST(i))
+                        if (IS_TREE(i))
                         {
-                            // Allocate the head
-                            struct list_node* second = reinterpret_cast<struct list_node*>(listds->get_addr());
-
-                            // Set the end of it to point to NULL to 'terminate' it.
-                            second->next = NULL;
-
-                            // Assign it data.
-                            second->data = i->data;
-
-                            // Point the tree node's data to this pointer so we can have a generic operation otherwise.
-                            i->data = second;
-
-                            // Mark this tree node as having a list.
-                            SET_LIST(i);
+                            struct tree_node* sub_false_root;
+                            SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
+                            
+                            struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
+                            
+                            if (TAINTED(new_sub_root))
+                            {
+                                ret = 1;
+                                UNTAINT(new_sub_root);
+                            }
+                            
+                            i->data = new_sub_root;
                         }
-
-                        // Assign the next pointer and data.
-                        first->next = (struct list_node*)(i->data);
-                        first->data = rawdata;
-
-                        // Make sure the tree node points to the new head of the list.
-                        i->data = first;
-
-                        // Mark that we've added a node to increment the counter.
-                        ret = 1;
+                        else
+                        {
+                            struct tree_node* new_root;
+                            SAFE_CALLOC(struct tree_node*, new_root, 1, sizeof(struct tree_node));
+                            new_root->data = i->data;
+                            
+                            struct tree_node* new_node;
+                            SAFE_CALLOC(struct tree_node*, new_node, 1, sizeof(struct tree_node));
+                            new_node->data = rawdata;
+                            
+                            new_root->link[compare_addr(rawdata, i->data) > 0] = new_node;
+                            i->data = new_root;
+                            SET_RED(new_node);
+                            SET_TREE(i);
+                            
+                            ret = 1;
+                        }
                     }
                 }
 
@@ -345,19 +359,20 @@ void RedBlackTreeI::add_data_v(void* rawdata)
             p = i;
             i = STRIP(i->link[dir]);
         }
-
-        // Since the root of the tree may have changed due to rotations, re-assign it from the right-child of the false-pointer.
-        // That is why we kept it around.
-        root = STRIP(false_root->link[1]);
     }
-
+    
+    // Since the root of the tree may have changed due to rotations, re-assign it from the right-child of the false-pointer.
+    // That is why we kept it around.
+    struct tree_node* new_root = STRIP(false_root->link[1]);
+    
     // Since the root is always black, but may have ended up red with our tree operations on the way through the insertion.
-    SET_BLACK(root);
-
-    // Increment the counter for the number of items in the tree.
-    count += ret;
-
-    WRITE_UNLOCK();
+    SET_BLACK(new_root);
+    
+    // Encode whether a node was added into the colour of the new root. RED = something was added.
+    if (ret)
+        TAINT(new_root);
+    
+    return new_root;
 }
 
 int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
@@ -427,7 +442,8 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
 {
     READ_LOCK();
-    query(root, condition, ds);
+    if (root != NULL)
+        query(root, condition, ds);
     READ_UNLOCK();
 }
 
@@ -444,30 +460,48 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
     if (child != NULL)
         query(child, condition, ds);
 
-    // Now query this node.
-    // If it is a list...
-    if (IS_LIST(root))
+    if (IS_VALUE(root))
     {
-        struct list_node* curr = (struct list_node*)(root->data);
-
-        while (curr != NULL)
-        {
-            if (condition(curr->data))
-                ds->add_data(curr->data);
-
-            curr = curr->next;
-        }
-    }
-    else
         if (condition(root->data))
             ds->add_data(root->data);
+    }
+    else
+    {
+        Iterator* it = it_first(reinterpret_cast<struct tree_node*>(root->data), -1, true);
+        void* temp;
+        
+        do
+        {
+            temp = it->data_v();
+            if (condition(temp))
+                ds->add_data(temp);
+        }
+        while (it->next());
+        
+        delete it;
+    }
 }
 
 inline bool RedBlackTreeI::remove(void* rawdata)
 {
+    WRITE_LOCK();
+    root = remove_n(root, false_root, compare, merge, drop_duplicates, rawdata);
+    
+    if (TAINTED(root))
+    {
+        count--;
+        UNTAINT(root);
+        return true;
+    }
+    else
+        return false;
+    WRITE_UNLOCK();
+}
+
+struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root, struct tree_node* false_root, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+{
     uint8_t ret = 0;
 
-    WRITE_LOCK();
     if (root != NULL)
     {
         // The real root sits as the false root's right child.
@@ -510,56 +544,43 @@ inline bool RedBlackTreeI::remove(void* rawdata)
             // If our desired node is here...
             if (c == 0)
             {
-                ret = 1;
                 // Check the embedded list if there is one.
-                if (IS_LIST(i))
+                if (drop_duplicates)
                 {
-                    // Get the head.
-                    struct list_node* curr = reinterpret_cast<struct list_node*>(i->data);
-
-                    // If the desired location is at the head of the list...
-                    if (rawdata == (curr->data))
+                    if (IS_TREE(i))
                     {
-                        // Removed the head and reset the data field in the tree node.
-                        i->data = curr->next;
-                        listds->remove_addr(curr);
+                        struct tree_node* sub_false_root;
+                        SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
+                        
+                        struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
+                        
+                        if (TAINTED(new_sub_root))
+                        {
+                            ret = 1;
+                            UNTAINT(new_sub_root);
+                        }
+                        
+                        if (new_sub_root == NULL)
+                        {
+                            SET_VALUE(i);
+                            f = i;
+                            free(i->data);
+                        }
+                        else
+                            i->data = new_sub_root;
                     }
-                    // Otherwise, start looking into the embedded list.
                     else
                     {
-                        // Since we're done with the head, start at the next position.
-                        while ((curr->next) != NULL)
-                        {
-                            // If we've found it.
-                            if (rawdata == (curr->next->data))
-                            {
-                                // Unlink and free it, then break.
-                                struct list_node* temp = curr->next->next;
-                                listds->remove_addr(curr->next);
-                                curr->next = temp;
-                                break;
-                            }
-                            // Otherwise, keep looking.
-                            else
-                                curr = curr->next;
-                        }
-                    }
-
-                    curr = reinterpret_cast<struct list_node*>(i->data);
-
-                    // If there is only one item in the list, remove it and mark the node as being a value.
-                    if ((curr->next) == NULL)
-                    {
-                        void* temp = curr->data;
-                        listds->remove_addr(curr);
-                        i->data = temp;
-
-                        SET_VALUE(i);
+                        f = i;
+                        ret = 1;
                     }
                 }
                 else
+                {
                     // Store the found node;
                     f = i;
+                    ret = 1;
+                }
             }
 
             // Push down a red node.
@@ -617,25 +638,29 @@ inline bool RedBlackTreeI::remove(void* rawdata)
         if (f != NULL)
         {
             f->data = i->data;
-            if (IS_LIST(i))
-                SET_LIST(f);
+            if (IS_TREE(i))
+                SET_TREE(f);
             else
                 SET_VALUE(f);
 
             SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[STRIP(i->link[0]) == NULL]);
-            treeds->remove_addr(i);
+            free(i);
         }
 
         // Update the tree root and make it black.
-        root = STRIP(false_root->link[1]);
+        struct tree_node* new_root = STRIP(false_root->link[1]);
 
-        if (root != NULL)
-            SET_BLACK(root);
+        if (new_root != NULL)
+            SET_BLACK(new_root);
+        
+        // Encode whether a node was deleted or not.
+        if (ret)
+            TAINT(new_root);
+        
+        return new_root;
     }
-
-    WRITE_UNLOCK();
-    count -= ret;
-    return ret;
+    
+    return NULL;
 }
 
 inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
@@ -644,29 +669,60 @@ inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
         remove(marked->at(i));
 }
 
+void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
+{
+    struct tree_node* left = STRIP(root->link[0]);
+    struct tree_node* right = STRIP(root->link[1]);
+    
+    if (left != NULL)
+        free_n(left, drop_duplicates);
+    
+    if (right != NULL)
+        free_n(right, drop_duplicates);
+    
+    if (!drop_duplicates)
+        if (IS_TREE(root))
+            free_n(reinterpret_cast<struct tree_node*>(root->data), true);
+    
+    free(root);
+}
+
 inline Iterator* RedBlackTreeI::it_first()
 {
     READ_LOCK();
+    return it_first(root, ident, drop_duplicates);
+}
+
+inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
+{
     RBTIterator* it = new RBTIterator(ident);
     struct RedBlackTreeI::tree_node* curr = root;
-
+    
     while (curr != NULL)
     {
         it->trail.push(curr);
         curr = STRIP(curr->link[0]);
     }
-
-    if (IS_LIST(it->trail.top()))
+    
+    it->drop_duplicates = drop_duplicates;
+    
+    if (drop_duplicates)
     {
-        it->cursor = reinterpret_cast<struct RedBlackTreeI::list_node*>(it->trail.top()->data);
-        it->dataobj->data = it->cursor->data;
+        it->dataobj->data = it->trail.top()->data;
     }
     else
     {
-        it->cursor = NULL;
-        it->dataobj->data = it->trail.top()->data;
+        struct tree_node* top = it->trail.top();
+        
+        if (IS_TREE(top))
+        {
+            it->it = it_first(reinterpret_cast<struct tree_node*>(it->trail.top()->data), -1, true);
+            it->dataobj->data = it->it->data_v();
+        }
+        else
+            it->dataobj->data = top->data;
     }
-
+    
     return it;
 }
 
@@ -694,13 +750,16 @@ inline DataObj* RBTIterator::next()
     if (dataobj->data == NULL)
         return NULL;
 
-    if ((cursor != NULL) && ((cursor->next) != NULL))
-    {
-        cursor = cursor->next;
-        dataobj->data = cursor->data;
-    }
+    if ((it != NULL) && ((it->next()) != NULL))
+        dataobj->data = it->data_v();
     else
     {
+        if (it != NULL)
+        {
+            delete it;
+            it = NULL;
+        }
+        
         if (STRIP(trail.top()->link[1]) != NULL)
         {
             struct RedBlackTreeI::tree_node* curr = trail.top();
@@ -729,13 +788,20 @@ inline DataObj* RBTIterator::next()
         }
 
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
-        if (IS_LIST(UNTAINT(trail.top())))
-        {
-            cursor = reinterpret_cast<struct RedBlackTreeI::list_node*>(top->data);
-            dataobj->data = cursor->data;
-        }
-        else
+        if (drop_duplicates)
             dataobj->data = top->data;
+        else
+        {
+            if (IS_TREE(top))
+            {
+                it = RedBlackTreeI::it_first(reinterpret_cast<struct RedBlackTreeI::tree_node*>(top->data), -1, true);
+                dataobj->data = it->data_v();
+            }
+            else
+            {
+                dataobj->data = top->data;
+            }
+        }
     }
 
     return dataobj;

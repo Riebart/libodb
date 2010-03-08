@@ -41,12 +41,12 @@ add_executable (demo demo.cpp)
 
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal tcmalloc_minimal odb)
-target_link_libraries(test tcmalloc_minimal odb)
+target_link_libraries(test odb)
 target_link_libraries(demo z ft tcmalloc_minimal odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
-install(FILES include/odb.hpp DESTINATION include)
+install(FILES include/odb.hpp include/index.hpp include/lock.hpp DESTINATION include)
 
 #Package generation directives
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")

@@ -87,18 +87,6 @@ private:
         void* data;
     };
 
-    /// List node structure.
-    /// For storing duplicates, instead of bloating and unbalancing the tree they
-    ///are stored embedded into a linked list with a head pointed to by the tree
-    ///node's data value. The indicator of whether or not the tree node contains
-    ///a list of a value is held in the second-least significant bit of the left
-    ///child pointer of the tree node.
-    struct list_node
-    {
-        struct RedBlackTreeI::list_node* next;
-        void* data;
-    };
-
     /// Root node of the tree.
     struct tree_node* root;
 
@@ -108,19 +96,13 @@ private:
     /// This allows us to perform rotations involving the root without it
     ///being a particular issue.
     struct tree_node* false_root;
-
-    /// DataStore used for managing the memory used for tree nodes.
-    DataStore* treeds;
-
-    /// DataStore used for managing the memory used for embedded linked list ndoes.
-    DataStore* listds;
-
+    
     /// Perform a single tree rotation in one direction.
     /// @param [in] n Pointer to the top node of the rotation.
     /// @param [in] dir Direction in which to perform the rotation. Since this
     ///is indexing into the link array, 0 means rotate left and 1 rotates right.
     /// @return Pointer to the new top of the rotated sub tree.
-    struct tree_node* single_rotation(struct tree_node* n, int dir);
+    static struct RedBlackTreeI::tree_node* single_rotation(struct tree_node* n, int dir);
 
     /// Perform a double-rotation on a tree, one in each direction.
     /// Repairing a violation in a red-black tree where the new ndoe is an
@@ -133,23 +115,30 @@ private:
     ///Since this performs two rotations, the first rotation is done in the
     ///direction of !dir, and the second is done in the specified direction (dir).
     /// @return Pointer to the new top of the rotated sub tree.
-    struct tree_node* double_rotation(struct tree_node* n, int dir);
+    static struct RedBlackTreeI::tree_node* double_rotation(struct tree_node* n, int dir);
 
     /// Take care of allocating and handling new nodes
     /// @param [in] rawdata A pointer to the data that this node will represent.
     /// @return A pointer to a tree node representing the specificed data.
-    struct tree_node* make_node(void* rawdata);
+    static struct RedBlackTreeI::tree_node* make_node(void* rawdata, bool drop_duiplicates);
 
     /// Add a piece of raw data to the tree.
     /// Takes care of allocating space for, and initialization of, a new node.
-    ///Then calls RedBlackTreeI::add_data_n to perform the real work.
+    ///Then calls add_data_n to perform the real work.
     /// @param [in] rawdata Pointer to the raw data.
     virtual void add_data_v(void* rawdata);
+    
+    static struct RedBlackTreeI::tree_node* add_data_n(struct tree_node* root, 
+                                                       struct tree_node* false_root, 
+                                                       int (*compare)(void*, void*), 
+                                                       void* (*merge)(void*, void*), 
+                                                       bool drop_duplicates, 
+                                                       void* rawdata);
 
     /// Recursive function for freeing the tree.
     /// Uses recursion to free the tree and interation to free the lists.
     /// @param [in] n Pointer to the root of a subtree.
-    void free_n(struct tree_node* n);
+    static void free_n(struct tree_node* n, bool drop_duiplicates);
 
     /// Check the properties of this red-black tree to verify that it works.
     /// @param [in] root Pointer to the root of a subtree
@@ -181,8 +170,16 @@ private:
     ///results of the query.
     void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
 
-    virtual bool remove(void* addr);
+    virtual bool remove(void* rawdata);
+    static struct RedBlackTreeI::tree_node* remove_n(struct tree_node* root, 
+                                                     struct tree_node* false_root, 
+                                                     int (*compare)(void*, void*), 
+                                                     void* (*merge)(void*, void*), 
+                                                     bool drop_duplicates, 
+                                                     void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
+    
+    static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
 };
 
 class RBTIterator : public Iterator
@@ -194,12 +191,11 @@ public:
     virtual DataObj* next();
     virtual DataObj* data();
     virtual void* data_v();
-
+    
 protected:
     RBTIterator();
     RBTIterator(int ident);
 
-    struct RedBlackTreeI::list_node* cursor;
     std::stack<struct RedBlackTreeI::tree_node*> trail;
 };
 

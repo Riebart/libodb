@@ -12,6 +12,7 @@ success=1
 subdir=$(date | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
 mkdir -p $subdir
 
+echo "Command in use: ./test -e 8 -n $N -t 10 -T ?? -i ??"
 echo -n "Batch 1 "
 for (( j=0 ; j<=3 ; j++ ))
 do

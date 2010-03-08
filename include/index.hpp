@@ -351,7 +351,9 @@ protected:
     Iterator();
     Iterator(int ident);
 
+    bool drop_duplicates;
     DataObj* dataobj;
+    Iterator* it;
 };
 
 #endif

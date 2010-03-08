@@ -45,7 +45,7 @@ extern "C"
 inline bool prune_false(void* rawdata)
 {
     struct fts3rec_v5_gen* data = reinterpret_cast<struct fts3rec_v5_gen*>(rawdata);
-    if (((data->srcport) >= 60000) && ((data->srcport) <= 65535))
+    if (((data->srcport) >= 32768) && ((data->srcport) <= 65535))
         return true;
     else
         return false;
@@ -187,8 +187,10 @@ int main(int argc, char *argv[])
         ftime(&start);
 
         num = read_flows(odb, fp);
-        odb->remove_sweep();
+        printf("(");fflush(stdout);
+        //odb->remove_sweep();
         total_num += num;
+        printf("%lu) ", total_num - odb->size());fflush(stdout);
 
         ftime(&end);
 

@@ -34,6 +34,7 @@
 /// @param[in,out] x Variable to assign the location to.
 /// @param[in] n Number of bytes to request.
 #define SAFE_MALLOC(t, x, n) x = reinterpret_cast<t>(malloc(n)); if (!x) OOM();
+#define SAFE_CALLOC(t, x, n, m) x = reinterpret_cast<t>(calloc(n, m)); if (!x) OOM();
 
 #define NOT_IMPLEMENTED(str...) { \
         fprintf(stderr, "Function not yet implemented: %s\n", str); }\

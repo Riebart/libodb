@@ -193,6 +193,7 @@ Iterator::Iterator()
 Iterator::Iterator(int ident)
 {
     dataobj = new DataObj(ident);
+    it = NULL;
 }
 
 Iterator::~Iterator()
