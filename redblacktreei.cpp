@@ -181,7 +181,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata, 
 
     // Set the data pointer.
 //     if (drop_duplicates)
-        n->data = rawdata;
+    n->data = rawdata;
 //     else
 //     {
 //         struct tree_node* n2;
@@ -204,7 +204,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
 {
     WRITE_LOCK();
     root = add_data_n(root, false_root, compare, merge, drop_duplicates, rawdata);
-    
+
     // The information about whether a new node was added is encoded into the root.
     if (TAINTED(root))
     {
@@ -308,15 +308,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
                         {
                             struct tree_node* sub_false_root;
                             SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
-                            
+
                             struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
-                            
+
                             if (TAINTED(new_sub_root))
                             {
                                 ret = 1;
                                 UNTAINT(new_sub_root);
                             }
-                            
+
                             i->data = new_sub_root;
                         }
                         else
@@ -324,16 +324,16 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
                             struct tree_node* new_root;
                             SAFE_CALLOC(struct tree_node*, new_root, 1, sizeof(struct tree_node));
                             new_root->data = i->data;
-                            
+
                             struct tree_node* new_node;
                             SAFE_CALLOC(struct tree_node*, new_node, 1, sizeof(struct tree_node));
                             new_node->data = rawdata;
-                            
+
                             new_root->link[compare_addr(rawdata, i->data) > 0] = new_node;
                             i->data = new_root;
                             SET_RED(new_node);
                             SET_TREE(i);
-                            
+
                             ret = 1;
                         }
                     }
@@ -360,18 +360,18 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
             i = STRIP(i->link[dir]);
         }
     }
-    
+
     // Since the root of the tree may have changed due to rotations, re-assign it from the right-child of the false-pointer.
     // That is why we kept it around.
     struct tree_node* new_root = STRIP(false_root->link[1]);
-    
+
     // Since the root is always black, but may have ended up red with our tree operations on the way through the insertion.
     SET_BLACK(new_root);
-    
+
     // Encode whether a node was added into the colour of the new root. RED = something was added.
     if (ret)
         TAINT(new_root);
-    
+
     return new_root;
 }
 
@@ -469,7 +469,7 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
     {
         Iterator* it = it_first(reinterpret_cast<struct tree_node*>(root->data), -1, true);
         void* temp;
-        
+
         do
         {
             temp = it->data_v();
@@ -477,7 +477,7 @@ void RedBlackTreeI::query(struct tree_node* root, bool (*condition)(void*), Data
                 ds->add_data(temp);
         }
         while (it->next());
-        
+
         delete it;
     }
 }
@@ -486,7 +486,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
 {
     WRITE_LOCK();
     root = remove_n(root, false_root, compare, merge, drop_duplicates, rawdata);
-    
+
     if (TAINTED(root))
     {
         count--;
@@ -551,15 +551,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                     {
                         struct tree_node* sub_false_root;
                         SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
-                        
+
                         struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
-                        
+
                         if (TAINTED(new_sub_root))
                         {
                             ret = 1;
                             UNTAINT(new_sub_root);
                         }
-                        
+
                         if (new_sub_root == NULL)
                         {
                             SET_VALUE(i);
@@ -652,14 +652,14 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
 
         if (new_root != NULL)
             SET_BLACK(new_root);
-        
+
         // Encode whether a node was deleted or not.
         if (ret)
             TAINT(new_root);
-        
+
         return new_root;
     }
-    
+
     return NULL;
 }
 
@@ -673,17 +673,17 @@ void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
 {
     struct tree_node* left = STRIP(root->link[0]);
     struct tree_node* right = STRIP(root->link[1]);
-    
+
     if (left != NULL)
         free_n(left, drop_duplicates);
-    
+
     if (right != NULL)
         free_n(right, drop_duplicates);
-    
+
     if (!drop_duplicates)
         if (IS_TREE(root))
             free_n(reinterpret_cast<struct tree_node*>(root->data), true);
-    
+
     free(root);
 }
 
@@ -697,15 +697,15 @@ inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, 
 {
     RBTIterator* it = new RBTIterator(ident);
     struct RedBlackTreeI::tree_node* curr = root;
-    
+
     while (curr != NULL)
     {
         it->trail.push(curr);
         curr = STRIP(curr->link[0]);
     }
-    
+
     it->drop_duplicates = drop_duplicates;
-    
+
     if (drop_duplicates)
     {
         it->dataobj->data = it->trail.top()->data;
@@ -713,7 +713,7 @@ inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, 
     else
     {
         struct tree_node* top = it->trail.top();
-        
+
         if (IS_TREE(top))
         {
             it->it = it_first(reinterpret_cast<struct tree_node*>(it->trail.top()->data), -1, true);
@@ -722,7 +722,7 @@ inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, 
         else
             it->dataobj->data = top->data;
     }
-    
+
     return it;
 }
 
@@ -759,7 +759,7 @@ inline DataObj* RBTIterator::next()
             delete it;
             it = NULL;
         }
-        
+
         if (STRIP(trail.top()->link[1]) != NULL)
         {
             struct RedBlackTreeI::tree_node* curr = trail.top();

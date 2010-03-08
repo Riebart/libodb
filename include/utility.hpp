@@ -46,7 +46,7 @@ inline bool prune_true(void* rawdata)
 inline int compare_addr(void* a, void* b)
 {
     int64_t c = reinterpret_cast<int64_t>(a) - reinterpret_cast<int64_t>(b);
-    
+
     if (c < 0)
         return -1;
     if (c > 0)

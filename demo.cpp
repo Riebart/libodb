@@ -187,10 +187,12 @@ int main(int argc, char *argv[])
         ftime(&start);
 
         num = read_flows(odb, fp);
-        printf("(");fflush(stdout);
+        printf("(");
+        fflush(stdout);
         //odb->remove_sweep();
         total_num += num;
-        printf("%lu) ", total_num - odb->size());fflush(stdout);
+        printf("%lu) ", total_num - odb->size());
+        fflush(stdout);
 
         ftime(&end);
 
