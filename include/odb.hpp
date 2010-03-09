@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "index.hpp"
 #include "lock.hpp"
@@ -64,6 +65,7 @@ public:
     void set_prune(bool (*prune)(void*));
     virtual bool (*get_prune())(void*);
     uint64_t size();
+    void update_time(time_t);
 
     //the memory limit, in pages
     uint64_t mem_limit;
