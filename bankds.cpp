@@ -147,10 +147,14 @@ inline void* BankIDS::add_data(void* rawdata)
     // Get the next free location.
     void* ret = get_addr();
 
-    // Copy the data into the datastore.
-    memcpy(ret, &rawdata, datalen);
+    // Copy the data into the datastore.    
+//     memcpy(ret, &rawdata, datalen);
     
-    return ret;
+    //Wait a sec - an IDS is just a buncha pointers, right? So why don't
+    //we just...
+    *(void**)ret=rawdata;
+    
+    return *(char**)ret;
 }
 
 inline void* BankDS::get_at(uint64_t index)
