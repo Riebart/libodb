@@ -301,6 +301,12 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
 
                         if (IS_TREE(i))
                         {
+//                             struct tree_node* new_root;
+//                             SAFE_MALLOC(struct tree_node*, new_root, sizeof(struct tree_node));
+//                             new_root->link[0] = reinterpret_cast<struct tree_node*>(i->data);
+//                             new_root->link[1] = NULL;
+//                             new_root->data = rawdata;
+//                             i->data = new_root;
                             struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
 
                             if (TAINTED(new_sub_root))
@@ -550,7 +556,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                         struct tree_node* sub_false_root;
                         SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
 
-                        struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
+                        struct tree_node* new_sub_root = remove_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
 
                         if (TAINTED(new_sub_root))
                         {
