@@ -70,7 +70,7 @@ private:
     /// @param [in] drop_duiplicates A boolean value indicating whether or not
     ///the tree should allow duplicates.
     RedBlackTreeI(int ident,
-                  int (*compare)(void*, void*),
+                  int32_t (*compare)(void*, void*),
                   void* (*merge)(void*, void*),
                   bool drop_duplicates);
 
@@ -130,7 +130,7 @@ private:
 
     static struct RedBlackTreeI::tree_node* add_data_n(struct tree_node* root,
                         struct tree_node* false_root,
-                        int (*compare)(void*, void*),
+                        int32_t (*compare)(void*, void*),
                         void* (*merge)(void*, void*),
                         bool drop_duplicates,
                         void* rawdata);
@@ -145,7 +145,7 @@ private:
     /// @retval 0 If the sub-tree is an invalid red-black tree.
     /// @retval >0 If the sub-tree is a valid red-black tree then it returns the
     ///black-height of the sub-tree.
-    int rbt_verify_n(struct tree_node* root);
+    int rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*));
 
     /// Perform a general query and insert the results.
     /// Recursion is used
@@ -173,7 +173,7 @@ private:
     virtual bool remove(void* rawdata);
     static struct RedBlackTreeI::tree_node* remove_n(struct tree_node* root,
                         struct tree_node* false_root,
-                        int (*compare)(void*, void*),
+                        int32_t (*compare)(void*, void*),
                         void* (*merge)(void*, void*),
                         bool drop_duplicates,
                         void* rawdata);

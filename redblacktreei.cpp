@@ -136,10 +136,10 @@ int RedBlackTreeI::rbt_verify()
     printf("TreePlot[{");
 #endif
     READ_LOCK();
-    int ret = rbt_verify_n(root);
+    int ret = rbt_verify_n(root, compare);
     READ_UNLOCK();
 #ifdef VERBOSE_RBT_VERIFY
-    printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_LIST(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
+    printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
     return ret;
 }
@@ -180,15 +180,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata, 
     SAFE_MALLOC(struct tree_node*, n, sizeof(struct tree_node));
 
     // Set the data pointer.
-//     if (drop_duplicates)
     n->data = rawdata;
-//     else
-//     {
-//         struct tree_node* n2;
-//         SAFE_CALLOC(struct tree_node*, n2, 1, sizeof(struct tree_node));
-//         n2->data = rawdata;
-//         n->data = n2;
-//     }
 
     // Make sure both children are marked as NULL, since NULL is the sentinel value for us.
     n->link[0] = NULL;
@@ -214,7 +206,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* root, struct tree_node* false_root, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* root, struct tree_node* false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
     uint8_t ret = 0;
@@ -304,11 +296,17 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
                     // And we're allowing duplicates...
                     else if (!drop_duplicates)
                     {
+                        struct tree_node* sub_false_root;
+                        SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
+
                         if (IS_TREE(i))
                         {
-                            struct tree_node* sub_false_root;
-                            SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
-
+//                             struct tree_node* new_root;
+//                             SAFE_MALLOC(struct tree_node*, new_root, sizeof(struct tree_node));
+//                             new_root->link[0] = reinterpret_cast<struct tree_node*>(i->data);
+//                             new_root->link[1] = NULL;
+//                             new_root->data = rawdata;
+//                             i->data = new_root;
                             struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
 
                             if (TAINTED(new_sub_root))
@@ -336,6 +334,8 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
 
                             ret = 1;
                         }
+
+                        free(sub_false_root);
                     }
                 }
 
@@ -375,7 +375,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
     return new_root;
 }
 
-int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
+int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*))
 {
     int height_l, height_r;
 
@@ -383,6 +383,10 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
         return 1;
     else
     {
+        if (IS_TREE(root))
+            if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(root->data), compare_addr)) == 0)
+                FAIL("Child tree is broken.\n");
+
         struct tree_node* left = STRIP(root->link[0]);
         struct tree_node* right = STRIP(root->link[1]);
 
@@ -400,13 +404,13 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root)
 
 #ifdef VERBOSE_RBT_VERIFY
         if (left)
-            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_LIST(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_LIST(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
+            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_TREE(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
         if (right)
-            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_LIST(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_LIST(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
+            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_TREE(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
 #endif
 
-        height_l = rbt_verify_n(left);
-        height_r = rbt_verify_n(right);
+        height_l = rbt_verify_n(left, compare);
+        height_r = rbt_verify_n(right, compare);
 
         // Verify BST property.
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
@@ -498,7 +502,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     WRITE_UNLOCK();
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root, struct tree_node* false_root, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root, struct tree_node* false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
 {
     uint8_t ret = 0;
 
@@ -552,7 +556,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                         struct tree_node* sub_false_root;
                         SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));
 
-                        struct tree_node* new_sub_root = add_data_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
+                        struct tree_node* new_sub_root = remove_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, compare_addr, NULL, true, rawdata);
 
                         if (TAINTED(new_sub_root))
                         {

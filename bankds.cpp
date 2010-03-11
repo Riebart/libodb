@@ -12,10 +12,10 @@ using namespace std;
 
 BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
-    init(parent, prune, datalen+sizeof(time_t), cap);
+    init(parent, prune, datalen + sizeof(time_t), cap);
 }
 
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*)-sizeof(time_t), cap)
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*) - sizeof(time_t), cap)
 {
 }
 
@@ -74,7 +74,7 @@ inline void* BankDS::add_data(void* rawdata)
     memcpy(ret, rawdata, datalen-sizeof(time_t));
 
     // Stores a timestamp at the end of the data
-    *(time_t *)(ret+datalen-sizeof(time_t)) = cur_time;
+    *(time_t *)(reinterpret_cast<char*>(ret) + datalen - sizeof(time_t)) = cur_time;
 
     return ret;
 }
