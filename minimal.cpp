@@ -2,8 +2,6 @@
 #include <stdlib.h>
 
 #include "odb.hpp"
-// #include "redblacktreei.hpp"
-#include "index.hpp"
 
 inline bool prune(void* rawdata)
 {

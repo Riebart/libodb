@@ -26,6 +26,11 @@
 
 inline bool prune_1(void* rawdata)
 {
+    return (((*(long*)rawdata) % 3) == 0);
+}
+
+inline bool prune_2(void* rawdata)
+{
     return (((*(long*)rawdata) % 2) == 0);
 }
 
@@ -95,13 +100,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::BANK_DS, prune_false, element_size);
+            odb = new ODB(ODB::BANK_DS, prune_2, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::BANK_I_DS, prune_false);
+            odb = new ODB(ODB::BANK_I_DS, prune_2);
             break;
         }
         default:
@@ -116,13 +121,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::LINKED_LIST_DS, prune_false, element_size);
+            odb = new ODB(ODB::LINKED_LIST_DS, prune_2, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::LINKED_LIST_I_DS, prune_false);
+            odb = new ODB(ODB::LINKED_LIST_I_DS, prune_2);
             break;
         }
         default:
@@ -193,6 +198,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
 
     ftime(&end);
+    
+    odb->remove_sweep();
 
     if ((index_type >> 1) == 0)
     {
@@ -213,11 +220,14 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         res[j]->remove_sweep();
 
         Iterator* it = ind2->it_first();
-        do
+        if (it->data_v() != NULL)
         {
-            fprintf(stderr, "%ld\n", *(long*)(it->data_v()));
+            do
+            {
+                fprintf(stderr, "%ld\n", *(long*)(it->data_v()));
+            }
+            while (it->next());
         }
-        while (it->next());
 
         //printf("%ld:", (int64_t)(ind2->size()));
         printf("%ld:", (int64_t)(res[j]->size()));

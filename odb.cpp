@@ -257,7 +257,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     RWLOCK_INIT();
 
     //just to get us started
-    mem_limit=9999999999;
+    mem_limit = (uint64_t)9999999999;
 
     running = 1;
 

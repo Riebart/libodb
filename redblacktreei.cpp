@@ -5,20 +5,12 @@
 
 using namespace std;
 
-#define X64_HEAD 0xFFFFFFFF00000000
-#define RED_BLACK_MASK_BASE 0xFFFFFFFE
-#define TREE_MASK_BASE 0xFFFFFFFD
-#define META_MASK_BASE 0xFFFFFFF8
-
-#if __amd64__ || _WIN64
-#define RED_BLACK_MASK (X64_HEAD | RED_BLACK_MASK_BASE)
-#define TREE_MASK (X64_HEAD | TREE_MASK_BASE)
-#define META_MASK (X64_HEAD | META_MASK_BASE)
-#else
-#define RED_BLACK_MASK RED_BLACK_MASK_BASE
-#define TREE_MASK TREE_MASK_BASE
-#define META_MASK META_MASK_BASE
-#endif
+#define RED_BLACK_BIT 0x1
+#define RED_BLACK_MASK ~RED_BLACK_BIT
+#define TREE_BIT 0x2
+#define TREE_MASK ~TREE_BIT
+#define META_BIT 0x7
+#define META_MASK ~META_BIT
 
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer.
@@ -27,27 +19,27 @@ using namespace std;
 /// @retval 0 If the node is black or NULL.
 /// @retval 1 If the node is red and non-NULL.
 ///conventions of C that 0 is a boolean false, and non-zero is a boolean true).
-#define IS_RED(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & 0x1))
+#define IS_RED(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_BIT))
 
 /// Get whether or not this node contains a linked list for duplicates.
 /// Performs an embedded NULL check.
 /// @param [in] x A pointer to the node to have its duplicate-status checked.
 /// @retval 0 If the value is singular or NULL.
 /// @retval 1 If the node contains an embedded list.
-#define IS_TREE(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & 0x2))
+#define IS_TREE(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & TREE_BIT))
 
 /// Get whether or not this node contains a linked list for duplicates.
 /// Performs an embedded NULL check.
 /// @param [in] x A pointer to the node to have its duplicate-status checked.
 /// @retval 0 If the node contains an embedded list or is NULL.
 /// @retval 1 If the value is singular.
-#define IS_VALUE(x) ((STRIP(x) != NULL) && !((reinterpret_cast<uint64_t>(x->link[0])) & 0x2))
+#define IS_VALUE(x) ((STRIP(x) != NULL) && !((reinterpret_cast<uint64_t>(x->link[0])) & TREE_BIT))
 
 /// Set a node as red.
 /// Get the value of the least-significant bit in the specified node's left
 ///pointer to 1.
 /// @param [in] x A pointer to the node to have its colour set.
-#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x1)))
+#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | RED_BLACK_BIT)))
 
 /// Set a node as black.
 /// Get the value of the least-significant bit in the specified node's left
@@ -59,7 +51,7 @@ using namespace std;
 /// Set the value of the second-least-significant bit in the specified node's
 ///left pointer to 1.
 /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_TREE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | 0x2)))
+#define SET_TREE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | TREE_BIT)))
 
 /// Set a node as containing a single value.
 /// Set the value of the second-least-significant bit in the specified node's
@@ -90,7 +82,7 @@ using namespace std;
 /// @param [in,out] x A pointer to the link to be set. The meta data of this
 ///link is not destroyed during the process.
 /// @param [in] y A pointer to the location for x to end up pointing to.
-#define SET_LINK(x, y) (x = (reinterpret_cast<struct RedBlackTreeI::tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & 0x7))))
+#define SET_LINK(x, y) (x = (reinterpret_cast<struct RedBlackTreeI::tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & META_BIT))))
 
 /// Get the data out of a node.
 /// Since a node can contain either a single value or a linked list, this takes
@@ -102,9 +94,9 @@ using namespace std;
 ///returned is that contained in the head of the list.
 #define GET_DATA(x) (IS_VALUE(x) ? (x->data) : ((reinterpret_cast<struct tree_node*>(x->data))->data))
 
-#define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) | 0x1))
+#define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) | RED_BLACK_BIT))
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
-#define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & 0x1)
+#define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
 
 RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
 {
@@ -700,31 +692,39 @@ inline Iterator* RedBlackTreeI::it_first()
 inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
 {
     RBTIterator* it = new RBTIterator(ident);
-    struct RedBlackTreeI::tree_node* curr = root;
-
-    while (curr != NULL)
+    
+    if (root == NULL)
     {
-        it->trail.push(curr);
-        curr = STRIP(curr->link[0]);
-    }
-
-    it->drop_duplicates = drop_duplicates;
-
-    if (drop_duplicates)
-    {
-        it->dataobj->data = it->trail.top()->data;
+        it->dataobj->data = NULL;
     }
     else
-    {
-        struct tree_node* top = it->trail.top();
+    {    
+        struct RedBlackTreeI::tree_node* curr = root;
 
-        if (IS_TREE(top))
+        while (curr != NULL)
         {
-            it->it = it_first(reinterpret_cast<struct tree_node*>(it->trail.top()->data), -1, true);
-            it->dataobj->data = it->it->data_v();
+            it->trail.push(curr);
+            curr = STRIP(curr->link[0]);
+        }
+
+        it->drop_duplicates = drop_duplicates;
+
+        if (drop_duplicates)
+        {
+            it->dataobj->data = it->trail.top()->data;
         }
         else
-            it->dataobj->data = top->data;
+        {
+            struct tree_node* top = it->trail.top();
+
+            if (IS_TREE(top))
+            {
+                it->it = it_first(reinterpret_cast<struct tree_node*>(it->trail.top()->data), -1, true);
+                it->dataobj->data = it->it->data_v();
+            }
+            else
+                it->dataobj->data = top->data;
+        }
     }
 
     return it;
