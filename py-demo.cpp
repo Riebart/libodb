@@ -10,12 +10,12 @@ using namespace boost::python;
 
 char * handle_indent(char * string)
 {
-    char * tmp;
+    char * tmp, * tmp2;
     
     printf("... ");
     
     //TODO: don't overflow me buffers
-    fgets(string, BUF_SIZE-1, stdin);
+    tmp2 = fgets(string, BUF_SIZE-1, stdin);
     
     while (string[0] == '\t')
     {
@@ -29,9 +29,11 @@ char * handle_indent(char * string)
         string=strchr(string, '\n');
         string++;
         
-        fgets(tmp, BUF_SIZE-1-(tmp-string), stdin);
+        tmp2 = fgets(tmp, BUF_SIZE-1-(tmp-string), stdin);
    
     }
+    
+    return string;
                     
     
 }
@@ -44,7 +46,7 @@ int main(int argc, char ** argv)
     Py_InitializeEx(0);
     
     char buffer [BUF_SIZE];
-    char * tmp;
+    char * tmp, * tmp2;
 
     object main_module = import("__main__");
     object main_namespace = main_module.attr("__dict__");
@@ -57,7 +59,7 @@ int main(int argc, char ** argv)
                
             printf(">>> ");
             
-            fgets(buffer, BUF_SIZE-1, stdin);
+            tmp2 = fgets(buffer, BUF_SIZE-1, stdin);
             
             if (buffer[0] == '\0')
             {
@@ -70,8 +72,7 @@ int main(int argc, char ** argv)
                 handle_indent(tmp+1);                
             }
             
-            printf(buffer);
-            printf("\n");            
+            printf("%500s\n", buffer);          
             object ignored = exec(buffer, main_namespace, main_namespace);
 
             memset(buffer, 0, BUF_SIZE);
@@ -80,8 +81,7 @@ int main(int argc, char ** argv)
         }   
         catch (error_already_set const &)
         {
-            printf(buffer);
-            printf("\n");
+            printf("%500s\n", buffer);
             PyErr_Print();
             
         }
