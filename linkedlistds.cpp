@@ -110,7 +110,7 @@ inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 
 inline void* LinkedListIDS::add_data(void* rawdata)
 {
-    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(LinkedListDS::add_data(&rawdata))));
+    return *(reinterpret_cast<void**>(LinkedListDS::add_data(&rawdata)));
 }
 
 inline bool LinkedListDS::remove_at(uint64_t index)

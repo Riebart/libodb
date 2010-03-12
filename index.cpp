@@ -175,7 +175,12 @@ inline Iterator* Index::it_first()
     return NULL;
 }
 
-inline Iterator* Index::it_middle(DataObj* data)
+inline Iterator* Index::it_last()
+{
+    return NULL;
+}
+
+inline Iterator* Index::it_lookup(void* rawdata, int8_t dir)
 {
     return NULL;
 }
@@ -201,6 +206,11 @@ Iterator::~Iterator()
 }
 
 DataObj* Iterator::next()
+{
+    return NULL;
+}
+
+DataObj* Iterator::prev()
 {
     return NULL;
 }

@@ -148,7 +148,8 @@ inline void* BankIDS::add_data(void* rawdata)
     void* ret = get_addr();
 
     // Copy the data into the datastore.
-    memcpy(ret, &rawdata, datalen);
+    //memcpy(ret, &rawdata, datalen);
+    *reinterpret_cast<void**>(ret) = rawdata;
 
     return reinterpret_cast<void*>(*(reinterpret_cast<char**>(ret)));
 }
@@ -166,7 +167,7 @@ inline void* BankIDS::get_at(uint64_t index)
 {
     // Perform the necessary dereferencing and casting.
     // Since you can't dereference a void*, cast it to a char**. Since dereferencing a char** ends up with a char*, be sure to cast that into a void* for returning.
-    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(BankDS::get_at(index))));
+    return *(reinterpret_cast<void**>(BankDS::get_at(index)));
 }
 
 inline bool BankDS::remove_at(uint64_t index)
@@ -233,16 +234,16 @@ inline vector<void*>** BankIDS::remove_sweep()
     READ_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
-            if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j)))))
+            if (prune(*(reinterpret_cast<void**>(*(data + i) + j))))
             {
-                marked[0]->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j))));
+                marked[0]->push_back(*(reinterpret_cast<void**>(*(data + i) + j)));
                 marked[1]->push_back(*(data + i) + j);
             }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
-        if (prune(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j)))))
+        if (prune(*(reinterpret_cast<void**>(*(data + posA) + j))))
         {
-            marked[0]->push_back(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
+            marked[0]->push_back(*(reinterpret_cast<void**>(*(data + posA) + j)));
             marked[1]->push_back(*(data + posA) + j);
         }
 
@@ -285,10 +286,10 @@ inline void BankIDS::populate(Index* index)
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
-            index->add_data_v(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + i) + j))));
+            index->add_data_v(*(reinterpret_cast<void**>(*(data + i) + j)));
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
-        index->add_data_v(reinterpret_cast<void*>(*(reinterpret_cast<char**>(*(data + posA) + j))));
+        index->add_data_v(*(reinterpret_cast<void**>(*(data + posA) + j)));
 
     READ_UNLOCK();
 }

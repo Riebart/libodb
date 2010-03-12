@@ -278,11 +278,14 @@ public:
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the 'first' item in the index table.
     virtual Iterator* it_first();
+    
+    /// Iterator initialization method.
+    /// @return A pointer to an iterator that starts at the 'last' item in the index table.
+    virtual Iterator* it_last();
 
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the specified data.
-    /// @todo Really need to implement these.
-    virtual Iterator* it_middle(DataObj* data);
+    virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
 
     /// Release the specified iterator.
     /// This releases the memory held by the iterator and takes care of releasing
@@ -344,6 +347,7 @@ class Iterator
 public:
     virtual ~Iterator();
     virtual DataObj* next();
+    virtual DataObj* prev();
     virtual DataObj* data();
     virtual void* data_v();
 

@@ -56,7 +56,8 @@ public:
     int rbt_verify();
 
     virtual Iterator* it_first();
-    virtual Iterator* it_middle(DataObj* data);
+    virtual Iterator* it_last();
+    virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
 
 private:
     /// Standard constructor
@@ -148,27 +149,15 @@ private:
     int rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*));
 
     /// Perform a general query and insert the results.
-    /// Recursion is used
-    ///(calls RedBlackTreeI::query(struct tree_node*, bool (*)(void*), DataStore*)
-    ///on the root of the tree) to traverse the tree and insert the results.
     /// @param [in] condition A condition function that returns true if the piece
     ///of data 'passes' (and should be added to the query results) and false if
     ///the data fails (and will not be returned in the results).
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     void query(bool (*condition)(void*), DataStore* ds);
-
-    /// Recursively perform a general query on the tree and insert the results.
-    /// Recursion occurs to traverse the non-NULL left and right substrees of
-    ///a node. When a node with an embedded linked list is encountered, all
-    ///elements in the linked list are processed as well.
-    /// @param [in] root The root of the current subtree.
-    /// @param [in] condition A condition function that returns true if the
-    ///piece of data 'passes' (and should be added to the query results) and
-    ///false if the data fails (and will not be returned in the results).
-    /// @param [in] ds A pointer to a datastore that will be filled with the
-    ///results of the query.
-    void query(struct tree_node* root, bool (*condition)(void*), DataStore* ds);
+    void query_eq(void* rawdata, DataStore* ds);
+    void query_lt(void* rawdata, DataStore* ds);
+    void query_gt(void* rawdata, DataStore* ds);
 
     virtual bool remove(void* rawdata);
     static struct RedBlackTreeI::tree_node* remove_n(struct tree_node* root,
@@ -180,6 +169,8 @@ private:
     virtual void remove_sweep(std::vector<void*>* marked);
 
     static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_last(struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_lookup(struct tree_node* root, int ident, bool drop_duiplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir);
 };
 
 class RBTIterator : public Iterator
@@ -189,6 +180,7 @@ class RBTIterator : public Iterator
 public:
     virtual ~RBTIterator();
     virtual DataObj* next();
+    virtual DataObj* prev();
     virtual DataObj* data();
     virtual void* data_v();
 
