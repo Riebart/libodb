@@ -404,7 +404,7 @@ void ODB::remove_sweep()
 
     data->remove_cleanup(marked[1]);
     WRITE_UNLOCK();
-    
+
     if (marked[0] != marked[1])
         delete marked[1];
     delete marked[0];

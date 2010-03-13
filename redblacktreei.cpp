@@ -109,7 +109,7 @@ RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* 
     count = 0;
 
     //treeds = new BankDS(NULL, prune_false, sizeof(struct tree_node));
-    
+
     // Initialize the false root
     SAFE_CALLOC(struct tree_node*, false_root, 1, sizeof(struct tree_node));
     SAFE_CALLOC(struct tree_node*, sub_false_root, 1, sizeof(struct tree_node));

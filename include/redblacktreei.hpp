@@ -97,7 +97,7 @@ private:
     /// This allows us to perform rotations involving the root without it
     ///being a particular issue.
     struct tree_node* false_root;
-    
+
     struct tree_node* sub_false_root;
 
     /// Perform a single tree rotation in one direction.
@@ -131,14 +131,14 @@ private:
     /// @param [in] rawdata Pointer to the raw data.
     virtual void add_data_v(void* rawdata);
 
-    static struct RedBlackTreeI::tree_node* add_data_n(DataStore* treeds, 
-                                                       struct tree_node* root,
-                                                       struct tree_node* false_root,
-                                                       struct tree_node* sub_false_root,
-                                                       int32_t (*compare)(void*, void*),
-                                                       void* (*merge)(void*, void*),
-                                                       bool drop_duplicates,
-                                                       void* rawdata);
+    static struct RedBlackTreeI::tree_node* add_data_n(DataStore* treeds,
+                        struct tree_node* root,
+                        struct tree_node* false_root,
+                        struct tree_node* sub_false_root,
+                        int32_t (*compare)(void*, void*),
+                        void* (*merge)(void*, void*),
+                        bool drop_duplicates,
+                        void* rawdata);
 
     /// Recursive function for freeing the tree.
     /// Uses recursion to free the tree and interation to free the lists.
@@ -164,20 +164,20 @@ private:
     void query_gt(void* rawdata, DataStore* ds);
 
     virtual bool remove(void* rawdata);
-    static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds, 
-                                                     struct tree_node* root,
-                                                     struct tree_node* false_root,
-                                                     struct tree_node* sub_false_root,
-                                                     int32_t (*compare)(void*, void*),
-                                                     void* (*merge)(void*, void*),
-                                                     bool drop_duplicates,
-                                                     void* rawdata);
+    static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds,
+                        struct tree_node* root,
+                        struct tree_node* false_root,
+                        struct tree_node* sub_false_root,
+                        int32_t (*compare)(void*, void*),
+                        void* (*merge)(void*, void*),
+                        bool drop_duplicates,
+                        void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
     static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_last(struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_lookup(struct tree_node* root, int ident, bool drop_duiplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir);
-    
+
     DataStore* treeds;
 };
 
