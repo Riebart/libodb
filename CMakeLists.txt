@@ -10,7 +10,7 @@ project (TM-PROJECT)
 
 #set(CMAKE_CXX_FLAGS "-Wall -O0 -g")
 #set(CMAKE_CXX_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -O2 -fopenmp -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -fopenmp -pthread")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 

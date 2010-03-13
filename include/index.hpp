@@ -278,7 +278,7 @@ public:
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the 'first' item in the index table.
     virtual Iterator* it_first();
-    
+
     /// Iterator initialization method.
     /// @return A pointer to an iterator that starts at the 'last' item in the index table.
     virtual Iterator* it_last();

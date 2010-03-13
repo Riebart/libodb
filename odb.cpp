@@ -257,11 +257,11 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     RWLOCK_INIT();
 
     //just to get us started
-    #if __amd64__ || _WIN64
+#if __amd64__ || _WIN64
     mem_limit = 9999999999;
-    #else
+#else
     mem_limit = 2000000000;
-    #endif
+#endif
 
     running = 1;
 
@@ -404,6 +404,10 @@ void ODB::remove_sweep()
 
     data->remove_cleanup(marked[1]);
     WRITE_UNLOCK();
+    
+    if (marked[0] != marked[1])
+        delete marked[1];
+    delete marked[0];
     delete marked;
 }
 

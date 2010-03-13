@@ -198,7 +198,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
 
     ftime(&end);
-    
+
     odb->remove_sweep();
 
     if ((index_type >> 1) == 0)
