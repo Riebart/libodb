@@ -190,18 +190,23 @@ inline bool BankDS::remove_at(uint64_t index)
 
 inline bool BankDS::remove_addr(void* addr)
 {
-    WRITE_LOCK();
-    for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
-        if ((addr < (*(data + i))) || (addr >= ((*(data + i)) + cap_size)))
-            return false;
+    bool found = false;
 
-    if ((addr < (*(data + posA))) || (addr >= ((*(data + posA)) + posB)))
-        return false;
+    for (uint64_t i = 0 ; ((i < posA) && (!found)) ; i += sizeof(char*))
+        if ((addr >= (*(data + i))) && (addr < ((*(data + i)) + cap_size)))
+            found = true;
 
-    data_count--;
-    deleted.push(addr);
-    WRITE_UNLOCK();
-    return true;
+    if ((addr >= (*(data + posA))) && (addr < ((*(data + posA)) + posB)))
+        found = true;
+    
+    if (found)
+    {
+        WRITE_LOCK();
+        data_count--;
+        deleted.push(addr);
+        WRITE_UNLOCK();
+    }
+    return found;
 }
 
 inline vector<void*>** BankDS::remove_sweep()
