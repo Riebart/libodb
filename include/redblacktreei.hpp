@@ -173,6 +173,7 @@ private:
                         bool drop_duplicates,
                         void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_last(struct tree_node* root, int ident, bool drop_duiplicates);

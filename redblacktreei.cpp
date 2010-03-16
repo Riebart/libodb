@@ -667,6 +667,45 @@ inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
         remove(marked->at(i));
 }
 
+inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr)
+{
+    WRITE_LOCK();
+    
+    for (uint32_t i = 0 ; i < old_addr->size() ; i++)
+    {
+        int32_t (*compare_loc)(void*, void*) = compare;
+        struct tree_node* p;
+        struct tree_node* curr = root;
+        int32_t c;
+        uint8_t dir;
+        
+        while (curr != NULL)
+        {
+            c = compare_loc(old_addr->at(i), GET_DATA(curr));
+            
+            if (c == 0)
+            {
+                if (IS_TREE(curr))
+                {
+                    compare_loc = compare_addr;
+                    curr = reinterpret_cast<struct tree_node*>(curr->data);
+                    continue;
+                }
+                else if ((curr->data) == old_addr->at(i))
+                    curr->data = new_addr->at(i);
+                
+                break;
+            }
+            
+            dir = (c > 0);
+            p = curr;
+            curr = STRIP(curr->link[dir]);
+        }
+    }
+    
+    WRITE_UNLOCK();
+}
+
 void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
 {
     struct tree_node* left = STRIP(root->link[0]);

@@ -183,12 +183,12 @@ inline bool LinkedListDS::remove_addr(void* addr)
     return true;
 }
 
-/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListDS::remove_sweep()
 {
-    vector<void*>** marked = new vector<void*>*[2];
+    vector<void*>** marked = new vector<void*>*[3];
     marked[0] = new vector<void*>();
     marked[1] = new vector<void*>();
+    marked[2] = NULL;
 
     READ_LOCK();
     struct datanode* curr = bottom;
@@ -224,12 +224,12 @@ std::vector<void*>** LinkedListDS::remove_sweep()
     return marked;
 }
 
-/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListIDS::remove_sweep()
 {
-    vector<void*>** marked = new vector<void*>*[2];
+    vector<void*>** marked = new vector<void*>*[3];
     marked[0] = new vector<void*>();
     marked[1] = new vector<void*>();
+    marked[2] = NULL;
 
     READ_LOCK();
     struct datanode* curr = bottom;
@@ -263,22 +263,26 @@ std::vector<void*>** LinkedListIDS::remove_sweep()
     return marked;
 }
 
-void LinkedListDS::remove_cleanup(vector<void*>* marked)
+void LinkedListDS::remove_cleanup(vector<void*>** marked)
 {
     WRITE_LOCK();
     // Remove all but the first item.
     // We need to traverse last to first so we don't unlink any 'parents'.
     struct datanode* curr;
     void* temp;
-    for (int32_t i = marked->size()-1 ; i > 0 ; i--)
+    for (int32_t i = marked[1]->size()-1 ; i > 0 ; i--)
     {
-        curr = reinterpret_cast<struct datanode*>(marked->at(i));
+        curr = reinterpret_cast<struct datanode*>(marked[1]->at(i));
         temp = curr->next;
         curr->next = curr->next->next;
         free(temp);
     }
-    data_count -= marked->size();
+    data_count -= marked[1]->size();
     WRITE_UNLOCK();
+    
+    delete marked[0];
+    delete marked[1];
+    delete marked;
 }
 
 inline void LinkedListDS::populate(Index* index)

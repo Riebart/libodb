@@ -124,7 +124,7 @@ protected:
     /// Clean up the pruned data by marking it available for reallocation.
     /// @param [in] marked A vector of locations to memory that has been pruned
     ///from all associated index tables and is ready to be reallocated.
-    virtual void remove_cleanup(std::vector<void*>* marked);
+    virtual void remove_cleanup(std::vector<void*>** marked);
 
     /// Populate a given index table with all items in this datastore.
     /// It is conceivable that, when a new index table is created

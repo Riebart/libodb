@@ -1,7 +1,5 @@
 #include "index.hpp"
 
-#include <omp.h>
-
 #include "odb.hpp"
 #include "datastore.hpp"
 
@@ -167,6 +165,10 @@ inline bool Index::remove(void* rawdata)
 }
 
 inline void Index::remove_sweep(vector<void*>* marked)
+{
+}
+
+inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr)
 {
 }
 

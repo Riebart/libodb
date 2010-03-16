@@ -51,7 +51,7 @@ inline std::vector<void*>** DataStore::remove_sweep()
     return NULL;
 }
 
-inline void DataStore::remove_cleanup(std::vector<void*>* marked)
+inline void DataStore::remove_cleanup(std::vector<void*>** marked)
 {
 }
 

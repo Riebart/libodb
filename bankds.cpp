@@ -2,6 +2,7 @@
 #include "utility.hpp"
 
 #include <algorithm>
+#include <omp.h>
 #include <string.h>
 #include <time.h>
 
@@ -211,38 +212,84 @@ inline bool BankDS::remove_addr(void* addr)
 
 inline vector<void*>** BankDS::remove_sweep()
 {
-    vector<void*>** marked = new vector<void*>*[2];
-    marked[0] = new vector<void*>();
-    marked[1] = marked[0];
+    vector<void*>** marked = new vector<void*>*[4];
+    marked[0] = new vector<void*>(); // Addresses that point to data that contains sweepable data
+    marked[1] = NULL;
+    marked[2] = marked[0];           // Addresses that have been swept.
+    marked[3] = new vector<void*>(); // Replacement addresses.
+    
+    uint64_t posB_t = posB - datalen;
+    uint64_t posA_t = posA;
+    
+    if (posB_t < 0)
+    {
+        posB_t = cap_size - datalen;
+        posA_t -= sizeof(char*);
+    }
 
-    READ_LOCK();
+    WRITE_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(*(data + i) + j))
+            {
                 marked[0]->push_back(*(data + i) + j);
+                marked[3]->push_back(*(data + posA_t) + posB_t);
+                posB_t -= datalen;
+                if (posB_t < 0)
+                {
+                    posA_t -= sizeof(char*);
+                    posB_t = cap_size - datalen;
+                }
+            }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
         if (prune(*(data + posA) + j))
+        {
             marked[0]->push_back(*(data + posA) + j);
+            marked[3]->push_back(*(data + posA_t) + posB_t);
+            posB_t -= datalen;
+            if (posB_t < 0)
+            {
+                posA_t -= sizeof(char*);
+                posB_t = cap_size - datalen;
+            }
+        }
 
-    READ_UNLOCK();
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
 inline vector<void*>** BankIDS::remove_sweep()
 {
-    vector<void*>** marked = new vector<void*>*[2];
+    vector<void*>** marked = new vector<void*>*[4];
     marked[0] = new vector<void*>();
     marked[1] = new vector<void*>();
+    marked[2] = marked[1];
+    marked[3] = new vector<void*>();
+    
+    uint64_t posB_t = posB - datalen;
+    uint64_t posA_t = posA;
+    
+    if (posB_t < 0)
+    {
+        posB_t = cap_size - datalen;
+        posA_t -= sizeof(char*);
+    }
 
-    READ_LOCK();
+    WRITE_LOCK();
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
             if (prune(*(reinterpret_cast<void**>(*(data + i) + j))))
             {
                 marked[0]->push_back(*(reinterpret_cast<void**>(*(data + i) + j)));
                 marked[1]->push_back(*(data + i) + j);
+                marked[3]->push_back(*(data + posA_t) + posB_t);
+                posB_t -= datalen;
+                if (posB_t < 0)
+                {
+                    posA_t -= sizeof(char*);
+                    posB_t = cap_size - datalen;
+                }
             }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
@@ -250,20 +297,42 @@ inline vector<void*>** BankIDS::remove_sweep()
         {
             marked[0]->push_back(*(reinterpret_cast<void**>(*(data + posA) + j)));
             marked[1]->push_back(*(data + posA) + j);
+            marked[3]->push_back(*(data + posA_t) + posB_t);
+            posB_t -= datalen;
+            if (posB_t < 0)
+            {
+                posA_t -= sizeof(char*);
+                posB_t = cap_size - datalen;
+            }
         }
 
-    READ_UNLOCK();
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
-inline void BankDS::remove_cleanup(std::vector<void*>* marked)
+inline void BankDS::remove_cleanup(std::vector<void*>** marked)
 {
-    WRITE_LOCK();
-    for (uint32_t i = 0 ; i < marked->size() ; i++)
-        deleted.push(marked->at(i));
-    data_count -= marked->size();
+#pragma omp parallel for
+    for (uint32_t i = 0 ; i < marked[0]->size() ; i++)
+        memcpy(marked[2]->at(i), marked[3]->at(i), datalen);
+    
+    data_count -= marked[2]->size();
+    
+    posB -= datalen * marked[2]->size();
+    while (posB < 0)
+    {
+        free(*(data + posA));
+        posA -= sizeof(char*);
+        posB += cap_size;
+    }
+    
     WRITE_UNLOCK();
+    
+    if (marked[1] != NULL)
+        delete marked[1];
+    delete marked[0];
+    delete marked[3];
+    delete marked;
 }
 
 inline void BankDS::populate(Index* index)
