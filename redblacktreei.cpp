@@ -428,7 +428,6 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*
 
 void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
 {
-    READ_LOCK();
     Iterator* it = it_first();
     void* temp;
 
@@ -444,12 +443,10 @@ void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
         while (it->next());
     }
     it_release(it);
-    READ_UNLOCK();
 }
 
 void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
 {
-    READ_LOCK();
     Iterator* it = it_lookup(rawdata, 0);
     void* temp;
 
@@ -467,12 +464,10 @@ void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
         while (it->next());
     }
     it_release(it);
-    READ_UNLOCK();
 }
 
 void RedBlackTreeI::query_lt(void* rawdata, DataStore* ds)
 {
-    READ_LOCK();
     Iterator* it = it_lookup(rawdata, -1);
 
     if (it->data() != NULL)
@@ -484,12 +479,10 @@ void RedBlackTreeI::query_lt(void* rawdata, DataStore* ds)
         while (it->prev());
     }
     it_release(it);
-    READ_UNLOCK();
 }
 
 void RedBlackTreeI::query_gt(void* rawdata, DataStore* ds)
 {
-    READ_LOCK();
     Iterator* it = it_lookup(rawdata, 1);
 
     if (it->data() != NULL)
@@ -501,7 +494,6 @@ void RedBlackTreeI::query_gt(void* rawdata, DataStore* ds)
         while (it->next());
     }
     it_release(it);
-    READ_UNLOCK();
 }
 
 inline bool RedBlackTreeI::remove(void* rawdata)
@@ -513,11 +505,15 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     {
         count--;
         UNTAINT(root);
+        WRITE_UNLOCK();
         return true;
     }
     else
+    {
+        WRITE_UNLOCK();
         return false;
-    WRITE_UNLOCK();
+    }
+
 }
 
 struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)

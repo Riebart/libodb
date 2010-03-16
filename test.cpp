@@ -245,7 +245,7 @@ int main (int argc, char ** argv)
     uint32_t test_num = 1;
     uint32_t test_type = 0;
     uint32_t index_type = 0;
-    uint32_t max_mem = 1000000;
+    uint32_t max_mem = 700000;
 
     int ch;
 
