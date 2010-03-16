@@ -501,19 +501,13 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     WRITE_LOCK();
     root = remove_n(treeds, root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
-    if (TAINTED(root))
-    {
-        count--;
-        UNTAINT(root);
-        WRITE_UNLOCK();
-        return true;
-    }
-    else
-    {
-        WRITE_UNLOCK();
-        return false;
-    }
-
+    uint8_t ret = TAINTED(root);
+    if (ret)
+        root = UNTAINT(root);
+    
+    count -= ret;
+    WRITE_UNLOCK();
+    return ret;
 }
 
 struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
