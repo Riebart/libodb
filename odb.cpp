@@ -29,6 +29,8 @@ void * mem_checker(void * arg)
 
     uint64_t vsize;
     int64_t rsize;
+    
+    int count =20000;
 
     pid_t pid=getpid();
 
@@ -66,7 +68,14 @@ void * mem_checker(void * arg)
         }
         else
         {
-//             parent->remove_sweep();
+            //only do this once per second
+            count++;
+            if (count > 30000)
+            {
+                count=0;
+                printf("Count - Rsize: %ld mem_limit: %lu\n", rsize, parent->mem_limit);
+                parent->remove_sweep();
+            }
         }
 
         nanosleep(&ts, NULL);
@@ -257,11 +266,11 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
     RWLOCK_INIT();
 
     //just to get us started
-#if __amd64__ || _WIN64
-    mem_limit = 9999999999;
-#else
-    mem_limit = 2000000000;
-#endif
+    #if __amd64__ || _WIN64
+    mem_limit = 700000;
+    #else
+    mem_limit = 700000;
+    #endif
 
     running = 1;
 
@@ -404,26 +413,22 @@ void ODB::remove_sweep()
 
     data->remove_cleanup(marked[1]);
     WRITE_UNLOCK();
-
-    if (marked[0] != marked[1])
-        delete marked[1];
-    delete marked[0];
     delete marked;
 }
 
 void ODB::set_prune(bool (*prune)(void*))
 {
-    WRITE_LOCK();
+//     WRITE_LOCK();
     data->prune = prune;
-    WRITE_UNLOCK();
+//     WRITE_UNLOCK();
 }
 
 bool (*ODB::get_prune())(void*)
 {
     bool (*temp)(void*);
-    READ_LOCK();
+//     READ_LOCK();
     temp = data->prune;
-    READ_UNLOCK();
+//     READ_UNLOCK();
     return temp;
 }
 
