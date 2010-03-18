@@ -19,7 +19,7 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
-#define COUNT_INTERVAL 2500
+#define COUNT_INTERVAL 3
 
 using namespace std;
 
@@ -32,7 +32,7 @@ void * mem_checker(void * arg)
     uint64_t vsize;
     int64_t rsize;
     
-    int count = COUNT_INTERVAL / 2;
+    int count = COUNT_INTERVAL;
     
     pid_t pid=getpid();
 
@@ -44,13 +44,29 @@ void * mem_checker(void * arg)
     struct timespec ts;
 
     ts.tv_sec=0;
-    ts.tv_nsec=1000;
+    ts.tv_nsec=100000;
 
     while (parent->is_running())
     {
-        parent->update_time(time(NULL));
-        //get memory usage - there might be an easier way to do this
+        time_t cur = time(NULL);
+        
+        if (parent->get_time() < cur)
+        {
+            
+            parent->update_time(cur);
+            count++;
+            
+            if (count > COUNT_INTERVAL)
+            {
 
+                printf("Time: %d - ODB instance %p - Rsize: %ld mem_limit: %lu ...", cur, parent, rsize, parent->mem_limit);
+                fflush(stdout);
+                parent->remove_sweep();
+                printf("Done\n");
+                count=0;
+            }
+        }
+        
         stat_file = freopen(path, "r", stat_file);
         if (stat_file == NULL)
         {
@@ -68,20 +84,7 @@ void * mem_checker(void * arg)
         {
             FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
         }
-        else
-        {
-            //only do this once per second
-            count++;
-            if (count > COUNT_INTERVAL)
-            {
-                count=0;
-                printf("Count - Rsize: %ld mem_limit: %lu ...", rsize, parent->mem_limit);
-                fflush(stdout);
-                parent->remove_sweep();
-                printf("Done\n");
-            }
-        }
-
+        
         nanosleep(&ts, NULL);
     }
 
@@ -452,7 +455,12 @@ uint64_t ODB::size()
     return data->size();
 }
 
-void ODB::update_time(time_t n_time)
+inline void ODB::update_time(time_t n_time)
 {
     data->cur_time=n_time;
+}
+
+inline time_t ODB::get_time()
+{ 
+    return data->cur_time; 
 }

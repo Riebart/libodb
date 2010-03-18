@@ -67,6 +67,7 @@ public:
     virtual bool (*get_prune())(void*);
     uint64_t size();
     void update_time(time_t);
+    time_t get_time();
 
     //the memory limit, in pages
     uint64_t mem_limit;
