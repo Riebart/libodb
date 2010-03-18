@@ -5,6 +5,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
+#include <vector>
 
 #include "index.hpp"
 #include "lock.hpp"
@@ -84,6 +85,7 @@ private:
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen);
+    void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static uint32_t num_unique;
     int ident;

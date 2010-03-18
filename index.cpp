@@ -1,5 +1,7 @@
 #include "index.hpp"
 
+#include <omp.h>
+
 #include "odb.hpp"
 #include "datastore.hpp"
 
@@ -154,6 +156,10 @@ inline void Index::query(bool (*condition)(void*), DataStore* ds)
 {
 }
 
+inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr)
+{
+}
+
 inline bool Index::remove(DataObj* data)
 {
     return remove(data->data);
@@ -165,10 +171,6 @@ inline bool Index::remove(void* rawdata)
 }
 
 inline void Index::remove_sweep(vector<void*>* marked)
-{
-}
-
-inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr)
 {
 }
 

@@ -183,6 +183,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
     return true;
 }
 
+/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListDS::remove_sweep()
 {
     vector<void*>** marked = new vector<void*>*[3];
@@ -224,6 +225,7 @@ std::vector<void*>** LinkedListDS::remove_sweep()
     return marked;
 }
 
+/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListIDS::remove_sweep()
 {
     vector<void*>** marked = new vector<void*>*[3];

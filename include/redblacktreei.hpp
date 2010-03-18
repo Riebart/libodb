@@ -162,6 +162,8 @@ private:
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
+    
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     virtual bool remove(void* rawdata);
     static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds,
@@ -173,7 +175,6 @@ private:
                         bool drop_duplicates,
                         void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_last(struct tree_node* root, int ident, bool drop_duiplicates);

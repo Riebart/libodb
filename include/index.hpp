@@ -318,6 +318,14 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    /// Update the data pointers of this index table.
+    /// This is done under the assumption that the new and old addresses compare as
+    ///equal. This is done in the best time of the underlying index structure.
+    /// @param [in] old_addr A (not necessarily sorted) vector of pointers to look for.
+    /// @param [in] new_addr A list of pointers that dictates what the old pointers
+    ///should be changed to.
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     /// Remove an item from the index table. This matches memory location exactly.
     /// @param [in] data A piece of data representing what is to be removed.
@@ -328,14 +336,6 @@ protected:
     /// Sweep the datastore and perform batch deletions from the specified list.
     /// @param [in] marked List of locations to remove from this index table.
     virtual void remove_sweep(std::vector<void*>* marked);
-    
-    /// Update the data pointers of this index table.
-    /// This is done under the assumption that the new and old addresses compare as
-    ///equal. This is done in the best time of the underlying index structure.
-    /// @param [in] old_addr A (not necessarily sorted) vector of pointers to look for.
-    /// @param [in] new_addr A list of pointers that dictates what the old pointers
-    ///should be changed to.
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     /// Comparator function.
     int32_t (*compare)(void*, void*);

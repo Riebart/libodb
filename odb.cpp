@@ -19,6 +19,8 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
+#define COUNT_INTERVAL 2500
+
 using namespace std;
 
 uint32_t ODB::num_unique = 0;
@@ -30,8 +32,8 @@ void * mem_checker(void * arg)
     uint64_t vsize;
     int64_t rsize;
     
-    int count =2000;
-
+    int count = COUNT_INTERVAL / 2;
+    
     pid_t pid=getpid();
 
     char path[50];
@@ -70,12 +72,13 @@ void * mem_checker(void * arg)
         {
             //only do this once per second
             count++;
-            if (count > 3000)
+            if (count > COUNT_INTERVAL)
             {
                 count=0;
-                printf("Count - Rsize: %ld mem_limit: %lu ... ", rsize, parent->mem_limit);fflush(stdout);
+                printf("Count - Rsize: %ld mem_limit: %lu ...", rsize, parent->mem_limit);
+                fflush(stdout);
                 parent->remove_sweep();
-                printf("Done\n");fflush(stdout);
+                printf("Done\n");
             }
         }
 
@@ -270,14 +273,14 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
 
     running = 1;
 
-    //pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
+    pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
 }
 
 ODB::~ODB()
 {
     //the join() introduces a delay of up to 1000nsec to the destructor
     running=0;
-    //pthread_join(mem_thread, NULL);
+    pthread_join(mem_thread, NULL);
 
     WRITE_LOCK();
     delete all;
@@ -400,27 +403,38 @@ void ODB::remove_sweep()
     if (n > 0)
     {
         if (n == 1)
-        {
             tables[0]->remove_sweep(marked[0]);
-            
-            if (marked[2] != NULL)
-                tables[0]->update(marked[3], marked[2]);
-        }
         else
-        {
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < tables.size() ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
                 tables[i]->remove_sweep(marked[0]);
-            
-            if (marked[2] != NULL)
-#pragma omp parallel for
-                for (uint32_t i = 0 ; i < tables.size() ; i++)
-                    tables[i]->update(marked[3], marked[2]);
-        }
+        
+        if (marked[2] != NULL)
+            update_tables(marked[2], marked[3]);
     }
 
     data->remove_cleanup(marked);
     WRITE_UNLOCK();
+}
+
+void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
+{
+    uint32_t n = tables.size();
+    
+    if (n > 0)
+    {
+        if (n == 0)
+            tables[0]->update(old_addr, new_addr);
+        else
+#pragma omp parallel for
+            for (uint32_t i = 0 ; i < n ; i++)
+                tables[i]->update(old_addr, new_addr);
+    }
+    
+    n = data->clones.size();
+    
+    for (uint32_t i = 0 ; i < n ; i++)
+        data->clones[i]->update_tables(old_addr, new_addr);
 }
 
 void ODB::set_prune(bool (*prune)(void*))

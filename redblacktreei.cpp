@@ -400,6 +400,8 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
                 ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
         {
+            if (compare == compare_addr)
+                printf("IN A TREE  :  ");
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
 #else
@@ -653,8 +655,8 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, stru
             SET_BLACK(new_root);
 
         // Encode whether a node was deleted or not.
-       if (ret)
-           new_root = TAINT(new_root);
+        if (ret)
+            new_root = TAINT(new_root);
 
         return new_root;
     }
@@ -672,22 +674,15 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
 {
     WRITE_LOCK();
     
-    uint32_t N = 100;
+    struct tree_node* curr;
+    int32_t c;
+    uint8_t dir;
+    void* addr;
     
     for (uint32_t i = 0 ; i < old_addr->size() ; i++)
     {
-        if (old_addr->at(i) == (void*)0x7ffff618bf50)
-            printf("ZOMG (O) @ %u\n", i);
-            
-        if (new_addr->at(i) == (void*)0x7ffff618bf50)
-            printf("ZOMG (N) @ %u\n", i);
-        
-        struct tree_node* curr = root;
-        int32_t c;
-        uint8_t dir;
-        void* addr = old_addr->at(i);
-        
-        printf("%lu ", *(long*)addr);
+        curr = root;
+        addr = old_addr->at(i);
         
         while (curr != NULL)
         {
@@ -700,29 +695,17 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
                     curr->data = remove_n(treeds, reinterpret_cast<struct tree_node*>(curr->data), sub_false_root, NULL, compare_addr, NULL, true, addr);
                     
                     if (TAINTED(curr->data))
-                    {
                         curr->data = UNTAINT(add_data_n(treeds, UNTAINT(curr->data), sub_false_root, NULL, compare_addr, NULL, true, new_addr->at(i)));
-                        printf("T");
-                    }
                 }
                 else if ((curr->data) == addr)
-                {
                     curr->data = new_addr->at(i);
-                    printf("V");
-                }
                 
                 break;
             }
             
             dir = (c > 0);
-            printf("%d", dir);
             curr = STRIP(curr->link[dir]);
         }
-        
-        printf("\n");
-        N--;
-        
-        if (N == 0) exit(1);
     }
     
     WRITE_UNLOCK();
