@@ -1,4 +1,5 @@
 #include "datastore.hpp"
+#include "odb.hpp"
 #include "utility.hpp"
 
 DataStore::DataStore()
@@ -9,6 +10,11 @@ DataStore::DataStore()
 
 DataStore::~DataStore()
 {
+    while (!clones.empty())
+    {
+        delete clones.back();
+        clones.pop_back();
+    }
 }
 
 inline void* DataStore::add_data(void* rawdata)

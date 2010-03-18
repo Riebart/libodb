@@ -122,6 +122,7 @@ RedBlackTreeI::~RedBlackTreeI()
 
     // Free the false root we malloced in the constructor.
     free(false_root);
+    free(sub_false_root);
     RWLOCK_DESTROY();
 }
 
@@ -196,7 +197,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     if (TAINTED(root))
     {
         count++;
-        UNTAINT(root);
+        root = UNTAINT(root);
     }
     WRITE_UNLOCK();
 }
@@ -297,7 +298,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
                             if (TAINTED(new_sub_root))
                             {
                                 ret = 1;
-                                UNTAINT(new_sub_root);
+                                new_sub_root = UNTAINT(new_sub_root);
                             }
 
                             i->data = new_sub_root;
@@ -353,7 +354,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
 
     // Encode whether a node was added into the colour of the new root. RED = something was added.
     if (ret)
-        TAINT(new_root);
+        new_root = TAINT(new_root);
 
     return new_root;
 }
@@ -563,7 +564,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, stru
                     if (TAINTED(new_sub_root))
                     {
                         ret = 1;
-                        UNTAINT(new_sub_root);
+                        new_sub_root = UNTAINT(new_sub_root);
                     }
 
                     if (new_sub_root == NULL)
@@ -652,8 +653,8 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, stru
             SET_BLACK(new_root);
 
         // Encode whether a node was deleted or not.
-        if (ret)
-            TAINT(new_root);
+       if (ret)
+           new_root = TAINT(new_root);
 
         return new_root;
     }
@@ -671,36 +672,57 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
 {
     WRITE_LOCK();
     
+    uint32_t N = 100;
+    
     for (uint32_t i = 0 ; i < old_addr->size() ; i++)
     {
-        int32_t (*compare_loc)(void*, void*) = compare;
-        struct tree_node* p;
+        if (old_addr->at(i) == (void*)0x7ffff618bf50)
+            printf("ZOMG (O) @ %u\n", i);
+            
+        if (new_addr->at(i) == (void*)0x7ffff618bf50)
+            printf("ZOMG (N) @ %u\n", i);
+        
         struct tree_node* curr = root;
         int32_t c;
         uint8_t dir;
+        void* addr = old_addr->at(i);
+        
+        printf("%lu ", *(long*)addr);
         
         while (curr != NULL)
         {
-            c = compare_loc(old_addr->at(i), GET_DATA(curr));
+            c = compare(addr, GET_DATA(curr));
             
             if (c == 0)
             {
                 if (IS_TREE(curr))
                 {
-                    compare_loc = compare_addr;
-                    curr = reinterpret_cast<struct tree_node*>(curr->data);
-                    continue;
+                    curr->data = remove_n(treeds, reinterpret_cast<struct tree_node*>(curr->data), sub_false_root, NULL, compare_addr, NULL, true, addr);
+                    
+                    if (TAINTED(curr->data))
+                    {
+                        curr->data = UNTAINT(add_data_n(treeds, UNTAINT(curr->data), sub_false_root, NULL, compare_addr, NULL, true, new_addr->at(i)));
+                        printf("T");
+                    }
                 }
-                else if ((curr->data) == old_addr->at(i))
+                else if ((curr->data) == addr)
+                {
                     curr->data = new_addr->at(i);
+                    printf("V");
+                }
                 
                 break;
             }
             
             dir = (c > 0);
-            p = curr;
+            printf("%d", dir);
             curr = STRIP(curr->link[dir]);
         }
+        
+        printf("\n");
+        N--;
+        
+        if (N == 0) exit(1);
     }
     
     WRITE_UNLOCK();

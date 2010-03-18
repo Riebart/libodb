@@ -258,6 +258,15 @@ std::vector<void*>** LinkedListIDS::remove_sweep()
         curr = curr->next;
     }
     READ_UNLOCK();
+    
+    bool (*temp)(void*);
+    for (uint32_t i = 0 ; i < clones.size() ; i++)
+    {
+        temp = clones[i]->get_prune();
+        clones[i]->set_prune(prune);
+        clones[i]->remove_sweep();
+        clones[i]->set_prune(temp);
+    }
 
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
@@ -282,7 +291,7 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
     
     delete marked[0];
     delete marked[1];
-    delete marked;
+    delete[] marked;
 }
 
 inline void LinkedListDS::populate(Index* index)

@@ -30,7 +30,7 @@ void * mem_checker(void * arg)
     uint64_t vsize;
     int64_t rsize;
     
-    int count =20000;
+    int count =2000;
 
     pid_t pid=getpid();
 
@@ -70,11 +70,12 @@ void * mem_checker(void * arg)
         {
             //only do this once per second
             count++;
-            if (count > 30000)
+            if (count > 3000)
             {
                 count=0;
-                printf("Count - Rsize: %ld mem_limit: %lu\n", rsize, parent->mem_limit);
+                printf("Count - Rsize: %ld mem_limit: %lu ... ", rsize, parent->mem_limit);fflush(stdout);
                 parent->remove_sweep();
+                printf("Done\n");fflush(stdout);
             }
         }
 
@@ -269,14 +270,14 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
 
     running = 1;
 
-    pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
+    //pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
 }
 
 ODB::~ODB()
 {
     //the join() introduces a delay of up to 1000nsec to the destructor
     running=0;
-    pthread_join(mem_thread, NULL);
+    //pthread_join(mem_thread, NULL);
 
     WRITE_LOCK();
     delete all;
@@ -399,16 +400,24 @@ void ODB::remove_sweep()
     if (n > 0)
     {
         if (n == 1)
+        {
             tables[0]->remove_sweep(marked[0]);
+            
+            if (marked[2] != NULL)
+                tables[0]->update(marked[3], marked[2]);
+        }
         else
+        {
 #pragma omp parallel for
             for (uint32_t i = 0 ; i < tables.size() ; i++)
                 tables[i]->remove_sweep(marked[0]);
+            
+            if (marked[2] != NULL)
+#pragma omp parallel for
+                for (uint32_t i = 0 ; i < tables.size() ; i++)
+                    tables[i]->update(marked[3], marked[2]);
+        }
     }
-    
-    if (marked[2] != NULL)
-        for (uint32_t i = 0 ; i < tables.size() ; i++)
-            tables[i]->update(marked[2], marked[3]);
 
     data->remove_cleanup(marked);
     WRITE_UNLOCK();

@@ -2,6 +2,8 @@
 #include "bankds.hpp"
 #include "utility.hpp"
 
+#include <algorithm>
+
 using namespace std;
 
 #define GET_DATA(x) (x->data)
@@ -153,6 +155,30 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
     }
     READ_UNLOCK();
 }
+
+inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr)
+{
+    sort(old_addr->begin(), old_addr->end());
+    
+    WRITE_LOCK();
+    
+    struct node* curr = first;
+    uint32_t i = 0;
+    
+    while (curr != NULL)
+    {
+        if (search(old_addr, curr->data))
+        {
+            curr->data = new_addr->at(i);
+            i++;
+        }
+        
+        curr = curr->next;
+    }
+    
+    WRITE_UNLOCK();
+}
+
 
 inline void LinkedListI::remove_sweep(vector<void*>* marked)
 {

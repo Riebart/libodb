@@ -32,6 +32,7 @@ protected:
     void query(bool (*condition)(void*), DataStore* ds);
     virtual bool remove(void* data);
     virtual void remove_sweep(std::vector<void*>* marked);
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     DataStore* nodeds;
     struct node* first;
