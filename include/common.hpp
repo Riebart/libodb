@@ -17,7 +17,7 @@
         fprintf (stderr, "%s:%d: ",  __FILE__, __LINE__);\
         fprintf (stderr, str);\
         fprintf (stderr, "\n");} \
-    exit(EXIT_FAILURE); }
+    abort(); }
 
 #ifdef DEBUG
 #define TRACE(str...) { \
@@ -37,6 +37,6 @@
 #define SAFE_CALLOC(t, x, n, m) x = reinterpret_cast<t>(calloc(n, m)); if (!x) OOM();
 
 #define NOT_IMPLEMENTED(str...) { \
-        fprintf(stderr, "Function not yet implemented: %s\n", str); }\
+        FAIL("Function not yet implemented: %s\n", str); }\
  
 #endif

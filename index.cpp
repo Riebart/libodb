@@ -156,7 +156,7 @@ inline void Index::query(bool (*condition)(void*), DataStore* ds)
 {
 }
 
-inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr)
+inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
 {
 }
 

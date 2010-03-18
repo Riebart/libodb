@@ -360,3 +360,15 @@ inline DataStore* LinkedListDS::clone_indirect()
 {
     return new LinkedListIDS(this, prune);
 }
+
+inline DataStore* LinkedListVDS::clone()
+{
+    // Return an indirect version of this datastore, with this datastore marked as its parent.
+    return new LinkedListVDS(this, prune, len);
+}
+
+inline DataStore* LinkedListVDS::clone_indirect()
+{
+    // Return an indirect version of this datastore, with this datastore marked as its parent.
+    return new LinkedListIDS(this, prune);
+}

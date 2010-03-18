@@ -399,9 +399,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*
         // Verify BST property.
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
                 ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
-        {
-            if (compare == compare_addr)
-                printf("IN A TREE  :  ");
+        {          
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
 #else
@@ -670,7 +668,7 @@ inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
         remove(marked->at(i));
 }
 
-inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr)
+inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
 {
     WRITE_LOCK();
     
@@ -678,7 +676,7 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
     int32_t c;
     uint8_t dir;
     void* addr;
-    
+        
     for (uint32_t i = 0 ; i < old_addr->size() ; i++)
     {
         curr = root;
@@ -700,6 +698,9 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
                 else if ((curr->data) == addr)
                     curr->data = new_addr->at(i);
                 
+                if (datalen > 0)
+                    memcpy(new_addr->at(i), addr, datalen);
+                
                 break;
             }
             
@@ -707,7 +708,7 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
             curr = STRIP(curr->link[dir]);
         }
     }
-    
+        
     WRITE_UNLOCK();
 }
 

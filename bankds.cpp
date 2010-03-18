@@ -318,7 +318,7 @@ inline vector<void*>** BankDS::remove_sweep()
         clones[i]->remove_sweep();
         clones[i]->set_prune(temp);
     }
-    
+        
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
@@ -437,11 +437,7 @@ inline vector<void*>** BankIDS::remove_sweep()
 }
 
 inline void BankDS::remove_cleanup(vector<void*>** marked)
-{
-#pragma omp parallel for
-    for (uint32_t i = 0 ; i < marked[2]->size() ; i++)
-        memcpy(marked[3]->at(i), marked[2]->at(i), datalen);
-    
+{   
     data_count -= marked[0]->size();
     uint64_t shift = datalen * marked[0]->size();
     

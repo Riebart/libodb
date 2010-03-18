@@ -424,11 +424,11 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
     if (n > 0)
     {
         if (n == 0)
-            tables[0]->update(old_addr, new_addr);
+            tables[0]->update(old_addr, new_addr, datalen);
         else
 #pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
-                tables[i]->update(old_addr, new_addr);
+                tables[i]->update(old_addr, new_addr, datalen);
     }
     
     n = data->clones.size();

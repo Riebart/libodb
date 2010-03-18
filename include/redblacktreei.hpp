@@ -163,7 +163,7 @@ private:
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
     
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
     virtual bool remove(void* rawdata);
     static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds,

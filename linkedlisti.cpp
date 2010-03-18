@@ -156,7 +156,7 @@ void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
     READ_UNLOCK();
 }
 
-inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr)
+inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
 {
     sort(old_addr->begin(), old_addr->end());
 
@@ -170,6 +170,10 @@ inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr
         if (search(old_addr, curr->data))
         {
             curr->data = new_addr->at(i);
+            
+            if (datalen > 0)
+                memcpy(new_addr->at(i), old_addr, datalen);
+            
             i++;
         }
 

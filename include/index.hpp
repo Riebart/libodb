@@ -325,7 +325,7 @@ protected:
     /// @param [in] old_addr A (not necessarily sorted) vector of pointers to look for.
     /// @param [in] new_addr A list of pointers that dictates what the old pointers
     ///should be changed to.
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
     /// Remove an item from the index table. This matches memory location exactly.
     /// @param [in] data A piece of data representing what is to be removed.
