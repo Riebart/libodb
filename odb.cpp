@@ -19,7 +19,7 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
-#define COUNT_INTERVAL 2500
+#define SLEEP_DURATION 5
 
 using namespace std;
 
@@ -32,9 +32,9 @@ void * mem_checker(void * arg)
     uint64_t vsize;
     int64_t rsize;
     
-    int count = COUNT_INTERVAL / 2;
+    int count = 0;
     
-    pid_t pid=getpid();
+    pid_t pid = getpid();
 
     char path[50];
     sprintf(path, "/proc/%d/statm", pid);
@@ -43,8 +43,8 @@ void * mem_checker(void * arg)
 
     struct timespec ts;
 
-    ts.tv_sec=0;
-    ts.tv_nsec=1000000;
+    ts.tv_sec = 1;
+    ts.tv_nsec = 0;
 
     while (parent->is_running())
     {
@@ -70,12 +70,12 @@ void * mem_checker(void * arg)
         }
         else
         {
-            //only do this once per second
+            // only do this once per second
             count++;
-            if (count > COUNT_INTERVAL)
+            if (count >= SLEEP_DURATION)
             {
-                count=0;
-                printf("%lu + Count - Rsize: %ld mem_limit: %lu ...", time(NULL), rsize, parent->mem_limit);
+                count = 0;
+                printf("Count - Rsize: %ld mem_limit: %lu ...", rsize, parent->mem_limit);
                 fflush(stdout);
                 parent->remove_sweep();
                 printf("Done\n");
