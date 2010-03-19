@@ -44,7 +44,7 @@ void * mem_checker(void * arg)
     struct timespec ts;
 
     ts.tv_sec=0;
-    ts.tv_nsec=1000;
+    ts.tv_nsec=1000000;
 
     while (parent->is_running())
     {
@@ -75,7 +75,7 @@ void * mem_checker(void * arg)
             if (count > COUNT_INTERVAL)
             {
                 count=0;
-                printf("Count - Rsize: %ld mem_limit: %lu ...", rsize, parent->mem_limit);
+                printf("%lu + Count - Rsize: %ld mem_limit: %lu ...", time(NULL), rsize, parent->mem_limit);
                 fflush(stdout);
                 parent->remove_sweep();
                 printf("Done\n");
