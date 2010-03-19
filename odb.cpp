@@ -19,7 +19,7 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
-#define SLEEP_DURATION 5
+#define SLEEP_DURATION 3
 
 using namespace std;
 
@@ -43,13 +43,30 @@ void * mem_checker(void * arg)
 
     struct timespec ts;
 
-    ts.tv_sec = 1;
-    ts.tv_nsec = 0;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 100000;
 
     while (parent->is_running())
     {
-        parent->update_time(time(NULL));
-        //get memory usage - there might be an easier way to do this
+
+        time_t cur = time(NULL);
+        
+        if (parent->get_time() < cur)
+        {
+            
+            parent->update_time(cur);
+            count++;
+            
+            if (count > SLEEP_DURATION)
+            {
+ 
+                printf("Time: %d - ODB instance %p - Rsize: %ld mem_limit: %lu ...", cur, parent, rsize, parent->mem_limit);
+                fflush(stdout);
+                parent->remove_sweep();
+                printf("Done\n");
+                count=0;
+            }
+        }
 
         stat_file = freopen(path, "r", stat_file);
         if (stat_file == NULL)
@@ -67,19 +84,6 @@ void * mem_checker(void * arg)
         if (rsize > parent->mem_limit)
         {
             FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
-        }
-        else
-        {
-            // only do this once per second
-            count++;
-            if (count >= SLEEP_DURATION)
-            {
-                count = 0;
-                printf("@ %lu - Rsize: %ld mem_limit: %lu ...", time(NULL), rsize, parent->mem_limit);
-                fflush(stdout);
-                parent->remove_sweep();
-                printf("Done\n");
-            }
         }
 
         nanosleep(&ts, NULL);
@@ -278,7 +282,9 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
 
 ODB::~ODB()
 {
+
     //the join() introduces a delay of up to one second to the destructor while it waits for it to exit sleep.
+
     running=0;
     pthread_join(mem_thread, NULL);
 
@@ -452,7 +458,12 @@ uint64_t ODB::size()
     return data->size();
 }
 
-void ODB::update_time(time_t n_time)
+inline void ODB::update_time(time_t n_time)
 {
     data->cur_time=n_time;
+}
+
+inline time_t ODB::get_time()
+{
+    return data->cur_time;
 }
