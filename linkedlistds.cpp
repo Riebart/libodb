@@ -98,6 +98,7 @@ inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 {
     struct datanode* new_element;
     SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
+    new_element->datalen = nbytes;
 
     WRITE_LOCK();
     new_element->next=bottom;

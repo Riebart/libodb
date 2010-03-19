@@ -35,6 +35,7 @@
 /// @param[in] n Number of bytes to request.
 #define SAFE_MALLOC(t, x, n) x = reinterpret_cast<t>(malloc(n)); if (!x) OOM();
 #define SAFE_CALLOC(t, x, n, m) x = reinterpret_cast<t>(calloc(n, m)); if (!x) OOM();
+#define SAFE_REALLOC(t, x, n) x = reinterpret_cast<t>(realloc(x, n)); if (!x) OOM();
 
 #define NOT_IMPLEMENTED(str...) { \
         FAIL("Function not yet implemented: %s\n", str); }\

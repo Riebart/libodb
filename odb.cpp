@@ -75,7 +75,7 @@ void * mem_checker(void * arg)
             if (count >= SLEEP_DURATION)
             {
                 count = 0;
-                printf("Count - Rsize: %ld mem_limit: %lu ...", rsize, parent->mem_limit);
+                printf("@ %lu - Rsize: %ld mem_limit: %lu ...", time(NULL), rsize, parent->mem_limit);
                 fflush(stdout);
                 parent->remove_sweep();
                 printf("Done\n");
@@ -278,7 +278,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
 
 ODB::~ODB()
 {
-    //the join() introduces a delay of up to 1000nsec to the destructor
+    //the join() introduces a delay of up to one second to the destructor while it waits for it to exit sleep.
     running=0;
     pthread_join(mem_thread, NULL);
 

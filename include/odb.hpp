@@ -30,7 +30,7 @@ class ODB
     ///instance.
     friend class Index;
 
-public:
+public:    
     /// @todo Apparently this isn't the appropriate way to do this (flags).
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 

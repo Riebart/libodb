@@ -228,6 +228,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             }
             while (it->next());
         }
+        ind2->it_release(it);
 
         //printf("%ld:", (int64_t)(ind2->size()));
         printf("%ld:", (int64_t)(res[j]->size()));
