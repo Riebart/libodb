@@ -7,6 +7,11 @@
 
 #include "lock.hpp"
 
+#define GET_TIME_STAMP(x) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + true_datalen))
+#define SET_TIME_STAMP(x, t) (GET_TIME_STAMP(x) = t);
+#define GET_QUERY_COUNT(x) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + true_datalen + time_stamp * sizeof(time_t)))
+#define SET_QUERY_COUNT(x, c) (GET_QUERY_COUNT(x) = c);
+
 class ODB;
 class Index;
 
@@ -17,6 +22,9 @@ class DataStore
     friend class Index;
     friend class LinkedListI;
     friend class RedBlackTreeI;
+
+public:
+    typedef enum { NONE = 0, TIME_STAMP = 1, QUERY_COUNT = 2 } DataStoreFlags;
 
 protected:
     /// Protected default constructor.
@@ -51,7 +59,10 @@ protected:
     std::vector<ODB*> clones;
     bool (*prune)(void* rawdata);
     uint32_t datalen;
+    uint32_t true_datalen;
     time_t cur_time;
+    bool time_stamp;
+    bool query_count;
 
     /// The number of items in this datastore.
     uint64_t data_count;

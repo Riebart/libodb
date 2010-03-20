@@ -36,7 +36,7 @@ int main (int argc, char ** argv)
     Iterator* it = ind->it_first();
     do
     {
-        printf("%ld\n", *(long*)(it->data_v()));
+        printf("%ld\n", *(long*)(it->get_data()));
     }
     while (it->next());
 

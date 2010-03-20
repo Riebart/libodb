@@ -27,13 +27,15 @@ uint32_t ODB::num_unique = 0;
 
 void * mem_checker(void * arg)
 {
-    ODB * parent = (ODB*)arg;
+    void** args = reinterpret_cast<void**>(arg);
+    ODB* parent = reinterpret_cast<ODB*>(args[0]);
+    uint32_t sleep_duration = *reinterpret_cast<uint32_t*>(&(args[1]));
 
     uint64_t vsize;
     int64_t rsize;
-    
-    int count = 0;
-    
+
+    uint32_t count = 0;
+
     pid_t pid = getpid();
 
     char path[50];
@@ -72,7 +74,7 @@ void * mem_checker(void * arg)
         {
             // only do this once per second
             count++;
-            if (count >= SLEEP_DURATION)
+            if (count >= sleep_duration)
             {
                 count = 0;
                 printf("@ %lu - Rsize: %ld mem_limit: %lu ...", time(NULL), rsize, parent->mem_limit);
@@ -117,7 +119,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
     }
     }
 
-    init(data, num_unique, datalen);
+    init(data, num_unique, datalen, SLEEP_DURATION);
     num_unique++;
 }
 
@@ -146,7 +148,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     }
     }
 
-    init(data, ident, datalen);
+    init(data, ident, datalen, SLEEP_DURATION);
 }
 
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
@@ -174,7 +176,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
     }
     }
 
-    init(data, num_unique, sizeof(void*));
+    init(data, num_unique, sizeof(void*), SLEEP_DURATION);
     num_unique++;
 }
 
@@ -203,7 +205,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
     }
     }
 
-    init(data, ident, sizeof(void*));
+    init(data, ident, sizeof(void*), SLEEP_DURATION);
 }
 
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*))
@@ -226,7 +228,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)
     }
     }
 
-    init(data, num_unique, sizeof(void*));
+    init(data, num_unique, sizeof(void*), SLEEP_DURATION);
     num_unique++;
 }
 
@@ -250,15 +252,15 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint
     }
     }
 
-    init(data, ident, sizeof(void*));
+    init(data, ident, sizeof(void*), SLEEP_DURATION);
 }
 
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)
 {
-    init(data, ident, datalen);
+    init(data, ident, datalen, SLEEP_DURATION);
 }
 
-void ODB::init(DataStore* data, int ident, uint32_t datalen)
+void ODB::init(DataStore* data, int ident, uint32_t datalen, uint32_t sleep_duration)
 {
     this->ident = ident;
     this->datalen = datalen;
@@ -273,7 +275,11 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen)
 
     running = 1;
 
-    pthread_create(&mem_thread, NULL, &mem_checker, (void*)this);
+    void** args;
+    SAFE_MALLOC(void**, args, sizeof(ODB*) + sizeof(uint32_t));
+    args[0] = this;
+    *reinterpret_cast<uint32_t*>(&(args[1])) = sleep_duration;
+    pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
 }
 
 ODB::~ODB()
@@ -408,7 +414,7 @@ void ODB::remove_sweep()
 #pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
                 tables[i]->remove_sweep(marked[0]);
-        
+
         if (marked[2] != NULL)
             update_tables(marked[2], marked[3]);
     }
@@ -420,7 +426,7 @@ void ODB::remove_sweep()
 void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
 {
     uint32_t n = tables.size();
-    
+
     if (n > 0)
     {
         if (n == 0)
@@ -430,9 +436,9 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
             for (uint32_t i = 0 ; i < n ; i++)
                 tables[i]->update(old_addr, new_addr, datalen);
     }
-    
+
     n = data->clones.size();
-    
+
     for (uint32_t i = 0 ; i < n ; i++)
         data->clones[i]->update_tables(old_addr, new_addr);
 }

@@ -162,7 +162,7 @@ private:
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
-    
+
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
     virtual bool remove(void* rawdata);
@@ -176,9 +176,9 @@ private:
                         void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-    static Iterator* it_first(struct tree_node* root, int ident, bool drop_duiplicates);
-    static Iterator* it_last(struct tree_node* root, int ident, bool drop_duiplicates);
-    static Iterator* it_lookup(struct tree_node* root, int ident, bool drop_duiplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir);
+    static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_last(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir);
 
     DataStore* treeds;
 };
@@ -192,13 +192,13 @@ public:
     virtual DataObj* next();
     virtual DataObj* prev();
     virtual DataObj* data();
-    virtual void* data_v();
 
 protected:
     RBTIterator();
-    RBTIterator(int ident);
+    RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
 
     std::stack<struct RedBlackTreeI::tree_node*> trail;
+    DataStore* parent;
 };
 
 #endif

@@ -170,10 +170,10 @@ inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr
         if (search(old_addr, curr->data))
         {
             curr->data = new_addr->at(i);
-            
+
             if (datalen > 0)
                 memcpy(new_addr->at(i), old_addr, datalen);
-            
+
             i++;
         }
 
@@ -214,7 +214,7 @@ inline void LinkedListI::remove_sweep(vector<void*>* marked)
 inline Iterator* LinkedListI::it_first()
 {
     READ_LOCK();
-    LLIterator* it = new LLIterator(ident);
+    LLIterator* it = new LLIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->cursor = first;
     it->dataobj->data = GET_DATA(first);
     return it;
@@ -230,7 +230,7 @@ LLIterator::LLIterator()
 {
 }
 
-LLIterator::LLIterator(int ident) : Iterator::Iterator(ident)
+LLIterator::LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count) : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
 }
 
@@ -262,9 +262,3 @@ inline DataObj* LLIterator::data()
 {
     return dataobj;
 }
-
-inline void* LLIterator::data_v()
-{
-    return dataobj->data;
-}
-

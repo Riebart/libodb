@@ -72,7 +72,7 @@ protected:
     /// @param [in] cap The number of items to store in each block. (The default
     ///value is 102400 = 4096*25 as it has shown to have very good performance
     ///and guarantees memory alignment)
-    BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint64_t cap = 102400);
+    BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint64_t cap = 102400, uint32_t flags = 0);
 
     /// Initializer to save on code repetition.
     /// Takes care of initializing everything, otherwise this code would appear
@@ -215,7 +215,7 @@ protected:
     /// @todo Make proper use of the parent pointers where necessary.
     ///(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
     ///Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
-    BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap = 102400);
+    BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap = 102400, uint32_t flags = 0);
 
     /// Add a piece of raw data to the datastore.
     /// This function adds a single address-of (&) operation to perform the
@@ -239,7 +239,7 @@ protected:
     /// @return A vector of pointers to the marked locations. It is important to
     ///note that the returned vector is sorted into ascending order for fast searching.
     virtual std::vector<void*>** remove_sweep();
-    
+
     virtual void remove_cleanup(std::vector<void*>** marked);
 
     /// Populate a given index table with all items in this datastore.

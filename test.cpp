@@ -220,11 +220,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         res[j]->remove_sweep();
 
         Iterator* it = ind2->it_first();
-        if (it->data_v() != NULL)
+        if (it->data() != NULL)
         {
             do
             {
-                fprintf(stderr, "%ld\n", *(long*)(it->data_v()));
+                fprintf(stderr, "%ld\n", *(long*)(it->get_data()));
             }
             while (it->next());
         }

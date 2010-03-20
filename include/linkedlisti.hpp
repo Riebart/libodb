@@ -46,11 +46,10 @@ public:
     virtual ~LLIterator();
     virtual DataObj* next();
     virtual DataObj* data();
-    virtual void* data_v();
 
 protected:
     LLIterator();
-    LLIterator(int ident);
+    LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
 
     struct LinkedListI::node* cursor;
 };

@@ -399,7 +399,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*
         // Verify BST property.
         if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
                 ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
-        {          
+        {
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
 #else
@@ -436,7 +436,7 @@ void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
     {
         do
         {
-            temp = it->data_v();
+            temp = it->get_data();
 
             if (condition(temp))
                 ds->add_data(temp);
@@ -455,7 +455,7 @@ void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
     {
         do
         {
-            temp = it->data_v();
+            temp = it->get_data();
 
             if (compare(rawdata, temp) == 0)
                 ds->add_data(temp);
@@ -475,7 +475,7 @@ void RedBlackTreeI::query_lt(void* rawdata, DataStore* ds)
     {
         do
         {
-            ds->add_data(it->data_v());
+            ds->add_data(it->get_data());
         }
         while (it->prev());
     }
@@ -490,7 +490,7 @@ void RedBlackTreeI::query_gt(void* rawdata, DataStore* ds)
     {
         do
         {
-            ds->add_data(it->data_v());
+            ds->add_data(it->get_data());
         }
         while (it->next());
     }
@@ -505,7 +505,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     uint8_t ret = TAINTED(root);
     if (ret)
         root = UNTAINT(root);
-    
+
     count -= ret;
     WRITE_UNLOCK();
     return ret;
@@ -671,61 +671,64 @@ inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
 inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
 {
     WRITE_LOCK();
-    
+
     struct tree_node* curr;
     int32_t c;
     uint8_t dir;
     void* addr;
-        
+
     for (uint32_t i = 0 ; i < old_addr->size() ; i++)
     {
         curr = root;
         addr = old_addr->at(i);
-        
+
         while (curr != NULL)
         {
             c = compare(addr, GET_DATA(curr));
-            
+
             if (c == 0)
             {
                 if (IS_TREE(curr))
                 {
                     curr->data = remove_n(treeds, reinterpret_cast<struct tree_node*>(curr->data), sub_false_root, NULL, compare_addr, NULL, true, addr);
-                    
+
                     if (TAINTED(curr->data))
                         curr->data = UNTAINT(add_data_n(treeds, UNTAINT(curr->data), sub_false_root, NULL, compare_addr, NULL, true, new_addr->at(i)));
                 }
                 else if ((curr->data) == addr)
                     curr->data = new_addr->at(i);
-                
+
                 if (datalen > 0)
                     memcpy(new_addr->at(i), addr, datalen);
-                
+
                 break;
             }
-            
+
             dir = (c > 0);
             curr = STRIP(curr->link[dir]);
         }
     }
-        
+
     WRITE_UNLOCK();
 }
 
 void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
 {
-    struct tree_node* left = STRIP(root->link[0]);
-    struct tree_node* right = STRIP(root->link[1]);
+    if (root != NULL)
+    {
+        struct tree_node* left = STRIP(root->link[0]);
+        struct tree_node* right = STRIP(root->link[1]);
 
-    if (left != NULL)
-        free_n(left, drop_duplicates);
+        if (left != NULL)
+            free_n(left, drop_duplicates);
 
-    if (right != NULL)
-        free_n(right, drop_duplicates);
+        if (right != NULL)
+            free_n(right, drop_duplicates);
 
-    if (!drop_duplicates)
-        if (IS_TREE(root))
-            free_n(reinterpret_cast<struct tree_node*>(root->data), true);
+        if (!drop_duplicates)
+            if (IS_TREE(root))
+                free_n(reinterpret_cast<struct tree_node*>(root->data), true);
+    }
 
     free(root);
 }
@@ -733,12 +736,13 @@ void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
 inline Iterator* RedBlackTreeI::it_first()
 {
     READ_LOCK();
-    return it_first(root, ident, drop_duplicates);
+    return it_first(parent, root, ident, drop_duplicates);
 }
 
-inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
+inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
 {
-    RBTIterator* it = new RBTIterator(ident);
+    RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
+    it->parent = parent;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -763,8 +767,8 @@ inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, 
         {
             if (IS_TREE(top))
             {
-                it->it = it_first(reinterpret_cast<struct tree_node*>(top->data), -1, true);
-                it->dataobj->data = it->it->data_v();
+                it->it = it_first(parent, reinterpret_cast<struct tree_node*>(top->data), -1, true);
+                it->dataobj->data = it->it->get_data();
             }
             else
                 it->dataobj->data = top->data;
@@ -777,12 +781,13 @@ inline Iterator* RedBlackTreeI::it_first(struct RedBlackTreeI::tree_node* root, 
 inline Iterator* RedBlackTreeI::it_last()
 {
     READ_LOCK();
-    return it_last(root, ident, drop_duplicates);
+    return it_last(parent, root, ident, drop_duplicates);
 }
 
-inline Iterator* RedBlackTreeI::it_last(struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
+inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
 {
-    RBTIterator* it = new RBTIterator(ident);
+    RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
+    it->parent = parent;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -807,8 +812,8 @@ inline Iterator* RedBlackTreeI::it_last(struct RedBlackTreeI::tree_node* root, i
         {
             if (IS_TREE(top))
             {
-                it->it = it_last(reinterpret_cast<struct tree_node*>(top->data), -1, true);
-                it->dataobj->data = it->it->data_v();
+                it->it = it_last(parent, reinterpret_cast<struct tree_node*>(top->data), -1, true);
+                it->dataobj->data = it->it->get_data();
             }
             else
                 it->dataobj->data = top->data;
@@ -821,12 +826,13 @@ inline Iterator* RedBlackTreeI::it_last(struct RedBlackTreeI::tree_node* root, i
 inline Iterator* RedBlackTreeI::it_lookup(void* rawdata, int8_t dir)
 {
     READ_LOCK();
-    return it_lookup(root, ident, drop_duplicates, compare, rawdata, dir);
+    return it_lookup(parent, root, ident, drop_duplicates, compare, rawdata, dir);
 }
 
-inline Iterator* RedBlackTreeI::it_lookup(struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir)
+inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir)
 {
-    RBTIterator* it = new RBTIterator(ident);
+    RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
+    it->parent = parent;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -865,14 +871,14 @@ inline Iterator* RedBlackTreeI::it_lookup(struct RedBlackTreeI::tree_node* root,
                     {
                         if (dir < 0)
                         {
-                            it->it = it_first(reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                            it->dataobj->data = it->it->data_v();
+                            it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                            it->dataobj->data = it->it->get_data();
                             it->prev();
                         }
                         else if (dir > 0)
                         {
-                            it->it = it_last(reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                            it->dataobj->data = it->it->data_v();
+                            it->it = it_last(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                            it->dataobj->data = it->it->get_data();
                             it->next();
                         }
                     }
@@ -880,21 +886,21 @@ inline Iterator* RedBlackTreeI::it_lookup(struct RedBlackTreeI::tree_node* root,
                     // Went smaller, wanted bigger.
                     else if ((c < 0) && (dir > 0))
                     {
-                        it->it = it_last(reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->data_v();
+                        it->it = it_last(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                        it->dataobj->data = it->it->get_data();
                         it->next();
                     }
                     // Went bigger, wanted smaller.
                     else if ((c > 0) && (dir < 0))
                     {
-                        it->it = it_first(reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->data_v();
+                        it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                        it->dataobj->data = it->it->get_data();
                         it->prev();
                     }
                     else
                     {
-                        it->it = it_first(reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->data_v();
+                        it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                        it->dataobj->data = it->it->get_data();
                     }
                 }
                 else
@@ -912,7 +918,7 @@ RBTIterator::RBTIterator()
 {
 }
 
-RBTIterator::RBTIterator(int ident) : Iterator::Iterator(ident)
+RBTIterator::RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count) : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
 }
 
@@ -927,7 +933,7 @@ inline DataObj* RBTIterator::next()
         return NULL;
 
     if ((it != NULL) && ((it->next()) != NULL))
-        dataobj->data = it->data_v();
+        dataobj->data = it->get_data();
     else
     {
         if (it != NULL)
@@ -970,8 +976,8 @@ inline DataObj* RBTIterator::next()
         {
             if (IS_TREE(top))
             {
-                it = RedBlackTreeI::it_first(reinterpret_cast<struct RedBlackTreeI::tree_node*>(top->data), -1, true);
-                dataobj->data = it->data_v();
+                it = RedBlackTreeI::it_first(parent, reinterpret_cast<struct RedBlackTreeI::tree_node*>(top->data), -1, true);
+                dataobj->data = it->get_data();
             }
             else
                 dataobj->data = top->data;
@@ -987,7 +993,7 @@ inline DataObj* RBTIterator::prev()
         return NULL;
 
     if ((it != NULL) && ((it->prev()) != NULL))
-        dataobj->data = it->data_v();
+        dataobj->data = it->get_data();
     else
     {
         if (it != NULL)
@@ -1030,8 +1036,8 @@ inline DataObj* RBTIterator::prev()
         {
             if (IS_TREE(top))
             {
-                it = RedBlackTreeI::it_last(reinterpret_cast<struct RedBlackTreeI::tree_node*>(top->data), -1, true);
-                dataobj->data = it->data_v();
+                it = RedBlackTreeI::it_last(parent, reinterpret_cast<struct RedBlackTreeI::tree_node*>(top->data), -1, true);
+                dataobj->data = it->get_data();
             }
             else
                 dataobj->data = top->data;
@@ -1043,10 +1049,8 @@ inline DataObj* RBTIterator::prev()
 
 inline DataObj* RBTIterator::data()
 {
-    return dataobj;
-}
-
-inline void* RBTIterator::data_v()
-{
-    return dataobj->data;
+    if (dataobj->data == NULL)
+        return NULL;
+    else
+        return dataobj;
 }

@@ -261,7 +261,7 @@ std::vector<void*>** LinkedListIDS::remove_sweep()
         curr = curr->next;
     }
     READ_UNLOCK();
-    
+
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -291,7 +291,7 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
     }
     data_count -= marked[1]->size();
     WRITE_UNLOCK();
-    
+
     delete marked[0];
     delete marked[1];
     delete[] marked;

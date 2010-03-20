@@ -318,7 +318,7 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
-    
+
     /// Update the data pointers of this index table.
     /// This is done under the assumption that the new and old addresses compare as
     ///equal. This is done in the best time of the underlying index structure.
@@ -357,13 +357,18 @@ public:
     virtual DataObj* next();
     virtual DataObj* prev();
     virtual DataObj* data();
-    virtual void* data_v();
+    virtual void* get_data();
+    virtual time_t get_time_stamp();
+    virtual uint32_t get_query_count();
 
 protected:
     Iterator();
-    Iterator(int ident);
+    Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
 
     bool drop_duplicates;
+    bool time_stamp;
+    bool query_count;
+    uint32_t true_datalen;
     DataObj* dataobj;
     Iterator* it;
 };

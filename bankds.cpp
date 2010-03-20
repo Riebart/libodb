@@ -11,12 +11,15 @@
 
 using namespace std;
 
-BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
+BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap, uint32_t flags)
 {
-    init(parent, prune, datalen + sizeof(time_t), cap);
+    time_stamp = (flags & DataStore::TIME_STAMP);
+    query_count = (flags & DataStore::QUERY_COUNT);
+
+    init(parent, prune, datalen, cap);
 }
 
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap) : BankDS(parent, prune, sizeof(char*) - sizeof(time_t), cap)
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap, uint32_t flags) : BankDS(parent, prune, sizeof(char*), cap, DataStore::NONE)
 {
 }
 
@@ -40,7 +43,8 @@ inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64
     // Initialize a few other values.
     this->cap = cap;
     cap_size = cap * datalen;
-    this->datalen = datalen;
+    this->true_datalen = datalen;
+    this->datalen = datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);
     this->parent = parent;
     this->prune = prune;
 
@@ -72,10 +76,11 @@ inline void* BankDS::add_data(void* rawdata)
     void* ret = get_addr();
 
     // Copy the data into the datastore.
-    memcpy(ret, rawdata, datalen-sizeof(time_t));
+    memcpy(ret, rawdata, true_datalen);
 
-    // Stores a timestamp at the end of the data
-    *(time_t *)(reinterpret_cast<char*>(ret) + datalen - sizeof(time_t)) = cur_time;
+    // Stores a timestamp right after the data if the datastore is set to do that.
+    if (time_stamp)
+        SET_TIME_STAMP(ret, cur_time);
 
     return ret;
 }
@@ -195,11 +200,11 @@ inline bool BankDS::remove_addr(void* addr)
 
     if ((addr >= (*(data + posA))) && (addr < ((*(data + posA)) + posB)))
         found = true;
-    
+
     for (uint64_t i = 0 ; ((i < posA) && (!found)) ; i += sizeof(char*))
         if ((addr >= (*(data + i))) && (addr < ((*(data + i)) + cap_size)))
             found = true;
-    
+
     if (found)
     {
         WRITE_LOCK();
@@ -217,29 +222,37 @@ inline vector<void*>** BankDS::remove_sweep()
     marked[1] = marked[0];
     marked[2] = new vector<void*>();
     marked[3] = new vector<void*>();
-    
+
     WRITE_LOCK();
-    
+
     // Intialize some local pointers to work backwards through the banks.
     uint64_t posA_t = posA;
     uint64_t posB_t = posB;
-    
+
     // Since (posA,posB) points to an 'empty' location, we need to step back one spot.
+    // If we're at the beginning of a 'row'...
     if (posB_t == 0)
     {
-        posA_t -= sizeof(void*);
-        posB_t = cap_size - datalen;
+        // And we aren't at the first row...
+        if (posA_t > 0)
+        {
+            // Step to the end of the previous row.
+            posA_t -= sizeof(void*);
+            posB_t = cap_size - datalen;
+        }
     }
+    // Otherwise, if we're in the middle of a row, just step back one data object.
     else
         posB_t -= datalen;
-    
+
     // Now, as long as our end-cursor is pointing at a prune-able item, prune it and keep stepping back.
     // Stop when we find one that won't be thrown away.
-    while (prune(*(data + posA_t) + posB_t))
+    // Also make sure that we're either in the middle of a row, or not at the first row.
+    while (((posA_t > 0) || (posB_t > 0)) && (prune(*(data + posA_t) + posB_t)))
     {
         // Mark it as prunable.
         marked[0]->push_back(*(data + posA_t) + posB_t);
-        
+
         // Step back.
         if (posB_t == 0)
         {
@@ -249,11 +262,11 @@ inline vector<void*>** BankDS::remove_sweep()
         else
             posB_t -= datalen;
     }
-    
+
     // Now we can start work forwards from the other end.
     uint64_t i = 0; // posA
     uint64_t j = 0; // posB
-    
+
     // As long as i is at a row before posA_t
     // If i is on the same row as posA_t, then j should be on a column before posB_t
     // The case of where they two are on the same location shouldn't be handled specifically because if there is a cusor
@@ -265,30 +278,33 @@ inline vector<void*>** BankDS::remove_sweep()
         {
             // Mark the current cursor position as pruneable.
             marked[0]->push_back(*(data + i) + j);
-            
+
             // Also mark it as as location to copy data to later in the defrag step.
             marked[3]->push_back(*(data + i) + j);
-            
+
             // And mark a location (the back-cursor) to copy data from.
             marked[2]->push_back(*(data + posA_t) + posB_t);
-            
+
             // Now find a new location to copy data from.
             // We need to start by stepping backwards one spot.
             if (posB_t == 0)
             {
-                posA_t -= sizeof(void*);
-                posB_t = cap_size - datalen;
+                if (posA_t > 0)
+                {
+                    posA_t -= sizeof(void*);
+                    posB_t = cap_size - datalen;
+                }
             }
             else
                 posB_t -= datalen;
-            
+
             // Now keep stepping backwards as long as we're at a pruneable location.
             // We also should take care not to step back past the forward-moving cursor.
             while (((i < posA_t) || ((i == posA_t) && (j < posB_t))) && (prune(*(data + posA_t) + posB_t)))
             {
                 // Mark it as prunable.
                 marked[0]->push_back(*(data + posA_t) + posB_t);
-                
+
                 // Step back.
                 if (posB_t == 0)
                 {
@@ -299,7 +315,7 @@ inline vector<void*>** BankDS::remove_sweep()
                     posB_t -= datalen;
             }
         }
-        
+
         // Increment the forward moving cursor
         j += datalen;
         if (j == cap_size)
@@ -308,7 +324,7 @@ inline vector<void*>** BankDS::remove_sweep()
             j = 0;
         }
     }
-    
+
     /// @todo Make this more efficient by replacing it with a vector and a binary search.
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
@@ -318,7 +334,7 @@ inline vector<void*>** BankDS::remove_sweep()
         clones[i]->remove_sweep();
         clones[i]->set_prune(temp);
     }
-        
+
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
@@ -329,29 +345,37 @@ inline vector<void*>** BankIDS::remove_sweep()
     marked[0] = new vector<void*>();
     marked[1] = NULL;
     marked[2] = NULL;
-    
+
     WRITE_LOCK();
-    
+
     // Intialize some local pointers to work backwards through the banks.
     uint64_t posA_t = posA;
     uint64_t posB_t = posB;
-    
+
     // Since (posA,posB) points to an 'empty' location, we need to step back one spot.
+    // If we're at the beginning of a 'row'...
     if (posB_t == 0)
     {
-        posA_t -= sizeof(void*);
-        posB_t = cap_size - datalen;
+        // And we aren't at the first row...
+        if (posA_t > 0)
+        {
+            // Step to the end of the previous row.
+            posA_t -= sizeof(void*);
+            posB_t = cap_size - datalen;
+        }
     }
+    // Otherwise, if we're in the middle of a row, just step back one data object.
     else
         posB_t -= datalen;
-    
+
     // Now, as long as our end-cursor is pointing at a prune-able item, prune it and keep stepping back.
     // Stop when we find one that won't be thrown away.
-    while (prune(*reinterpret_cast<void**>(*(data + posA_t) + posB_t)))
+    // Also make sure that we're either in the middle of a row, or not at the first row.
+    while (((posA_t > 0) || (posB_t > 0)) && (prune(*reinterpret_cast<void**>(*(data + posA_t) + posB_t))))
     {
         // Mark it as prunable.
         marked[0]->push_back(*reinterpret_cast<void**>(*(data + posA_t) + posB_t));
-        
+
         // Step back.
         if (posB_t == 0)
         {
@@ -361,11 +385,11 @@ inline vector<void*>** BankIDS::remove_sweep()
         else
             posB_t -= datalen;
     }
-    
+
     // Now we can start work forwards from the other end.
     uint64_t i = 0; // posA
     uint64_t j = 0; // posB
-    
+
     // As long as i is at a row before posA_t
     // If i is on the same row as posA_t, then j should be on a column before posB_t
     // The case of where they two are on the same location shouldn't be handled specifically because if there is a cusor
@@ -377,27 +401,30 @@ inline vector<void*>** BankIDS::remove_sweep()
         {
             // Mark the current cursor position as pruneable.
             marked[0]->push_back(*reinterpret_cast<void**>(*(data + i) + j));
-            
+
             // Copy memory from the end of the datastore to the beginning.
             memcpy(*(data + i) + j, *(data + posA_t) + posB_t, datalen);
-            
+
             // Now find a new location to copy data from.
             // We need to start by stepping backwards one spot.
             if (posB_t == 0)
             {
-                posA_t -= sizeof(void*);
-                posB_t = cap_size - datalen;
+                if (posA_t > 0)
+                {
+                    posA_t -= sizeof(void*);
+                    posB_t = cap_size - datalen;
+                }
             }
             else
                 posB_t -= datalen;
-            
+
             // Now keep stepping backwards as long as we're at a pruneable location.
             // We also should take care not to step back past the forward-moving cursor.
             while (((i < posA_t) || ((i == posA_t) && (j < posB_t))) && (prune(*reinterpret_cast<void**>(*(data + posA_t) + posB_t))))
             {
                 // Mark it as prunable.
                 marked[0]->push_back(*reinterpret_cast<void**>(*(data + posA_t) + posB_t));
-                
+
                 // Step back.
                 if (posB_t == 0)
                 {
@@ -408,7 +435,7 @@ inline vector<void*>** BankIDS::remove_sweep()
                     posB_t -= datalen;
             }
         }
-        
+
         // Increment the forward moving cursor
         j += datalen;
         if (j == cap_size)
@@ -417,11 +444,11 @@ inline vector<void*>** BankIDS::remove_sweep()
             j = 0;
         }
     }
-    
+
     data_count -= marked[0]->size();
-    
+
     WRITE_UNLOCK();
-    
+
     /// @todo Make this more efficient by replacing it with a vector and a binary search.
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
@@ -431,23 +458,23 @@ inline vector<void*>** BankIDS::remove_sweep()
         clones[i]->remove_sweep();
         clones[i]->set_prune(temp);
     }
-    
+
     sort(marked[0]->begin(), marked[0]->end());
     return marked;
 }
 
 inline void BankDS::remove_cleanup(vector<void*>** marked)
-{   
+{
     data_count -= marked[0]->size();
     uint64_t shift = datalen * marked[0]->size();
-    
+
     while (shift >= cap_size)
     {
         free(*(data + posA));
         posA -= sizeof(void*);
         shift -= cap_size;
     }
-    
+
     if (shift > posB)
     {
         free(*(data + posA));
@@ -456,9 +483,9 @@ inline void BankDS::remove_cleanup(vector<void*>** marked)
     }
     else
         posB -= shift;
-    
+
     WRITE_UNLOCK();
-    
+
     delete marked[0];
     delete marked[2];
     delete marked[3];
