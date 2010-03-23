@@ -107,12 +107,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, 1);
+        data = new BankDS(NULL, prune, datalen, 3);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen);
+        data = new LinkedListDS(NULL, prune, datalen, 3);
         break;
     }
     default:
@@ -136,12 +136,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, 1);
+        data = new BankDS(NULL, prune, datalen, 3);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen);
+        data = new LinkedListDS(NULL, prune, datalen, 3);
         break;
     }
     default:
@@ -164,12 +164,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, 1);
+        data = new BankIDS(NULL, prune, 3);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune);
+        data = new LinkedListIDS(NULL, prune, 3);
         break;
     }
     default:
@@ -193,12 +193,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, 1);
+        data = new BankIDS(NULL, prune, 3);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune);
+        data = new LinkedListIDS(NULL, prune, 3);
         break;
     }
     default:
@@ -221,7 +221,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len);
+        data = new LinkedListVDS(NULL, prune, len, 3);
         break;
     }
     default:
@@ -245,7 +245,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len);
+        data = new LinkedListVDS(NULL, prune, len, 3);
         break;
     }
     default:

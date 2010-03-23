@@ -439,7 +439,10 @@ void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
             temp = it->get_data();
 
             if (condition(temp))
+            {
+                it->update_query_count();
                 ds->add_data(temp);
+            }
         }
         while (it->next());
     }
@@ -458,7 +461,10 @@ void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
             temp = it->get_data();
 
             if (compare(rawdata, temp) == 0)
+            {
+                it->update_query_count();
                 ds->add_data(temp);
+            }
             else
                 break;
         }
@@ -475,6 +481,7 @@ void RedBlackTreeI::query_lt(void* rawdata, DataStore* ds)
     {
         do
         {
+            it->update_query_count();
             ds->add_data(it->get_data());
         }
         while (it->prev());
@@ -490,6 +497,7 @@ void RedBlackTreeI::query_gt(void* rawdata, DataStore* ds)
     {
         do
         {
+            it->update_query_count();
             ds->add_data(it->get_data());
         }
         while (it->next());

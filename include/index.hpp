@@ -352,6 +352,9 @@ protected:
 
 class Iterator
 {
+    friend class RedBlackTreeI;
+    friend class LinkedListI;
+    
 public:
     virtual ~Iterator();
     virtual DataObj* next();
@@ -364,6 +367,7 @@ public:
 protected:
     Iterator();
     Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+    virtual void update_query_count();
 
     bool drop_duplicates;
     bool time_stamp;

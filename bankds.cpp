@@ -90,6 +90,9 @@ inline void* BankDS::add_data(void* rawdata)
     // Stores a timestamp right after the data if the datastore is set to do that.
     if (time_stamp)
         SET_TIME_STAMP(ret, cur_time);
+    
+    if (query_count)
+        SET_QUERY_COUNT(ret, 0);
 
     return ret;
 }

@@ -29,7 +29,7 @@ protected:
     ///instance.
     LinkedListDS();
 
-    LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen);
+    LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags = 0);
 
     virtual void init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen);
     virtual void* add_data(void* rawdata);
@@ -63,7 +63,7 @@ protected:
     ///instance.
     LinkedListIDS();
 
-    LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata));
+    LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags = 0);
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
@@ -89,7 +89,7 @@ protected:
 
     LinkedListVDS();
 
-    LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*));
+    LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*), uint32_t flags = 0);
 
     virtual void* add_data(void* rawdata);
     virtual void* add_data(void* rawdata, uint32_t datalen);

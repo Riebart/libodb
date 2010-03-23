@@ -247,3 +247,10 @@ uint32_t Iterator::get_query_count()
     else
         return 0;
 }
+
+void Iterator::update_query_count()
+{
+    if (query_count)
+        UPDATE_QUERY_COUNT(dataobj->data);
+}
+

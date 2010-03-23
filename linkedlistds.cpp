@@ -10,16 +10,28 @@
 
 using namespace std;
 
-LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
+LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags)
 {
+    this->flags = flags;
+    time_stamp = (flags & DataStore::TIME_STAMP);
+    query_count = (flags & DataStore::QUERY_COUNT);
+            
     init(parent, prune, datalen);
 }
 
-LinkedListIDS::LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata)) : LinkedListDS(parent, prune, sizeof(char*))
+LinkedListIDS::LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags) : LinkedListDS(parent, prune, sizeof(char*), flags)
 {
+    // If the parent is not NULL
+    if (parent != NULL)
+    {
+        // Then we need to 'borrow' its true datalen.
+        // As well, we need to reset the datalen for this object since we aren't storing the meta data in this DS (It is in the parent).
+        true_datalen = parent->true_datalen;
+        datalen = sizeof(char*);
+    }
 }
 
-LinkedListVDS::LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*)) : LinkedListDS(parent, prune, 0)
+LinkedListVDS::LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*), uint32_t flags) : LinkedListDS(parent, prune, 0, flags)
 {
     this->len = len;
 }
@@ -28,7 +40,8 @@ inline void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), 
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
-    this->datalen = datalen;
+    this->true_datalen = datalen;
+    this->datalen = datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);;
     bottom = NULL;
     this->parent = parent;
     this->prune = prune;
@@ -57,6 +70,12 @@ inline void* LinkedListDS::add_data(void* rawdata)
     void* ret = get_addr();
 
     memcpy(ret, rawdata, datalen);
+        
+    if (time_stamp)
+        SET_TIME_STAMP(ret, cur_time);
+    
+    if (query_count)
+        SET_QUERY_COUNT(ret, 0);
 
     return ret;
 }
@@ -85,6 +104,14 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
     void* ret = get_addr(nbytes);
 
     memcpy(ret, rawdata, nbytes);
+    
+    int true_datalen = nbytes + datalen;
+    
+    if (time_stamp)
+        SET_TIME_STAMP(ret, cur_time);
+    
+    if (query_count)
+        SET_QUERY_COUNT(ret, 0);
 
     return ret;
 }
@@ -97,7 +124,7 @@ inline void* LinkedListVDS::get_addr()
 inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 {
     struct datanode* new_element;
-    SAFE_MALLOC(struct datanode*, new_element, nbytes + sizeof(uint32_t) + sizeof(struct datanode*));
+    SAFE_MALLOC(struct datanode*, new_element, nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*));
     new_element->datalen = nbytes;
 
     WRITE_LOCK();
@@ -111,7 +138,12 @@ inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 
 inline void* LinkedListIDS::add_data(void* rawdata)
 {
-    return *(reinterpret_cast<void**>(LinkedListDS::add_data(&rawdata)));
+    void* ret = get_addr();
+    
+    *reinterpret_cast<void**>(ret) = rawdata;
+    
+    return reinterpret_cast<void*>(*(reinterpret_cast<char**>(ret)));
+    //return *(reinterpret_cast<void**>(LinkedListDS::add_data(&rawdata)));
 }
 
 inline bool LinkedListDS::remove_at(uint64_t index)
@@ -354,22 +386,22 @@ inline void* LinkedListIDS::get_at(uint64_t index)
 
 inline DataStore* LinkedListDS::clone()
 {
-    return new LinkedListDS(this, prune, datalen);
+    return new LinkedListDS(this, prune, datalen, flags);
 }
 
 inline DataStore* LinkedListDS::clone_indirect()
 {
-    return new LinkedListIDS(this, prune);
+    return new LinkedListIDS(this, prune, flags);
 }
 
 inline DataStore* LinkedListVDS::clone()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new LinkedListVDS(this, prune, len);
+    return new LinkedListVDS(this, prune, len, flags);
 }
 
 inline DataStore* LinkedListVDS::clone_indirect()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new LinkedListIDS(this, prune);
+    return new LinkedListIDS(this, prune, flags);
 }
