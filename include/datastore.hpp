@@ -11,6 +11,7 @@
 #define SET_TIME_STAMP(x, t) (GET_TIME_STAMP(x) = t);
 #define GET_QUERY_COUNT(x) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + true_datalen + time_stamp * sizeof(time_t)))
 #define SET_QUERY_COUNT(x, c) (GET_QUERY_COUNT(x) = c);
+#define UPDATE_QUERY_COUNT(x) (GET_QUERY_COUNT(x)++);
 
 class ODB;
 class Index;
@@ -22,6 +23,8 @@ class DataStore
     friend class Index;
     friend class LinkedListI;
     friend class RedBlackTreeI;
+    friend class BankIDS;
+    friend class LinkedListIDS;
 
 public:
     typedef enum { NONE = 0, TIME_STAMP = 1, QUERY_COUNT = 2 } DataStoreFlags;
@@ -60,6 +63,7 @@ protected:
     bool (*prune)(void* rawdata);
     uint32_t datalen;
     uint32_t true_datalen;
+    uint32_t flags;
     time_t cur_time;
     bool time_stamp;
     bool query_count;

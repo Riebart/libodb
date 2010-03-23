@@ -11,16 +11,25 @@
 
 using namespace std;
 
-BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap, uint32_t flags)
+BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags, uint64_t cap)
 {
+    this->flags = flags;
     time_stamp = (flags & DataStore::TIME_STAMP);
     query_count = (flags & DataStore::QUERY_COUNT);
 
     init(parent, prune, datalen, cap);
 }
 
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t cap, uint32_t flags) : BankDS(parent, prune, sizeof(char*), cap, DataStore::NONE)
+BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags, uint64_t cap) : BankDS(parent, prune, sizeof(char*), flags, cap)
 {
+    // If the parent is not NULL
+    if (parent != NULL)
+    {
+        // Then we need to 'borrow' its true datalen.
+        // As well, we need to reset the datalen for this object since we aren't storing the meta data in this DS (It is in the parent).
+        true_datalen = parent->true_datalen;
+        datalen = sizeof(char*);
+    }
 }
 
 inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
@@ -534,11 +543,11 @@ inline void BankIDS::populate(Index* index)
 inline DataStore* BankDS::clone()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new BankDS(this, prune, datalen, cap);
+    return new BankDS(this, prune, datalen, flags, cap);
 }
 
 inline DataStore* BankDS::clone_indirect()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
-    return new BankIDS(this, prune, cap);
+    return new BankIDS(this, prune, flags, cap);
 }

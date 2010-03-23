@@ -107,7 +107,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen);
+        data = new BankDS(NULL, prune, datalen, 1);
         break;
     }
     case LINKED_LIST_DS:
@@ -136,7 +136,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen);
+        data = new BankDS(NULL, prune, datalen, 1);
         break;
     }
     case LINKED_LIST_DS:
@@ -164,7 +164,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune);
+        data = new BankIDS(NULL, prune, 1);
         break;
     }
     case LINKED_LIST_I_DS:
@@ -193,7 +193,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune);
+        data = new BankIDS(NULL, prune, 1);
         break;
     }
     case LINKED_LIST_I_DS:
