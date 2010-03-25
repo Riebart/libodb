@@ -198,7 +198,6 @@ protected:
     RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
 
     std::stack<struct RedBlackTreeI::tree_node*> trail;
-    DataStore* parent;
 };
 
 #endif

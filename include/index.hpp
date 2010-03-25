@@ -141,6 +141,10 @@ public:
     /// @warning This opertation is O(N), where N is the number of entries in all
     ///index tables contained in this IndexGroup tree.
     virtual ODB* query(bool (*condition)(void*));
+    
+    virtual ODB* query_eq(void* rawdata);
+    virtual ODB* query_lt(void* rawdata);
+    virtual ODB* query_gt(void* rawdata);
 
     /// Obtain the identifier of this IndexGroup.
     /// It is possible that one would want to verify the indentifier of an
@@ -197,6 +201,10 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    virtual void query_eq(void* rawdata, DataStore* ds);
+    virtual void query_lt(void* rawdata, DataStore* ds);
+    virtual void query_gt(void* rawdata, DataStore* ds);
 
     RWLOCK_T;
 
@@ -261,6 +269,10 @@ public:
     /// @warning This operation is O(N), where N is the number of items in this
     ///index table.
     virtual ODB* query(bool (*condition)(void*));
+    
+    virtual ODB* query_eq(void* rawdata);
+    virtual ODB* query_lt(void* rawdata);
+    virtual ODB* query_gt(void* rawdata);
 
     /// Get the number of elements in the table.
     /// @return The number of elements added to the table. This includes the items
@@ -318,6 +330,10 @@ protected:
     /// @param [in] ds A pointer to a datastore that will be filled with the
     ///results of the query.
     virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    virtual void query_eq(void* rawdata, DataStore* ds);
+    virtual void query_lt(void* rawdata, DataStore* ds);
+    virtual void query_gt(void* rawdata, DataStore* ds);
 
     /// Update the data pointers of this index table.
     /// This is done under the assumption that the new and old addresses compare as
@@ -375,6 +391,7 @@ protected:
     uint32_t true_datalen;
     DataObj* dataobj;
     Iterator* it;
+    DataStore* parent;
 };
 
 #endif
