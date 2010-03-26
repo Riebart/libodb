@@ -9,6 +9,7 @@
 
 #include "index.hpp"
 #include "lock.hpp"
+#include "comparator.hpp"
 
 #ifndef LEN_V
 #define LEN_V

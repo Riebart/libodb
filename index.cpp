@@ -61,9 +61,9 @@ inline ODB* IndexGroup::query(bool (*condition)(void*))
 {
     // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-    
+
     query(condition, ds);
-    
+
     // Wrap in an ODB and return.
     return new ODB(ds, ident, parent->datalen);
 }
@@ -72,9 +72,9 @@ inline ODB* IndexGroup::query_eq(void* rawdata)
 {
     // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-    
+
     query_eq(rawdata, ds);
-    
+
     // Wrap in an ODB and return.
     return new ODB(ds, ident, parent->datalen);
 }
@@ -83,9 +83,9 @@ inline ODB* IndexGroup::query_lt(void* rawdata)
 {
     // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-    
+
     query_lt(rawdata, ds);
-    
+
     // Wrap in an ODB and return.
     return new ODB(ds, ident, parent->datalen);
 }
@@ -94,9 +94,9 @@ inline ODB* IndexGroup::query_gt(void* rawdata)
 {
     // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-    
+
     query_gt(rawdata, ds);
-    
+
     // Wrap in an ODB and return.
     return new ODB(ds, ident, parent->datalen);
 }
@@ -125,14 +125,14 @@ inline void IndexGroup::add_data_v(void* data)
 inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
 {
     uint32_t n = indices.size();
-    
+
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
             indices[0]->query(condition, ds);
         else
-            #pragma omp parallel for
+#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
                 indices[i]->query(condition, ds);
     }
@@ -141,14 +141,14 @@ inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
 inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 {
     uint32_t n = indices.size();
-    
+
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
             indices[0]->query_eq(rawdata, ds);
         else
-            #pragma omp parallel for
+#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
                 indices[i]->query_eq(rawdata, ds);
     }
@@ -157,14 +157,14 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 {
     uint32_t n = indices.size();
-    
+
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
             indices[0]->query_lt(rawdata, ds);
         else
-            #pragma omp parallel for
+#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
                 indices[i]->query_lt(rawdata, ds);
     }
@@ -173,14 +173,14 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
 {
     uint32_t n = indices.size();
-    
+
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
             indices[0]->query_gt(rawdata, ds);
         else
-            #pragma omp parallel for
+#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
                 indices[i]->query_gt(rawdata, ds);
     }
@@ -228,7 +228,7 @@ inline ODB* Index::query_eq(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_eq(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -238,7 +238,7 @@ inline ODB* Index::query_lt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_lt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -248,7 +248,7 @@ inline ODB* Index::query_gt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_gt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;

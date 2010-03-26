@@ -15,7 +15,7 @@ LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint
     this->flags = flags;
     time_stamp = (flags & DataStore::TIME_STAMP);
     query_count = (flags & DataStore::QUERY_COUNT);
-            
+
     init(parent, prune, datalen);
 }
 
@@ -70,10 +70,10 @@ inline void* LinkedListDS::add_data(void* rawdata)
     void* ret = get_addr();
 
     memcpy(ret, rawdata, datalen);
-        
+
     if (time_stamp)
         SET_TIME_STAMP(ret, cur_time);
-    
+
     if (query_count)
         SET_QUERY_COUNT(ret, 0);
 
@@ -104,12 +104,12 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
     void* ret = get_addr(nbytes);
 
     memcpy(ret, rawdata, nbytes);
-    
+
     int true_datalen = nbytes + datalen;
-    
+
     if (time_stamp)
         SET_TIME_STAMP(ret, cur_time);
-    
+
     if (query_count)
         SET_QUERY_COUNT(ret, 0);
 
@@ -139,9 +139,9 @@ inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 inline void* LinkedListIDS::add_data(void* rawdata)
 {
     void* ret = get_addr();
-    
+
     *reinterpret_cast<void**>(ret) = rawdata;
-    
+
     return reinterpret_cast<void*>(*(reinterpret_cast<char**>(ret)));
     //return *(reinterpret_cast<void**>(LinkedListDS::add_data(&rawdata)));
 }

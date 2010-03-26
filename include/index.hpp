@@ -42,7 +42,7 @@ private:
     DataObj();
     DataObj(int ident);
     ~DataObj();
-    
+
     int ident;
     void* data;
 };
@@ -114,7 +114,7 @@ public:
     virtual ODB* query_gt(void* rawdata);
     virtual uint64_t size();
     virtual bool remove(DataObj* data);
-    
+
     virtual Iterator* it_first();
     virtual Iterator* it_last();
     virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
@@ -124,15 +124,15 @@ protected:
     Index();
     virtual void add_data_v(void* rawdata);
     virtual void query(bool (*condition)(void*), DataStore* ds);
-    
+
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
-    
+
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
-    
+
     int32_t (*compare)(void*, void*);
     void* (*merge)(void*, void*);
     uint64_t count;
@@ -143,7 +143,7 @@ class Iterator
 {
     friend class RedBlackTreeI;
     friend class LinkedListI;
-    
+
 public:
     virtual ~Iterator();
     virtual DataObj* next();

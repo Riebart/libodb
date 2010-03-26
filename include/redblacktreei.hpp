@@ -27,13 +27,13 @@ private:
                   int32_t (*compare)(void*, void*),
                   void* (*merge)(void*, void*),
                   bool drop_duplicates);
-                  
+
     struct tree_node
     {
         struct RedBlackTreeI::tree_node* link[2];
         void* data;
     };
-    
+
     struct tree_node* root;
     struct tree_node* false_root;
     struct tree_node* sub_false_root;
@@ -50,7 +50,7 @@ private:
                         void* (*merge)(void*, void*),
                         bool drop_duplicates,
                         void* rawdata);
-                        
+
     static void free_n(struct tree_node* n, bool drop_duiplicates);
     int rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*));
     void query(bool (*condition)(void*), DataStore* ds);
@@ -179,7 +179,7 @@ protected:
 ///is indexing into the link array, 0 means rotate left and 1 rotates right.
 /// @return Pointer to the new top of the rotated sub tree.
 
-/// @fn static struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct RedBlackTreeI::tree_node* n, int dir) 
+/// @fn static struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct RedBlackTreeI::tree_node* n, int dir)
 /// Perform a double-rotation on a tree, one in each direction.
 /// Repairing a violation in a red-black tree where the new ndoe is an
 ///inside granchchild requires two tree rotations. The first rotation reduces

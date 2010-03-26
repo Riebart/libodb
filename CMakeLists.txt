@@ -48,7 +48,7 @@ target_link_libraries(py-demo boost_python-mt python2.6 odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
-install(FILES include/odb.hpp include/index.hpp include/lock.hpp DESTINATION include)
+install(FILES include/odb.hpp include/index.hpp include/comparator.hpp include/lock.hpp DESTINATION include)
 
 #Package generation directives
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")

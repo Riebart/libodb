@@ -51,13 +51,13 @@ void * mem_checker(void * arg)
     while (parent->is_running())
     {
         time_t cur = time(NULL);
-        
+
         // Since time(NULL) has a resolution of one second, this will execute every second (approximately).
         if (parent->get_time() < cur)
         {
             parent->update_time(cur);
             count++;
-            
+
             if (count > sleep_duration)
             {
                 printf("Time: %lu - ODB instance: %p - Rsize: %ld - mem_limit: %lu...", cur, parent, rsize, parent->mem_limit);
