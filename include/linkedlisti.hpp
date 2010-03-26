@@ -20,7 +20,7 @@ public:
     virtual Iterator* it_middle(DataObj* data);
 
 protected:
-    LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates);
+    LinkedListI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates);
 
     struct node
     {

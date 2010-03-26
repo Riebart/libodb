@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "lock.hpp"
+#include "comparator.hpp"
 
 // Forward declarations.
 class ODB;
@@ -133,7 +134,7 @@ protected:
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-    int32_t (*compare)(void*, void*);
+    Comparator* compare;
     void* (*merge)(void*, void*);
     uint64_t count;
     bool drop_duplicates;

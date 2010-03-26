@@ -98,7 +98,7 @@ using namespace std;
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 #define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
 
-RedBlackTreeI::RedBlackTreeI(int ident, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+RedBlackTreeI::RedBlackTreeI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = ident;
@@ -202,7 +202,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
     uint8_t ret = 0;
@@ -280,7 +280,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
 
             // At the moment no duplicates are allowed.
             // Currently this also handles the general stopping case.
-            c = compare(rawdata, GET_DATA(i));
+            c = compare->compare(rawdata, GET_DATA(i));
             if (c == 0)
             {
                 // If we haven't added the node...
@@ -313,7 +313,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
                             SAFE_CALLOC(struct tree_node*, new_node, 1, sizeof(struct tree_node));
                             new_node->data = rawdata;
 
-                            new_root->link[compare_addr(rawdata, i->data) > 0] = new_node;
+                            new_root->link[compare_addr->compare(rawdata, i->data) > 0] = new_node;
                             i->data = new_root;
                             SET_RED(new_node);
                             SET_TREE(i);
@@ -359,7 +359,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
     return new_root;
 }
 
-int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*))
+int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
 {
     int height_l, height_r;
 
@@ -397,8 +397,8 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*
         height_r = rbt_verify_n(right, compare);
 
         // Verify BST property.
-        if (((left != NULL) && (compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
-                ((right != NULL) && (compare(GET_DATA(right), GET_DATA(root)) <= 0)))
+        if (((left != NULL) && (compare->compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
+            ((right != NULL) && (compare->compare(GET_DATA(right), GET_DATA(root)) <= 0)))
         {
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
@@ -460,7 +460,7 @@ void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
         {
             temp = it->get_data();
 
-            if (compare(rawdata, temp) == 0)
+            if (compare->compare(rawdata, temp) == 0)
             {
                 it->update_query_count();
                 ds->add_data(temp);
@@ -519,7 +519,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     return ret;
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
 {
     uint8_t ret = 0;
 
@@ -559,7 +559,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, stru
             p = i;
             i = STRIP(i->link[dir]);
 
-            c = compare(rawdata, GET_DATA(i));
+            c = compare->compare(rawdata, GET_DATA(i));
             dir = (c > 0);
 
             // If our desired node is here...
@@ -692,7 +692,7 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
 
         while (curr != NULL)
         {
-            c = compare(addr, GET_DATA(curr));
+            c = compare->compare(addr, GET_DATA(curr));
 
             if (c == 0)
             {
@@ -837,7 +837,7 @@ inline Iterator* RedBlackTreeI::it_lookup(void* rawdata, int8_t dir)
     return it_lookup(parent, root, ident, drop_duplicates, compare, rawdata, dir);
 }
 
-inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir)
+inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates, Comparator* compare, void* rawdata, int8_t dir)
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
@@ -852,7 +852,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
 
         while (i != NULL)
         {
-            c = compare(rawdata, GET_DATA(i));
+            c = compare->compare(rawdata, GET_DATA(i));
             d = (c > 0);
 
             if (c == 0)

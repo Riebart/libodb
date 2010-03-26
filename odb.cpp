@@ -344,8 +344,13 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
     return dataobj;
 }
 
-/// @todo Handle these failures gracefully instead.
 Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
+{
+    return create_index(type, flags, new Compare(compare), merge, keygen, keylen);
+}
+
+/// @todo Handle these failures gracefully instead.
+Index* ODB::create_index(IndexType type, int flags, Comparator* compare, void* (*merge)(void*, void*), void (*keygen)(void*, void*), int32_t keylen)
 {
     READ_LOCK();
 

@@ -7,7 +7,10 @@
 class Comparator
 {
 public:
-    virtual int32_t compare(void* a, void* b) = 0;
+    virtual int32_t compare(void* a, void* b)
+    {
+        return -1;
+    };
 };
 
 class Modifier
@@ -72,6 +75,23 @@ public:
     {
         return *reinterpret_cast<void**>(a);
     }
+};
+
+class Compare : public Comparator
+{
+    public:
+        Compare(int32_t (*c)(void*, void*))
+        {
+            this->c = c;
+        }
+        
+        virtual inline int32_t compare(void* a, void* b)
+        {
+            return c(a, b);
+        }
+        
+    private:
+        int32_t (*c)(void*, void*);
 };
 
 class CompareUInt64 : public Comparator

@@ -8,7 +8,7 @@ using namespace std;
 
 #define GET_DATA(x) (x->data)
 
-LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+LinkedListI::LinkedListI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = ident;
@@ -42,7 +42,7 @@ inline void LinkedListI::add_data_v(void* rawdata)
     else
     {
         // Special case when we need to insert before the head of the list since we need to update the 'first' pointer.
-        int comp = compare(rawdata, first->data);
+        int comp = compare->compare(rawdata, first->data);
 
         // If the new data comes before the head.
         if (comp <= 0)
@@ -78,7 +78,7 @@ inline void LinkedListI::add_data_v(void* rawdata)
             struct node* curr = first;
 
             // As long as the next node is not NULL and the new data belongs before it.
-            while ((curr->next != NULL) && (comp = compare(rawdata, curr->next->data)) && (comp > 0))
+            while ((curr->next != NULL) && (comp = compare->compare(rawdata, curr->next->data)) && (comp > 0))
                 curr = curr->next;
 
             if (comp == 0)
@@ -116,7 +116,7 @@ bool LinkedListI::remove(void* data)
     WRITE_LOCK();
     if (first != NULL)
     {
-        if (compare(data, first->data) == 0)
+        if (compare->compare(data, first->data) == 0)
         {
             first = first->next;
             ret = true;
@@ -125,7 +125,7 @@ bool LinkedListI::remove(void* data)
         {
             struct node* curr = first;
 
-            while ((curr->next != NULL) && (compare(data, curr->next->data) != 0))
+            while ((curr->next != NULL) && (compare->compare(data, curr->next->data) != 0))
                 curr = curr->next;
 
             if (curr->next != NULL)

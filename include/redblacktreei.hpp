@@ -24,7 +24,7 @@ public:
 
 private:
     RedBlackTreeI(int ident,
-                  int32_t (*compare)(void*, void*),
+                  Comparator* compare,
                   void* (*merge)(void*, void*),
                   bool drop_duplicates);
 
@@ -46,13 +46,13 @@ private:
                         struct tree_node* root,
                         struct tree_node* false_root,
                         struct tree_node* sub_false_root,
-                        int32_t (*compare)(void*, void*),
+                        Comparator* compare,
                         void* (*merge)(void*, void*),
                         bool drop_duplicates,
                         void* rawdata);
 
     static void free_n(struct tree_node* n, bool drop_duiplicates);
-    int rbt_verify_n(struct tree_node* root, int32_t (*compare)(void*, void*));
+    int rbt_verify_n(struct tree_node* root, Comparator* compare);
     void query(bool (*condition)(void*), DataStore* ds);
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
@@ -65,7 +65,7 @@ private:
                         struct tree_node* root,
                         struct tree_node* false_root,
                         struct tree_node* sub_false_root,
-                        int32_t (*compare)(void*, void*),
+                        Comparator* compare,
                         void* (*merge)(void*, void*),
                         bool drop_duplicates,
                         void* rawdata);
@@ -73,7 +73,7 @@ private:
 
     static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_last(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
-    static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, int32_t (*compare)(void*, void*), void* rawdata, int8_t dir);
+    static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
 
     DataStore* treeds;
 };
@@ -139,7 +139,7 @@ protected:
 /// @retval >0 If the tree is a valid red-black tree then it returns the
 ///black-height of the tree.
 
-/// @fn RedBlackTreeI::(int ident, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+/// @fn RedBlackTreeI::(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
 /// Standard constructor
 /// @param [in] ident Identifier to maintain data integrity; all new data
 ///is checked against this identifier that the data is appropriate for
@@ -208,7 +208,7 @@ protected:
 /// Uses recursion to free the tree and interation to free the lists.
 /// @param [in] n Pointer to the root of a subtree.
 
-/// @fn int RedBlackTreeI::rbt_verify_n(struct RedBlackTreeI::tree_node* root, int32_t (*compare)(void*, void*))
+/// @fn int RedBlackTreeI::rbt_verify_n(struct RedBlackTreeI::tree_node* root, Comparator* compare)
 /// Check the properties of this red-black tree to verify that it works.
 /// @param [in] root Pointer to the root of a subtree
 /// @retval 0 If the sub-tree is an invalid red-black tree.

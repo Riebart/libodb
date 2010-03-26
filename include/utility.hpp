@@ -43,7 +43,7 @@ inline bool prune_true(void* rawdata)
     return true;
 }
 
-inline int32_t compare_addr(void* a, void* b)
+inline int32_t compare_addr_f(void* a, void* b)
 {
     int64_t c = reinterpret_cast<int64_t>(a) - reinterpret_cast<int64_t>(b);
 
@@ -53,5 +53,7 @@ inline int32_t compare_addr(void* a, void* b)
         return 1;
     return 0;
 }
+
+static Compare* compare_addr = new Compare(compare_addr_f);
 
 #endif
