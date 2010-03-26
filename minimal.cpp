@@ -46,7 +46,5 @@ int main (int argc, char ** argv)
 
     printf("Query contains %lu items.\n", res->size());
 
-    delete res;
-
     return EXIT_SUCCESS;
 }
