@@ -1,3 +1,174 @@
+#ifndef INDEX_HPP
+#define INDEX_HPP
+
+#include <vector>
+#include <stdint.h>
+
+#include "lock.hpp"
+
+// Forward declarations.
+class ODB;
+class DataStore;
+class Iterator;
+
+class DataObj
+{
+    /// Requires ability to set the data field.
+    friend class ODB;
+
+    /// Requires ability to read the ident field.
+    friend class IndexGroup;
+
+    /// Requires ability to read the ident field.
+    friend class Index;
+
+    /// Requires ability to create and manipulate DataObj.
+    friend class RedBlackTreeI;
+
+    /// Requires ability to create and manipulate DataObj.
+    friend class LinkedListI;
+
+    /// Requires ability to create and manipulate DataObj.
+    friend class Iterator;
+
+    /// Requires ability to create and manipulate DataObj.
+    friend class RBTIterator;
+
+    /// Requires ability to create and manipulate DataObj.
+    friend class LLIterator;
+
+
+private:
+    DataObj();
+    DataObj(int ident);
+    ~DataObj();
+    
+    int ident;
+    void* data;
+};
+
+class IndexGroup
+{
+    /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
+    ///skip the overhead of verifying data integrity since that is guaranteed
+    ///in that usage scenario.
+    friend class ODB;
+
+public:
+    virtual ~IndexGroup();
+
+    bool add_index(IndexGroup* ig);
+    virtual bool add_data(DataObj* data);
+    virtual ODB* query(bool (*condition)(void*));
+    virtual ODB* query_eq(void* rawdata);
+    virtual ODB* query_lt(void* rawdata);
+    virtual ODB* query_gt(void* rawdata);
+    virtual int get_ident();
+    virtual uint64_t size();
+
+protected:
+    IndexGroup();
+    IndexGroup(int ident, DataStore* parent);
+
+    int ident;
+    DataStore* parent;
+
+    virtual void add_data_v(void* data);
+    virtual void query(bool (*condition)(void*), DataStore* ds);
+    virtual void query_eq(void* rawdata, DataStore* ds);
+    virtual void query_lt(void* rawdata, DataStore* ds);
+    virtual void query_gt(void* rawdata, DataStore* ds);
+
+    RWLOCK_T;
+
+private:
+    std::vector<IndexGroup*> indices;
+};
+
+class Index : public IndexGroup
+{
+    /// Allows ODB to call remove_sweep.
+    friend class ODB;
+
+    /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
+    ///to bypass integrity checking.
+    friend class BankDS;
+
+    /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
+    ///to bypass integrity checking.
+    friend class BankIDS;
+
+    /// Allows LinkedListDS to access the Index::add_data_v function in
+    ///LinkedListDS::populate to bypass integrity checking.
+    friend class LinkedListDS;
+
+    /// Allows LinkedListIDS to access the Index::add_data_v function in
+    ///LinkedListIDS::populate to bypass integrity checking.
+    friend class LinkedListIDS;
+
+public:
+    virtual bool add_data(DataObj* data);
+    virtual ODB* query(bool (*condition)(void*));
+    virtual ODB* query_eq(void* rawdata);
+    virtual ODB* query_lt(void* rawdata);
+    virtual ODB* query_gt(void* rawdata);
+    virtual uint64_t size();
+    virtual bool remove(DataObj* data);
+    
+    virtual Iterator* it_first();
+    virtual Iterator* it_last();
+    virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
+    virtual void it_release(Iterator* it);
+
+protected:
+    Index();
+    virtual void add_data_v(void* rawdata);
+    virtual void query(bool (*condition)(void*), DataStore* ds);
+    
+    virtual void query_eq(void* rawdata, DataStore* ds);
+    virtual void query_lt(void* rawdata, DataStore* ds);
+    virtual void query_gt(void* rawdata, DataStore* ds);
+    
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
+    virtual bool remove(void* rawdata);
+    virtual void remove_sweep(std::vector<void*>* marked);
+    
+    int32_t (*compare)(void*, void*);
+    void* (*merge)(void*, void*);
+    uint64_t count;
+    bool drop_duplicates;
+};
+
+class Iterator
+{
+    friend class RedBlackTreeI;
+    friend class LinkedListI;
+    
+public:
+    virtual ~Iterator();
+    virtual DataObj* next();
+    virtual DataObj* prev();
+    virtual DataObj* data();
+    virtual void* get_data();
+    virtual time_t get_time_stamp();
+    virtual uint32_t get_query_count();
+
+protected:
+    Iterator();
+    Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+    virtual void update_query_count();
+
+    bool drop_duplicates;
+    bool time_stamp;
+    bool query_count;
+    uint32_t true_datalen;
+    DataObj* dataobj;
+    Iterator* it;
+    DataStore* parent;
+};
+
+#endif
+
 /// Header file for Index, IndexGroup and DataObj classes.
 /// @file index.hpp
 /// @Author Mike
@@ -277,174 +448,3 @@
 
 /// @fn bool Index::drop_duplicates
 /// Indicator on whether or not to drop duplicates.
-
-#ifndef INDEX_HPP
-#define INDEX_HPP
-
-#include <vector>
-#include <stdint.h>
-
-#include "lock.hpp"
-
-// Forward declarations.
-class ODB;
-class DataStore;
-class Iterator;
-
-class DataObj
-{
-    /// Requires ability to set the data field.
-    friend class ODB;
-
-    /// Requires ability to read the ident field.
-    friend class IndexGroup;
-
-    /// Requires ability to read the ident field.
-    friend class Index;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class RedBlackTreeI;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class LinkedListI;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class Iterator;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class RBTIterator;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class LLIterator;
-
-
-private:
-    DataObj();
-    DataObj(int ident);
-    ~DataObj();
-    
-    int ident;
-    void* data;
-};
-
-class IndexGroup
-{
-    /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
-    ///skip the overhead of verifying data integrity since that is guaranteed
-    ///in that usage scenario.
-    friend class ODB;
-
-public:
-    virtual ~IndexGroup();
-
-    bool add_index(IndexGroup* ig);
-    virtual bool add_data(DataObj* data);
-    virtual ODB* query(bool (*condition)(void*));
-    virtual ODB* query_eq(void* rawdata);
-    virtual ODB* query_lt(void* rawdata);
-    virtual ODB* query_gt(void* rawdata);
-    virtual int get_ident();
-    virtual uint64_t size();
-
-protected:
-    IndexGroup();
-    IndexGroup(int ident, DataStore* parent);
-
-    int ident;
-    DataStore* parent;
-
-    virtual void add_data_v(void* data);
-    virtual void query(bool (*condition)(void*), DataStore* ds);
-    virtual void query_eq(void* rawdata, DataStore* ds);
-    virtual void query_lt(void* rawdata, DataStore* ds);
-    virtual void query_gt(void* rawdata, DataStore* ds);
-
-    RWLOCK_T;
-
-private:
-    std::vector<IndexGroup*> indices;
-};
-
-class Index : public IndexGroup
-{
-    /// Allows ODB to call remove_sweep.
-    friend class ODB;
-
-    /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
-    ///to bypass integrity checking.
-    friend class BankDS;
-
-    /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
-    ///to bypass integrity checking.
-    friend class BankIDS;
-
-    /// Allows LinkedListDS to access the Index::add_data_v function in
-    ///LinkedListDS::populate to bypass integrity checking.
-    friend class LinkedListDS;
-
-    /// Allows LinkedListIDS to access the Index::add_data_v function in
-    ///LinkedListIDS::populate to bypass integrity checking.
-    friend class LinkedListIDS;
-
-public:
-    virtual bool add_data(DataObj* data);
-    virtual ODB* query(bool (*condition)(void*));
-    virtual ODB* query_eq(void* rawdata);
-    virtual ODB* query_lt(void* rawdata);
-    virtual ODB* query_gt(void* rawdata);
-    virtual uint64_t size();
-    virtual bool remove(DataObj* data);
-    
-    virtual Iterator* it_first();
-    virtual Iterator* it_last();
-    virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
-    virtual void it_release(Iterator* it);
-
-protected:
-    Index();
-    virtual void add_data_v(void* rawdata);
-    virtual void query(bool (*condition)(void*), DataStore* ds);
-    
-    virtual void query_eq(void* rawdata, DataStore* ds);
-    virtual void query_lt(void* rawdata, DataStore* ds);
-    virtual void query_gt(void* rawdata, DataStore* ds);
-    
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
-    virtual bool remove(void* rawdata);
-    virtual void remove_sweep(std::vector<void*>* marked);
-    
-    int32_t (*compare)(void*, void*);
-    void* (*merge)(void*, void*);
-    uint64_t count;
-    bool drop_duplicates;
-};
-
-class Iterator
-{
-    friend class RedBlackTreeI;
-    friend class LinkedListI;
-    
-public:
-    virtual ~Iterator();
-    virtual DataObj* next();
-    virtual DataObj* prev();
-    virtual DataObj* data();
-    virtual void* get_data();
-    virtual time_t get_time_stamp();
-    virtual uint32_t get_query_count();
-
-protected:
-    Iterator();
-    Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
-    virtual void update_query_count();
-
-    bool drop_duplicates;
-    bool time_stamp;
-    bool query_count;
-    uint32_t true_datalen;
-    DataObj* dataobj;
-    Iterator* it;
-    DataStore* parent;
-};
-
-#endif
