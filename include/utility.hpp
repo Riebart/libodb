@@ -54,6 +54,6 @@ inline int32_t compare_addr_f(void* a, void* b)
     return 0;
 }
 
-static Compare* compare_addr = new Compare(compare_addr_f);
+static CompareCust* compare_addr = new CompareCust(compare_addr_f);
 
 #endif

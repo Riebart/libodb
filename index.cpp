@@ -59,46 +59,54 @@ inline bool IndexGroup::add_data(DataObj* data)
 
 inline ODB* IndexGroup::query(bool (*condition)(void*))
 {
-    // Clone the prent.
+    ConditionCust* c = new ConditionCust(condition);
+    ODB* ret = query(c);
+    delete c;
+    return ret;
+}
+
+inline ODB* IndexGroup::query(Condition* condition)
+{
+    // Clone the parent.
     DataStore* ds = parent->clone_indirect();
-
+    
+    // Query
     query(condition, ds);
-
-    // Wrap in an ODB and return.
-    return new ODB(ds, ident, parent->datalen);
+    
+    // Wrap in ODB and return.
+    ODB* odb = new ODB(ds, ident, parent->datalen);
+    ds->update_parent(odb);
+    return odb;
 }
 
 inline ODB* IndexGroup::query_eq(void* rawdata)
 {
-    // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-
     query_eq(rawdata, ds);
-
-    // Wrap in an ODB and return.
-    return new ODB(ds, ident, parent->datalen);
+    
+    ODB* odb = new ODB(ds, ident, parent->datalen);
+    ds->update_parent(odb);
+    return odb;
 }
 
 inline ODB* IndexGroup::query_lt(void* rawdata)
 {
-    // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-
     query_lt(rawdata, ds);
-
-    // Wrap in an ODB and return.
-    return new ODB(ds, ident, parent->datalen);
+    
+    ODB* odb = new ODB(ds, ident, parent->datalen);
+    ds->update_parent(odb);
+    return odb;
 }
 
 inline ODB* IndexGroup::query_gt(void* rawdata)
 {
-    // Clone the prent.
     DataStore* ds = parent->clone_indirect();
-
     query_gt(rawdata, ds);
-
-    // Wrap in an ODB and return.
-    return new ODB(ds, ident, parent->datalen);
+    
+    ODB* odb = new ODB(ds, ident, parent->datalen);
+    ds->update_parent(odb);
+    return odb;
 }
 
 inline int IndexGroup::get_ident()
@@ -122,7 +130,7 @@ inline void IndexGroup::add_data_v(void* data)
     }
 }
 
-inline void IndexGroup::query(bool (*condition)(void*), DataStore* ds)
+inline void IndexGroup::query(Condition* condition, DataStore* ds)
 {
     uint32_t n = indices.size();
 
@@ -210,14 +218,31 @@ inline bool Index::add_data(DataObj* data)
         return false;
 }
 
+uint64_t Index::size()
+{
+    return count;
+}
+
+inline void Index::add_data_v(void*)
+{
+}
+
 inline ODB* Index::query(bool (*condition)(void*))
+{
+    ConditionCust* c = new ConditionCust(condition);
+    ODB* ret = query(c);
+    delete c;
+    return ret;
+}
+
+inline ODB* Index::query(Condition* condition)
 {
     // Clone the parent.
     DataStore* ds = parent->clone_indirect();
-
+    
     // Query
     query(condition, ds);
-
+    
     // Wrap in ODB and return.
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
@@ -228,7 +253,7 @@ inline ODB* Index::query_eq(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_eq(rawdata, ds);
-
+    
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -238,7 +263,7 @@ inline ODB* Index::query_lt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_lt(rawdata, ds);
-
+    
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -248,22 +273,13 @@ inline ODB* Index::query_gt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_gt(rawdata, ds);
-
+    
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
 }
 
-uint64_t Index::size()
-{
-    return count;
-}
-
-inline void Index::add_data_v(void*)
-{
-}
-
-inline void Index::query(bool (*condition)(void*), DataStore* ds)
+inline void Index::query(Condition* condition, DataStore* ds)
 {
 }
 

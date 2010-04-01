@@ -61,6 +61,7 @@ public:
     bool add_index(IndexGroup* ig);
     virtual bool add_data(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));
+    virtual ODB* query(Condition* condition);
     virtual ODB* query_eq(void* rawdata);
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
@@ -75,7 +76,7 @@ protected:
     DataStore* parent;
 
     virtual void add_data_v(void* data);
-    virtual void query(bool (*condition)(void*), DataStore* ds);
+    virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
@@ -109,13 +110,13 @@ class Index : public IndexGroup
 
 public:
     virtual bool add_data(DataObj* data);
+    virtual uint64_t size();
+    virtual bool remove(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));
+    virtual ODB* query(Condition* condition);
     virtual ODB* query_eq(void* rawdata);
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
-    virtual uint64_t size();
-    virtual bool remove(DataObj* data);
-
     virtual Iterator* it_first();
     virtual Iterator* it_last();
     virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
@@ -124,18 +125,16 @@ public:
 protected:
     Index();
     virtual void add_data_v(void* rawdata);
-    virtual void query(bool (*condition)(void*), DataStore* ds);
-
+    virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
-
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
     Comparator* compare;
-    void* (*merge)(void*, void*);
+    Merger* merge;
     uint64_t count;
     bool drop_duplicates;
 };
@@ -253,7 +252,7 @@ protected:
 /// @retval false The identifiers did not match and the operation failed.
 ///No changes were made to any of the involved objects.
 
-/// @fn ODB* IndexGroup::query(bool (*condition)(void*))
+/// @fn ODB* IndexGroup::query(Condition* condition)
 /// Perform a general query on the entire IndexGroup
 /// This performs a general query on the entire IndexGroup structure. Every
 ///index table 'contained' in this IndexGroup will contribute to the results.
@@ -307,7 +306,7 @@ protected:
 ///to pass).
 /// @param [in] data Pointer to the data in memory.
 
-/// @fn ODB* IndexGroup::query(bool (*condition)(void*), DataStore* ds)
+/// @fn ODB* IndexGroup::query(Condition* condition, DataStore* ds)
 /// Perform a general query and insert the results.
 /// This is called by IndexGroup::query(bool (*)(void*)) after the creation
 ///of the resulting DataStore is complete. A pointer to that DataStore object
@@ -351,7 +350,7 @@ protected:
 /// @retval false The identifiers did not match and the operation failed.
 ///No changes were made to any of the involved objects.
 
-/// @fn ODB* Index::query(bool (*condition)(void*))
+/// @fn ODB* Index::query(Condition* condition)
 /// Perform a general query on this Index
 /// This performs a general query on the index table and stores the results
 ///in a datastore cloned from this instance's parent datastore.
@@ -408,7 +407,7 @@ protected:
 ///datastores (BankDS,...) in their version of DataStore::populate.
 /// @param [in] data Pointer to the data in memory.
 
-/// @fn void Index::query(bool (*condition)(void*), DataStore* ds)
+/// @fn void Index::query(Condition* condition, DataStore* ds)
 /// Perform a general query and insert the results.
 /// This is called by Index::query(bool (*)(void*)) after the creation of
 ///the resulting DataStore is complete. A pointer to that DataStore object

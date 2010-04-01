@@ -8,7 +8,7 @@ using namespace std;
 
 #define GET_DATA(x) (x->data)
 
-LinkedListI::LinkedListI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
+LinkedListI::LinkedListI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = ident;
@@ -53,7 +53,7 @@ inline void LinkedListI::add_data_v(void* rawdata)
                 // Merge them, if we want.
                 if (merge != NULL)
                 {
-                    first->data = merge(rawdata, first->data);
+                    first->data = merge->merge(rawdata, first->data);
                     WRITE_UNLOCK();
                     return;
                 }
@@ -85,7 +85,7 @@ inline void LinkedListI::add_data_v(void* rawdata)
             {
                 if (merge != NULL)
                 {
-                    curr->next->data = merge(rawdata, curr->next->data);
+                    curr->next->data = merge->merge(rawdata, curr->next->data);
                     WRITE_UNLOCK();
                     return;
                 }
@@ -141,14 +141,14 @@ bool LinkedListI::remove(void* data)
     return ret;
 }
 
-void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
+void LinkedListI::query(Condition* condition, DataStore* ds)
 {
     READ_LOCK();
     struct node* curr = first;
 
     while (curr != NULL)
     {
-        if (condition(curr->data))
+        if (condition->condition(curr->data))
             ds->add_data(curr->data);
 
         curr = curr->next;

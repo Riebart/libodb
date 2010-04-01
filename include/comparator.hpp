@@ -4,13 +4,102 @@
 #include <stdint.h>
 #include <string.h>
 
+class Condition
+{
+public:
+    virtual bool condition(void* a) = 0;
+};
+
+class ConditionCust : public Condition
+{
+public:
+    ConditionCust(bool (*c)(void*))
+    {
+        this->c = c;
+    }
+
+    virtual inline bool condition(void* a)
+    {
+        return c(a);
+    }
+
+private:
+    bool (*c)(void*);
+};
+
+class Pruner
+{
+public:
+    virtual bool prune(void* a) = 0;
+};
+
+class PruneCust : public Pruner
+{
+public:
+    PruneCust(bool (*p)(void*))
+    {
+        this->p = p;
+    }
+
+    virtual inline bool prune(void* a)
+    {
+        return p(a);
+    }
+
+private:
+    bool (*p)(void*);
+};
+
+class Keygen
+{
+public:
+    virtual void* keygen(void* a) = 0;
+};
+
+class KeygenCust : public Keygen
+{
+public:
+    KeygenCust(void* (*k)(void*))
+    {
+        this->k = k;
+    }
+
+    virtual inline void* keygen(void* a)
+    {
+        return k(a);
+    }
+
+private:
+    void* (*k)(void*);
+};
+
+class Merger
+{
+public:
+    virtual void* merge(void* a, void* b) = 0;
+};
+
+class MergeCust : public Merger
+{
+public:
+    MergeCust(void* (*m)(void*, void*))
+    {
+        this->m = m;
+    }
+
+    virtual inline void* merge(void* a, void* b)
+    {
+        return m(a, b);
+    }
+
+private:
+    void* (*m)(void*, void*);
+};
+
 class Comparator
 {
 public:
-    virtual int32_t compare(void* a, void* b)
-    {
-        return -1;
-    };
+    virtual int32_t compare(void* a, void* b) = 0;
 };
 
 class Modifier
@@ -77,21 +166,21 @@ public:
     }
 };
 
-class Compare : public Comparator
+class CompareCust : public Comparator
 {
-    public:
-        Compare(int32_t (*c)(void*, void*))
-        {
-            this->c = c;
-        }
-        
-        virtual inline int32_t compare(void* a, void* b)
-        {
-            return c(a, b);
-        }
-        
-    private:
-        int32_t (*c)(void*, void*);
+public:
+    CompareCust(int32_t (*c)(void*, void*))
+    {
+        this->c = c;
+    }
+
+    virtual inline int32_t compare(void* a, void* b)
+    {
+        return c(a, b);
+    }
+
+private:
+    int32_t (*c)(void*, void*);
 };
 
 class CompareUInt64 : public Comparator
@@ -99,7 +188,7 @@ class CompareUInt64 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<uint64_t*>(b) - *reinterpret_cast<uint64_t*>(a);
+        return *reinterpret_cast<uint64_t*>(a) - *reinterpret_cast<uint64_t*>(b);
     }
 };
 
@@ -108,7 +197,7 @@ class CompareUInt32 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<uint32_t*>(b) - *reinterpret_cast<uint32_t*>(a);
+        return *reinterpret_cast<uint32_t*>(a) - *reinterpret_cast<uint32_t*>(b);
     }
 };
 
@@ -117,7 +206,7 @@ class CompareUInt16 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<uint16_t*>(b) - *reinterpret_cast<uint16_t*>(a);
+        return *reinterpret_cast<uint16_t*>(a) - *reinterpret_cast<uint16_t*>(b);
     }
 };
 
@@ -126,7 +215,7 @@ class CompareUInt8 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<uint8_t*>(b) - *reinterpret_cast<uint8_t*>(a);
+        return *reinterpret_cast<uint8_t*>(a) - *reinterpret_cast<uint8_t*>(b);
     }
 };
 
@@ -135,7 +224,7 @@ class CompareInt64 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<int64_t*>(b) - *reinterpret_cast<int64_t*>(a);
+        return *reinterpret_cast<int64_t*>(a) - *reinterpret_cast<int64_t*>(b);
     }
 };
 
@@ -144,7 +233,7 @@ class CompareInt32 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<int32_t*>(b) - *reinterpret_cast<int32_t*>(a);
+        return *reinterpret_cast<int32_t*>(a) - *reinterpret_cast<int32_t*>(b);
     }
 };
 
@@ -153,7 +242,7 @@ class CompareInt16 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<int16_t*>(b) - *reinterpret_cast<int16_t*>(a);
+        return *reinterpret_cast<int16_t*>(a) - *reinterpret_cast<int16_t*>(b);
     }
 };
 
@@ -162,7 +251,7 @@ class CompareInt8 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<int8_t*>(b) - *reinterpret_cast<int8_t*>(a);
+        return *reinterpret_cast<int8_t*>(a) - *reinterpret_cast<int8_t*>(b);
     }
 };
 
@@ -171,7 +260,7 @@ class CompareFloat : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return static_cast<int32_t>(*reinterpret_cast<float*>(b) - *reinterpret_cast<float*>(a));
+        return static_cast<int32_t>(*reinterpret_cast<float*>(a) - *reinterpret_cast<float*>(b));
     }
 };
 
@@ -180,7 +269,7 @@ class CompareDouble : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return static_cast<int32_t>(*reinterpret_cast<double*>(b) - *reinterpret_cast<double*>(a));
+        return static_cast<int32_t>(*reinterpret_cast<double*>(a) - *reinterpret_cast<double*>(b));
     }
 };
 
@@ -189,7 +278,7 @@ class CompareLongDouble : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return static_cast<int32_t>(*reinterpret_cast<long double*>(b) - *reinterpret_cast<long double*>(a));
+        return static_cast<int32_t>(*reinterpret_cast<long double*>(a) - *reinterpret_cast<long double*>(b));
     }
 };
 
@@ -198,7 +287,7 @@ class CompareString : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return strcmp(reinterpret_cast<const char*>(b), reinterpret_cast<const char*>(a));
+        return strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
     }
 };
 

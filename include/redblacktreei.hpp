@@ -25,7 +25,7 @@ public:
 private:
     RedBlackTreeI(int ident,
                   Comparator* compare,
-                  void* (*merge)(void*, void*),
+                  Merger* merge,
                   bool drop_duplicates);
 
     struct tree_node
@@ -47,13 +47,13 @@ private:
                         struct tree_node* false_root,
                         struct tree_node* sub_false_root,
                         Comparator* compare,
-                        void* (*merge)(void*, void*),
+                        Merger* merge,
                         bool drop_duplicates,
                         void* rawdata);
 
     static void free_n(struct tree_node* n, bool drop_duiplicates);
     int rbt_verify_n(struct tree_node* root, Comparator* compare);
-    void query(bool (*condition)(void*), DataStore* ds);
+    void query(Condition* condition, DataStore* ds);
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
@@ -66,7 +66,7 @@ private:
                         struct tree_node* false_root,
                         struct tree_node* sub_false_root,
                         Comparator* compare,
-                        void* (*merge)(void*, void*),
+                        Merger* merge,
                         bool drop_duplicates,
                         void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
@@ -139,7 +139,7 @@ protected:
 /// @retval >0 If the tree is a valid red-black tree then it returns the
 ///black-height of the tree.
 
-/// @fn RedBlackTreeI::(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
+/// @fn RedBlackTreeI::(int ident, Comparator* compare, Merger* merge, bool drop_duplicates)
 /// Standard constructor
 /// @param [in] ident Identifier to maintain data integrity; all new data
 ///is checked against this identifier that the data is appropriate for
@@ -215,7 +215,7 @@ protected:
 /// @retval >0 If the sub-tree is a valid red-black tree then it returns the
 ///black-height of the sub-tree.
 
-/// @fn void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
+/// @fn void RedBlackTreeI::query(Condition* condition, DataStore* ds)
 /// Perform a general query and insert the results.
 /// @param [in] condition A condition function that returns true if the piece
 ///of data 'passes' (and should be added to the query results) and false if

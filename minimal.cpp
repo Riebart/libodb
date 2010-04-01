@@ -3,6 +3,8 @@
 
 #include "odb.hpp"
 
+#include "redblacktreei.hpp"
+
 inline bool prune(void* rawdata)
 {
     return (((*(long*)rawdata) % 2) == 0);
@@ -32,8 +34,14 @@ int main (int argc, char ** argv)
     }
 
     odb.remove_sweep();
+    
+    if ((((RedBlackTreeI*)ind)->rbt_verify()) == 0)
+    {
+        printf("!");
+    }
 
-    Iterator* it = ind->it_first();
+    v = 0;
+    Iterator* it = ind->it_lookup(&v, 1);
     do
     {
         printf("%ld\n", *(long*)(it->get_data()));

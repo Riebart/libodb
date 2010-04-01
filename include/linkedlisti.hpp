@@ -20,7 +20,7 @@ public:
     virtual Iterator* it_middle(DataObj* data);
 
 protected:
-    LinkedListI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates);
+    LinkedListI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates);
 
     struct node
     {
@@ -29,7 +29,7 @@ protected:
     };
 
     virtual void add_data_v(void* data);
-    void query(bool (*condition)(void*), DataStore* ds);
+    void query(Condition* condition, DataStore* ds);
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
     virtual bool remove(void* data);
     virtual void remove_sweep(std::vector<void*>* marked);

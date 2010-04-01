@@ -98,7 +98,7 @@ using namespace std;
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 #define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
 
-RedBlackTreeI::RedBlackTreeI(int ident, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates)
+RedBlackTreeI::RedBlackTreeI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = ident;
@@ -202,7 +202,7 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.
     uint8_t ret = 0;
@@ -287,7 +287,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, st
                 if (ret == 0)
                 {
                     if (merge != NULL)
-                        i->data = merge(rawdata, i->data);
+                        i->data = merge->merge(rawdata, i->data);
                     // And we're allowing duplicates...
                     else if (!drop_duplicates)
                     {
@@ -427,7 +427,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
     }
 }
 
-void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
+void RedBlackTreeI::query(Condition* condition, DataStore* ds)
 {
     Iterator* it = it_first();
     void* temp;
@@ -438,7 +438,7 @@ void RedBlackTreeI::query(bool (*condition)(void*), DataStore* ds)
         {
             temp = it->get_data();
 
-            if (condition(temp))
+            if (condition->condition(temp))
             {
                 it->update_query_count();
                 ds->add_data(temp);
@@ -519,7 +519,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     return ret;
 }
 
-struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, void* (*merge)(void*, void*), bool drop_duplicates, void* rawdata)
+struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
 {
     uint8_t ret = 0;
 
@@ -751,6 +751,7 @@ inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
+    it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -796,6 +797,7 @@ inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI:
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
+    it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -841,6 +843,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
+    it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
         it->dataobj->data = NULL;
@@ -863,60 +866,79 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             p = i;
             i = STRIP(i->link[d]);
         }
-
-        // Only case that skips is if we got to a leaf (i == NULL) and didn't find equality (dir == 0)
-        // In that case, NULLify things. All other cases go here.
-        if ((i != NULL) || (dir != 0))
+        
+        if (i != NULL)
         {
-            if (drop_duplicates)
-                it->dataobj->data = i->data;
-            else
+            it->trail.push(i);
+            
+            if (dir == 0)
             {
                 if (IS_TREE(i))
                 {
-                    // Cases where equality was obtained, but we don't want it.
-                    if (c == 0)
-                    {
-                        if (dir < 0)
-                        {
-                            it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                            it->dataobj->data = it->it->get_data();
-                            it->prev();
-                        }
-                        else if (dir > 0)
-                        {
-                            it->it = it_last(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                            it->dataobj->data = it->it->get_data();
-                            it->next();
-                        }
-                    }
-                    // Case where equality was not obtained, and we went the wrong direction.
-                    // Went smaller, wanted bigger.
-                    else if ((c < 0) && (dir > 0))
-                    {
-                        it->it = it_last(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->get_data();
-                        it->next();
-                    }
-                    // Went bigger, wanted smaller.
-                    else if ((c > 0) && (dir < 0))
-                    {
-                        it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->get_data();
-                        it->prev();
-                    }
-                    else
-                    {
-                        it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
-                        it->dataobj->data = it->it->get_data();
-                    }
+                    it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                    it->dataobj->data = it->it->get_data();
                 }
                 else
                     it->dataobj->data = i->data;
             }
+            else
+            {
+                it->dataobj->data = i->data;
+                
+                if (dir > 0)
+                    it->next();
+                else
+                    it->prev();
+            }
         }
         else
-            it->dataobj->data = NULL;
+        {
+            if (dir == 0)
+            {
+                it->dataobj->data = NULL;
+            }
+            else
+            {
+                i = p;
+                
+                if (c < 0)
+                {
+                    if (dir < 0)
+                    {
+                        it->dataobj->data = i->data;
+                        it->prev();
+                    }
+                    else
+                    {
+                        if (IS_TREE(i))
+                        {
+                            it->it = it_last(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                            it->dataobj->data = it->it->get_data();
+                        }
+                        else
+                            it->dataobj->data = i->data;
+                    }
+                }
+                else
+                {
+                    if (dir > 0)
+                    {
+                        it->dataobj->data = i->data;
+                        it->next();
+                    }
+                    else
+                    {
+                        if (IS_TREE(i))
+                        {
+                            it->it = it_first(parent, reinterpret_cast<struct tree_node*>(i->data), -1, true);
+                            it->dataobj->data = it->it->get_data();
+                        }
+                        else
+                            it->dataobj->data = i->data;
+                    }
+                }
+            }
+        }
     }
 
     return it;
@@ -949,10 +971,10 @@ inline DataObj* RBTIterator::next()
             delete it;
             it = NULL;
         }
-
-        if (STRIP(trail.top()->link[1]) != NULL)
+        
+        if (STRIP(UNTAINT(trail.top())->link[1]) != NULL)
         {
-            struct RedBlackTreeI::tree_node* curr = trail.top();
+            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
             trail.pop();
             trail.push(TAINT(curr));
             curr = STRIP(curr->link[1]);
@@ -1010,7 +1032,7 @@ inline DataObj* RBTIterator::prev()
             it = NULL;
         }
 
-        if (STRIP(trail.top()->link[0]) != NULL)
+        if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
         {
             struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
             trail.pop();
