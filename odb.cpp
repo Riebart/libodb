@@ -20,7 +20,7 @@
 #include "linkedlistds.hpp"
 
 #define SLEEP_DURATION 60
-#define DEFAULT_FLAGS DataStore::TIME_STAMP
+#define DEFAULT_FLAGS DataStore::TIME_STAMP | DataStore::QUERY_COUNT
 
 using namespace std;
 

@@ -225,7 +225,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             do
             {
                 //fprintf(stderr, "%ld @ %lu + %u\n", *(long*)(it->get_data()), it->get_time_stamp(), it->get_query_count());
-                //fprintf(stderr, "%ld + %u\n", *(long*)(it->get_data()), it->get_query_count());
+                //fprintf(stderr, "%ld (%u)\n", *(long*)(it->get_data()), it->get_query_count());
                 fprintf(stderr, "%ld\n", *(long*)(it->get_data()));
             }
             while (it->next());
