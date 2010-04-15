@@ -110,7 +110,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             break;
         }
         default:
-            FAIL("Incorrect test type.");
+            if (test_type != 4)
+                FAIL("Incorrect test type.");
         }
 
         break;
@@ -137,6 +138,11 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
     default:
         FAIL("Incorrect test type.");
+    }
+    
+    if (test_type == 4)
+    {
+        odb = new ODB(ODB::LINKED_LIST_V_DS, prune_2);
     }
 
     if (index_type & 1)
@@ -175,6 +181,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     for (int i = 0 ; i < NUM_TABLES ; i++)
         ind[i] = odb->create_index(itype, iopts, compare);
 
+    
+    //for the VDS, if necessary
+    char * test_str = "The quick brown fox jumped over the lazy dog.";
+    char temp_str [500];
+    int test_str_len = strlen(test_str);
+    
+    
     ftime(&start);
 
     for (uint64_t i = 0 ; i < test_size ; i++)
@@ -189,6 +202,19 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             vp = (long*)malloc(element_size);
             memcpy(vp, &v, element_size);
             dn = odb->add_data(vp, false);
+        }
+        else if (test_type == 4)
+        {
+            
+            int str_index = rand() % test_str_len;
+            
+            strncpy(temp_str, test_str, test_str_len);
+            
+            //NULL terminate the string
+            temp_str[str_index] = 0;
+            
+            dn = odb->add_data(temp_str, str_index+1, false);
+            
         }
         else
             dn = odb->add_data(&v, false);
@@ -314,7 +340,8 @@ int main (int argc, char ** argv)
         break;
     }
     default:
-        FAIL("Incorrect test type.");
+        if (test_type != 4)
+            FAIL("Incorrect test type.");
     }
     printf("\n");
 
