@@ -34,13 +34,6 @@ BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags
 
 inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
 {
-    // Allocate memory for the list of pointers to buckets. Only one pointer to start.
-    SAFE_MALLOC(char**, data, sizeof(char*));
-
-    // Allocate the first bucket and assign the location of it to the first location in data.
-    // This is essentially a memcpy without the memcpy call.
-    SAFE_MALLOC(char*, *(data), cap * datalen);
-
     // Initialize the cursor position and data count
     posA = 0;
     posB = 0;
@@ -51,11 +44,18 @@ inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64
 
     // Initialize a few other values.
     this->cap = cap;
-    cap_size = cap * datalen;
     this->true_datalen = datalen;
     this->datalen = datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);
+    cap_size = cap * (this->datalen);
     this->parent = parent;
     this->prune = prune;
+
+    // Allocate memory for the list of pointers to buckets. Only one pointer to start.
+    SAFE_MALLOC(char**, data, sizeof(char*));
+
+    // Allocate the first bucket and assign the location of it to the first location in data.
+    // This is essentially a memcpy without the memcpy call.
+    SAFE_MALLOC(char*, *(data), cap_size);
 
     RWLOCK_INIT();
 }

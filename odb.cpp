@@ -19,7 +19,8 @@
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
-#define SLEEP_DURATION 5
+#define SLEEP_DURATION 60
+#define DEFAULT_FLAGS DataStore::TIME_STAMP
 
 using namespace std;
 
@@ -107,12 +108,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, 3);
+        data = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen, 3);
+        data = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -136,12 +137,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, 3);
+        data = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen, 3);
+        data = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -164,12 +165,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata))
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, 3);
+        data = new BankIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune, 3);
+        data = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -193,12 +194,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, 3);
+        data = new BankIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune, 3);
+        data = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -221,7 +222,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len, 3);
+        data = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -245,7 +246,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len, 3);
+        data = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
         break;
     }
     default:
