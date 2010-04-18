@@ -69,10 +69,10 @@ inline ODB* IndexGroup::query(Condition* condition)
 {
     // Clone the parent.
     DataStore* ds = parent->clone_indirect();
-    
+
     // Query
     query(condition, ds);
-    
+
     // Wrap in ODB and return.
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
@@ -83,7 +83,7 @@ inline ODB* IndexGroup::query_eq(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_eq(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -93,7 +93,7 @@ inline ODB* IndexGroup::query_lt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_lt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -103,7 +103,7 @@ inline ODB* IndexGroup::query_gt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_gt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -239,10 +239,10 @@ inline ODB* Index::query(Condition* condition)
 {
     // Clone the parent.
     DataStore* ds = parent->clone_indirect();
-    
+
     // Query
     query(condition, ds);
-    
+
     // Wrap in ODB and return.
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
@@ -253,7 +253,7 @@ inline ODB* Index::query_eq(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_eq(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -263,7 +263,7 @@ inline ODB* Index::query_lt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_lt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;
@@ -273,7 +273,7 @@ inline ODB* Index::query_gt(void* rawdata)
 {
     DataStore* ds = parent->clone_indirect();
     query_gt(rawdata, ds);
-    
+
     ODB* odb = new ODB(ds, ident, parent->datalen);
     ds->update_parent(odb);
     return odb;

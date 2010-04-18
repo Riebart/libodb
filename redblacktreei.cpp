@@ -398,7 +398,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
 
         // Verify BST property.
         if (((left != NULL) && (compare->compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
-            ((right != NULL) && (compare->compare(GET_DATA(right), GET_DATA(root)) <= 0)))
+                ((right != NULL) && (compare->compare(GET_DATA(right), GET_DATA(root)) <= 0)))
         {
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
@@ -866,11 +866,11 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             p = i;
             i = STRIP(i->link[d]);
         }
-        
+
         if (i != NULL)
         {
             it->trail.push(i);
-            
+
             if (dir == 0)
             {
                 if (IS_TREE(i))
@@ -884,7 +884,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             else
             {
                 it->dataobj->data = i->data;
-                
+
                 if (dir > 0)
                     it->next();
                 else
@@ -900,7 +900,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             else
             {
                 i = p;
-                
+
                 if (c < 0)
                 {
                     if (dir < 0)
@@ -971,7 +971,7 @@ inline DataObj* RBTIterator::next()
             delete it;
             it = NULL;
         }
-        
+
         if (STRIP(UNTAINT(trail.top())->link[1]) != NULL)
         {
             struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());

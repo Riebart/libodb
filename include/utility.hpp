@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#include "comparator.hpp"
+
 #ifndef LEN_V
 #define LEN_V
 inline uint32_t len_v(void* rawdata)

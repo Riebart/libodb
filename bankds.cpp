@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "archive.hpp"
 #include "common.hpp"
 #include "index.hpp"
 
@@ -227,7 +228,7 @@ inline bool BankDS::remove_addr(void* addr)
     return found;
 }
 
-inline vector<void*>** BankDS::remove_sweep()
+inline vector<void*>** BankDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[4];
     marked[0] = new vector<void*>();
@@ -265,6 +266,9 @@ inline vector<void*>** BankDS::remove_sweep()
         // Mark it as prunable.
         marked[0]->push_back(*(data + posA_t) + posB_t);
 
+        if (archive != NULL)
+            archive->write(*(data + posA_t) + posB_t, true_datalen);
+
         // Step back.
         if (posB_t == 0)
         {
@@ -291,6 +295,9 @@ inline vector<void*>** BankDS::remove_sweep()
             // Mark the current cursor position as pruneable.
             marked[0]->push_back(*(data + i) + j);
 
+            if (archive != NULL)
+                archive->write(*(data + i) + j, true_datalen);
+
             // Also mark it as as location to copy data to later in the defrag step.
             marked[3]->push_back(*(data + i) + j);
 
@@ -316,6 +323,9 @@ inline vector<void*>** BankDS::remove_sweep()
             {
                 // Mark it as prunable.
                 marked[0]->push_back(*(data + posA_t) + posB_t);
+
+                if (archive != NULL)
+                    archive->write(*(data + posA_t) + posB_t, true_datalen);
 
                 // Step back.
                 if (posB_t == 0)
@@ -351,7 +361,7 @@ inline vector<void*>** BankDS::remove_sweep()
     return marked;
 }
 
-inline vector<void*>** BankIDS::remove_sweep()
+inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[3];
     marked[0] = new vector<void*>();

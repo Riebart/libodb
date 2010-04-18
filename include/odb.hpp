@@ -7,9 +7,7 @@
 #include <time.h>
 #include <vector>
 
-#include "index.hpp"
 #include "lock.hpp"
-#include "comparator.hpp"
 
 #ifndef LEN_V
 #define LEN_V
@@ -20,6 +18,13 @@ inline uint32_t len_v(void* rawdata)
 #endif
 
 class DataStore;
+class Archive;
+class Index;
+class IndexGroup;
+class DataObj;
+class Comparator;
+class Merger;
+class Keygen;
 
 class ODB
 {
@@ -50,9 +55,9 @@ public:
 
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata));
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = len_v);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = len_v, Archive* archive = NULL, uint32_t sleep_duration = 0);
 
     ~ODB();
 
@@ -82,12 +87,12 @@ public:
 
 
 private:
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = len_v);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = len_v, Archive* archive = NULL, uint32_t sleep_duration = 0);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
-    void init(DataStore* data, int ident, uint32_t datalen, uint32_t sleep_duration);
+    void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, uint32_t sleep_duration);
     void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static uint32_t num_unique;
@@ -99,6 +104,8 @@ private:
     IndexGroup* all;
     DataObj* dataobj;
     pthread_t mem_thread;
+    uint32_t sleep_duration;
+    Archive* archive;
 
     int running;
     RWLOCK_T;

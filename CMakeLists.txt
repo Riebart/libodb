@@ -26,7 +26,7 @@ add_definitions(-DPTHREAD_LOCK)
 # Make sure the compiler can find include files from our Hello library.
 include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/include/spinlock /usr/include/python2.6)
 
-add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp)
+add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp)
 
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)
@@ -48,7 +48,7 @@ target_link_libraries(py-demo boost_python-mt python2.6 odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
-install(FILES include/odb.hpp include/index.hpp include/comparator.hpp include/lock.hpp DESTINATION include)
+install(FILES include/odb.hpp include/index.hpp include/comparator.hpp include/archive.hpp include/lock.hpp DESTINATION include)
 
 #Package generation directives
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")

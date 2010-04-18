@@ -2,8 +2,8 @@
 #include <stdlib.h>
 
 #include "odb.hpp"
-
-#include "redblacktreei.hpp"
+#include "index.hpp"
+#include "archive.hpp"
 
 inline bool prune(void* rawdata)
 {
@@ -20,11 +20,24 @@ inline int compare(void* a, void* b)
     return (*(int*)b - *(int*)a);
 }
 
+#pragma pack(1)
+struct test_s
+{
+    uint32_t a; // 4
+    uint16_t b; // 2
+    double c;   // 8
+    float d;    // 4
+    char e[5];  // 5
+};
+#pragma pack()
+
 int main (int argc, char ** argv)
 {
+    AppendOnlyFile out((char*)"/home/mike/Desktop/test");
+
     long v, p = 100;
 
-    ODB odb(ODB::BANK_DS, prune, sizeof(long));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"/home/mike/Desktop/test"));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)
@@ -34,11 +47,6 @@ int main (int argc, char ** argv)
     }
 
     odb.remove_sweep();
-    
-    if ((((RedBlackTreeI*)ind)->rbt_verify()) == 0)
-    {
-        printf("!");
-    }
 
     v = 0;
     Iterator* it = ind->it_lookup(&v, 1);

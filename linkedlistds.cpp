@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <string.h>
 
+#include "archive.hpp"
 #include "common.hpp"
 #include "index.hpp"
 
@@ -217,7 +218,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
 }
 
 /// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
-std::vector<void*>** LinkedListDS::remove_sweep()
+std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[3];
     marked[0] = new vector<void*>();
@@ -230,6 +231,9 @@ std::vector<void*>** LinkedListDS::remove_sweep()
     if (prune(&(curr->data)))
     {
         marked[0]->push_back(&(curr->data));
+        if (archive != NULL)
+            archive->write(&(curr->data), datalen);
+
         marked[1]->push_back(NULL);
     }
 
@@ -238,6 +242,9 @@ std::vector<void*>** LinkedListDS::remove_sweep()
         if (prune(&((curr->next)->data)))
         {
             marked[0]->push_back(&((curr->next)->data));
+            if (archive != NULL)
+                archive->write(&((curr->next)->data), datalen);
+
             marked[1]->push_back(curr);
         }
 
@@ -259,7 +266,7 @@ std::vector<void*>** LinkedListDS::remove_sweep()
 }
 
 /// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
-std::vector<void*>** LinkedListIDS::remove_sweep()
+std::vector<void*>** LinkedListIDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[3];
     marked[0] = new vector<void*>();
