@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::BANK_DS, prune_false, sizeof(struct fts3rec_v5_gen), new AppendOnlyFile("/tmp/flowdata"));
+    odb = new ODB(ODB::BANK_DS, prune_false, sizeof(struct fts3rec_v5_gen), new AppendOnlyFile((char*)"/tmp/flowdata"));
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_port);
