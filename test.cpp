@@ -24,6 +24,11 @@
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
 
+inline int32_t str_compare(void* a, void* b)
+{
+    return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
+}
+
 inline bool prune_1(void* rawdata)
 {
     return (((*(long*)rawdata) % 3) == 0);
@@ -179,7 +184,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(itype, iopts, compare);
+        ind[i] = odb->create_index(itype, iopts, (test_type == 4 ? str_compare : compare));
 
 
     //for the VDS, if necessary
@@ -225,7 +230,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     ftime(&end);
 
-    odb->remove_sweep();
+    if (test_type != 4)
+        odb->remove_sweep();
 
     if ((index_type >> 1) == 0)
     {
@@ -237,29 +243,48 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
 
     printf(":");
-    for (int j = 0 ; j < NUM_QUERIES ; j++)
+    if (test_type == 4)
     {
-        res[j] = ind[j]->query(condition);
-        Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
-
-        res[j]->set_prune(prune_1);
-        res[j]->remove_sweep();
-
-        Iterator* it = ind2->it_first();
-        if (it->data() != NULL)
+        for (int j = 0 ; j < NUM_QUERIES ; j++)
         {
-            do
+            Iterator* it = ind[j]->it_first();
+            if (it->data() != NULL)
             {
-                //fprintf(stderr, "%ld @ %lu + %u\n", *(long*)(it->get_data()), it->get_time_stamp(), it->get_query_count());
-                //fprintf(stderr, "%ld (%u)\n", *(long*)(it->get_data()), it->get_query_count());
-                fprintf(stderr, "%ld\n", *(long*)(it->get_data()));
+                do
+                {
+                    fprintf(stderr, "%s\n", (char*)(it->get_data()));
+                }
+                while (it->next());
             }
-            while (it->next());
+            ind[j]->it_release(it);
         }
-        ind2->it_release(it);
+    }
+    else
+    {
+        for (int j = 0 ; j < NUM_QUERIES ; j++)
+        {
+            res[j] = ind[j]->query(condition);
+            Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
-        //printf("%ld:", (int64_t)(ind2->size()));
-        printf("%ld:", (int64_t)(res[j]->size()));
+            res[j]->set_prune(prune_1);
+            res[j]->remove_sweep();
+
+            Iterator* it = ind2->it_first();
+            if (it->data() != NULL)
+            {
+                do
+                {
+                    //fprintf(stderr, "%ld @ %lu + %u\n", *(long*)(it->get_data()), it->get_time_stamp(), it->get_query_count());
+                    //fprintf(stderr, "%ld (%u)\n", *(long*)(it->get_data()), it->get_query_count());
+                    fprintf(stderr, "%ld\n", *(long*)(it->get_data()));
+                }
+                while (it->next());
+            }
+            ind2->it_release(it);
+
+            //printf("%ld:", (int64_t)(ind2->size()));
+            printf("%ld:", (int64_t)(res[j]->size()));
+        }
     }
 
     delete odb;

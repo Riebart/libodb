@@ -106,7 +106,7 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 
     memcpy(ret, rawdata, nbytes);
 
-    int true_datalen = nbytes + datalen;
+    int true_datalen = nbytes;
 
     if (time_stamp)
         SET_TIME_STAMP(ret, cur_time);
