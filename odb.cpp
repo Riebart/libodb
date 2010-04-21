@@ -211,7 +211,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
     init(data, ident, sizeof(void*), archive, sleep_duration);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*), Archive* archive, uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -235,7 +235,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)
     num_unique++;
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*), Archive* archive, uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");

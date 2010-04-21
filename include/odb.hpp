@@ -57,7 +57,7 @@ public:
 
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
     ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint32_t (*len)(void*) = len_v, Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
 
     ~ODB();
 
@@ -89,7 +89,7 @@ public:
 private:
     ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
     ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t (*len)(void*) = len_v, Archive* archive = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, uint32_t sleep_duration);
