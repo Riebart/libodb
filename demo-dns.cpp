@@ -221,16 +221,19 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::LINKED_LIST_DS, prune_false, sizeof(struct dnsrec));
+    odb = new ODB(ODB::BANK_DS, prune_false, sizeof(struct dnsrec));
 
     IndexGroup* valid = odb->create_group();
     IndexGroup* invalid = odb->create_group();
     IndexGroup* general = odb->create_group();
 
-    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
-    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
     valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid, merge_query_str));
+    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
+    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
+
     invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_invalid, merge_query_str));
+    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
+    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
 
     if (argc < 2)
     {
@@ -280,28 +283,11 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
-    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
+    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
 
     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
     printf("Unique invalid DNS queries identified: %lu\n", (invalid->flatten())[0]->size());
-
-//     vector<Index*> indices = invalid->flatten();
-//     Iterator* it = indices[0]->it_first();
-//     struct dnsrec* dat;
-//
-//     if (it->data() != NULL)
-//     {
-//         do
-//         {
-//             dat = reinterpret_cast<struct dnsrec*>(it->get_data());
-//             printf("%d x %d = %u.%u.%u.%u\n", dat->count, dat->query_len, UINT32_TO_IP(dat->src_addr));
-//         }
-//         while (it->next());
-//     }
-//
-//     indices[0]->it_releast(it);
-
+    printf("%lu total invalid queries, counting duplicates.\n", (invalid->flatten())[1]->size());
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;
