@@ -11,6 +11,7 @@
 class ODB;
 class DataStore;
 class Iterator;
+class Index;
 
 class DataObj
 {
@@ -59,6 +60,8 @@ public:
     virtual ~IndexGroup();
 
     bool add_index(IndexGroup* ig);
+    IndexGroup* at(uint32_t i);
+    virtual std::vector<Index*> flatten();
     virtual bool add_data(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));
     virtual ODB* query(Condition* condition);
@@ -109,6 +112,7 @@ class Index : public IndexGroup
     friend class LinkedListIDS;
 
 public:
+    virtual std::vector<Index*> flatten();
     virtual bool add_data(DataObj* data);
     virtual uint64_t size();
     virtual bool remove(DataObj* data);

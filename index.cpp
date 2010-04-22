@@ -44,6 +44,29 @@ bool IndexGroup::add_index(IndexGroup* ig)
         return false;
 }
 
+IndexGroup* IndexGroup::at(uint32_t i)
+{
+    if (i < indices.size())
+        return indices[i];
+    else
+        return NULL;
+}
+
+vector<Index*> IndexGroup::flatten()
+{
+    vector<Index*> ret;
+    vector<Index*> temp;
+
+    for (uint32_t i = 0 ; i < indices.size() ; i++)
+    {
+        temp = indices[i]->flatten();
+        for (uint32_t j = 0 ; j < temp.size() ; j++)
+            ret.push_back(temp[j]);
+    }
+
+    return ret;
+}
+
 inline bool IndexGroup::add_data(DataObj* data)
 {
     // If it passes integrity checks, add it to the group.
@@ -221,6 +244,13 @@ inline bool Index::add_data(DataObj* data)
 uint64_t Index::size()
 {
     return count;
+}
+
+vector<Index*> Index::flatten()
+{
+    vector<Index*> ret;
+    ret.push_back(this);
+    return ret;
 }
 
 inline void Index::add_data_v(void*)

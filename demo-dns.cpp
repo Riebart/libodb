@@ -10,11 +10,16 @@
 #include "index.hpp"
 #include "archive.hpp"
 
+using namespace std;
+
 #define SRCIP_START 26
 #define DSTIP_START 30
 #define DNS_START 42
-#define FLAG_START 45
+#define FLAG_START 44
 #define NAME_START 54
+#define RESERVED_FLAGS 0x0070
+
+#define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
 typedef uint32_t uint32;
 typedef uint16_t uint16;
@@ -45,7 +50,8 @@ struct dnsrec
     uint32_t src_addr;
     uint32_t dst_addr;
     char* query_str;
-    uint16_t query_len;
+    int16_t query_len;
+    int32_t count;
 };
 #pragma pack()
 
@@ -64,9 +70,14 @@ inline int32_t compare_dst_addr(void* a, void* b)
     return ((reinterpret_cast<struct dnsrec*>(a))->dst_addr) - ((reinterpret_cast<struct dnsrec*>(b))->dst_addr);
 }
 
+inline int32_t compare_query_len(void* a, void* b)
+{
+    return (reinterpret_cast<struct dnsrec*>(a))->count - (reinterpret_cast<struct dnsrec*>(b))->count;
+}
+
 inline int32_t compare_valid(void* a, void* b)
 {
-    return strcmp((const char*)a, (const char*)b);
+    return strcmp((reinterpret_cast<struct dnsrec*>(a))->query_str, (reinterpret_cast<struct dnsrec*>(b))->query_str);
 }
 
 inline int32_t compare_invalid(void* a_i, void* b_i)
@@ -81,7 +92,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     else
     {
         int8_t c;
-        for (int i = 0 ; i < a->query_len ; i++)
+        for (int i = 0 ; i > a->query_len ; i--)
         {
             c = a->query_str[i] - b->query_str[i];
             if (c < 0)
@@ -94,17 +105,25 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     }
 }
 
+inline void* merge_query_str(void* a, void* b)
+{
+    (reinterpret_cast<struct dnsrec*>(b))->count++;
+    return b;
+}
+
 void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
 {
     rec->src_addr = *(uint32_t*)(packet + SRCIP_START);
     rec->dst_addr = *(uint32_t*)(packet + DSTIP_START);
+    uint16_t flags = *(uint16_t*)(packet + FLAG_START);
 
     uint16_t len = 0;
 
-    while ((*(packet + NAME_START + len) != 0) && (len <= (incl_len - NAME_START)))
-    {
-        len += (uint8_t)(*(packet + NAME_START + len)) + 1;
-    }
+    if ((flags & RESERVED_FLAGS) == 0)
+        while ((*(packet + NAME_START + len) != 0) && (len <= (incl_len - NAME_START)))
+        {
+            len += (uint8_t)(*(packet + NAME_START + len)) + 1;
+        }
 
     if ((len == 0) || (len > (incl_len - NAME_START)))
     {
@@ -112,7 +131,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
         memcpy(temp, packet + DNS_START, incl_len - DNS_START);
         rec->query_str = temp;
 
-        rec->query_len = -1;
+        rec->query_len = -1 * (incl_len - DNS_START);
     }
     else
     {
@@ -129,11 +148,14 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
             rec->query_str[len - 1] = '.';
         }
 
+        for (int i = 0 ; i < rec->query_len ; i++)
+            rec->query_str[i] = tolower(rec->query_str[i]);
+
         temp[len - 1] = '\0';
     }
 }
 
-uint32_t read_data(ODB* odb, IndexGroup* valid, IndexGroup* invalid, FILE *fp)
+uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup* invalid, FILE *fp)
 {
     uint32_t num_records = 0;
     uint32_t nbytes;
@@ -166,9 +188,12 @@ uint32_t read_data(ODB* odb, IndexGroup* valid, IndexGroup* invalid, FILE *fp)
         nbytes = read(fileno(fp), data, pheader->incl_len);
 
         struct dnsrec* rec = (struct dnsrec*)malloc(sizeof(struct dnsrec));
+        rec->count = 1;
         get_data(rec, data, pheader->incl_len);
 
         DataObj* dataObj = odb->add_data(rec, false);
+
+        general->add_data(dataObj);
 
         if (rec->query_len > -1)
             valid->add_data(dataObj);
@@ -200,9 +225,12 @@ int main(int argc, char *argv[])
 
     IndexGroup* valid = odb->create_group();
     IndexGroup* invalid = odb->create_group();
+    IndexGroup* general = odb->create_group();
 
-    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid));
-    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_invalid));
+    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
+    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
+    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid, merge_query_str));
+    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_invalid, merge_query_str));
 
     if (argc < 2)
     {
@@ -229,7 +257,7 @@ int main(int argc, char *argv[])
 
         ftime(&start);
 
-        num = read_data(odb, valid, invalid, fp);
+        num = read_data(odb, general, valid, invalid, fp);
 
         printf("(");
         fflush(stdout);
@@ -252,7 +280,28 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
+    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
+    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
+
     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
+    printf("Unique invalid DNS queries identified: %lu\n", (invalid->flatten())[0]->size());
+
+//     vector<Index*> indices = invalid->flatten();
+//     Iterator* it = indices[0]->it_first();
+//     struct dnsrec* dat;
+//
+//     if (it->data() != NULL)
+//     {
+//         do
+//         {
+//             dat = reinterpret_cast<struct dnsrec*>(it->get_data());
+//             printf("%d x %d = %u.%u.%u.%u\n", dat->count, dat->query_len, UINT32_TO_IP(dat->src_addr));
+//         }
+//         while (it->next());
+//     }
+//
+//     indices[0]->it_releast(it);
+
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;

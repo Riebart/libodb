@@ -70,7 +70,7 @@ inline void* LinkedListDS::add_data(void* rawdata)
 {
     void* ret = get_addr();
 
-    memcpy(ret, rawdata, datalen);
+    memcpy(ret, rawdata, true_datalen);
 
     if (time_stamp)
         SET_TIME_STAMP(ret, cur_time);
