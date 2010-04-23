@@ -55,9 +55,9 @@ struct dnsrec
 };
 #pragma pack()
 
-inline bool prune_false(void* rawdata)
+inline bool prune(void* rawdata)
 {
-    return false;
+    return (((reinterpret_cast<struct dnsrec*>(rawdata))->count) == 0);
 }
 
 inline int32_t compare_src_addr(void* a, void* b)
@@ -108,6 +108,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
 inline void* merge_query_str(void* new_data, void* old_data)
 {
     (reinterpret_cast<struct dnsrec*>(old_data))->count++;
+    (reinterpret_cast<struct dnsrec*>(new_data))->count--;
     return old_data;
 }
 
@@ -221,7 +222,7 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::BANK_DS, prune_false, sizeof(struct dnsrec));
+    odb = new ODB(ODB::LINKED_LIST_DS, prune, sizeof(struct dnsrec));
 
     IndexGroup* valid = odb->create_group();
     IndexGroup* invalid = odb->create_group();
@@ -256,7 +257,10 @@ int main(int argc, char *argv[])
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
+        {
+            fprintf(stderr, "\n");
             break;
+        }
 
         ftime(&start);
 
@@ -283,11 +287,12 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
+    //general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
 
     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
     printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
     printf("Total DNS queries (in/v): %lu/%lu \n", (invalid->flatten())[1]->size(), (valid->flatten())[1]->size());
+    printf("Ratios (in/v): %f/%f\n", (1.0*(invalid->flatten())[1]->size())/((invalid->flatten())[0]->size()), (1.0*(valid->flatten())[1]->size())/((valid->flatten())[0]->size()));
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;
