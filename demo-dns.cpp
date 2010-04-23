@@ -92,7 +92,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     else
     {
         int8_t c;
-        for (int i = 0 ; i > a->query_len ; i--)
+        for (int i = 0 ; i < -(a->query_len) ; i++)
         {
             c = a->query_str[i] - b->query_str[i];
             if (c < 0)
@@ -105,10 +105,10 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     }
 }
 
-inline void* merge_query_str(void* a, void* b)
+inline void* merge_query_str(void* new_data, void* old_data)
 {
-    (reinterpret_cast<struct dnsrec*>(b))->count++;
-    return b;
+    (reinterpret_cast<struct dnsrec*>(old_data))->count++;
+    return old_data;
 }
 
 void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
         printf("(");
         fflush(stdout);
 
-        //odb->remove_sweep();
+        odb->remove_sweep();
 
         total_num += num;
         printf("%lu) ", total_num - odb->size());
@@ -286,8 +286,8 @@ int main(int argc, char *argv[])
     general->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len));
 
     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
-    printf("Unique invalid DNS queries identified: %lu\n", (invalid->flatten())[0]->size());
-    printf("%lu total invalid queries, counting duplicates.\n", (invalid->flatten())[1]->size());
+    printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+    printf("Total DNS queries (in/v): %lu/%lu \n", (invalid->flatten())[1]->size(), (valid->flatten())[1]->size());
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;
