@@ -296,10 +296,6 @@ int main(int argc, char *argv[])
     uint64_t invalid_total = 0;
     Iterator* it;
 
-    ODB* res = (valid->flatten())[0]->query(prune);
-
-    printf("%lu\n", res->size());
-
     it = (invalid->flatten())[0]->it_first();
     if (it->data() != NULL)
         do
