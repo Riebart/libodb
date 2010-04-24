@@ -108,7 +108,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
 inline void* merge_query_str(void* new_data, void* old_data)
 {
     (reinterpret_cast<struct dnsrec*>(old_data))->count++;
-    (reinterpret_cast<struct dnsrec*>(new_data))->count--;
+    (reinterpret_cast<struct dnsrec*>(new_data))->count = 0;
     return old_data;
 }
 
@@ -229,12 +229,12 @@ int main(int argc, char *argv[])
     IndexGroup* general = odb->create_group();
 
     valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid, merge_query_str));
-    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
-    valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
+    //valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
+    //valid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
 
     invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_invalid, merge_query_str));
-    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
-    invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
+    //invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr));
+    //invalid->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr));
 
     if (argc < 2)
     {
@@ -291,8 +291,35 @@ int main(int argc, char *argv[])
 
     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
     printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
-    printf("Total DNS queries (in/v): %lu/%lu \n", (invalid->flatten())[1]->size(), (valid->flatten())[1]->size());
-    printf("Ratios (in/v): %f/%f\n", (1.0*(invalid->flatten())[1]->size())/((invalid->flatten())[0]->size()), (1.0*(valid->flatten())[1]->size())/((valid->flatten())[0]->size()));
+
+    uint64_t valid_total = 0;
+    uint64_t invalid_total = 0;
+    Iterator* it;
+
+    ODB* res = (valid->flatten())[0]->query(prune);
+
+    printf("%lu\n", res->size());
+
+    it = (invalid->flatten())[0]->it_first();
+    if (it->data() != NULL)
+        do
+        {
+            invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+        }
+        while (it->next());
+    (invalid->flatten())[0]->it_release(it);
+
+    it = (valid->flatten())[0]->it_first();
+    if (it->data() != NULL)
+        do
+        {
+            valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+        }
+        while (it->next());
+    (valid->flatten())[0]->it_release(it);
+
+    printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
+    printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;

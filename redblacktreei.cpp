@@ -585,8 +585,11 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(DataStore* treeds, stru
                 }
                 else
                 {
-                    f = i;
-                    ret = 1;
+                    if (rawdata == GET_DATA(i))
+                    {
+                        f = i;
+                        ret = 1;
+                    }
                 }
             }
 
