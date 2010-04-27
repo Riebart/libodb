@@ -91,10 +91,10 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
         return -1;
     else
     {
-        int8_t c;
+        int16_t c;
         for (int i = 0 ; i < -(a->query_len) ; i++)
         {
-            c = a->query_str[i] - b->query_str[i];
+            c = (uint8_t)(a->query_str[i]) - (uint8_t)(b->query_str[i]);
             if (c < 0)
                 return -1;
             else if (c > 0)
@@ -269,7 +269,8 @@ int main(int argc, char *argv[])
         printf("(");
         fflush(stdout);
 
-        odb->remove_sweep();
+        if (((i % 10) == 0) || (i == (num_files - 1)))
+            odb->remove_sweep();
 
         total_num += num;
         printf("%lu) ", total_num - odb->size());
