@@ -99,7 +99,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
         int16_t c;
         for (int i = 0 ; i < -(a->query_len) ; i++)
         {
-            c = (uint8_t)(a->query_str[i]) - (uint8_t)(b->query_str[i]);
+            c = (int16_t)(a->query_str[i]) - (int16_t)(b->query_str[i]);
             if (c < 0)
                 return -1;
             else if (c > 0)
