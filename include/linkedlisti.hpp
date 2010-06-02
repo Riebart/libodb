@@ -29,6 +29,7 @@ protected:
     };
 
     virtual void add_data_v(void* data);
+    virtual void purge();
     void query(Condition* condition, DataStore* ds);
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
     virtual bool remove(void* data);

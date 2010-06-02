@@ -21,6 +21,9 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
+#define PERIOD 60
+uint32_t period_start = 0;
+
 typedef uint32_t uint32;
 typedef uint16_t uint16;
 typedef int32_t int32;
@@ -189,6 +192,12 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         {
             printf("Broke on packet header! %d", nbytes);
             break;
+        }
+
+        if ((pheader->ts_sec - period_start) > PERIOD)
+        {
+            // Reset the ODB object, and carry forward.
+            odb->purge();
         }
 
         nbytes = read(fileno(fp), data, pheader->incl_len);

@@ -336,6 +336,28 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
     delete[] marked;
 }
 
+void LinkedListDS::purge()
+{
+    WRITE_LOCK();
+    struct datanode* curr = bottom;
+    struct datanode* next = bottom->next;
+
+    while (curr != NULL)
+    {
+        free(curr);
+        curr = next;
+        next = next->next;
+    }
+
+    data_count = 0;
+
+    uint32_t num_clones = clones.size();
+    for (uint32_t i = 0 ; i < num_clones ; i++)
+        clones[i]->purge();
+
+    WRITE_UNLOCK();
+}
+
 inline void LinkedListDS::populate(Index* index)
 {
     struct datanode* curr = bottom;

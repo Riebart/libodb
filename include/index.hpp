@@ -129,6 +129,7 @@ public:
 protected:
     Index();
     virtual void add_data_v(void* rawdata);
+    virtual void purge();
     virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);

@@ -202,6 +202,17 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
+void RedBlackTreeI::purge()
+{
+    WRITE_LOCK();
+
+    free_n(root, drop_duplicates);
+    count = 0;
+    root = NULL;
+
+    WRITE_UNLOCK();
+}
+
 struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(DataStore* treeds, struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
 {
     // Keep track of whether a node was added or not. This handles whether or not to free the new node.

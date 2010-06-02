@@ -219,10 +219,16 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             temp_str[str_index] = 0;
 
             dn = odb->add_data(temp_str, str_index+1, false);
-
         }
         else
             dn = odb->add_data(&v, false);
+
+        if (i == (test_size/2))
+        {
+            printf("ODB size (before): %lu\n", odb->size());
+            odb->purge();
+            printf("ODB size (after): %lu\n", odb->size());
+        }
 
         for (int j = 0 ; j < NUM_TABLES ; j++)
             ind[j]->add_data(dn);
@@ -230,8 +236,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     ftime(&end);
 
-    if (test_type != 4)
-        odb->remove_sweep();
+   if (test_type != 4)
+       odb->remove_sweep();
 
     if ((index_type >> 1) == 0)
     {

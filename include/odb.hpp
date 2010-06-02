@@ -70,6 +70,7 @@ public:
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
     void remove_sweep();
+    void purge();
     void set_prune(bool (*prune)(void*));
     virtual bool (*get_prune())(void*);
     uint64_t size();

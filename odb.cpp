@@ -460,6 +460,18 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
         data->clones[i]->update_tables(old_addr, new_addr);
 }
 
+void ODB::purge()
+{
+    WRITE_LOCK();
+
+    //data->purge();
+
+    for (uint32_t i = 0 ; i < tables.size() ; i++)
+        tables[i]->purge();
+
+    WRITE_UNLOCK();
+}
+
 void ODB::set_prune(bool (*prune)(void*))
 {
     data->prune = prune;

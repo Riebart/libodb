@@ -22,7 +22,7 @@ public:
     virtual Iterator* it_last();
     virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
 
-private:
+protected:
     RedBlackTreeI(int ident,
                   Comparator* compare,
                   Merger* merge,
@@ -41,7 +41,7 @@ private:
     static struct RedBlackTreeI::tree_node* double_rotation(struct tree_node* n, int dir);
     static struct RedBlackTreeI::tree_node* make_node(DataStore* treeds, void* rawdata, bool drop_duiplicates);
     virtual void add_data_v(void* rawdata);
-
+    virtual void purge();
     static struct RedBlackTreeI::tree_node* add_data_n(DataStore* treeds,
                         struct tree_node* root,
                         struct tree_node* false_root,

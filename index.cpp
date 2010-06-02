@@ -257,6 +257,10 @@ inline void Index::add_data_v(void*)
 {
 }
 
+inline void Index::purge()
+{
+}
+
 inline ODB* Index::query(bool (*condition)(void*))
 {
     ConditionCust* c = new ConditionCust(condition);
