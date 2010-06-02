@@ -21,7 +21,7 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
-#define PERIOD 60
+#define PERIOD 600
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -196,8 +196,40 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
+            // Print stats
+            printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+
+            uint64_t valid_total = 0;
+            uint64_t invalid_total = 0;
+            Iterator* it;
+
+            it = (invalid->flatten())[0]->it_first();
+            if (it->data() != NULL)
+                do
+                {
+                    invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+                }
+                while (it->next());
+            (invalid->flatten())[0]->it_release(it);
+
+            it = (valid->flatten())[0]->it_first();
+            if (it->data() != NULL)
+                do
+                {
+                    valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+                }
+                while (it->next());
+            (valid->flatten())[0]->it_release(it);
+
+            printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
+            printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+            fprintf(stderr, "\n");
+
             // Reset the ODB object, and carry forward.
             odb->purge();
+
+            // Change the start time of the preiod.
+            period_start = pheader->ts_sec;
         }
 
         nbytes = read(fileno(fp), data, pheader->incl_len);
@@ -302,90 +334,90 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
-    printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
-
-    uint64_t valid_total = 0;
-    uint64_t invalid_total = 0;
-    Iterator* it;
-
-    it = (invalid->flatten())[0]->it_first();
-    if (it->data() != NULL)
-        do
-        {
-            invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-        }
-        while (it->next());
-    (invalid->flatten())[0]->it_release(it);
-
-    it = (valid->flatten())[0]->it_first();
-    if (it->data() != NULL)
-        do
-        {
-            valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-        }
-        while (it->next());
-    (valid->flatten())[0]->it_release(it);
-
-    printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
-    printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
-    fprintf(stderr, "\n");
-
-    Index* query_len_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len);
-    Index* query_count_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_count);
-    general->add_index(query_len_ind);
-    general->add_index(query_count_ind);
-
-    it = (valid->flatten())[0]->it_first();
-    if (it->data() != NULL)
-        do
-        {
-            printf("QUERY_STRING %s @ %d\n", (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_str, (reinterpret_cast<struct dnsrec*>(it->get_data()))->count);
-        }
-        while (it->next());
-    (valid->flatten())[0]->it_release(it);
-
-    it = query_count_ind->it_first();
-    if (it->data() != NULL)
-    {
-        int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-        int32_t rep = 1;
-        do
-        {
-            while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->count) == count))
-                rep++;
-
-            if (it->data() != NULL)
-            {
-                printf("QUERY_COUNT %d @ %d\n", count, rep);
-                rep = 1;
-                count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-            }
-        }
-        while (it->data() != NULL);
-    }
-    query_count_ind->it_release(it);
-
-    it = query_len_ind->it_first();
-    if (it->data() != NULL)
-    {
-        int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
-        int32_t rep = 1;
-        do
-        {
-            while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len) == count))
-                rep++;
-
-            if (it->data() != NULL)
-            {
-                printf("QUERY_LEN %d @ %d\n", count, rep);
-                rep = 1;
-                count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
-            }
-        }
-        while (it->data() != NULL);
-    }
-    query_len_ind->it_release(it);
+//     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
+//     printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+//
+//     uint64_t valid_total = 0;
+//     uint64_t invalid_total = 0;
+//     Iterator* it;
+//
+//     it = (invalid->flatten())[0]->it_first();
+//     if (it->data() != NULL)
+//         do
+//         {
+//             invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//         }
+//         while (it->next());
+//     (invalid->flatten())[0]->it_release(it);
+//
+//     it = (valid->flatten())[0]->it_first();
+//     if (it->data() != NULL)
+//         do
+//         {
+//             valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//         }
+//         while (it->next());
+//     (valid->flatten())[0]->it_release(it);
+//
+//     printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
+//     printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+//     fprintf(stderr, "\n");
+//
+//     Index* query_len_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len);
+//     Index* query_count_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_count);
+//     general->add_index(query_len_ind);
+//     general->add_index(query_count_ind);
+//
+//     it = (valid->flatten())[0]->it_first();
+//     if (it->data() != NULL)
+//         do
+//         {
+//             printf("QUERY_STRING %s @ %d\n", (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_str, (reinterpret_cast<struct dnsrec*>(it->get_data()))->count);
+//         }
+//         while (it->next());
+//     (valid->flatten())[0]->it_release(it);
+//
+//     it = query_count_ind->it_first();
+//     if (it->data() != NULL)
+//     {
+//         int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//         int32_t rep = 1;
+//         do
+//         {
+//             while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->count) == count))
+//                 rep++;
+//
+//             if (it->data() != NULL)
+//             {
+//                 printf("QUERY_COUNT %d @ %d\n", count, rep);
+//                 rep = 1;
+//                 count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//             }
+//         }
+//         while (it->data() != NULL);
+//     }
+//     query_count_ind->it_release(it);
+//
+//     it = query_len_ind->it_first();
+//     if (it->data() != NULL)
+//     {
+//         int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
+//         int32_t rep = 1;
+//         do
+//         {
+//             while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len) == count))
+//                 rep++;
+//
+//             if (it->data() != NULL)
+//             {
+//                 printf("QUERY_LEN %d @ %d\n", count, rep);
+//                 rep = 1;
+//                 count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
+//             }
+//         }
+//         while (it->data() != NULL);
+//     }
+//     query_len_ind->it_release(it);
 
     return EXIT_SUCCESS;
 }
