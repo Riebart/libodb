@@ -226,42 +226,48 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
     marked[2] = NULL;
 
     READ_LOCK();
-    struct datanode* curr = bottom;
-
-    if (prune(&(curr->data)))
+    if (bottom != NULL)
     {
-        marked[0]->push_back(&(curr->data));
-        if (archive != NULL)
-            archive->write(&(curr->data), datalen);
+        struct datanode* curr = bottom;
 
-        marked[1]->push_back(NULL);
-    }
-
-    while ((curr->next) != NULL)
-    {
-        if (prune(&((curr->next)->data)))
+        if (prune(&(curr->data)))
         {
-            marked[0]->push_back(&((curr->next)->data));
+            marked[0]->push_back(&(curr->data));
             if (archive != NULL)
-                archive->write(&((curr->next)->data), datalen);
+                archive->write(&(curr->data), datalen);
 
-            marked[1]->push_back(curr);
+            marked[1]->push_back(NULL);
         }
 
-        curr = curr->next;
-    }
-    READ_UNLOCK();
+        while ((curr->next) != NULL)
+        {
+            if (prune(&((curr->next)->data)))
+            {
+                marked[0]->push_back(&((curr->next)->data));
+                if (archive != NULL)
+                    archive->write(&((curr->next)->data), datalen);
 
-    bool (*temp)(void*);
-    for (uint32_t i = 0 ; i < clones.size() ; i++)
-    {
-        temp = clones[i]->get_prune();
-        clones[i]->set_prune(prune);
-        clones[i]->remove_sweep();
-        clones[i]->set_prune(temp);
-    }
+                marked[1]->push_back(curr);
+            }
 
-    sort(marked[0]->begin(), marked[0]->end());
+            curr = curr->next;
+        }
+        READ_UNLOCK();
+
+        bool (*temp)(void*);
+        for (uint32_t i = 0 ; i < clones.size() ; i++)
+        {
+            temp = clones[i]->get_prune();
+            clones[i]->set_prune(prune);
+            clones[i]->remove_sweep();
+            clones[i]->set_prune(temp);
+        }
+
+        sort(marked[0]->begin(), marked[0]->end());
+    }
+    else
+        READ_UNLOCK();
+
     return marked;
 }
 
@@ -274,43 +280,49 @@ std::vector<void*>** LinkedListIDS::remove_sweep(Archive* archive)
     marked[2] = NULL;
 
     READ_LOCK();
-    struct datanode* curr = bottom;
-
-    char** a = reinterpret_cast<char**>(&(curr->data));
-    void* b = reinterpret_cast<void*>(*a);
-
-    if (prune(b))
+    if (bottom != NULL)
     {
-        marked[0]->push_back(b);
-        marked[1]->push_back(NULL);
-    }
+        struct datanode* curr = bottom;
 
-    while ((curr->next) != NULL)
-    {
-        // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
-        char** a = reinterpret_cast<char**>(&((curr->next)->data));
+        char** a = reinterpret_cast<char**>(&(curr->data));
         void* b = reinterpret_cast<void*>(*a);
 
         if (prune(b))
         {
             marked[0]->push_back(b);
-            marked[1]->push_back(curr);
+            marked[1]->push_back(NULL);
         }
 
-        curr = curr->next;
-    }
-    READ_UNLOCK();
+        while ((curr->next) != NULL)
+        {
+            // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
+            char** a = reinterpret_cast<char**>(&((curr->next)->data));
+            void* b = reinterpret_cast<void*>(*a);
 
-    bool (*temp)(void*);
-    for (uint32_t i = 0 ; i < clones.size() ; i++)
-    {
-        temp = clones[i]->get_prune();
-        clones[i]->set_prune(prune);
-        clones[i]->remove_sweep();
-        clones[i]->set_prune(temp);
-    }
+            if (prune(b))
+            {
+                marked[0]->push_back(b);
+                marked[1]->push_back(curr);
+            }
 
-    sort(marked[0]->begin(), marked[0]->end());
+            curr = curr->next;
+        }
+        READ_UNLOCK();
+
+        bool (*temp)(void*);
+        for (uint32_t i = 0 ; i < clones.size() ; i++)
+        {
+            temp = clones[i]->get_prune();
+            clones[i]->set_prune(prune);
+            clones[i]->remove_sweep();
+            clones[i]->set_prune(temp);
+        }
+
+        sort(marked[0]->begin(), marked[0]->end());
+    }
+    else
+        READ_UNLOCK();
+
     return marked;
 }
 
@@ -339,21 +351,24 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
 void LinkedListDS::purge()
 {
     WRITE_LOCK();
+    uint32_t num_clones = clones.size();
+    for (uint32_t i = 0 ; i < num_clones ; i++)
+        clones[i]->purge();
+
     struct datanode* curr = bottom;
     struct datanode* next = bottom->next;
 
-    while (curr != NULL)
+    while (next != NULL)
     {
         free(curr);
         curr = next;
         next = next->next;
     }
 
-    data_count = 0;
+    free(curr);
 
-    uint32_t num_clones = clones.size();
-    for (uint32_t i = 0 ; i < num_clones ; i++)
-        clones[i]->purge();
+    data_count = 0;
+    bottom = NULL;
 
     WRITE_UNLOCK();
 }

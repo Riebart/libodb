@@ -8,6 +8,7 @@
 // Utility headers.
 #include "common.hpp"
 #include "lock.hpp"
+#include "utility.hpp"
 
 // Include the 'main' type header files.
 #include "datastore.hpp"
@@ -20,7 +21,7 @@
 #include "linkedlistds.hpp"
 
 #define SLEEP_DURATION 60
-#define DEFAULT_FLAGS DataStore::TIME_STAMP | DataStore::QUERY_COUNT
+#define DEFAULT_FLAGS 0//DataStore::TIME_STAMP | DataStore::QUERY_COUNT
 
 using namespace std;
 
@@ -464,10 +465,10 @@ void ODB::purge()
 {
     WRITE_LOCK();
 
-    //data->purge();
-
     for (uint32_t i = 0 ; i < tables.size() ; i++)
         tables[i]->purge();
+
+    data->purge();
 
     WRITE_UNLOCK();
 }

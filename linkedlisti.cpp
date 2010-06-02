@@ -109,21 +109,14 @@ inline void LinkedListI::add_data_v(void* rawdata)
     WRITE_UNLOCK();
 }
 
+///@todo move this to use malloc/free instead of a DS for storage.
 void LinkedListI::purge()
 {
     WRITE_LOCK();
+
+    nodeds->purge();
+
     count = 0;
-
-    struct node* curr = first;
-    struct node* next = first->next;
-
-    while (curr != NULL)
-    {
-        free(curr);
-        curr = next;
-        next = next->next;
-    }
-
     first = NULL;
 
     WRITE_UNLOCK();

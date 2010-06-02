@@ -210,7 +210,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
         else if (test_type == 4)
         {
-
             int str_index = rand() % test_str_len;
 
             strncpy(temp_str, test_str, test_str_len);
@@ -236,8 +235,8 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     ftime(&end);
 
-   if (test_type != 4)
-       odb->remove_sweep();
+    if (test_type != 4)
+        odb->remove_sweep();
 
     if ((index_type >> 1) == 0)
     {
