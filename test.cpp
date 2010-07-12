@@ -222,15 +222,15 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         else
             dn = odb->add_data(&v, false);
 
-        if (i == (test_size/2))
+        for (int j = 0 ; j < NUM_TABLES ; j++)
+            ind[j]->add_data(dn);
+	
+	if (i == (test_size/2))
         {
             printf("ODB size (before): %lu\n", odb->size());
             odb->purge();
             printf("ODB size (after): %lu\n", odb->size());
         }
-
-        for (int j = 0 ; j < NUM_TABLES ; j++)
-            ind[j]->add_data(dn);
     }
 
     ftime(&end);
