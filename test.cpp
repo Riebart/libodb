@@ -227,9 +227,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 	
 	if (i == (test_size/2))
         {
-            printf("ODB size (before): %lu\n", odb->size());
-            odb->purge();
-            printf("ODB size (after): %lu\n", odb->size());
+//            printf("ODB size (before): %lu\n", odb->size());
+//            odb->purge();
+//            printf("ODB size (after): %lu\n", odb->size());
         }
     }
 

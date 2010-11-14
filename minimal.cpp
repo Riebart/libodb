@@ -33,6 +33,9 @@ struct test_s
 
 int main (int argc, char ** argv)
 {
+//printf("%u\n", sizeof(void*));
+//return 0;
+
     AppendOnlyFile out((char*)"/home/mike/Desktop/test");
 
     long v, p = 100;
