@@ -27,7 +27,7 @@ LinkedListI::~LinkedListI()
     RWLOCK_DESTROY();
 }
 
-inline void LinkedListI::add_data_v(void* rawdata)
+inline bool LinkedListI::add_data_v(void* rawdata)
 {
     WRITE_LOCK();
 
@@ -55,14 +55,14 @@ inline void LinkedListI::add_data_v(void* rawdata)
                 {
                     first->data = merge->merge(rawdata, first->data);
                     WRITE_UNLOCK();
-                    return;
+                    return false;
                 }
 
                 // If we don't allow duplicates, return now.
                 if (drop_duplicates)
                 {
                     WRITE_UNLOCK();
-                    return;
+                    return false;
                 }
             }
 
@@ -87,13 +87,13 @@ inline void LinkedListI::add_data_v(void* rawdata)
                 {
                     curr->next->data = merge->merge(rawdata, curr->next->data);
                     WRITE_UNLOCK();
-                    return;
+                    return false;
                 }
 
                 if (drop_duplicates)
                 {
                     WRITE_UNLOCK();
-                    return;
+                    return false;
                 }
             }
 
@@ -107,6 +107,8 @@ inline void LinkedListI::add_data_v(void* rawdata)
     }
 
     WRITE_UNLOCK();
+    
+    return true;
 }
 
 ///@todo move this to use malloc/free instead of a DS for storage.

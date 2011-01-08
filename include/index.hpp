@@ -78,7 +78,7 @@ protected:
     int ident;
     DataStore* parent;
 
-    virtual void add_data_v(void* data);
+    virtual bool add_data_v(void* data);
     virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
@@ -128,7 +128,7 @@ public:
 
 protected:
     Index();
-    virtual void add_data_v(void* rawdata);
+    virtual bool add_data_v(void* rawdata);
     virtual void purge();
     virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);

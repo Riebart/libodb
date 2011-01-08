@@ -188,9 +188,10 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(DataStore* tree
     return n;
 }
 
-void RedBlackTreeI::add_data_v(void* rawdata)
+bool RedBlackTreeI::add_data_v(void* rawdata)
 {
     WRITE_LOCK();
+    bool something_added = false;
     root = add_data_n(treeds, root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
     // The information about whether a new node was added is encoded into the root.
@@ -198,8 +199,11 @@ void RedBlackTreeI::add_data_v(void* rawdata)
     {
         count++;
         root = UNTAINT(root);
+	something_added = true;
     }
     WRITE_UNLOCK();
+    
+    return something_added;
 }
 
 void RedBlackTreeI::purge()

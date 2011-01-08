@@ -73,8 +73,7 @@ inline bool IndexGroup::add_data(DataObj* data)
     if (data->ident == ident)
     {
         // Since any indices or index groups in here have passed integrity checks already, we can fall back to add_data_v.
-        add_data_v(data->data);
-        return true;
+        return add_data_v(data->data);
     }
     else
         return false;
@@ -137,20 +136,23 @@ inline int IndexGroup::get_ident()
     return ident;
 }
 
-inline void IndexGroup::add_data_v(void* data)
+inline bool IndexGroup::add_data_v(void* data)
 {
     uint32_t n = indices.size();
+    bool something_added = false;
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
-            indices[0]->add_data_v(data);
+            something_added = indices[0]->add_data_v(data);
         else
 #pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
-                indices[i]->add_data_v(data);
+                something_added |= indices[i]->add_data_v(data);
     }
+    
+    return something_added;
 }
 
 inline void IndexGroup::query(Condition* condition, DataStore* ds)
@@ -234,8 +236,7 @@ inline bool Index::add_data(DataObj* data)
     if (data->ident == ident)
     {
         // If it passes integrity check, drop to add_data_v and succeed.
-        add_data_v(data->data);
-        return true;
+        return add_data_v(data->data);
     }
     else
         return false;
@@ -253,8 +254,9 @@ vector<Index*> Index::flatten()
     return ret;
 }
 
-inline void Index::add_data_v(void*)
+inline bool Index::add_data_v(void*)
 {
+    return false;
 }
 
 inline void Index::purge()

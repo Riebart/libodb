@@ -42,14 +42,14 @@ add_executable (test test.cpp)
 add_executable (minimal minimal.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
-add_executable (py-demo py-demo.cpp)
+#add_executable (py-demo py-demo.cpp)
 
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal tcmalloc_minimal odb)
 target_link_libraries(test tcmalloc_minimal odb)
 target_link_libraries(demo-flows z ft tcmalloc_minimal odb)
 target_link_libraries(demo-dns tcmalloc_minimal odb)
-target_link_libraries(py-demo boost_python-mt python2.6 odb)
+#target_link_libraries(py-demo boost_python-mt python2.6 odb)
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
