@@ -151,25 +151,25 @@ inline bool LinkedListDS::remove_at(uint64_t index)
 {
     // Assume index is 0-based but we still need to fix things so that data_count-1 is the item pointed to bottom.
     // THIS IS REALLY A STACK, NOT A QUEUE!
-    
+
     if (index >= data_count)
         return false;
-    
+
     index = data_count - 1 - index;
-    
+
     if (index == data_count - 1)
     {
-	WRITE_LOCK();
-	void* old_bottom = bottom;
-	bottom = bottom->next;
-	
-	if (old_bottom != NULL)
-	    free(old_bottom);
-	
-	data_count--;
-	WRITE_UNLOCK();
-	
-	return true;
+        WRITE_LOCK();
+        void* old_bottom = bottom;
+        bottom = bottom->next;
+
+        if (old_bottom != NULL)
+            free(old_bottom);
+
+        data_count--;
+        WRITE_UNLOCK();
+
+        return true;
     }
     else
     {
@@ -181,7 +181,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
         {
             temp = bottom;
             bottom = bottom->next;
-	    free(temp);	    
+            free(temp);
         }
         else
         {
@@ -192,7 +192,7 @@ inline bool LinkedListDS::remove_at(uint64_t index)
 
             temp = curr->next;
             curr->next = curr->next->next;
-	    free(temp);
+            free(temp);
         }
 
         data_count--;

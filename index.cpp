@@ -151,7 +151,7 @@ inline bool IndexGroup::add_data_v(void* data)
             for (uint32_t i = 0 ; i < n ; i++)
                 something_added |= indices[i]->add_data_v(data);
     }
-    
+
     return something_added;
 }
 

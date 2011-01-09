@@ -199,10 +199,10 @@ bool RedBlackTreeI::add_data_v(void* rawdata)
     {
         count++;
         root = UNTAINT(root);
-	something_added = true;
+        something_added = true;
     }
     WRITE_UNLOCK();
-    
+
     return something_added;
 }
 

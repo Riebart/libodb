@@ -107,7 +107,7 @@ inline bool LinkedListI::add_data_v(void* rawdata)
     }
 
     WRITE_UNLOCK();
-    
+
     return true;
 }
 

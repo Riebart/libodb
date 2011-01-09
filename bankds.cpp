@@ -207,25 +207,25 @@ inline bool BankDS::remove_at(uint64_t index)
     // If we're removing the last item, it is far simpler.
     else if (index == data_count - 1)
     {
-	WRITE_LOCK();
-	// If we are in the the middle of a row, then it is trivial:
-	if (posB > 0)
-	{
-	    posB--;
-	}
-	else   
-	{
-	    // It is important to observe that this will never be reached when posA==0, so we dont need to worry about that case.
-	    // If we're not in the middle of a row, we need to backtrack to the end of the previous row, as well as free the current row.
-	    free(*(data + posA));
-	    posA--;
-	    posB = cap - 1;	    
-	}
-	
-	data_count--;
-	WRITE_UNLOCK();
-	
-	return true;
+        WRITE_LOCK();
+        // If we are in the the middle of a row, then it is trivial:
+        if (posB > 0)
+        {
+            posB--;
+        }
+        else
+        {
+            // It is important to observe that this will never be reached when posA==0, so we dont need to worry about that case.
+            // If we're not in the middle of a row, we need to backtrack to the end of the previous row, as well as free the current row.
+            free(*(data + posA));
+            posA--;
+            posB = cap - 1;
+        }
+
+        data_count--;
+        WRITE_UNLOCK();
+
+        return true;
     }
     else
         return false;

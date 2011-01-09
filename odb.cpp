@@ -328,13 +328,13 @@ ODB::~ODB()
 void ODB::add_data(void* rawdata)
 {
     if ((all->add_data_v(data->add_data(rawdata))) == false)
-	data->remove_at(data->data_count - 1);
+        data->remove_at(data->data_count - 1);
 }
 
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
     if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
-	data->remove_at(data->data_count - 1);
+        data->remove_at(data->data_count - 1);
 }
 
 DataObj* ODB::add_data(void* rawdata, bool add_to_all)

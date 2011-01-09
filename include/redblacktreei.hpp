@@ -43,13 +43,13 @@ protected:
     virtual bool add_data_v(void* rawdata);
     virtual void purge();
     static struct RedBlackTreeI::tree_node* add_data_n(DataStore* treeds,
-                        struct tree_node* root,
-                        struct tree_node* false_root,
-                        struct tree_node* sub_false_root,
-                        Comparator* compare,
-                        Merger* merge,
-                        bool drop_duplicates,
-                        void* rawdata);
+            struct tree_node* root,
+            struct tree_node* false_root,
+            struct tree_node* sub_false_root,
+            Comparator* compare,
+            Merger* merge,
+            bool drop_duplicates,
+            void* rawdata);
 
     static void free_n(struct tree_node* n, bool drop_duiplicates);
     int rbt_verify_n(struct tree_node* root, Comparator* compare);
@@ -62,13 +62,13 @@ protected:
 
     virtual bool remove(void* rawdata);
     static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds,
-                        struct tree_node* root,
-                        struct tree_node* false_root,
-                        struct tree_node* sub_false_root,
-                        Comparator* compare,
-                        Merger* merge,
-                        bool drop_duplicates,
-                        void* rawdata);
+            struct tree_node* root,
+            struct tree_node* false_root,
+            struct tree_node* sub_false_root,
+            Comparator* compare,
+            Merger* merge,
+            bool drop_duplicates,
+            void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
     static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
