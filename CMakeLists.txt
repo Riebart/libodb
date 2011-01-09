@@ -44,7 +44,7 @@ add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 #add_executable (py-demo py-demo.cpp)
 
-#message(STATUS "${CMAKE_SYSTEM_NAME}")
+message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
 If(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 #link_directories(/usr/local/lib)
 target_link_libraries(minimal odb)

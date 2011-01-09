@@ -297,7 +297,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 }
 
-int main (int argc, char ** argv)
+int main (int argc, char* argv[])
 {
     uint64_t element_size = 8;
     uint64_t test_size = 10000;
@@ -305,31 +305,35 @@ int main (int argc, char ** argv)
     uint32_t test_type = 0;
     uint32_t index_type = 0;
     uint32_t max_mem = 700000;
+    extern char* optarg;
 
     int ch;
-
+    
+    // This should standardize between the operating systems how the random number generator is seeded.
+    srand(0);
+    
     //Parse the options. TODO: validity checks
-    while ( (ch = getopt(argc, argv, "etnTihm")) != -1)
+    while ( (ch = getopt(argc, argv, "e:t:n:T:i:hm:")) != -1)
     {
         switch (ch)
         {
         case 'e':
-            sscanf(argv[optind], "%lu", &element_size);
+            sscanf(optarg, "%lu", &element_size);
             break;
         case 'n':
-            sscanf(argv[optind], "%lu", &test_size);
+	    sscanf(optarg, "%lu", &test_size);
             break;
         case 't':
-            sscanf(argv[optind], "%u", &test_num);
+	    sscanf(optarg, "%u", &test_num);
             break;
         case 'T':
-            sscanf(argv[optind], "%u", &test_type);
+	    sscanf(optarg, "%u", &test_type);
             break;
         case 'i':
-            sscanf(argv[optind], "%u", &index_type);
+	    sscanf(optarg, "%u", &index_type);
             break;
         case 'm':
-            sscanf(argv[optind], "%u", &max_mem);
+	    sscanf(optarg, "%u", &max_mem);
             break;
         case 'h':
         default:
