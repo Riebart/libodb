@@ -58,6 +58,9 @@ struct dnsrec
 };
 #pragma pack()
 
+uint64_t valid_total = 0;
+uint64_t invalid_total = 0;
+
 inline bool prune(void* rawdata)
 {
     return (((reinterpret_cast<struct dnsrec*>(rawdata))->count) == 0);
@@ -141,6 +144,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
         rec->query_str = temp;
 
         rec->query_len = -1 * (incl_len - DNS_START);
+	invalid_total++;
     }
     else
     {
@@ -161,6 +165,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
             rec->query_str[i] = tolower(rec->query_str[i]);
 
         temp[len - 1] = '\0';
+	valid_total++;
     }
 }
 
@@ -197,34 +202,37 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
             // Print stats
-            printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+            printf("UNIQUE %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+	    
+//             uint64_t valid_total = 0;
+//             uint64_t invalid_total = 0;
+//             Iterator* it;
+// 
+//             it = (invalid->flatten())[0]->it_first();
+//             if (it->data() != NULL)
+//                 do
+//                 {
+//                     invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//                 }
+//                 while (it->next());
+//             (invalid->flatten())[0]->it_release(it);
+// 
+//             it = (valid->flatten())[0]->it_first();
+//             if (it->data() != NULL)
+//                 do
+//                 {
+//                     valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+//                 }
+//                 while (it->next());
+//             (valid->flatten())[0]->it_release(it);
 
-            uint64_t valid_total = 0;
-            uint64_t invalid_total = 0;
-            Iterator* it;
-
-            it = (invalid->flatten())[0]->it_first();
-            if (it->data() != NULL)
-                do
-                {
-                    invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-                }
-                while (it->next());
-            (invalid->flatten())[0]->it_release(it);
-
-            it = (valid->flatten())[0]->it_first();
-            if (it->data() != NULL)
-                do
-                {
-                    valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-                }
-                while (it->next());
-            (valid->flatten())[0]->it_release(it);
-
-            printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
-            printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+            printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
+            printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
             fprintf(stderr, "\n");
 
+	    invalid_total = 0;
+	    valid_total = 0;
+	    
             // Reset the ODB object, and carry forward.
             odb->purge();
 
@@ -285,6 +293,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         printf("Use run.sh in the archive folder.\n\tExample: ./archive/run.sh ./demo /media/disk/flowdata/ 288 out.txt\n\n\tThis will read in the first 288 (24 hours worth) files from /media/disk/flowdata/ and direct \n\tstdout to \"out.txt\"\n");
+	printf("Alternatively: demo-dns <Number of files> <file name>+\n");
         return EXIT_SUCCESS;
     }
 
