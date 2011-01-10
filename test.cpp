@@ -308,10 +308,10 @@ int main (int argc, char* argv[])
     extern char* optarg;
 
     int ch;
-    
+
     // This should standardize between the operating systems how the random number generator is seeded.
     srand(0);
-    
+
     //Parse the options. TODO: validity checks
     while ( (ch = getopt(argc, argv, "e:t:n:T:i:hm:")) != -1)
     {
@@ -321,19 +321,19 @@ int main (int argc, char* argv[])
             sscanf(optarg, "%lu", &element_size);
             break;
         case 'n':
-	    sscanf(optarg, "%lu", &test_size);
+            sscanf(optarg, "%lu", &test_size);
             break;
         case 't':
-	    sscanf(optarg, "%u", &test_num);
+            sscanf(optarg, "%u", &test_num);
             break;
         case 'T':
-	    sscanf(optarg, "%u", &test_type);
+            sscanf(optarg, "%u", &test_type);
             break;
         case 'i':
-	    sscanf(optarg, "%u", &index_type);
+            sscanf(optarg, "%u", &index_type);
             break;
         case 'm':
-	    sscanf(optarg, "%u", &max_mem);
+            sscanf(optarg, "%u", &max_mem);
             break;
         case 'h':
         default:

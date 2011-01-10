@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/timeb.h>
 #include <iostream>
+#include <vector>
 
 #include "odb.hpp"
 #include "index.hpp"
@@ -21,7 +22,7 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
-#define PERIOD 600
+#define PERIOD 300
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -60,6 +61,8 @@ struct dnsrec
 
 uint64_t valid_total = 0;
 uint64_t invalid_total = 0;
+
+vector<void*>* used_list = new vector<void*>();
 
 inline bool prune(void* rawdata)
 {
@@ -140,15 +143,17 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
     if ((len == 0) || (len > (incl_len - NAME_START)))
     {
         char* temp = (char*)malloc(incl_len - DNS_START);
+        used_list->push_back(temp);
         memcpy(temp, packet + DNS_START, incl_len - DNS_START);
         rec->query_str = temp;
 
         rec->query_len = -1 * (incl_len - DNS_START);
-	invalid_total++;
+        invalid_total++;
     }
     else
     {
         char* temp = (char*)malloc(len);
+        used_list->push_back(temp);
         memcpy(temp, packet + NAME_START + 1, len - 1);
         rec->query_str = temp;
 
@@ -165,7 +170,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
             rec->query_str[i] = tolower(rec->query_str[i]);
 
         temp[len - 1] = '\0';
-	valid_total++;
+        valid_total++;
     }
 }
 
@@ -203,11 +208,11 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         {
             // Print stats
             printf("UNIQUE %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
-	    
+
 //             uint64_t valid_total = 0;
 //             uint64_t invalid_total = 0;
 //             Iterator* it;
-// 
+//
 //             it = (invalid->flatten())[0]->it_first();
 //             if (it->data() != NULL)
 //                 do
@@ -216,7 +221,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 //                 }
 //                 while (it->next());
 //             (invalid->flatten())[0]->it_release(it);
-// 
+//
 //             it = (valid->flatten())[0]->it_first();
 //             if (it->data() != NULL)
 //                 do
@@ -230,11 +235,18 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
             fprintf(stderr, "\n");
 
-	    invalid_total = 0;
-	    valid_total = 0;
-	    
+            invalid_total = 0;
+            valid_total = 0;
+
             // Reset the ODB object, and carry forward.
             odb->purge();
+
+            // Also purge all of the strings we allocated.
+            uint32_t num_strings = used_list->size();
+            for (uint32_t i = 0 ; i < num_strings ; i++)
+                free((*used_list)[i]);
+
+            used_list->clear();
 
             // Change the start time of the preiod.
             period_start = pheader->ts_sec;
@@ -256,6 +268,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             invalid->add_data(dataObj);
 
         num_records++;
+        free(rec);
     }
 
     free(fheader);
@@ -293,7 +306,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         printf("Use run.sh in the archive folder.\n\tExample: ./archive/run.sh ./demo /media/disk/flowdata/ 288 out.txt\n\n\tThis will read in the first 288 (24 hours worth) files from /media/disk/flowdata/ and direct \n\tstdout to \"out.txt\"\n");
-	printf("Alternatively: demo-dns <Number of files> <file name>+\n");
+        printf("Alternatively: demo-dns <Number of files> <file name>+\n");
         return EXIT_SUCCESS;
     }
 

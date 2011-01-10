@@ -547,6 +547,7 @@ inline void BankIDS::remove_cleanup(vector<void*>** marked)
 inline void BankDS::purge()
 {
     WRITE_LOCK();
+
     uint32_t num_clones = clones.size();
     for (uint32_t i = 0 ; i < num_clones ; i++)
         clones[i]->purge();
