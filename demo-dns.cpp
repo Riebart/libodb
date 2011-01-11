@@ -26,7 +26,7 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
-#define PERIOD 300
+#define PERIOD 600
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -211,10 +211,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         nbytes = read(fileno(fp), data, pheader->incl_len);
         
 	if (!(( (uint8_t)(data[PROTO_OFFSET]) == 17 ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
-	{
-	    free(data);
 	    continue;
-	}
 
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
