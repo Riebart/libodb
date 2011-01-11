@@ -6,6 +6,7 @@
 #include <sys/timeb.h>
 #include <iostream>
 #include <vector>
+#include <netinet/in.h>
 
 #include "odb.hpp"
 #include "index.hpp"
@@ -19,6 +20,9 @@ using namespace std;
 #define FLAG_START 44
 #define NAME_START 54
 #define RESERVED_FLAGS 0x0070
+#define PROTO_OFFSET 23
+#define UDP_SRC_PORT_OFFSET DSTIP_START+4
+#define UDP_DST_PORT_OFFSET UDP_SRC_PORT_OFFSET+2
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
@@ -203,6 +207,14 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             printf("Broke on packet header! %d", nbytes);
             break;
         }
+        
+        nbytes = read(fileno(fp), data, pheader->incl_len);
+        
+	if (!(( (uint8_t)(data[PROTO_OFFSET]) == 17 ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
+	{
+	    free(data);
+	    continue;
+	}
 
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
@@ -252,8 +264,6 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             // Change the start time of the preiod.
             period_start = pheader->ts_sec;
         }
-
-        nbytes = read(fileno(fp), data, pheader->incl_len);
 
         struct dnsrec* rec = (struct dnsrec*)malloc(sizeof(struct dnsrec));
         rec->count = 1;
