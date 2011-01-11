@@ -210,7 +210,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         
         nbytes = read(fileno(fp), data, pheader->incl_len);
         
-	if (!(( (uint8_t)(data[PROTO_OFFSET]) == 17 ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
+	if (!(( ((uint8_t)(data[PROTO_OFFSET]) == 17) || ((uint8_t)(data[PROTO_OFFSET]) == 6) ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
 	    continue;
 
         if ((pheader->ts_sec - period_start) > PERIOD)
