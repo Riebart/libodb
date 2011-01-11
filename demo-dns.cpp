@@ -233,6 +233,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 
             printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
             printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+	    fflush(stdout);
             fprintf(stderr, "\n");
 
             invalid_total = 0;
@@ -315,13 +316,17 @@ int main(int argc, char *argv[])
     total_num = 0;
 
     sscanf(argv[1], "%d", &num_files);
-
+	
     for (i = 0 ; i < num_files ; i++)
     {
         fprintf(stderr, ".");
         fflush(stderr);
 
-        fp = fopen(argv[i+2], "rb");
+	if (((argv[i+2])[0] == '-') && ((argv[i+2])[1] == '\0'))
+	    fp = stdin;
+	else
+	    fp = fopen(argv[i+2], "rb");
+	
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
