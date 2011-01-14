@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <netinet/in.h>
+#include <math.h>
 
 #include "odb.hpp"
 #include "index.hpp"
@@ -240,8 +241,48 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 //                 while (it->next());
 //             (valid->flatten())[0]->it_release(it);
 
+            double valid_entropy = 0;
+	    double invalid_entropy = 0;
+	    uint64_t cur_count;
+	    
+            Iterator* it;
+
+            it = (invalid->flatten())[0]->it_first();
+            if (it->data() != NULL)
+                do
+                {
+                    //invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+		    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+		    invalid_entropy += cur_count * log((double)cur_count);
+                }
+                while (it->next());
+            (invalid->flatten())[0]->it_release(it);
+	    
+	    invalid_entropy -= invalid_total * log((double)invalid_total);
+	    invalid_entropy /= (invalid_total * M_LN2);
+	    invalid_entropy *= -1;
+
+            it = (valid->flatten())[0]->it_first();
+            if (it->data() != NULL)
+                do
+                {
+                    //valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+		    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+		    valid_entropy += cur_count * log((double)cur_count);
+                }
+                while (it->next());
+            (valid->flatten())[0]->it_release(it);
+	    
+	    valid_entropy -= valid_total * log((double)valid_total);
+	    valid_entropy /= (valid_total * M_LN2);
+	    valid_entropy *= -1;
+
             printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
-            printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+	    //printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+	    printf("ENTROPY %.15f/%.15f\n", invalid_entropy, valid_entropy);
+	    
+	    // Include the timestamp that marks the END of this interval
+	    printf("TIMESTAMP %u\n", pheader->ts_sec);
 	    fflush(stdout);
             fprintf(stderr, "\n");
 
