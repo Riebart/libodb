@@ -12,6 +12,7 @@
 #include "odb.hpp"
 #include "index.hpp"
 #include "archive.hpp"
+#include "buffer.hpp"
 
 using namespace std;
 
@@ -184,6 +185,8 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     uint32_t num_records = 0;
     uint32_t nbytes;
     char *data;
+    
+    struct file_buffer* fb = (struct file_buffer*)(malloc(sizeof(struct file_buffer)));
 
     pcap_hdr_t *fheader;
     pcaprec_hdr_t *pheader;
@@ -199,17 +202,24 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     }
 
     data = (char*)malloc(fheader->snaplen);
+    
+    fb_init(fb, fp, 1048576);
 
     while (nbytes > 0)
     {
-        nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
+	//nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
+	
+	nbytes = fb_read(fb, pheader, sizeof(pcaprec_hdr_t));
+	
         if ((nbytes < sizeof(pcaprec_hdr_t)) && (nbytes > 0))
         {
             printf("Broke on packet header! %d", nbytes);
             break;
         }
         
-        nbytes = read(fileno(fp), data, pheader->incl_len);
+        //nbytes = read(fileno(fp), data, pheader->incl_len);
+	
+	nbytes = fb_read(fb, data, pheader->incl_len);
         
 	if (!(( ((uint8_t)(data[PROTO_OFFSET]) == 17) /*|| ((uint8_t)(data[PROTO_OFFSET]) == 6)*/ ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
 	    continue;
@@ -278,7 +288,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 	    valid_entropy *= -1;
 
             printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
-	    //printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+	    printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
 	    printf("ENTROPY %.15f/%.15f\n", invalid_entropy, valid_entropy);
 	    
 	    // Include the timestamp that marks the END of this interval
@@ -323,6 +333,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     free(fheader);
     free(pheader);
     free(data);
+    free(fb);
 
     return num_records;
 }
@@ -375,7 +386,7 @@ int main(int argc, char *argv[])
 	else
 	    fp = fopen(argv[i+2], "rb");
 	
-        printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
+        printf("%s (%d/%d): \n", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
         {
