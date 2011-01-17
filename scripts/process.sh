@@ -13,7 +13,7 @@ cat <(echo -n "{") <(cat $1 | tail -n +6 | head -n -2 | grep -E "(RATIO|TIMESTAM
 
 #Total
 cat <(echo -n "{") <(cat $1 | tail -n +6 | head -n -2 | grep -E "(TOTAL|TIMESTAMP)" | sed 's/TOTAL \(.*\)\/\(.*\)$/\1}/' | sed 's/TIMESTAMP \(.*\)$/{\1/' | tr '\n' ',' | head -c -1) <(echo -n "}") > $2.ti
-cat <(echo -n "{") <(cat $1 | tail -n +6 | head -n -2 | grep -E "(TOTAL|TIMESTAMP)" | sed 's/TOTAL \(.*\)\/\(.*\)$/\2}/' | sed 's/TIMESTAMP \(.*\)$/{\1/' | tr '\n' ',' | head -c -1) <(echo -n "}") > $2.rv
+cat <(echo -n "{") <(cat $1 | tail -n +6 | head -n -2 | grep -E "(TOTAL|TIMESTAMP)" | sed 's/TOTAL \(.*\)\/\(.*\)$/\2}/' | sed 's/TIMESTAMP \(.*\)$/{\1/' | tr '\n' ',' | head -c -1) <(echo -n "}") > $2.tv
 
 #Unique
 cat <(echo -n "{") <(cat $1 | tail -n +6 | head -n -2 | grep -E "(UNIQUE|TIMESTAMP)" | sed 's/UNIQUE \(.*\)\/\(.*\)$/\1}/' | sed 's/TIMESTAMP \(.*\)$/{\1/' | tr '\n' ',' | head -c -1) <(echo -n "}") > $2.ui
