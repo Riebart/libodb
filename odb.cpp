@@ -34,7 +34,7 @@ void * mem_checker(void * arg)
     uint32_t sleep_duration = *reinterpret_cast<uint32_t*>(&(args[1]));
 
     uint64_t vsize;
-    int64_t rsize;
+    uint64_t rsize;
 
     uint32_t count = 0;
 
