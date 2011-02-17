@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "index.hpp"
+#include "iterator.hpp"
 
 class LinkedListI : public Index
 {

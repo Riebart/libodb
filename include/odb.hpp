@@ -25,6 +25,7 @@ class DataObj;
 class Comparator;
 class Merger;
 class Keygen;
+class Iterator;
 
 class ODB
 {
@@ -76,6 +77,9 @@ public:
     uint64_t size();
     void update_time(time_t);
     time_t get_time();
+    
+    Iterator* it_first();
+    Iterator* it_last();
 
     //the memory limit, in pages
     uint64_t mem_limit;

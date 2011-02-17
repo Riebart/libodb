@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "index.hpp"
+#include "iterator.hpp"
 
 class RedBlackTreeI : public Index
 {

@@ -4,6 +4,7 @@
 #include "odb.hpp"
 #include "index.hpp"
 #include "archive.hpp"
+#include "iterator.hpp"
 
 inline bool prune(void* rawdata)
 {

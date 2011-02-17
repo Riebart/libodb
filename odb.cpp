@@ -499,3 +499,14 @@ inline time_t ODB::get_time()
 {
     return data->cur_time;
 }
+
+Iterator * ODB::it_first()
+{
+    return NULL;
+}
+
+Iterator * ODB::it_last()
+{
+    return NULL;
+}
+

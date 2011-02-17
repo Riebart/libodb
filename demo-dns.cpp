@@ -13,6 +13,7 @@
 #include "index.hpp"
 #include "archive.hpp"
 #include "buffer.hpp"
+#include "iterator.hpp"
 
 using namespace std;
 
@@ -106,9 +107,13 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     struct dnsrec* b = reinterpret_cast<struct dnsrec*>(b_i);
 
     if (a->query_len > b->query_len)
+    {
         return 1;
+    }
     else if (a->query_len < b->query_len)
+    {
         return -1;
+    }
     else
     {
         int16_t c;
@@ -116,9 +121,13 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
         {
             c = (int16_t)(a->query_str[i]) - (int16_t)(b->query_str[i]);
             if (c < 0)
+            {
                 return -1;
+            }
             else if (c > 0)
+            {
                 return 1;
+            }
         }
 
         return 0;
@@ -173,7 +182,9 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
         }
 
         for (int i = 0 ; i < rec->query_len ; i++)
+        {
             rec->query_str[i] = tolower(rec->query_str[i]);
+        }
 
         temp[len - 1] = '\0';
         valid_total++;
@@ -185,7 +196,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     uint32_t num_records = 0;
     uint32_t nbytes;
     char *data;
-    
+
     struct file_buffer* fb = (struct file_buffer*)(malloc(sizeof(struct file_buffer)));
 
     pcap_hdr_t *fheader;
@@ -202,27 +213,29 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     }
 
     data = (char*)malloc(fheader->snaplen);
-    
+
     fb_init(fb, fp, 1048576);
 
     while (nbytes > 0)
     {
-	//nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
-	
-	nbytes = fb_read(fb, pheader, sizeof(pcaprec_hdr_t));
-	
+        //nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
+
+        nbytes = fb_read(fb, pheader, sizeof(pcaprec_hdr_t));
+
         if ((nbytes < sizeof(pcaprec_hdr_t)) && (nbytes > 0))
         {
             printf("Broke on packet header! %d", nbytes);
             break;
         }
-        
+
         //nbytes = read(fileno(fp), data, pheader->incl_len);
-	
-	nbytes = fb_read(fb, data, pheader->incl_len);
-        
-	if (!(( ((uint8_t)(data[PROTO_OFFSET]) == 17) /*|| ((uint8_t)(data[PROTO_OFFSET]) == 6)*/ ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
-	    continue;
+
+        nbytes = fb_read(fb, data, pheader->incl_len);
+
+        if (!(( ((uint8_t)(data[PROTO_OFFSET]) == 17) /*|| ((uint8_t)(data[PROTO_OFFSET]) == 6)*/ ) && (( ntohs(*(uint16_t*)(data + UDP_SRC_PORT_OFFSET)) == 53 ) || ( ntohs(*(uint16_t*)(data + UDP_DST_PORT_OFFSET)) == 53 ))))
+        {
+            continue;
+        }
 
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
@@ -252,9 +265,9 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 //             (valid->flatten())[0]->it_release(it);
 
             double valid_entropy = 0;
-	    double invalid_entropy = 0;
-	    uint64_t cur_count;
-	    
+            double invalid_entropy = 0;
+            uint64_t cur_count;
+
             Iterator* it;
 
             it = (invalid->flatten())[0]->it_first();
@@ -262,38 +275,38 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
                 do
                 {
                     //invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-		    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-		    invalid_entropy += cur_count * log((double)cur_count);
+                    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+                    invalid_entropy += cur_count * log((double)cur_count);
                 }
                 while (it->next());
             (invalid->flatten())[0]->it_release(it);
-	    
-	    invalid_entropy -= invalid_total * log((double)invalid_total);
-	    invalid_entropy /= (invalid_total * M_LN2);
-	    invalid_entropy *= -1;
+
+            invalid_entropy -= invalid_total * log((double)invalid_total);
+            invalid_entropy /= (invalid_total * M_LN2);
+            invalid_entropy *= -1;
 
             it = (valid->flatten())[0]->it_first();
             if (it->data() != NULL)
                 do
                 {
                     //valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-		    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-		    valid_entropy += cur_count * log((double)cur_count);
+                    cur_count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
+                    valid_entropy += cur_count * log((double)cur_count);
                 }
                 while (it->next());
             (valid->flatten())[0]->it_release(it);
-	    
-	    valid_entropy -= valid_total * log((double)valid_total);
-	    valid_entropy /= (valid_total * M_LN2);
-	    valid_entropy *= -1;
+
+            valid_entropy -= valid_total * log((double)valid_total);
+            valid_entropy /= (valid_total * M_LN2);
+            valid_entropy *= -1;
 
             printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
-	    printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
-	    printf("ENTROPY %.15f/%.15f\n", invalid_entropy, valid_entropy);
-	    
-	    // Include the timestamp that marks the END of this interval
-	    printf("TIMESTAMP %u\n", pheader->ts_sec);
-	    fflush(stdout);
+            printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+            printf("ENTROPY %.15f/%.15f\n", invalid_entropy, valid_entropy);
+
+            // Include the timestamp that marks the END of this interval
+            printf("TIMESTAMP %u\n", pheader->ts_sec);
+            fflush(stdout);
             fprintf(stderr, "\n");
 
             invalid_total = 0;
@@ -305,7 +318,9 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             // Also purge all of the strings we allocated.
             uint32_t num_strings = used_list->size();
             for (uint32_t i = 0 ; i < num_strings ; i++)
+            {
                 free((*used_list)[i]);
+            }
 
             used_list->clear();
 
@@ -322,9 +337,13 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         general->add_data(dataObj);
 
         if (rec->query_len > -1)
+        {
             valid->add_data(dataObj);
+        }
         else
+        {
             invalid->add_data(dataObj);
+        }
 
         num_records++;
         free(rec);
@@ -375,17 +394,21 @@ int main(int argc, char *argv[])
     total_num = 0;
 
     sscanf(argv[1], "%d", &num_files);
-	
+
     for (i = 0 ; i < num_files ; i++)
     {
         fprintf(stderr, ".");
         fflush(stderr);
 
-	if (((argv[i+2])[0] == '-') && ((argv[i+2])[1] == '\0'))
-	    fp = stdin;
-	else
-	    fp = fopen(argv[i+2], "rb");
-	
+        if (((argv[i+2])[0] == '-') && ((argv[i+2])[1] == '\0'))
+        {
+            fp = stdin;
+        }
+        else
+        {
+            fp = fopen(argv[i+2], "rb");
+        }
+
         printf("%s (%d/%d): \n", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
@@ -402,7 +425,9 @@ int main(int argc, char *argv[])
         fflush(stdout);
 
         if (((i % 10) == 0) || (i == (num_files - 1)))
+        {
             odb->remove_sweep();
+        }
 
         total_num += num;
         printf("%lu) ", total_num - odb->size());
