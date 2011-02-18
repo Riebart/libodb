@@ -627,3 +627,64 @@ inline DataStore* BankDS::clone_indirect()
     // Return an indirect version of this datastore, with this datastore marked as its parent.
     return new BankIDS(this, prune, flags, cap);
 }
+
+
+Iterator * BankDS::it_first()
+{
+	BankDSIterator * it = new BankDSIterator();
+	it->dstore = this;
+	it->dataobj->data = *data;
+	
+	return it;
+}
+
+Iterator * BankDS::it_last()
+{
+	BankDSIterator * it = new BankDSIterator();
+	it->dstore = this;
+	
+	it->posA=posA;
+	it->posB=posB;
+	it->dataobj->data=*(data + posA) + posB;
+	return it;
+}
+
+
+
+BankDSIterator::BankDSIterator()
+{
+	posA =0;
+	posB =0;
+	dstore = NULL;
+	dataobj = new DataObj();
+}
+
+DataObj * BankDSIterator::next()
+{
+	//TODO: skip deleted elements. Not difficult, but we need to change the
+	//datastructure from a stack to something else, a vector, deque or list.
+	//Then we can check the current address vs the next one in the deleted list
+	posB += dstore->datalen;
+	
+	//We've reached the end of the current bucket
+	if (posB == dstore->cap_size && posA < dstore->posA)
+	{
+		posB = 0;
+		posA += sizeof(char*);
+	}
+	//end of list.
+	else if (posB == dstore->posB && posA == dstore->posA )
+	{
+		return NULL;
+	}
+	
+	dataobj->data=*(dstore->data + posA) + posB;
+	
+	return dataobj;
+}
+
+DataObj * BankDSIterator::prev()
+{
+	return NULL;
+}
+

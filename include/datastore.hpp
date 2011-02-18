@@ -16,6 +16,7 @@
 class ODB;
 class Index;
 class Archive;
+class Iterator;
 
 class DataStore
 {
@@ -55,6 +56,9 @@ protected:
     virtual bool (*get_prune())(void*);
     virtual void set_prune(bool (*prune)(void*));
     virtual void update_parent(ODB* odb);
+	
+	virtual Iterator * it_first() { return NULL; };
+	virtual Iterator * it_last() { return NULL; };
 
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.

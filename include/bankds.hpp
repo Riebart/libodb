@@ -5,6 +5,7 @@
 
 #include "datastore.hpp"
 #include "lock.hpp"
+#include "iterator.hpp"
 
 class BankDS : public DataStore
 {
@@ -17,6 +18,8 @@ class BankDS : public DataStore
 
     /// Allows LinkedListI to create a pair of Bankds objects to manage its memory.
     friend class RedBlackTreeI;
+	
+	friend class BankDSIterator;
 
 public:
     virtual ~BankDS();
@@ -36,6 +39,10 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
+	
+	Iterator * it_first();
+	Iterator * it_last();
+	
     char** data;
     uint64_t posA;
     uint64_t posB;
@@ -63,6 +70,19 @@ protected:
     virtual std::vector<void*>** remove_sweep(Archive* archive);
     virtual void remove_cleanup(std::vector<void*>** marked);
     virtual void populate(Index* index);
+};
+
+class BankDSIterator : public Iterator
+{
+	friend class BankDS;
+	
+protected:
+	BankDSIterator ();
+	BankDS * dstore;
+	uint64_t posA;
+	uint64_t posB;
+	DataObj * next();
+	DataObj * prev();
 };
 
 #endif

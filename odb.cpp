@@ -502,11 +502,11 @@ inline time_t ODB::get_time()
 
 Iterator * ODB::it_first()
 {
-    return NULL;
+    return data->it_first();
 }
 
 Iterator * ODB::it_last()
 {
-    return NULL;
+    return data->it_last();
 }
 

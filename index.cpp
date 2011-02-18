@@ -12,6 +12,10 @@ DataObj::~DataObj()
 {
 }
 
+DataObj::DataObj()
+{
+}
+
 DataObj::DataObj(int ident)
 {
     this->ident = ident;
