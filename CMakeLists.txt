@@ -17,6 +17,21 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m64")
 set(CMAKE_MODULE_LINKER_FLAGS "-m64")
 set(CMAKE_SHARED_LINKER_FLAGS "-m64")
 
+set(LIBS ${LIBS} odb)
+
+message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+find_library(TCMALLOC_LIB tcmalloc_minimal)
+
+if(${TCMALLOC_LIB} MATCHES "tcmalloc")
+message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
+#Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
+list(APPEND LIBS ${TCMALLOC_LIB})
+endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
+
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+
 #this is probably the wrong way to do this: setting compile-time defines
 add_definitions(-DPTHREAD_LOCK)
 
@@ -45,24 +60,12 @@ add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
 #add_executable (py-demo py-demo.cpp)
 
-message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
-If(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-#link_directories(/usr/local/lib)
-target_link_libraries(minimal odb)
-target_link_libraries(test odb)
-target_link_libraries(demo-flows z ft odb)
-target_link_libraries(demo-dns odb)
-target_link_libraries(demo-1 odb)
-#target_link_libraries(py-demo boost_python-mt python2.6 odb)
-Else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-#link_directories(/usr/local/lib)
-target_link_libraries(minimal tcmalloc_minimal odb)
-target_link_libraries(test tcmalloc_minimal odb)
-target_link_libraries(demo-flows z ft tcmalloc_minimal odb)
-target_link_libraries(demo-dns tcmalloc_minimal odb)
-target_link_libraries(demo-1 tcmalloc_minimal odb)
-#target_link_libraries(py-demo boost_python-mt python2.6 odb)
-EndIF(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+target_link_libraries(minimal ${LIBS})
+target_link_libraries(test ${LIBS})
+target_link_libraries(demo-flows z ft ${LIBS})
+target_link_libraries(demo-dns ${LIBS})
+target_link_libraries(demo-1 ${LIBS})
+#target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
