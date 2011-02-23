@@ -631,15 +631,24 @@ inline DataStore* BankDS::clone_indirect()
 
 Iterator * BankDS::it_first()
 {
+    READ_LOCK();
 	BankDSIterator * it = new BankDSIterator();
 	it->dstore = this;
-	it->dataobj->data = *data;
+    if (list_size == 0)
+    {
+        it->dataobj->data = NULL;
+    }
+    else
+    {
+        it->dataobj->data = *data;
+    }
 	
 	return it;
 }
 
 Iterator * BankDS::it_last()
 {
+    READ_LOCK();
 	BankDSIterator * it = new BankDSIterator();
 	it->dstore = this;
 	
@@ -650,6 +659,14 @@ Iterator * BankDS::it_last()
 }
 
 
+void BankDS::it_release(Iterator * it)
+{
+    if (it != NULL)
+    {
+        delete it;
+    }
+    READ_UNLOCK();
+}
 
 BankDSIterator::BankDSIterator()
 {
@@ -667,13 +684,13 @@ DataObj * BankDSIterator::next()
 	posB += dstore->datalen;
 	
 	//We've reached the end of the current bucket
-	if (posB == dstore->cap_size && posA < dstore->posA)
+	if (posB >= dstore->cap_size && posA < dstore->posA)
 	{
 		posB = 0;
 		posA += sizeof(char*);
 	}
 	//end of list.
-	else if (posB == dstore->posB && posA == dstore->posA )
+	if (posB >= dstore->posB && posA >= dstore->posA )
 	{
 		return NULL;
 	}

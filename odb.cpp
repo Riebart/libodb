@@ -510,3 +510,7 @@ Iterator * ODB::it_last()
     return data->it_last();
 }
 
+void ODB::it_release(Iterator * it)
+{
+    data->it_release(it);
+}

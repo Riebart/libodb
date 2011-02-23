@@ -42,6 +42,7 @@ protected:
 	
 	Iterator * it_first();
 	Iterator * it_last();
+    void it_release(Iterator *);
 	
     char** data;
     uint64_t posA;

@@ -5,6 +5,14 @@
 
 #include "comparator.hpp"
 
+#ifndef MAX
+#define MAX(x, y) ( x > y ? x : y )
+#endif
+
+#ifndef SQUARE
+#define SQUARE(x) ((x) * (x))
+#endif
+
 #ifndef LEN_V
 #define LEN_V
 inline uint32_t len_v(void* rawdata)

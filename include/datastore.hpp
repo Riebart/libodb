@@ -59,6 +59,7 @@ protected:
 	
 	virtual Iterator * it_first() { return NULL; };
 	virtual Iterator * it_last() { return NULL; };
+    virtual void it_release(Iterator *) { };
 
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.

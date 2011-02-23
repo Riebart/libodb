@@ -80,6 +80,7 @@ public:
     
     Iterator* it_first();
     Iterator* it_last();
+    void it_release(Iterator *);
 
     //the memory limit, in pages
     uint64_t mem_limit;
