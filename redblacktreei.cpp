@@ -882,7 +882,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             it->trail.push((d ? TAINT(i) : i));
 
             p = i;
-            i = STRIP(i->link[d]);
+            i = STRIP(i->link[(uint8_t)d]);
         }
 
         if (i != NULL)

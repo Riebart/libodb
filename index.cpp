@@ -143,7 +143,7 @@ inline int IndexGroup::get_ident()
 
 inline bool IndexGroup::add_data_v(void* data)
 {
-    uint32_t n = indices.size();
+    int32_t n = (int32_t)indices.size();
     bool something_added = false;
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
@@ -153,7 +153,7 @@ inline bool IndexGroup::add_data_v(void* data)
             something_added = indices[0]->add_data_v(data);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 something_added |= indices[i]->add_data_v(data);
     }
 
@@ -162,7 +162,7 @@ inline bool IndexGroup::add_data_v(void* data)
 
 inline void IndexGroup::query(Condition* condition, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    int32_t n = (int32_t)indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -171,14 +171,14 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
             indices[0]->query(condition, ds);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 indices[i]->query(condition, ds);
     }
 }
 
 inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    int32_t n = (int32_t)indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -187,14 +187,14 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
             indices[0]->query_eq(rawdata, ds);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 indices[i]->query_eq(rawdata, ds);
     }
 }
 
 inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    int32_t n = (int32_t)indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -203,14 +203,14 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
             indices[0]->query_lt(rawdata, ds);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 indices[i]->query_lt(rawdata, ds);
     }
 }
 
 inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    int32_t n = (int32_t)indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -219,7 +219,7 @@ inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
             indices[0]->query_gt(rawdata, ds);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 indices[i]->query_gt(rawdata, ds);
     }
 }

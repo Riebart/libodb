@@ -424,7 +424,7 @@ void ODB::remove_sweep()
     WRITE_LOCK();
     vector<void*>** marked = data->remove_sweep(archive);
 
-    uint32_t n = tables.size();
+    int32_t n = (int32_t)tables.size();
 
     if (n > 0)
     {
@@ -432,7 +432,7 @@ void ODB::remove_sweep()
             tables[0]->remove_sweep(marked[0]);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 tables[i]->remove_sweep(marked[0]);
 
         if (marked[2] != NULL)
@@ -445,7 +445,7 @@ void ODB::remove_sweep()
 
 void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
 {
-    uint32_t n = tables.size();
+    int32_t n = (int32_t)tables.size();
 
     if (n > 0)
     {
@@ -453,13 +453,13 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
             tables[0]->update(old_addr, new_addr, datalen);
         else
 #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            for (int32_t i = 0 ; i < n ; i++)
                 tables[i]->update(old_addr, new_addr, datalen);
     }
 
     n = data->clones.size();
 
-    for (uint32_t i = 0 ; i < n ; i++)
+    for (int32_t i = 0 ; i < n ; i++)
         data->clones[i]->update_tables(old_addr, new_addr);
 }
 
