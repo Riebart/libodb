@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <math.h>
 
@@ -38,7 +39,9 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
-#define PERIOD 600
+#define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
+
+#define PERIOD 300
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -71,6 +74,37 @@ struct tcpip
     struct tcphdr tcp_struct; //Only works if I don't care about IP options
     uint32_t src_addr_count; //NB: This only works if I don't care about payloads.
     uint32_t dst_addr_count;
+    uint32_t src_port_count;
+    uint32_t dst_port_count;
+    uint32_t payload_len_count;
+};
+#pragma pack()
+
+#pragma pack(1)
+struct ip_data
+{
+    struct ip ip_struct;
+    uint32_t src_addr_count;
+    uint32_t dst_addr_count;
+    uint32_t payload_len_count;
+};
+#pragma pack()
+
+#pragma pack(1)
+struct tcp_data
+{
+    struct tcphdr tcp_struct;
+    uint32_t src_port_count;
+    uint32_t dst_port_count;
+};
+#pragma pack()
+
+#pragma pack(1)
+struct udp_data
+{
+    struct udphdr udp_struct;
+    uint32_t src_port_count;
+    uint32_t dst_port_count;
 };
 #pragma pack()
 
@@ -91,12 +125,17 @@ struct knn
 uint64_t total=0;
 Index * src_addr_index;
 Index * dst_addr_index;
-
+Index * src_port_index;
+Index * dst_port_index;
+Index * payload_len_index;
 
 inline bool prune(void* rawdata)
 {
     return (((reinterpret_cast<struct tcpip*>(rawdata))->src_addr_count) == 0
-            && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0);
+            && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0 
+            && reinterpret_cast<struct tcpip *>(rawdata)->src_port_count == 0 
+            && reinterpret_cast<struct tcpip *>(rawdata)->dst_port_count == 0 
+            && reinterpret_cast<struct tcpip *>(rawdata)->payload_len_count == 0 );
 }
 
 bool null_prune (void* rawdata)
@@ -114,6 +153,20 @@ inline int32_t compare_dst_addr(void* a, void* b)
     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_dst.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_dst.s_addr);
 }
 
+int32_t compare_src_port(void* a, void* b)
+{
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.source) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.source);
+}
+
+int32_t compare_dst_port(void* a, void* b)
+{
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.dest) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.dest);
+}
+
+int32_t compare_payload_len(void *a, void* b)
+{
+    return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_len) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_len);
+}
 
 inline void* merge_src_addr(void* new_data, void* old_data)
 {
@@ -126,6 +179,27 @@ inline void* merge_dst_addr(void* new_data, void* old_data)
 {
     (reinterpret_cast<struct tcpip*>(old_data))->dst_addr_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->dst_addr_count = 0;
+    return old_data;
+}
+
+inline void* merge_src_port(void* new_data, void* old_data)
+{
+    (reinterpret_cast<struct tcpip*>(old_data))->src_port_count++;
+    (reinterpret_cast<struct tcpip*>(new_data))->src_port_count = 0;
+    return old_data;
+}
+
+inline void* merge_dst_port(void* new_data, void* old_data)
+{
+    (reinterpret_cast<struct tcpip*>(old_data))->dst_port_count++;
+    (reinterpret_cast<struct tcpip*>(new_data))->dst_port_count = 0;
+    return old_data;
+}
+
+inline void* merge_payload_len(void* new_data, void* old_data)
+{
+    (reinterpret_cast<struct tcpip*>(old_data))->payload_len_count++;
+    (reinterpret_cast<struct tcpip*>(new_data))->payload_len_count = 0;
     return old_data;
 }
 
@@ -147,6 +221,9 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
 
     rec->src_addr_count = 1;
     rec->dst_addr_count = 1;
+    rec->src_port_count = 1;
+    rec->dst_port_count = 1;
+    rec->payload_len_count = 1;
 
     total++;
 //     struct tcpip* temp = (struct tcpip*)(packet+14);
@@ -155,7 +232,7 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
 //     printf("%s\n", inet_ntoa(src_ip));
 }
 
-void it_calc(Index * index)
+void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
 {
 
     double entropy = 0;
@@ -172,12 +249,26 @@ void it_calc(Index * index)
     {
         do
         {
-            cur_count = (reinterpret_cast<struct tcpip*>(it->get_data()))->src_addr_count;
+//             cur_count = (reinterpret_cast<struct tcpip*>(it->get_data()))->src_addr_count;
+            cur_count = * (uint32_t*)((it->get_data())+offset2);
             entropy += cur_count * log((double)cur_count);
 
             oldS = curS;
-            //S_i = S_{i-1} + f(y_i)*y_i, in this case f(y_i is cur_count/total
-            curS = oldS + cur_count*((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src.s_addr)/total;
+            //S_i = S_{i-1} + f(y_i)*y_i, in this case f(y_i) is cur_count/total
+            
+            switch (data_size)
+            {
+                case sizeof(uint32_t):
+                    curS = oldS + cur_count*(*(uint32_t*)(it->get_data()+offset1) ) /total;
+                case sizeof(uint8_t):
+                    curS = oldS + cur_count*(*(uint8_t*)(it->get_data()+offset1) ) /total;
+                case sizeof(uint16_t):
+                    curS = oldS + cur_count*(*(uint16_t*)(it->get_data()+offset1) ) /total;
+                default:
+                    curS = oldS + cur_count*(*(uint32_t*)(it->get_data()+offset1) ) /total;
+            }
+            
+            
             curG += cur_count*(oldS+curS)/total;
         }
         while (it->next());
@@ -190,10 +281,10 @@ void it_calc(Index * index)
 
     curG = 1 - curG/curS;
 
-    printf("TOTAL %lu\n", total);
-    printf("ENTROPY %.15f\n", entropy);
+//     printf("TOTAL %lu\n", total);
+    printf("%.15f,", entropy);
 
-    printf("Gini? %.15f\n", curG);
+    printf("%.15f,", curG);
 }
 
 double distance(struct knn * a, struct knn * b)
@@ -381,22 +472,29 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 //         printf("packet %d\n", ++counta);
 
         //skip non-tcp values, for now
-        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM )
+        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM || !(data[47] & 2) )
         {
-//             printf("data:%s\n", data);
+//             printf("data:%s\n", data);ip_struct
             continue;
         }
 
-        if ((pheader->ts_sec - period_start) > PERIOD)
+        if ((pheader->ts_sec - period_start) > PERIOD && total > 0)
         {
 
-            it_calc(src_addr_index);
+            it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
+            it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
+            it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+            it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+            it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+            
+            
+//     printf("%d\n", total);
 
-
+            printf("0\n");
             // Include the timestamp that marks the END of this interval
-            printf("TIMESTAMP %u\n", pheader->ts_sec);
+//             printf("TIMESTAMP %u\n", pheader->ts_sec);
             fflush(stdout);
-            fprintf(stderr, "\n");
+//             fprintf(stderr, "\n");
 
 
             total = 0;
@@ -418,16 +516,25 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         num_records++;
         free(rec);
     }
+    
+//     printf("Packet parsing complete\n");
 
-    it_calc(src_addr_index);
-    lof_calc(odb, packets);
+    it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
+    it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
+    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+    printf("1\n");
+//     lof_calc(odb, packets);
+    
+//     printf("%d\n", total);
 
     // Include the timestamp that marks the END of this interval
-    printf("TIMESTAMP %u\n", pheader->ts_sec);
+//     printf("TIMESTAMP %u\n", pheader->ts_sec);
     fflush(stdout);
 
 
-    printf("TOTAL Packets %lu\n", total);
+//     printf("TOTAL Packets %lu\n", total);
 
     free(fheader);
     free(pheader);
@@ -455,8 +562,16 @@ int main(int argc, char *argv[])
 //     packets->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid, merge_query_str));
     src_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_addr, merge_src_addr);
     dst_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_addr, merge_dst_addr);
+    src_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port, merge_src_port);
+    dst_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port, merge_dst_port);
+    payload_len_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_payload_len, merge_payload_len);
+    
+    
     packets->add_index(src_addr_index);
     packets->add_index(dst_addr_index);
+    packets->add_index(src_port_index);
+    packets->add_index(dst_port_index);
+    packets->add_index(payload_len_index);
 
 
     if (argc < 2)
@@ -485,7 +600,7 @@ int main(int argc, char *argv[])
             fp = fopen(argv[i+2], "rb");
         }
 
-        printf("%s (%d/%d): \n", argv[i+2], i+1, num_files);
+//         printf("%s (%d/%d): \n", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
         {
@@ -497,23 +612,24 @@ int main(int argc, char *argv[])
 
         num = read_data(odb, packets, fp);
 
-        printf("(");
+//         printf("(");
         fflush(stdout);
 
+        //TODO: ask Mike what this does
         if (((i % 10) == 0) || (i == (num_files - 1)))
         {
             odb->remove_sweep();
         }
 
         total_num += num;
-        printf("%lu) ", total_num - odb->size());
+//         printf("%lu) ", total_num - odb->size());
         fflush(stdout);
 
         ftime(&end);
 
         dur = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 
-        printf("%f\n", (num / dur));
+//         printf("%f\n", (num / dur));
 
         totaldur += dur;
 
