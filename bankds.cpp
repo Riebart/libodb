@@ -634,7 +634,7 @@ Iterator * BankDS::it_first()
     READ_LOCK();
 	BankDSIterator * it = new BankDSIterator();
 	it->dstore = this;
-    if (list_size == 0)
+    if (list_size == 0 || (posA == 0 && posB == 0))
     {
         it->dataobj->data = NULL;
     }
@@ -696,12 +696,19 @@ DataObj * BankDSIterator::next()
 	}
 	
 	dataobj->data=*(dstore->data + posA) + posB;
+    
+    //TODO: should this be here?
+    if(dataobj->data == NULL)
+    {
+        return NULL;
+    }
 	
 	return dataobj;
 }
 
 DataObj * BankDSIterator::prev()
 {
+    NOT_IMPLEMENTED("prev()");
 	return NULL;
 }
 

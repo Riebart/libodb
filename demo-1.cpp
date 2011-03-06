@@ -21,6 +21,8 @@
 #include "iterator.hpp"
 #include "utility.hpp"
 
+#include <assert.h>
+
 using namespace std;
 
 #define SRCIP_START 26
@@ -41,7 +43,7 @@ using namespace std;
 
 #define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
 
-#define PERIOD 300
+#define PERIOD 600
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -114,6 +116,7 @@ struct knn
 {
     struct tcpip * p;
     struct knn * neighbors [K_NN];
+    double distances [K_NN];
     double k_distance;
     double lrd;
     double LOF;
@@ -123,6 +126,7 @@ struct knn
 // uint64_t valid_total = 0;
 // uint64_t invalid_total = 0;
 uint64_t total=0;
+uint64_t big_total=0;
 Index * src_addr_index;
 Index * dst_addr_index;
 Index * src_port_index;
@@ -145,12 +149,44 @@ bool null_prune (void* rawdata)
 
 inline int32_t compare_src_addr(void* a, void* b)
 {
-    return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_src.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_src.s_addr);
+//     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_src.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_src.s_addr);
+    uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_src.s_addr;
+    uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_src.s_addr;
+    uint32_t diff = A - B;
+    
+    if (A > B)
+    {
+        return 1;
+    }
+    else if (A < B)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 inline int32_t compare_dst_addr(void* a, void* b)
 {
-    return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_dst.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_dst.s_addr);
+//     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_dst.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_dst.s_addr);
+    uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_dst.s_addr;
+    uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_dst.s_addr;
+    uint32_t diff = A - B;
+    
+    if (A > B)
+    {
+        return 1;
+    }
+    else if (A < B)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 int32_t compare_src_port(void* a, void* b)
@@ -240,7 +276,9 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     double curG = 0;
     double oldS = 0;
 
-    uint64_t cur_count;
+    uint64_t cur_count =0;
+    uint32_t cur_value =0;
+    uint32_t old_value =0;
 
     Iterator* it;
 
@@ -249,6 +287,7 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     {
         do
         {
+            old_value = cur_value;
 //             cur_count = (reinterpret_cast<struct tcpip*>(it->get_data()))->src_addr_count;
             cur_count = * (uint32_t*)((it->get_data())+offset2);
             entropy += cur_count * log((double)cur_count);
@@ -259,15 +298,30 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
             switch (data_size)
             {
                 case sizeof(uint32_t):
-                    curS = oldS + cur_count*(*(uint32_t*)(it->get_data()+offset1) ) /total;
+                    cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
+//                         cur_value = ((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src.s_addr);
+                    break;
                 case sizeof(uint8_t):
-                    curS = oldS + cur_count*(*(uint8_t*)(it->get_data()+offset1) ) /total;
+                    cur_value = *(uint8_t*)(((char*)it->get_data())+offset1);
+                    break;
                 case sizeof(uint16_t):
-                    curS = oldS + cur_count*(*(uint16_t*)(it->get_data()+offset1) ) /total;
+                    cur_value = *(uint16_t*)(((char*)it->get_data())+offset1);
+                    break;
                 default:
-                    curS = oldS + cur_count*(*(uint32_t*)(it->get_data()+offset1) ) /total;
+                    assert(0);
+                    cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
             }
+            if (old_value > cur_value)
+            {
+//                 printf("%d: %s, %d: %s\n", old_value, inet_ntoa((struct in_addr *) &(htonl(old_value))), cur_value, inet_ntoa((struct in_addr *) &(htonl(curvalue)));
+                printf("%u, %u, /%d\n", old_value, cur_value, total);
+            }
+                
             
+            
+            curS = oldS +cur_count*((double)cur_value)/total;
+            
+//             assert(oldS <= curS);
             
             curG += cur_count*(oldS+curS)/total;
         }
@@ -279,7 +333,8 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     entropy /= (total * M_LN2);
     entropy *= -1;
 
-    curG = 1 - curG/curS;
+//     assert(curG <= curS);
+    curG = 1.0 - curG/curS;
 
 //     printf("TOTAL %lu\n", total);
     printf("%.15f,", entropy);
@@ -287,16 +342,62 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     printf("%.15f,", curG);
 }
 
-double distance(struct knn * a, struct knn * b)
+double distance(struct tcpip * a, struct tcpip * b)
 {
     
     double sum=0;
     
-    sum += SQUARE( (a->p->ip_struct.ip_src.s_addr - b->p->ip_struct.ip_src.s_addr) );
-    sum += SQUARE( (a->p->ip_struct.ip_dst.s_addr - b->p->ip_struct.ip_dst.s_addr) );
-//     sum += SQUARE( (a->p->ip_struct.ip_dst.s_addr - b->p->ip_struct.ip_dst.s_addr) );
+    assert (a != NULL);
+    assert (b != NULL);
+    
+    sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr) );
+    sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr) );
+    sum += SQUARE( (a->tcp_struct.source - b->tcp_struct.source) );
+    sum += SQUARE( (a->tcp_struct.dest - b->tcp_struct.dest) );
+    sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len) );
         
     return sqrt(sum);
+}
+
+void knn_search(ODB * odb, struct knn * a, int k)
+{
+    Iterator * it = odb->it_first();
+    
+    int cur_n = 0;
+    double cur_dist = 0;
+    
+    //the a-check should not be necessary. And yet...
+    assert (a != NULL);
+    assert (a->p != NULL);
+//     if (it->data() != NULL)
+    if (it->data() != NULL && a->p != NULL)
+    {
+        do //for each point
+        {
+            if (a->p != reinterpret_cast<struct knn *>(it->get_data())->p)
+            {
+                cur_dist = distance( a->p, reinterpret_cast<struct knn *>(it->get_data())->p );
+                
+                int i;
+                for (i=0; i<=cur_n; i++)
+                {
+                    if (cur_dist < a->distances[i])
+                    {
+                        a->distances[i] = cur_dist;
+                        a->neighbors[i] = reinterpret_cast<struct knn *>(it->get_data());
+                        break;
+                    }                    
+                }
+                
+                cur_n++;                
+            }            
+        }
+        while (it->next() != NULL);
+        
+    }        
+    
+    odb->it_release(it);
+    
 }
 
 void lof_calc(ODB * odb, IndexGroup * packets)
@@ -306,6 +407,8 @@ void lof_calc(ODB * odb, IndexGroup * packets)
     std::deque<void*> * candidates = new std::deque<void*>();
 
     Iterator * it;
+    
+    struct ip * temp;
 
     struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
     //TODO: determine appropriate struct
@@ -322,38 +425,68 @@ void lof_calc(ODB * odb, IndexGroup * packets)
         {
             //zero the struct
             memset(cur_knn, 0, sizeof(struct knn));
-
-// 			printf("Src IP: %s\n", inet_ntoa((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src));
             
-            //1a - for each dimension, build a list of candidate points
-            //for each index-dimension
-            for (int i=0; i< num_indices; i++)
-            {
-                Iterator * it_d = indices[i]->it_lookup(it->get_data());
-
-                int num_p = K_NN*2;
-
-                //less than
-                for (int j=0; j< num_p/2; j++)
-                {
-
-                }
-
-                //greater than
-
-                indices[i]->it_release(it_d);
-            }
-
-            //1b from the candidate's list determine the k-nearest neighbors and calculate
-            //the k-distance
+            cur_knn->p=reinterpret_cast<struct tcpip*>(it->get_data());
             
-            odb2->add_data(cur_knn);
-
+            //this is run-time catch for null pointers
+            assert(cur_knn->p != NULL);
+            
+            DataObj * dobj = odb2->add_data(cur_knn, false);
+            knn_index->add_data(dobj);
+            
         }
         while (it->next() != NULL);
     }
     
     odb->it_release(it);
+    
+    it = odb2->it_first();
+    
+    if(it->data() != NULL)
+    {
+        do
+        {
+    
+            knn_search(odb2, reinterpret_cast<struct knn*> (it->get_data()), K_NN);
+
+// 			printf("Src IP: %s\n", inet_ntoa((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src));
+            
+            //1a - for each dimension, build a list of candidate points
+            //for each index-dimension
+//             for (int i=0; i< num_indices; i++)
+//             {
+//                 Iterator * it_d = indices[i]->it_lookup(it->get_data());
+// 
+//                 int num_p = K_NN*2;
+// 
+//                 //less than
+//                 for (int j=0; j< num_p/2; j++)
+//                 {
+// 
+//                 }
+// 
+//                 //greater than
+// 
+//                 indices[i]->it_release(it_d);
+//             }
+
+            //1b from the candidate's list determine the k-nearest neighbors and calculate
+            //the k-distance
+            
+//             int i;
+//             for (i=0, i<K_NN; i++)
+            {
+//                 cur_knn->k_distance = MAX(cur_knn->k_distance, cur_knn->distances[i]);
+                //by a quirk of magic, the distances end up sorted
+                cur_knn->k_distance = cur_knn->distances[K_NN-1];
+            }
+
+
+        }
+        while (it->next() != NULL);
+    }
+    
+    odb2->it_release(it);
 
     //No, calculate the rd as the lrd is calculated
 //     //Step 2:calculate the reachability distance for each point in each point's k-neighborhood
@@ -387,8 +520,7 @@ void lof_calc(ODB * odb, IndexGroup * packets)
             {
 //                 reach_sum += MAX(distance(p, p->neighbors[i]), 
 //                     (reinterpret_cast<struct knn *>(knn_index->it_lookup(p->neighbors[i])->get_data())->k_distance));                
-                reach_sum += MAX( distance(p, p->neighbors[i]),
-                    p->neighbors[i]->k_distance);
+                reach_sum += MAX( distance(p->p, p->neighbors[i]->p), p->neighbors[i]->k_distance);
             }
             
             p->lrd=K_NN/reach_sum;
@@ -421,11 +553,21 @@ void lof_calc(ODB * odb, IndexGroup * packets)
         while (it->next() != NULL);
     }
     odb2->it_release(it);
+    odb2->purge();
 
     delete odb2;
 
 }
 
+void do_it_calcs()
+{
+    it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
+//             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
+    it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
+    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));    
+}
 
 uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 {
@@ -481,12 +623,12 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         if ((pheader->ts_sec - period_start) > PERIOD && total > 0)
         {
 
-            it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
-            it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-            it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-            it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-            it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
-            
+
+//             do_it_calcs();
+            if (total > 4)
+            {
+                lof_calc(odb, packets);
+            }
             
 //     printf("%d\n", total);
 
@@ -519,11 +661,12 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     
 //     printf("Packet parsing complete\n");
 
-    it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
-    it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+//     do_it_calcs();
+    if (total > 4)
+    {
+        lof_calc(odb, packets);
+    }
+    
     printf("1\n");
 //     lof_calc(odb, packets);
     
@@ -559,7 +702,6 @@ int main(int argc, char *argv[])
 
     IndexGroup* packets = odb->create_group();
 
-//     packets->add_index(odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_valid, merge_query_str));
     src_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_addr, merge_src_addr);
     dst_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_addr, merge_dst_addr);
     src_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port, merge_src_port);
@@ -616,10 +758,10 @@ int main(int argc, char *argv[])
         fflush(stdout);
 
         //TODO: ask Mike what this does
-        if (((i % 10) == 0) || (i == (num_files - 1)))
-        {
-            odb->remove_sweep();
-        }
+//         if (((i % 10) == 0) || (i == (num_files - 1)))
+//         {
+//             odb->remove_sweep();
+//         }
 
         total_num += num;
 //         printf("%lu) ", total_num - odb->size());
@@ -629,7 +771,7 @@ int main(int argc, char *argv[])
 
         dur = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 
-//         printf("%f\n", (num / dur));
+        fprintf(stderr, "%f\n", (num / dur));
 
         totaldur += dur;
 
@@ -637,90 +779,6 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-//     printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
-//     printf("Unique queries identified (in/v): %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
-//
-//     uint64_t valid_total = 0;
-//     uint64_t invalid_total = 0;
-//     Iterator* it;
-//
-//     it = (invalid->flatten())[0]->it_first();
-//     if (it->data() != NULL)
-//         do
-//         {
-//             invalid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-//         }
-//         while (it->next());
-//     (invalid->flatten())[0]->it_release(it);
-//
-//     it = (valid->flatten())[0]->it_first();
-//     if (it->data() != NULL)
-//         do
-//         {
-//             valid_total += (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-//         }
-//         while (it->next());
-//     (valid->flatten())[0]->it_release(it);
-//
-//     printf("Total DNS queries (in/v): %lu/%lu \n", invalid_total, valid_total);
-//     printf("Ratios (in/v): %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
-//     fprintf(stderr, "\n");
-//
-//     Index* query_len_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_len);
-//     Index* query_count_ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_query_count);
-//     general->add_index(query_len_ind);
-//     general->add_index(query_count_ind);
-//
-//     it = (valid->flatten())[0]->it_first();
-//     if (it->data() != NULL)
-//         do
-//         {
-//             printf("QUERY_STRING %s @ %d\n", (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_str, (reinterpret_cast<struct dnsrec*>(it->get_data()))->count);
-//         }
-//         while (it->next());
-//     (valid->flatten())[0]->it_release(it);
-//
-//     it = query_count_ind->it_first();
-//     if (it->data() != NULL)
-//     {
-//         int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-//         int32_t rep = 1;
-//         do
-//         {
-//             while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->count) == count))
-//                 rep++;
-//
-//             if (it->data() != NULL)
-//             {
-//                 printf("QUERY_COUNT %d @ %d\n", count, rep);
-//                 rep = 1;
-//                 count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->count;
-//             }
-//         }
-//         while (it->data() != NULL);
-//     }
-//     query_count_ind->it_release(it);
-//
-//     it = query_len_ind->it_first();
-//     if (it->data() != NULL)
-//     {
-//         int32_t count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
-//         int32_t rep = 1;
-//         do
-//         {
-//             while ((it->next()) && (((reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len) == count))
-//                 rep++;
-//
-//             if (it->data() != NULL)
-//             {
-//                 printf("QUERY_LEN %d @ %d\n", count, rep);
-//                 rep = 1;
-//                 count = (reinterpret_cast<struct dnsrec*>(it->get_data()))->query_len;
-//             }
-//         }
-//         while (it->data() != NULL);
-//     }
-//     query_len_ind->it_release(it);
 
     return EXIT_SUCCESS;
 }
