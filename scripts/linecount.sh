@@ -1,18 +1,29 @@
 #!/bin/bash
-counts_nocomments=$(cat <(find ./archive/*pp) <(find ./include/*pp) <(find ./*pp) <(find ./archive/*.c) <(find ./archive/*.h) | sed 's/\(.*\)$/grep -ve "^\\s*\$" \1 | grep -cve "^ *\/\/.*$"/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
-counts_noblank=$(cat <(find ./archive/*pp) <(find ./include/*pp) <(find ./*pp) <(find ./archive/*.c) <(find ./archive/*.h) | sed 's/\(.*\)$/grep -cve "^\\s*\$" \1/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
-counts_total=$(cat <(find ./archive/*pp) <(find ./include/*pp) <(find ./*pp) <(find ./archive/*.c) <(find ./archive/*.h) | sed 's/\(.*\)$/grep -c ".*" \1/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
+
+if [ $# -eq 0 ];
+then
+    files=$(cat <(find ./include/*pp) <(find ./*pp))
+else
+    files=$(echo -n "")
+    for f in "$@"
+    do
+        files=$(cat <(echo "$files") <(find "./$f"))
+    done
+fi
+
+files=$(echo -n "$files" | grep -v "^$")
+
+echo "File processed:\n$files"
+
+counts_nocomments=$(echo "$files" | sed 's/\(.*\)$/grep -ve "^\\s*\$" \1 | grep -cve "^ *\/\/.*$"/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
+counts_noblank=$(echo "$files" | sed 's/\(.*\)$/grep -cve "^\\s*\$" \1/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
+counts_total=$(echo "$files" | sed 's/\(.*\)$/grep -c ".*" \1/' | sh | tr '\n' '+' | sed 's/\(.*\).$/\1/')
 
 total_nocomments=$(echo $counts_nocomments | bc)
 total_noblank=$(echo $counts_noblank | bc)
 total_comments=$(echo "$total_noblank - $total_nocomments" | bc)
 total_total=$(echo $counts_total | bc)
 total_blank=$(echo "$total_total - $total_noblank" | bc)
-files=$(cat <(find ./archive/*pp) <(find ./include/*pp) <(find ./*pp) <(find ./archive/*.c) <(find ./archive/*.h))
-
-if [ $# -eq 1 ]; then
-    echo "File processed:\n$files"
-fi
 
 echo "Total lines:                    $total_total"
 echo "Total non-blank lines:          $total_noblank"

@@ -152,7 +152,6 @@ inline int32_t compare_src_addr(void* a, void* b)
 //     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_src.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_src.s_addr);
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_src.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_src.s_addr;
-    uint32_t diff = A - B;
 
     if (A > B)
     {
@@ -173,7 +172,6 @@ inline int32_t compare_dst_addr(void* a, void* b)
 //     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_dst.s_addr) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_dst.s_addr);
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_dst.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_dst.s_addr;
-    uint32_t diff = A - B;
 
     if (A > B)
     {
@@ -191,12 +189,12 @@ inline int32_t compare_dst_addr(void* a, void* b)
 
 int32_t compare_src_port(void* a, void* b)
 {
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.source) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.source);
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_sport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_sport);
 }
 
 int32_t compare_dst_port(void* a, void* b)
 {
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.dest) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.dest);
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_dport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_dport);
 }
 
 int32_t compare_payload_len(void *a, void* b)
@@ -289,7 +287,7 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
         {
             old_value = cur_value;
 //             cur_count = (reinterpret_cast<struct tcpip*>(it->get_data()))->src_addr_count;
-            cur_count = * (uint32_t*)((it->get_data())+offset2);
+            cur_count = * (uint32_t*)(((uint8_t*)(it->get_data()))+offset2);
             entropy += cur_count * log((double)cur_count);
 
             oldS = curS;
@@ -314,7 +312,7 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
             if (old_value > cur_value)
             {
 //                 printf("%d: %s, %d: %s\n", old_value, inet_ntoa((struct in_addr *) &(htonl(old_value))), cur_value, inet_ntoa((struct in_addr *) &(htonl(curvalue)));
-                printf("%u, %u, /%d\n", old_value, cur_value, total);
+                printf("%u, %u, /%ld\n", old_value, cur_value, total);
             }
 
 
@@ -352,8 +350,8 @@ double distance(struct tcpip * a, struct tcpip * b)
 
     sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr) );
     sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr) );
-    sum += SQUARE( (a->tcp_struct.source - b->tcp_struct.source) );
-    sum += SQUARE( (a->tcp_struct.dest - b->tcp_struct.dest) );
+    sum += SQUARE( (a->tcp_struct.th_sport - b->tcp_struct.th_sport) );
+    sum += SQUARE( (a->tcp_struct.th_dport - b->tcp_struct.th_dport) );
     sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len) );
 
     return sqrt(sum);
@@ -569,8 +567,8 @@ void do_it_calcs()
     it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
 //             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
     it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
     it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 }
 
@@ -580,7 +578,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     uint32_t nbytes;
     char *data;
 
-    struct file_buffer* fb = (struct file_buffer*)(malloc(sizeof(struct file_buffer)));
+    struct file_buffer* fb = fb_read_init(fp, 1048576);
 
     pcap_hdr_t *fheader;
     pcaprec_hdr_t *pheader;
@@ -597,8 +595,6 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
 //     printf("Snaplen: %d", (fheader->snaplen));
     data = (char*)malloc((fheader->snaplen));
-
-    fb_init(fb, fp, 1048576);
 
     while (nbytes > 0)
     {

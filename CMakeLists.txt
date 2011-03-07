@@ -9,10 +9,10 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 #set(CMAKE_LINKER "/bin/ld")
 
-set(CMAKE_C_FLAGS "-Wall -O0 -fopenmp -g -fno-inline -m64")
+#set(CMAKE_C_FLAGS "-Wall -O0 -fopenmp -g -fno-inline -m64")
 #set(CMAKE_C_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -O2 -fopenmp -m64")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp -g -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} -m64")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m64")
 set(CMAKE_MODULE_LINKER_FLAGS "-m64")
 set(CMAKE_SHARED_LINKER_FLAGS "-m64")
@@ -33,7 +33,8 @@ endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 #this is probably the wrong way to do this: setting compile-time defines
-add_definitions(-DPTHREAD_LOCK)
+# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
+add_definitions(-DPTHREAD_LOCK -D__FAVOR_BSD -D__USE_BSD)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through

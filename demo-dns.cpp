@@ -197,7 +197,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     uint32_t nbytes;
     char *data;
 
-    struct file_buffer* fb = (struct file_buffer*)(malloc(sizeof(struct file_buffer)));
+    struct file_buffer* fb = fb_read_init(fp, 1048576);
 
     pcap_hdr_t *fheader;
     pcaprec_hdr_t *pheader;
@@ -213,8 +213,6 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     }
 
     data = (char*)malloc(fheader->snaplen);
-
-    fb_read_init(fb, fp, 1048576);
 
     while (nbytes > 0)
     {

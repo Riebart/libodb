@@ -15,14 +15,21 @@ struct file_buffer
     uint32_t read_size;
 };
 
-void fb_read_init(struct file_buffer* fb, FILE* fp, uint32_t num_bytes)
+struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
 {
+    struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
+
+    if (fb == NULL)
+        return NULL;
+
     fb->read_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
     fb->fp = fp;
 
     fb->size = fread(fb->buffer, 1, fb->read_size, fp);
     fb->position = 0;
+
+    return fb;
 }
 
 uint16_t fb_read(struct file_buffer* fb, void* dest, uint16_t num_bytes)
