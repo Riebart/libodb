@@ -586,19 +586,23 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     fheader = (pcap_hdr_t*)malloc(sizeof(pcap_hdr_t));
     pheader = (pcaprec_hdr_t*)malloc(sizeof(pcaprec_hdr_t));
 
-    nbytes = read(fileno(fp), fheader, sizeof(pcap_hdr_t));
+    nbytes = fb_read(fb, fheader, sizeof(pcap_hdr_t));
     if (nbytes < sizeof(pcap_hdr_t))
     {
         printf("Broke on file header! %d", nbytes);
         return 0;
     }
 
-//     printf("Snaplen: %d", (fheader->snaplen));
-    data = (char*)malloc((fheader->snaplen));
+    //     printf("Snaplen: %d", (fheader->snaplen));
+    // If we've got the wrong endianness:
+    if (fheader->magic_number == 3569595041)
+        data = (char*)malloc(ntohl(fheader->snaplen));
+    else
+        data = (char*)malloc(fheader->snaplen);
 
     while (nbytes > 0)
     {
-//         nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
+        //         nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
 
         nbytes = fb_read(fb, pheader, sizeof(pcaprec_hdr_t));
 
@@ -608,7 +612,16 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             break;
         }
 
-//         nbytes = read(fileno(fp), data, (pheader->incl_len));
+        // ntohl all of the contents of pheader if we need to. Goddam endianness
+        if (fheader->magic_number == 3569595041)
+        {
+            pheader->ts_sec = ntohl(pheader->ts_sec);
+            pheader->ts_usec = ntohl(pheader->ts_usec);
+            pheader->incl_len = ntohl(pheader->incl_len);
+            pheader->orig_len = ntohl(pheader->orig_len);
+        }
+
+        //         nbytes = read(fileno(fp), data, (pheader->incl_len));
         nbytes = fb_read(fb, data, pheader->incl_len);
 //         printf("bytes: %x\n", nbytes);
 

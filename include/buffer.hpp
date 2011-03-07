@@ -24,6 +24,12 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
 
     fb->read_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
+    if (fb->buffer == NULL)
+    {
+        free(fb);
+        return NULL;
+    }
+
     fb->fp = fp;
 
     fb->size = fread(fb->buffer, 1, fb->read_size, fp);
