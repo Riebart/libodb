@@ -374,9 +374,14 @@ void knn_search(ODB * odb, struct knn * a, int k)
     {
         do //for each point
         {
-            if (a->p != reinterpret_cast<struct knn *>(it->get_data())->p)
+            struct knn * cur_knn = reinterpret_cast<struct knn *>(it->get_data());
+            
+            assert(cur_knn != NULL);
+            assert(cur_knn->p != NULL);
+            
+            if (a->p != cur_knn->p)
             {
-                cur_dist = distance( a->p, reinterpret_cast<struct knn *>(it->get_data())->p );
+                cur_dist = distance( a->p, cur_knn->p );
                 
                 int i;
                 for (i=0; i<=cur_n; i++)
@@ -384,7 +389,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
                     if (cur_dist < a->distances[i])
                     {
                         a->distances[i] = cur_dist;
-                        a->neighbors[i] = reinterpret_cast<struct knn *>(it->get_data());
+                        a->neighbors[i] = cur_knn;
                         break;
                     }                    
                 }
