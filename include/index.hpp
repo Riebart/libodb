@@ -39,9 +39,9 @@ class DataObj
     /// Requires ability to create and manipulate DataObj.
     friend class LLIterator;
 
-	friend class BankDSIterator;
-	
-	friend class BankDS;
+    friend class BankDSIterator;
+
+    friend class BankDS;
 
 private:
     DataObj();

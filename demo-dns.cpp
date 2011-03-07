@@ -214,7 +214,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 
     data = (char*)malloc(fheader->snaplen);
 
-    fb_init(fb, fp, 1048576);
+    fb_read_init(fb, fp, 1048576);
 
     while (nbytes > 0)
     {

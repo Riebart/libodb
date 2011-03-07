@@ -77,7 +77,7 @@ public:
     uint64_t size();
     void update_time(time_t);
     time_t get_time();
-    
+
     Iterator* it_first();
     Iterator* it_last();
     void it_release(Iterator *);

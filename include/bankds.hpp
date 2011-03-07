@@ -18,8 +18,8 @@ class BankDS : public DataStore
 
     /// Allows LinkedListI to create a pair of Bankds objects to manage its memory.
     friend class RedBlackTreeI;
-	
-	friend class BankDSIterator;
+
+    friend class BankDSIterator;
 
 public:
     virtual ~BankDS();
@@ -39,11 +39,11 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
-	
-	Iterator * it_first();
-	Iterator * it_last();
+
+    Iterator * it_first();
+    Iterator * it_last();
     void it_release(Iterator *);
-	
+
     char** data;
     uint64_t posA;
     uint64_t posB;
@@ -75,15 +75,15 @@ protected:
 
 class BankDSIterator : public Iterator
 {
-	friend class BankDS;
-	
+    friend class BankDS;
+
 protected:
-	BankDSIterator ();
-	BankDS * dstore;
-	uint64_t posA;
-	uint64_t posB;
-	DataObj * next();
-	DataObj * prev();
+    BankDSIterator ();
+    BankDS * dstore;
+    uint64_t posA;
+    uint64_t posB;
+    DataObj * next();
+    DataObj * prev();
 };
 
 #endif

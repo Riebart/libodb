@@ -57,7 +57,7 @@ time_t Iterator::get_time_stamp()
 //         return GET_TIME_STAMP(dataobj->data);
 //     else
 //         return 0;
-    
+
     return time_stamp ? GET_TIME_STAMP(dataobj->data) : 0;
 }
 
@@ -71,7 +71,7 @@ uint32_t Iterator::get_query_count()
 //     {
 //         return 0;
 //     }
-//     
+//
     return query_count ? GET_QUERY_COUNT(dataobj->data) : 0;
 }
 

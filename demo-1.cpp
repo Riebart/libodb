@@ -136,9 +136,9 @@ Index * payload_len_index;
 inline bool prune(void* rawdata)
 {
     return (((reinterpret_cast<struct tcpip*>(rawdata))->src_addr_count) == 0
-            && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0 
-            && reinterpret_cast<struct tcpip *>(rawdata)->src_port_count == 0 
-            && reinterpret_cast<struct tcpip *>(rawdata)->dst_port_count == 0 
+            && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->src_port_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->dst_port_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->payload_len_count == 0 );
 }
 
@@ -153,7 +153,7 @@ inline int32_t compare_src_addr(void* a, void* b)
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_src.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_src.s_addr;
     uint32_t diff = A - B;
-    
+
     if (A > B)
     {
         return 1;
@@ -174,7 +174,7 @@ inline int32_t compare_dst_addr(void* a, void* b)
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_dst.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_dst.s_addr;
     uint32_t diff = A - B;
-    
+
     if (A > B)
     {
         return 1;
@@ -294,35 +294,35 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
 
             oldS = curS;
             //S_i = S_{i-1} + f(y_i)*y_i, in this case f(y_i) is cur_count/total
-            
+
             switch (data_size)
             {
-                case sizeof(uint32_t):
-                    cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
+            case sizeof(uint32_t):
+                cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
 //                         cur_value = ((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src.s_addr);
-                    break;
-                case sizeof(uint8_t):
-                    cur_value = *(uint8_t*)(((char*)it->get_data())+offset1);
-                    break;
-                case sizeof(uint16_t):
-                    cur_value = *(uint16_t*)(((char*)it->get_data())+offset1);
-                    break;
-                default:
-                    assert(0);
-                    cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
+                break;
+            case sizeof(uint8_t):
+                cur_value = *(uint8_t*)(((char*)it->get_data())+offset1);
+                break;
+            case sizeof(uint16_t):
+                cur_value = *(uint16_t*)(((char*)it->get_data())+offset1);
+                break;
+            default:
+                assert(0);
+                cur_value = *(uint32_t*)(((char*)it->get_data())+offset1);
             }
             if (old_value > cur_value)
             {
 //                 printf("%d: %s, %d: %s\n", old_value, inet_ntoa((struct in_addr *) &(htonl(old_value))), cur_value, inet_ntoa((struct in_addr *) &(htonl(curvalue)));
                 printf("%u, %u, /%d\n", old_value, cur_value, total);
             }
-                
-            
-            
+
+
+
             curS = oldS +cur_count*((double)cur_value)/total;
-            
+
 //             assert(oldS <= curS);
-            
+
             curG += cur_count*(oldS+curS)/total;
         }
         while (it->next());
@@ -344,28 +344,28 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
 
 double distance(struct tcpip * a, struct tcpip * b)
 {
-    
+
     double sum=0;
-    
+
     assert (a != NULL);
     assert (b != NULL);
-    
+
     sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr) );
     sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr) );
     sum += SQUARE( (a->tcp_struct.source - b->tcp_struct.source) );
     sum += SQUARE( (a->tcp_struct.dest - b->tcp_struct.dest) );
     sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len) );
-        
+
     return sqrt(sum);
 }
 
 void knn_search(ODB * odb, struct knn * a, int k)
 {
     Iterator * it = odb->it_first();
-    
+
     int cur_n = 0;
     double cur_dist = 0;
-    
+
     //the a-check should not be necessary. And yet...
     assert (a != NULL);
     assert (a->p != NULL);
@@ -375,14 +375,14 @@ void knn_search(ODB * odb, struct knn * a, int k)
         do //for each point
         {
             struct knn * cur_knn = reinterpret_cast<struct knn *>(it->get_data());
-            
+
             assert(cur_knn != NULL);
             assert(cur_knn->p != NULL);
-            
+
             if (a->p != cur_knn->p)
             {
                 cur_dist = distance( a->p, cur_knn->p );
-                
+
                 int i;
                 for (i=0; i<=cur_n; i++)
                 {
@@ -391,18 +391,18 @@ void knn_search(ODB * odb, struct knn * a, int k)
                         a->distances[i] = cur_dist;
                         a->neighbors[i] = cur_knn;
                         break;
-                    }                    
+                    }
                 }
-                
-                cur_n++;                
-            }            
+
+                cur_n++;
+            }
         }
         while (it->next() != NULL);
-        
-    }        
-    
+
+    }
+
     odb->it_release(it);
-    
+
 }
 
 void lof_calc(ODB * odb, IndexGroup * packets)
@@ -412,7 +412,7 @@ void lof_calc(ODB * odb, IndexGroup * packets)
     std::deque<void*> * candidates = new std::deque<void*>();
 
     Iterator * it;
-    
+
     struct ip * temp;
 
     struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
@@ -420,7 +420,7 @@ void lof_calc(ODB * odb, IndexGroup * packets)
     ODB * odb2 = new ODB(ODB::BANK_DS, prune, sizeof(struct knn));
     //For now, index by the pointer to data
     Index * knn_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_tcpip_p, NULL);
-    
+
     //Step 1: determine k-nearest-neighbors of each point. O(nlogn)
     it = odb->it_first();
 
@@ -430,54 +430,54 @@ void lof_calc(ODB * odb, IndexGroup * packets)
         {
             //zero the struct
             memset(cur_knn, 0, sizeof(struct knn));
-            
+
             cur_knn->p=reinterpret_cast<struct tcpip*>(it->get_data());
-            
+
             //this is run-time catch for null pointers
             assert(cur_knn->p != NULL);
-            
+
             DataObj * dobj = odb2->add_data(cur_knn, false);
             knn_index->add_data(dobj);
-            
+
         }
         while (it->next() != NULL);
     }
-    
+
     odb->it_release(it);
-    
+
     it = odb2->it_first();
-    
+
     if(it->data() != NULL)
     {
         do
         {
-    
+
             knn_search(odb2, reinterpret_cast<struct knn*> (it->get_data()), K_NN);
 
 // 			printf("Src IP: %s\n", inet_ntoa((reinterpret_cast<struct tcpip*>(it->get_data()))->ip_struct.ip_src));
-            
+
             //1a - for each dimension, build a list of candidate points
             //for each index-dimension
 //             for (int i=0; i< num_indices; i++)
 //             {
 //                 Iterator * it_d = indices[i]->it_lookup(it->get_data());
-// 
+//
 //                 int num_p = K_NN*2;
-// 
+//
 //                 //less than
 //                 for (int j=0; j< num_p/2; j++)
 //                 {
-// 
+//
 //                 }
-// 
+//
 //                 //greater than
-// 
+//
 //                 indices[i]->it_release(it_d);
 //             }
 
             //1b from the candidate's list determine the k-nearest neighbors and calculate
             //the k-distance
-            
+
 //             int i;
 //             for (i=0, i<K_NN; i++)
             {
@@ -490,24 +490,24 @@ void lof_calc(ODB * odb, IndexGroup * packets)
         }
         while (it->next() != NULL);
     }
-    
+
     odb2->it_release(it);
 
     //No, calculate the rd as the lrd is calculated
 //     //Step 2:calculate the reachability distance for each point in each point's k-neighborhood
 //     it = odb2->it_first();
-// 
+//
 //     if (it->data() != NULL)
 //     {
 //         do //for each point
 //         {
-// 
+//
 //         }
 //         while (it->next() != NULL);
 //     }
-//     
+//
 //     odb2->it_release(it);
-    
+
     //Step 2: calculate the lrd of each point. This is O(n)
 
     it = odb2->it_first();
@@ -516,25 +516,25 @@ void lof_calc(ODB * odb, IndexGroup * packets)
     {
         double reach_sum = 0.0;
         Iterator * it_o;
-        
+
         do //for each point p
         {
             struct knn * p = reinterpret_cast<struct knn *>(it->get_data());
             //for each point o in p's k-neighborhood
             for (int i=0; i<K_NN; i++)
             {
-//                 reach_sum += MAX(distance(p, p->neighbors[i]), 
-//                     (reinterpret_cast<struct knn *>(knn_index->it_lookup(p->neighbors[i])->get_data())->k_distance));                
+//                 reach_sum += MAX(distance(p, p->neighbors[i]),
+//                     (reinterpret_cast<struct knn *>(knn_index->it_lookup(p->neighbors[i])->get_data())->k_distance));
                 reach_sum += MAX( distance(p->p, p->neighbors[i]->p), p->neighbors[i]->k_distance);
             }
-            
+
             p->lrd=K_NN/reach_sum;
 
         }
         while (it->next() != NULL);
     }
     odb2->it_release(it);
-    
+
     //Step 3: calculate the LOF of each point. O(n)
     it = odb2->it_first();
 
@@ -544,14 +544,14 @@ void lof_calc(ODB * odb, IndexGroup * packets)
         {
             double lrd_sum = 0;
             struct knn * p = reinterpret_cast<struct knn *>(it->get_data());
-            
+
             //for each neighbor o
             //sum of lrd(o)/lrd(p)
             for (int i=0; i<K_NN; i++)
             {
-                lrd_sum = (p->neighbors[i]->lrd)/(p->lrd);                
+                lrd_sum = (p->neighbors[i]->lrd)/(p->lrd);
             }
-            
+
             p->LOF = lrd_sum/K_NN;
 
         }
@@ -571,7 +571,7 @@ void do_it_calcs()
     it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
     it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
     it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));    
+    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 }
 
 uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
@@ -634,7 +634,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             {
                 lof_calc(odb, packets);
             }
-            
+
 //     printf("%d\n", total);
 
             printf("0\n");
@@ -663,7 +663,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         num_records++;
         free(rec);
     }
-    
+
 //     printf("Packet parsing complete\n");
 
 //     do_it_calcs();
@@ -671,10 +671,10 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     {
         lof_calc(odb, packets);
     }
-    
+
     printf("1\n");
 //     lof_calc(odb, packets);
-    
+
 //     printf("%d\n", total);
 
     // Include the timestamp that marks the END of this interval
@@ -712,8 +712,8 @@ int main(int argc, char *argv[])
     src_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port, merge_src_port);
     dst_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port, merge_dst_port);
     payload_len_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_payload_len, merge_payload_len);
-    
-    
+
+
     packets->add_index(src_addr_index);
     packets->add_index(dst_addr_index);
     packets->add_index(src_port_index);

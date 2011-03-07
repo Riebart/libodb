@@ -16,8 +16,25 @@ class RedBlackTreeI : public Index
     friend class RBTIterator;
 
 public:
+    struct e_tree_root
+    {
+        void* data;
+        void* false_root;
+        void* sub_false_root;
+        Comparator* compare;
+        Merger* merge;
+        bool drop_duplicates;
+        uint32_t count;
+    };
+
     ~RedBlackTreeI();
     int rbt_verify();
+
+    static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
+    static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
+    // Assume that rawdata here has a pair of void* at the head of it. That is, it is a node ready to be inserted into the tree.
+    static bool e_add(struct e_tree_root* root, void* rawdata);
+    static bool e_remove(struct e_tree_root* root, void* rawdata, void** del_node);
 
     virtual Iterator* it_first();
     virtual Iterator* it_last();
@@ -40,11 +57,17 @@ protected:
     struct tree_node* sub_false_root;
     static struct RedBlackTreeI::tree_node* single_rotation(struct tree_node* n, int dir);
     static struct RedBlackTreeI::tree_node* double_rotation(struct tree_node* n, int dir);
-    static struct RedBlackTreeI::tree_node* make_node(DataStore* treeds, void* rawdata, bool drop_duiplicates);
+    static struct RedBlackTreeI::tree_node* make_node(void* rawdata);
     virtual bool add_data_v(void* rawdata);
     virtual void purge();
-    static struct RedBlackTreeI::tree_node* add_data_n(DataStore* treeds,
-            struct tree_node* root,
+    static struct RedBlackTreeI::tree_node* add_data_n(struct tree_node* root,
+            struct tree_node* false_root,
+            struct tree_node* sub_false_root,
+            Comparator* compare,
+            Merger* merge,
+            bool drop_duplicates,
+            void* rawdata);
+    static struct RedBlackTreeI::tree_node* e_add_data_n(struct tree_node* data,
             struct tree_node* false_root,
             struct tree_node* sub_false_root,
             Comparator* compare,
@@ -62,21 +85,26 @@ protected:
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
     virtual bool remove(void* rawdata);
-    static struct RedBlackTreeI::tree_node* remove_n(DataStore* treeds,
-            struct tree_node* root,
+    static struct RedBlackTreeI::tree_node* remove_n(struct tree_node* root,
             struct tree_node* false_root,
             struct tree_node* sub_false_root,
             Comparator* compare,
             Merger* merge,
             bool drop_duplicates,
             void* rawdata);
+    static struct RedBlackTreeI::tree_node* e_remove_n(struct tree_node* data,
+            struct tree_node* false_root,
+            struct tree_node* sub_false_root,
+            Comparator* compare,
+            Merger* merge,
+            bool drop_duplicates,
+            void* rawdata,
+            void** del_node);
     virtual void remove_sweep(std::vector<void*>* marked);
 
     static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_last(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
     static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
-
-    DataStore* treeds;
 };
 
 class RBTIterator : public Iterator
@@ -193,7 +221,7 @@ protected:
 ///direction of !dir, and the second is done in the specified direction (dir).
 /// @return Pointer to the new top of the rotated sub tree.
 
-/// @fn static struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(DataStore* treeds, void* rawdata, bool drop_duplicates)
+/// @fn static struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 /// Take care of allocating and handling new nodes
 /// @param [in] rawdata A pointer to the data that this node will represent.
 /// @return A pointer to a tree node representing the specificed data.
