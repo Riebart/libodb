@@ -20,12 +20,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+set(CMAKE_FLAGS_X64 "")
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
-    list(APPEND CMAKE_C_FLAGS "-m64")
+    set(CMAKE_FLAGS_X64 "-m64")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CMAKE_FLAGS_X64 "-march=native -mtune=native")
+    list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 #set(CMAKE_C_FLAGS "-Wall -O0 -g -fno-inline -m64")
