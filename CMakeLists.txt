@@ -20,25 +20,31 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
+    list(APPEND CMAKE_C_FLAGS "-m64")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(CMAKE_FLAGS_X64 "-march=native -mtune=native")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
 #set(CMAKE_C_FLAGS "-Wall -O0 -g -fno-inline -m64")
 #set(CMAKE_C_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp -g -m64")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} -m64")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m64")
-set(CMAKE_MODULE_LINKER_FLAGS "-m64")
-set(CMAKE_SHARED_LINKER_FLAGS "-m64")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp -g ${CMAKE_FLAGS_X64}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
 
 set(LIBS ${LIBS} odb)
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-find_library(TCMALLOC_LIB tcmalloc_minimal)
-
-if(${TCMALLOC_LIB} MATCHES "tcmalloc")
-message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
-#Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
-list(APPEND LIBS ${TCMALLOC_LIB})
-endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
-
+    find_library(TCMALLOC_LIB tcmalloc_minimal)
+    if(${TCMALLOC_LIB} MATCHES "tcmalloc")
+	message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
+	#Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
+	list(APPEND LIBS ${TCMALLOC_LIB})
+    endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
