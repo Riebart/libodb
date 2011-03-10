@@ -23,7 +23,12 @@
 
 #include <arpa/inet.h>
 
+#if defined(linux)
+#include <net/ethernet.h>
+#include <unistd.h> // Needed for getuid
+#else
 #include <sys/ethernet.h>
+#endif
 
 #include <netinet/in.h>
 #include <netinet/ip.h>

@@ -9,6 +9,17 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 #set(CMAKE_LINKER "/bin/ld")
 
+message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
+
+#this is probably the wrong way to do this: setting compile-time defines
+# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
+# Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
+add_definitions(-DPTHREAD_LOCK)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 #set(CMAKE_C_FLAGS "-Wall -O0 -g -fno-inline -m64")
 #set(CMAKE_C_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp -g -m64")
@@ -18,8 +29,6 @@ set(CMAKE_MODULE_LINKER_FLAGS "-m64")
 set(CMAKE_SHARED_LINKER_FLAGS "-m64")
 
 set(LIBS ${LIBS} odb)
-
-message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 find_library(TCMALLOC_LIB tcmalloc_minimal)
@@ -31,10 +40,6 @@ list(APPEND LIBS ${TCMALLOC_LIB})
 endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
 
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-
-#this is probably the wrong way to do this: setting compile-time defines
-# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
-add_definitions(-DPTHREAD_LOCK -D__FAVOR_BSD -D__USE_BSD)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
@@ -67,7 +72,11 @@ target_link_libraries(test ${LIBS})
 target_link_libraries(demo-flows z ft ${LIBS})
 target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
-target_link_libraries(demo-protosim ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    target_link_libraries(demo-protosim ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    target_link_libraries(demo-protosim ${LIBS} pcap)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
 #install directives
