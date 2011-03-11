@@ -1349,7 +1349,7 @@ RBTIterator::RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool
 
 RBTIterator::~RBTIterator()
 {
-    delete dataobj;
+//     delete dataobj;
 }
 
 inline DataObj* RBTIterator::next()

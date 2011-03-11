@@ -9,10 +9,10 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 #set(CMAKE_LINKER "/bin/ld")
 
-#set(CMAKE_C_FLAGS "-Wall -O0 -g -fno-inline -m64")
-#set(CMAKE_C_FLAGS "-Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O2 -fopenmp -g -m64")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} -m64")
+# set(CMAKE_C_FLAGS "-Wall -O0 -lpthread -g -fno-inline -m64")
+# set(CMAKE_C_FLAGS "-Wall -O1 -g -fprofile-arcs -ftest-coverage -lpthread -DNDEBUG")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -g -O2 -fopenmp -m64 -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m64")
 set(CMAKE_MODULE_LINKER_FLAGS "-m64")
 set(CMAKE_SHARED_LINKER_FLAGS "-m64")
@@ -33,8 +33,7 @@ endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 #this is probably the wrong way to do this: setting compile-time defines
-# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
-add_definitions(-DPTHREAD_LOCK -D__FAVOR_BSD -D__USE_BSD)
+add_definitions(-DPTHREAD_LOCK)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through
@@ -59,7 +58,6 @@ add_executable (minimal minimal.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
-add_executable (demo-protosim demo-protosim.cpp)
 #add_executable (py-demo py-demo.cpp)
 
 target_link_libraries(minimal ${LIBS})
@@ -67,7 +65,6 @@ target_link_libraries(test ${LIBS})
 target_link_libraries(demo-flows z ft ${LIBS})
 target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
-target_link_libraries(demo-protosim ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
 #install directives
