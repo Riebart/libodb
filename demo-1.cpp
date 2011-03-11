@@ -202,7 +202,7 @@ int32_t compare_src_port(void* a, void* b)
     assert(a != NULL);
     assert(b != NULL);
     
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.source) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.source);
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_sport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_sport);
 }
 
 int32_t compare_dst_port(void* a, void* b)
@@ -211,7 +211,7 @@ int32_t compare_dst_port(void* a, void* b)
     assert(a != NULL);
     assert(b != NULL);
     
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.dest) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.dest);
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_dport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_dport);
 }
 
 int32_t compare_payload_len(void *a, void* b)
@@ -390,8 +390,8 @@ double distance(struct tcpip * a, struct tcpip * b)
 
     sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr) );
     sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr) );
-    sum += SQUARE( (a->tcp_struct.source - b->tcp_struct.source) );
-    sum += SQUARE( (a->tcp_struct.dest - b->tcp_struct.dest) );
+    sum += SQUARE( (a->tcp_struct.th_sport - b->tcp_struct.th_sport) );
+    sum += SQUARE( (a->tcp_struct.th_dport - b->tcp_struct.th_dport) );
     sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len) );
 
     return sqrt(sum);
@@ -430,7 +430,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
             {
                 cur_dist = distance( a->p, cur_knn->p );
 
-                for (i=0; i<=k; i++)
+                for (i=0; i<k; i++)
                 {
                     //a wee little bubble sort.
                     if (cur_dist < a->distances[i])
@@ -592,7 +592,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     
     if (max_knn != NULL && max_knn->p != NULL)
     {
-        fprintf(stderr, "%d, %d\n", max_knn->p->tcp_struct.source, max_knn->p->tcp_struct.dest);
+        fprintf(stderr, "%d, %d\n", max_knn->p->tcp_struct.th_sport, max_knn->p->tcp_struct.th_dport);
     }
     
     return max_lof;
@@ -604,8 +604,8 @@ void do_it_calcs()
     it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
 //             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
     it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, source), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, dest), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
     it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 }
 
