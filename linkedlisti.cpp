@@ -251,7 +251,6 @@ LLIterator::LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool q
 
 LLIterator::~LLIterator()
 {
-    delete dataobj;
 }
 
 inline DataObj* LLIterator::next()

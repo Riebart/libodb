@@ -25,7 +25,7 @@
 
 #if defined(linux)
 #include <net/ethernet.h>
-#include <unistd.h> // Needed for getuid
+#include <unistd.h> // Needed for getuid under Linux
 #else
 #include <sys/ethernet.h>
 #endif
@@ -34,6 +34,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 
 #include <pcap.h>
 
@@ -155,7 +156,7 @@ void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pkthdr, const uint8_
     uint16_t ether_type;
     ether_type = ntohs(eptr->ether_type);
 
-    struct packet* p = (struct packet*)malloc(sizeof(packet));
+    struct packet* p = (struct packet*)malloc(sizeof(struct packet));
     p->data = (uint8_t*)malloc(pkthdr->len);
     memcpy(p->data, packet, pkthdr->len);
 

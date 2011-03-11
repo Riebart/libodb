@@ -212,10 +212,10 @@ struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicat
 struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge)
 {
     void* false_root;
-    SAFE_CALLOC(void*, false_root, 2, sizeof(void*));
+    SAFE_CALLOC(void*, false_root, 3, sizeof(void*));
 
     void* sub_false_root;
-    SAFE_CALLOC(void*, sub_false_root, 2, sizeof(void*));
+    SAFE_CALLOC(void*, sub_false_root, 3, sizeof(void*));
 
     struct RedBlackTreeI::e_tree_root* root;
     SAFE_MALLOC(struct RedBlackTreeI::e_tree_root*, root, sizeof(struct RedBlackTreeI::e_tree_root));
@@ -1349,7 +1349,6 @@ RBTIterator::RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool
 
 RBTIterator::~RBTIterator()
 {
-    delete dataobj;
 }
 
 inline DataObj* RBTIterator::next()
