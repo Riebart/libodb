@@ -17,11 +17,13 @@ message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
 add_definitions(-DPTHREAD_LOCK)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    message(STATUS "Ensuring use of BSD-style headers on Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 set(CMAKE_FLAGS_X64 "")
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
+    message(STATUS "Forcing 64-bit compilation")
     set(CMAKE_FLAGS_X64 "-m64")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
 

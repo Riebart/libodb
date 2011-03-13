@@ -21,7 +21,7 @@
 #include "linkedlistds.hpp"
 
 #define SLEEP_DURATION 60
-#define DEFAULT_FLAGS 0//DataStore::TIME_STAMP | DataStore::QUERY_COUNT
+#define DEFAULT_FLAGS DataStore::TIME_STAMP | DataStore::QUERY_COUNT
 
 using namespace std;
 
@@ -327,14 +327,18 @@ ODB::~ODB()
 
 void ODB::add_data(void* rawdata)
 {
-    if ((all->add_data_v(data->add_data(rawdata))) == false)
-        data->remove_at(data->data_count - 1);
+    all->add_data_v(data->add_data(rawdata));
+///TODO: Make sure the datastores handle this properly. This also isn't threadsafe.
+//    if ((all->add_data_v(data->add_data(rawdata))) == false)
+//        data->remove_at(data->data_count - 1);
 }
 
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
-    if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
-        data->remove_at(data->data_count - 1);
+    all->add_data_v(data->add_data(rawdata, nbytes));
+///TODO: Make sure the datastores handle this properly. This also isn't threadsafe.
+//     if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
+//         data->remove_at(data->data_count - 1);
 }
 
 DataObj* ODB::add_data(void* rawdata, bool add_to_all)
