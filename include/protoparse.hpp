@@ -1,31 +1,10 @@
-#include <stdio.h>
+#ifndef PROTOPARSE_HPP
+
 #include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <string.h>
-#include <sys/timeb.h>
-#include <vector>
-#include <math.h>
-
-#include "odb.hpp"
-#include "index.hpp"
-#include "archive.hpp"
-#include "buffer.hpp"
-#include "iterator.hpp"
-#include "redblacktreei.hpp"
-
-// ==================================================
-
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <arpa/inet.h>
 
 #if defined(linux)
 #include <net/ethernet.h>
-#include <unistd.h> // Needed for getuid under Linux
 #else
 #include <sys/ethernet.h>
 #endif
@@ -36,13 +15,20 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
-#include <pcap.h>
+#include <vector>
+
+using namespace std;
 
 #ifndef MIN
     #define MIN(a, b) (a < b ? a : b)
 #endif
 
 #define L2_TYPE_ETHERNET 0
+#define L3_TYPE_IP4 ETHERTYPE_IP
+#define L3_TYPE_IP6 ETHERTYPE_IPV6
+#define L4_TYPE_TCP IPPROTO_TCP
+#define L4_TYPE_UDP IPPROTO_UDP
+#define L7_TYPE_DNS 128
 
 uint8_t stpD_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x00 };
 uint8_t stpAD_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x08 };
@@ -51,8 +37,6 @@ uint8_t apple_dhost[6] = { 0x09, 0x00, 0x07, 0xff, 0xff, 0xff };
 uint8_t v4_dhost[3] = { 0x01, 0x00, 0x5E };
 uint8_t v6_dhost[2] = { 0x33, 0x33 };
 uint8_t broadcast_dhost[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-
-using namespace std;
 
 #pragma pack(1)
 struct packet_hdr
@@ -118,76 +102,6 @@ struct flow
 };
 #pragma pack()
 
-void* merge_flow(void* new_dataV, void* old_dataV)
-{
-    struct flow* new_data = reinterpret_cast<struct flow*>(new_dataV);
-    struct flow* old_data = reinterpret_cast<struct flow*>(old_dataV);
-
-    old_data->packets->push_back(new_data->packets->at(0));
-
-    return old_data;
-}
-
-int32_t compare_tcp4(void* aV, void* bV)
-{
-//     struct tcp4_session* a = reinterpret_cast<struct tcp4_session*>(aV);
-//     struct tcp4_session* b = reinterpret_cast<struct tcp4_session*>(bV);
-// 
-//     int32_t d;
-// 
-//     d = a->src - b->src;
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->dst - b->dst;
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->src_prt - b->src_prt;
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->dst_prt - b->dst_prt;
-//     if (d != 0)
-//         return d;
-
-    return 0;
-}
-
-int32_t compare_tcp6(void* aV, void* bV)
-{
-//     struct tcp6_session* a = reinterpret_cast<struct tcp6_session*>(aV);
-//     struct tcp6_session* b = reinterpret_cast<struct tcp6_session*>(bV);
-// 
-//     int64_t d;
-// 
-//     d = a->src[0] - b->src[0];
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->src[1] - b->src[1];
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->dst[0] - b->dst[0];
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->dst[1] - b->dst[1];
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->src_prt - b->src_prt;
-//     if (d != 0)
-//         return d;
-// 
-//     d = a->dst_prt - b->dst_prt;
-//     if (d != 0)
-//         return d;
-
-    return 0;
-}
-
 inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, void* data, uint16_t num_bytes)
 {
     struct flow_sig* ret = reinterpret_cast<struct flow_sig*>(realloc(f, sizeof(struct flow_sig) - 1 + f->hdr_size + num_bytes));
@@ -195,25 +109,6 @@ inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, void* data, uint1
     ret->hdr_size += num_bytes;
     
     return ret;
-}
-
-inline int32_t compare_ether_addr(uint8_t* a, uint8_t* b, uint8_t n)
-{
-    int32_t d = 0;
-    
-    for (uint8_t i = 0 ; i < n ; i++)
-    {
-	d = a[i] - b[i];
-	if (d != 0)
-	    return d;
-    }
-    
-    return 0;
-}
-
-inline int32_t compare_ether_addr(uint8_t* a, uint8_t* b)
-{
-    return compare_ether_addr(a, b, 6);
 }
 
 void print_flow(struct flow_sig* f)
@@ -272,7 +167,7 @@ void print_flow(struct flow_sig* f)
     }
 }
 
-struct flow_sig* flow_sig_from_packet(uint8_t* packet)
+struct flow_sig* sig_from_packet(const uint8_t* packet)
 {
     uint16_t p_offset = 0;
     
@@ -296,31 +191,31 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
     // Reference: http://www.synapse.de/ban/HTML/P_LAYER2/Eng/P_lay279.html
     if ((eth_dhost[0] & 1) == 1) // This checks to see if it is a multicast.
     {
-	if (compare_ether_addr(eth_dhost, stpD_dhost) == 0)
+	if (memcmp(eth_dhost, stpD_dhost, 6) == 0)
 	{
 	    printf("stpD ");
 	}
-	else if (compare_ether_addr(eth_dhost, stpAD_dhost) == 0)
+	else if (memcmp(eth_dhost, stpAD_dhost, 6) == 0)
 	{
 	    printf("stpAD ");
 	    has_next = false;
 	}
-	else if (compare_ether_addr(eth_dhost, apple_dhost) == 0)
+	else if (memcmp(eth_dhost, apple_dhost, 6) == 0)
 	{
 	    printf("apple ");
 	    has_next = false;
 	}
-	else if (compare_ether_addr(eth_dhost, v4_dhost, 3) == 0)
+	else if (memcmp(eth_dhost, v4_dhost, 3) == 0)
 	{
 	    printf("v4mc ");
 	    has_next = true;
 	}
-	else if (compare_ether_addr(eth_dhost, v6_dhost, 2) == 0)
+	else if (memcmp(eth_dhost, v6_dhost, 2) == 0)
 	{
 	    printf("v6mc ");
 	    has_next = true;
 	}
-	else if (compare_ether_addr(eth_dhost, broadcast_dhost) == 0)
+	else if (memcmp(eth_dhost, broadcast_dhost, 6) == 0)
 	{
 	    printf("broadcast ");
 	    has_next = true;
@@ -339,10 +234,10 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
     if (has_next)
     {
 	// http://en.wikipedia.org/wiki/Ethertype or sys/ethernet.h (BSD) or net/ethernet.h (Linux) for values.
-	if (f->l3_type == ETHERTYPE_IP)
+	if (f->l3_type == L3_TYPE_IP4)
 	{
 	    printf("ip4 ");
-	    struct ip* ip4_hdr = reinterpret_cast<struct ip*>(packet + p_offset);
+	    struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
 	    struct l3_ip4 l3_hdr;
 
 	    l3_hdr.src = *reinterpret_cast<uint32_t*>(&(ip4_hdr->ip_src));
@@ -358,10 +253,10 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
 	    p_offset += l3_hdr.hdr_len;
 	    has_next = true;
 	}
-	else if (f->l3_type == ETHERTYPE_IPV6)
+	else if (f->l3_type == L3_TYPE_IP6)
 	{
 	    printf("ip6 ");
-	    struct ip6_hdr* ip_hdr = reinterpret_cast<struct ip6_hdr*>(packet + p_offset);
+	    struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
 	    struct l3_ip6 l3_hdr;
 
 	    uint64_t* tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_src));
@@ -392,12 +287,13 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
 	else
 	{
 	    printf("3proto%u ", f->l3_type);
+	    has_next = false;
 	}
     }
 
     if (has_next)
     {
-	if (f->l4_type == IPPROTO_TCP)
+	if (f->l4_type == L4_TYPE_TCP)
 	{
 	    printf("tcp ");
 	    struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
@@ -409,7 +305,7 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
 	    f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_tcp) - 1);
 	    has_next = true;
 	}
-	else if (f->l4_type == IPPROTO_UDP)
+	else if (f->l4_type == L4_TYPE_UDP)
 	{
 	    printf("udp ");
 	    struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
@@ -436,97 +332,4 @@ struct flow_sig* flow_sig_from_packet(uint8_t* packet)
     return f;
 }
 
-void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pkthdr, const uint8_t* packet_s)
-{   
-    // Cast out the RBT roots.
-//     struct RedBlackTreeI::e_tree_root** tree_roots = reinterpret_cast<struct RedBlackTreeI::e_tree_root**>(args);
-
-    // Allocate the packet, set the values in the header, and get the byte-array that is the packet bytes.
-    struct packet* p = (struct packet*)malloc(sizeof(struct packet_hdr) + pkthdr->len);
-    uint8_t* packet = reinterpret_cast<uint8_t*>(&(p->eth_hdr));
-    memcpy(packet, packet_s, pkthdr->len);
-    p->hdr.size_in_cap = pkthdr->len;
-    p->hdr.size_on_wire = MIN(pkthdr->caplen, pkthdr->len);
-    p->hdr.tv_sec = pkthdr->ts.tv_sec;
-    p->hdr.tv_usec = pkthdr->ts.tv_usec;
-
-//     f->link[0] = NULL;
-//     f->link[1] = NULL;
-//    f->packets = new vector<struct packet*>();
-//    f->packets->push_back(p);
-    
-    struct flow_sig* f = flow_sig_from_packet(packet);
-    
-// 	if (!RedBlackTreeI::e_add(tree_roots[0], reinterpret_cast<void**>(sess4)))
-// 	{
-// 	    delete sess4->packets;
-// 	    free(sess4);
-// 	}
-    
-    free(p);
-    //delete(f->packets);
-    free(f);
-}
-
-// http://www.systhread.net/texts/200805lpcap1.php
-int main(int argc, char** argv)
-{
-    pcap_t *descr;                 /* Session descr             */
-    char *dev;                     /* The device to sniff on    */
-    char errbuf[PCAP_ERRBUF_SIZE]; /* Error string              */
-    struct bpf_program filter;     /* The compiled filter       */
-    uint32_t mask;              /* Our netmask               */
-    uint32_t net;               /* Our IP address            */
-    uint8_t* args = NULL;           /* Retval for pcacp callback */
-
-    struct RedBlackTreeI::e_tree_root** tree_roots = reinterpret_cast<struct RedBlackTreeI::e_tree_root**>(malloc(2 * sizeof(struct RedBlackTreeI::e_tree_root*)));
-    tree_roots[0] = RedBlackTreeI::e_init_tree(true, compare_tcp4, merge_flow);
-    tree_roots[1] = RedBlackTreeI::e_init_tree(true, compare_tcp6, merge_flow);
-
-    args = reinterpret_cast<uint8_t*>(tree_roots);
-
-    if (getuid() != 0)
-    {
-        fprintf(stderr, "Must be root, exiting...\n");
-        return (1);
-    }
-
-    if (argc == 1)
-        dev = pcap_lookupdev(errbuf);
-    else
-        dev = argv[1];
-
-    printf("%s\n", dev);
-
-    if (dev == NULL)
-    {
-        printf("%s\n", errbuf);
-        return (1);
-    }
-
-    descr = pcap_open_live(dev, BUFSIZ, 1, 0, errbuf);
-
-    if (descr == NULL)
-    {
-        printf("pcap_open_live(): %s\n", errbuf);
-        return (1);
-    }
-
-    pcap_lookupnet(dev, &net, &mask, errbuf);
-
-    if (pcap_compile(descr, &filter, " ", 0, net) == -1)
-    {
-        fprintf(stderr,"Error compiling pcap\n");
-        return (1);
-    }
-
-    if (pcap_setfilter(descr, &filter))
-    {
-        fprintf(stderr, "Error setting pcap filter\n");
-        return (1);
-    }
-
-    pcap_loop(descr, -1, pcap_callback, args);
-
-    return 0;
-}
+#endif

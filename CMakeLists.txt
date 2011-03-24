@@ -74,6 +74,7 @@ add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
 add_executable (demo-protosim demo-protosim.cpp)
+add_executable (analysis analysis.cpp)
 #add_executable (py-demo py-demo.cpp)
 
 target_link_libraries(minimal ${LIBS})
@@ -85,6 +86,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     target_link_libraries(demo-protosim ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
 else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     target_link_libraries(demo-protosim ${LIBS} pcap)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    target_link_libraries(analysis ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    target_link_libraries(analysis ${LIBS} pcap)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 

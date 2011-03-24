@@ -61,6 +61,7 @@ struct dnsrec
     uint32_t src_addr;
     uint32_t dst_addr;
     char* query_str;
+    char* tld;
     int16_t query_len;
     int32_t count;
 };
@@ -107,31 +108,11 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     struct dnsrec* b = reinterpret_cast<struct dnsrec*>(b_i);
 
     if (a->query_len > b->query_len)
-    {
         return 1;
-    }
     else if (a->query_len < b->query_len)
-    {
         return -1;
-    }
     else
-    {
-        int16_t c;
-        for (int i = 0 ; i < -(a->query_len) ; i++)
-        {
-            c = (int16_t)(a->query_str[i]) - (int16_t)(b->query_str[i]);
-            if (c < 0)
-            {
-                return -1;
-            }
-            else if (c > 0)
-            {
-                return 1;
-            }
-        }
-
-        return 0;
-    }
+	return memcmp(a->query_str, b->query_str, a->query_len);
 }
 
 inline void* merge_query_str(void* new_data, void* old_data)
@@ -139,6 +120,19 @@ inline void* merge_query_str(void* new_data, void* old_data)
     (reinterpret_cast<struct dnsrec*>(old_data))->count++;
     (reinterpret_cast<struct dnsrec*>(new_data))->count = 0;
     return old_data;
+}
+
+inline void strrev(char* str, uint32_t len)
+{
+    len--;
+    char tmp;
+
+    for (uint32_t i = 0 ; i < (len / 2) ; i++)
+    {
+	tmp = str[i];
+	str[i] = str[len - 1 - i];
+	str[len - 1 - i] = tmp;
+    }
 }
 
 void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
@@ -173,6 +167,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
         rec->query_str = temp;
 
         rec->query_len = len;
+	strrev(rec->query_str, rec->query_len);
 
         len = 0;
         while (*(packet + NAME_START + len) != 0)
@@ -216,8 +211,6 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 
     while (nbytes > 0)
     {
-        //nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
-
         nbytes = fb_read(fb, pheader, sizeof(pcaprec_hdr_t));
 
         if ((nbytes < sizeof(pcaprec_hdr_t)) && (nbytes > 0))
@@ -225,8 +218,6 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
             printf("Broke on packet header! %d", nbytes);
             break;
         }
-
-        //nbytes = read(fileno(fp), data, pheader->incl_len);
 
         nbytes = fb_read(fb, data, pheader->incl_len);
 
@@ -350,13 +341,13 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     free(fheader);
     free(pheader);
     free(data);
-    free(fb);
+    fb_destroy(fb);
 
     return num_records;
 }
 
 int main(int argc, char *argv[])
-{
+{   
     struct timeb start, end;
     FILE *fp;
     uint64_t num, total_num;

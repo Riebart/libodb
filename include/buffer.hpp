@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define MIN(x,y) (x<y?x:y)
+#ifndef MIN
+    #define MIN(x,y) (x < y ? x : y)
+#endif
 
 struct file_buffer
 {
@@ -12,8 +14,14 @@ struct file_buffer
     uint8_t* buffer;
     uint32_t position;
     uint32_t size;
-    uint32_t read_size;
+    uint32_t buf_size;
 };
+
+void fb_destroy(struct file_buffer* fb)
+{
+    free(fb->buffer);
+    free(fb);
+}
 
 struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
 {
@@ -22,7 +30,7 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
     if (fb == NULL)
         return NULL;
 
-    fb->read_size = num_bytes;
+    fb->buf_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
     if (fb->buffer == NULL)
     {
@@ -32,15 +40,96 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
 
     fb->fp = fp;
 
-    fb->size = fread(fb->buffer, 1, fb->read_size, fp);
+    fb->size = fread(fb->buffer, 1, fb->buf_size, fp);
     fb->position = 0;
 
     return fb;
 }
 
-uint16_t fb_read(struct file_buffer* fb, void* dest, uint16_t num_bytes)
+struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
 {
-    uint16_t numread;
+    struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
+
+    if (fb == NULL)
+        return NULL;
+
+    fb->buf_size = num_bytes;
+    fb->buffer = (uint8_t*)(malloc(num_bytes));
+    if (fb->buffer == NULL)
+    {
+        free(fb);
+        return NULL;
+    }
+
+    fb->fp = fp;
+
+    fb->size = num_bytes;
+    fb->position = 0;
+
+    return fb;
+}
+
+uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
+{
+    uint32_t numput;
+    
+    // If this write won't fill the buffer
+    if (num_bytes <= (fb->size - fb->position))
+    {
+        memcpy(src, fb->buffer + fb->position, num_bytes);
+        fb->position += num_bytes;
+        numput = num_bytes;
+	
+	if (fb->position == fb->size)
+	{
+	    if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+		fb->position = 0;
+	}
+    }
+    // Otherwise
+    else
+    {
+	uint32_t min;
+	numput = 0;
+	
+	while (numput < num_bytes)
+	{
+	    min = MIN((fb->size - fb->position), (uint32_t)(num_bytes - numput));
+	    memcpy(fb->buffer + fb->position, ((uint8_t*)src) + numput, min);
+	    fb->position += min;
+	    
+	    if (fb->position == fb->size)
+            {
+		if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+		    fb->position = 0;
+		else
+		    min = 0;
+            }
+            
+            numput += min;
+	}
+    }
+    
+    return numput;
+}
+
+uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool flush)
+{
+    uint32_t numput = fb_write(fb, src, num_bytes);
+    
+    // If we have explicitly flushed, make sure we write the buffer out, if it has anything in it.
+    if ((flush) && (fb->position > 0))
+    {
+	if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
+	    fb->position = 0;
+    }
+    
+    return numput;
+}
+
+uint32_t fb_read(struct file_buffer* fb, void* dest, uint32_t num_bytes)
+{
+    uint32_t numread;
 
     // If we've got enough bytes in the buffer...
     if (num_bytes <= (fb->size - fb->position))
@@ -48,11 +137,18 @@ uint16_t fb_read(struct file_buffer* fb, void* dest, uint16_t num_bytes)
         memcpy(dest, fb->buffer + fb->position, num_bytes);
         fb->position += num_bytes;
         numread = num_bytes;
+	
+	// If this read has left the buffer empty, refill it.
+	if (fb->position == fb->size)
+	{
+	    fb->size = fread(fb->buffer, 1, fb->buf_size, fb->fp);
+	    fb->position = 0;
+	}
     }
     // Otherwise
     else
     {
-        uint16_t min;
+        uint32_t min;
         numread = 0;
 
         while (numread < num_bytes)
@@ -60,24 +156,17 @@ uint16_t fb_read(struct file_buffer* fb, void* dest, uint16_t num_bytes)
             min = MIN((fb->size - fb->position), (uint32_t)(num_bytes - numread));
             memcpy(((uint8_t*)dest) + numread, fb->buffer + fb->position, min);
             fb->position += min;
-            numread += min;
+	    numread += min;
 
-            if (fb->position >= fb->size)
+            if (fb->position == fb->size)
             {
-                fb->size = fread(fb->buffer, 1, fb->read_size, fb->fp);
+                fb->size = fread(fb->buffer, 1, fb->buf_size, fb->fp);
                 fb->position = 0;
 
                 if (fb->size == 0)
                     return numread;
             }
         }
-    }
-
-    // If this read has left the buffer empty, refill it.
-    if (fb->position == fb->size)
-    {
-        fb->size = fread(fb->buffer, 1, fb->read_size, fb->fp);
-        fb->position = 0;
     }
 
     return numread;
