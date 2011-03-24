@@ -17,19 +17,33 @@
 
 #include <vector>
 
+#include "dns.hpp"
+
 using namespace std;
 
 #ifndef MIN
     #define MIN(a, b) (a < b ? a : b)
 #endif
 
-#define L2_TYPE_ETHERNET 0
+#define L2_TYPE_NONE 0
+#define L2_TYPE_ETHERNET 1
+
+#define L3_TYPE_NONE 0
 #define L3_TYPE_IP4 ETHERTYPE_IP
 #define L3_TYPE_IP6 ETHERTYPE_IPV6
+
+#define L4_TYPE_NONE 0
+#define L4_TYPE_ICMP4 IPPROTO_ICMP
+#define L4_TYPE_ICMP6 IPPROTO_ICMPV6
 #define L4_TYPE_TCP IPPROTO_TCP
 #define L4_TYPE_UDP IPPROTO_UDP
+
+#define L7_TYPE_NONE 0 // This indicates that we should skip attempting to parse anything after layer 4.
+#define L7_TYPE_ATTEMPT 1 // This indicates that we can't tell immediate what the layer 7 data is, but should attempt to parse it anyway.
 #define L7_TYPE_DNS 128
 
+// Reference: http://en.wikipedia.org/wiki/Multicast_address
+// Reference: http://www.synapse.de/ban/HTML/P_LAYER2/Eng/P_lay279.html
 uint8_t stpD_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x00 };
 uint8_t stpAD_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x08 };
 uint8_t ethoam_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x02 };
@@ -123,7 +137,7 @@ void print_flow(struct flow_sig* f)
 // 	    eth_hdr.ether_dhost[0], eth_hdr.ether_dhost[1], eth_hdr.ether_dhost[2], eth_hdr.ether_dhost[3], eth_hdr.ether_dhost[4], eth_hdr.ether_dhost[5]
 //     );
     
-    if (f->l3_type == ETHERTYPE_IP)
+    if (f->l3_type == L3_TYPE_IP4)
     {
 	struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(f->hdr_start) + p_offset);
 	
@@ -134,7 +148,7 @@ void print_flow(struct flow_sig* f)
 	
 	p_offset += sizeof(struct l3_ip4) - 1;
     }
-    else if (f->l3_type == ETHERTYPE_IPV6)
+    else if (f->l3_type == L3_TYPE_IP6)
     {
 	struct l3_ip6* l3 = reinterpret_cast<struct l3_ip6*>(&(f->hdr_start) + p_offset);
 	
@@ -149,7 +163,7 @@ void print_flow(struct flow_sig* f)
 	p_offset += sizeof(struct l3_ip6) - 1;
     }
     
-    if (f->l4_type == IPPROTO_TCP)
+    if (f->l4_type == L4_TYPE_TCP)
     {
 	struct l4_tcp* l4 = reinterpret_cast<struct l4_tcp*>(&(f->hdr_start) + p_offset);
 	
@@ -157,7 +171,7 @@ void print_flow(struct flow_sig* f)
 	
 	p_offset += sizeof(struct l4_tcp) - 1;
     }
-    else if (f->l4_type == IPPROTO_UDP)
+    else if (f->l4_type == L4_TYPE_UDP)
     {
 	struct l4_udp* l4 = reinterpret_cast<struct l4_udp*>(&(f->hdr_start) + p_offset);
 	
@@ -167,7 +181,202 @@ void print_flow(struct flow_sig* f)
     }
 }
 
-struct flow_sig* sig_from_packet(const uint8_t* packet)
+/// TODO: There is no checking to ensure we don't run off the end of the packet.
+uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
+{
+    struct flow_sig* f = *fp;
+    
+    const struct ether_header* eptr = reinterpret_cast<const struct ether_header*>(packet);
+    const uint8_t* eth_dhost = reinterpret_cast<const uint8_t*>(&(eptr->ether_dhost));
+    
+    // Assume ethernet, and check out the destination ethernet addresses to see which multicast group they fall into.
+    if ((eth_dhost[0] & 1) == 1) // This checks to see if it is a multicast.
+    {
+	if (memcmp(eth_dhost, stpD_dhost, 6) == 0)
+	{
+	    printf("stpD ");
+	    f->l3_type = L3_TYPE_NONE;
+	}
+	else if (memcmp(eth_dhost, stpAD_dhost, 6) == 0)
+	{
+	    printf("stpAD ");
+	    f->l3_type = L3_TYPE_NONE;
+	}
+	else if (memcmp(eth_dhost, apple_dhost, 6) == 0)
+	{
+	    printf("apple ");
+	    f->l3_type = L3_TYPE_NONE;
+	}
+	else if (memcmp(eth_dhost, v4_dhost, 3) == 0)
+	{
+	    printf("v4mc ");
+	    f->l3_type = ntohs(eptr->ether_type);
+	}
+	else if (memcmp(eth_dhost, v6_dhost, 2) == 0)
+	{
+	    printf("v6mc ");
+	    f->l3_type = ntohs(eptr->ether_type);
+	}
+	else if (memcmp(eth_dhost, broadcast_dhost, 6) == 0)
+	{
+	    printf("broadcast ");
+	    f->l3_type = ntohs(eptr->ether_type);
+	}
+	else
+	{
+	    printf("multicast ");
+	    f->l3_type = ntohs(eptr->ether_type);
+	}
+    }
+    else
+    {
+	f->l3_type = ntohs(eptr->ether_type);
+    }
+    
+    p_offset += sizeof(struct ether_header);
+    
+    return p_offset;
+}
+
+/// TODO: There is no checking to ensure we don't run off the end of the packet.
+uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
+{
+    struct flow_sig* f = *fp;
+    
+    // http://en.wikipedia.org/wiki/Ethertype or sys/ethernet.h (BSD) or net/ethernet.h (Linux) for values.
+    if (f->l3_type == L3_TYPE_IP4)
+    {
+	printf("ip4 ");
+	struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
+	struct l3_ip4 l3_hdr;
+
+	l3_hdr.src = *reinterpret_cast<uint32_t*>(&(ip4_hdr->ip_src));
+	l3_hdr.dst = *reinterpret_cast<uint32_t*>(&(ip4_hdr->ip_dst));
+
+	// Since the IPv4 header specifies the number of 32-bit words in the header, multiply by 4.
+	l3_hdr.hdr_len = 4 * ip4_hdr->ip_hl;
+	
+	f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
+	*fp = f;
+	
+	f->l4_type = ip4_hdr->ip_p;
+	
+	p_offset += l3_hdr.hdr_len;
+    }
+    else if (f->l3_type == L3_TYPE_IP6)
+    {
+	printf("ip6 ");
+	struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
+	struct l3_ip6 l3_hdr;
+
+	uint64_t* tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_src));
+	l3_hdr.src[0] = tmp_addr[0];
+	l3_hdr.src[1] = tmp_addr[1];
+
+	tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_dst));
+	l3_hdr.dst[0] = tmp_addr[0];
+	l3_hdr.dst[1] = tmp_addr[1];
+	
+	f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip6) - 1);
+	*fp = f;
+	
+	f->l4_type = ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_nxt;
+	
+	p_offset += sizeof(struct ip6_hdr);
+    }
+    else if (f->l3_type == ETHERTYPE_ARP)
+    {
+	printf("arp ");
+	
+	f->l4_type = L4_TYPE_NONE;
+    }
+    else if (f->l3_type == ETHERTYPE_REVARP)
+    {
+	printf("rarp ");
+	
+	f->l4_type = L4_TYPE_NONE;
+    }
+    else
+    {
+	printf("3proto%u ", f->l3_type);
+	
+	f->l4_type = L4_TYPE_NONE;
+    }
+    
+    return p_offset;
+}
+
+/// TODO: There is no checking to ensure we don't run off the end of the packet.
+uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
+{
+    struct flow_sig* f = *fp;
+    
+    // Reference: http://www.freesoft.org/CIE/Course/Section4/8.htm
+    if (f->l4_type == L4_TYPE_TCP)
+    {
+	printf("tcp ");
+	struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
+	struct l4_tcp l4_hdr;
+
+	l4_hdr.src_prt = ntohs(tcp_hdr->th_sport);
+	l4_hdr.dst_prt = ntohs(tcp_hdr->th_dport);
+	
+	f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_tcp) - 1);
+	*fp = f;
+	
+	f->l7_type = L7_TYPE_ATTEMPT;
+	
+	p_offset += tcp_hdr->th_off * 4; // Since the offset field contains the number of 32-bit words in the TCP header.
+    }
+    else if (f->l4_type == L4_TYPE_UDP)
+    {
+	printf("udp ");
+	struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
+	struct l4_udp l4_hdr;
+
+	l4_hdr.src_prt = ntohs(udp_hdr->uh_sport);
+	l4_hdr.dst_prt = ntohs(udp_hdr->uh_dport);
+	
+	f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_udp) - 1);
+	*fp = f;
+	
+	f->l7_type = L7_TYPE_ATTEMPT;
+	
+	p_offset += 8; // The UDP header is always two 32-bit words, so 8 bytes, long.;
+    }
+    else if (f->l4_type == L4_TYPE_ICMP4)
+    {
+	printf("icmp ");
+	
+	f->l7_type = L7_TYPE_NONE;
+    }
+    else if (f->l4_type == L4_TYPE_ICMP6)
+    {
+	printf("icmp6 ");
+	
+	f->l7_type = L7_TYPE_NONE;
+    }
+    else
+    {
+	printf("4proto%u ", f->l4_type);
+	
+	f->l7_type = L7_TYPE_NONE;
+    }
+    
+    return p_offset;
+}
+
+uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
+{
+    //struct flow_sig* f = *fp;
+    
+    if (verify_dns_packet(packet + p_offset, packet_len))
+	printf("valid_dns ");
+    
+    return p_offset;
+}
+
+struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
 {
     uint16_t p_offset = 0;
     
@@ -175,154 +384,16 @@ struct flow_sig* sig_from_packet(const uint8_t* packet)
     struct flow_sig* f = (struct flow_sig*)malloc(sizeof(struct flow_sig) - 1);
     f->hdr_size = 0;
     
-    // Get ther ethernet header from the packet.
-    struct ether_header *eptr = (struct ether_header*)packet;
-    f->l3_type = ntohs(eptr->ether_type);
+    p_offset = l2_sig(&f, packet, p_offset, packet_len);
     
-    // Offset into the packet is now at the end of the ethernet header.
-    p_offset = sizeof(struct ether_header);
+    if (f->l3_type != L3_TYPE_NONE)
+	p_offset = l3_sig(&f, packet, p_offset, packet_len);
+
+    if (f->l4_type != L4_TYPE_NONE)
+	p_offset = l4_sig(&f, packet, p_offset, packet_len);
     
-    bool has_next = false;
-    
-    uint8_t* eth_dhost = reinterpret_cast<uint8_t*>(&(eptr->ether_dhost));
-    
-    // Assume ethernet, and check out the destination ethernet addresses to see which multicast group they fall into.
-    // Reference: http://en.wikipedia.org/wiki/Multicast_address
-    // Reference: http://www.synapse.de/ban/HTML/P_LAYER2/Eng/P_lay279.html
-    if ((eth_dhost[0] & 1) == 1) // This checks to see if it is a multicast.
-    {
-	if (memcmp(eth_dhost, stpD_dhost, 6) == 0)
-	{
-	    printf("stpD ");
-	}
-	else if (memcmp(eth_dhost, stpAD_dhost, 6) == 0)
-	{
-	    printf("stpAD ");
-	    has_next = false;
-	}
-	else if (memcmp(eth_dhost, apple_dhost, 6) == 0)
-	{
-	    printf("apple ");
-	    has_next = false;
-	}
-	else if (memcmp(eth_dhost, v4_dhost, 3) == 0)
-	{
-	    printf("v4mc ");
-	    has_next = true;
-	}
-	else if (memcmp(eth_dhost, v6_dhost, 2) == 0)
-	{
-	    printf("v6mc ");
-	    has_next = true;
-	}
-	else if (memcmp(eth_dhost, broadcast_dhost, 6) == 0)
-	{
-	    printf("broadcast ");
-	    has_next = true;
-	}
-	else
-	{
-	    printf("multicast ");
-	    has_next = true;
-	}
-    }
-    else
-    {
-	has_next = true;
-    }
-
-    if (has_next)
-    {
-	// http://en.wikipedia.org/wiki/Ethertype or sys/ethernet.h (BSD) or net/ethernet.h (Linux) for values.
-	if (f->l3_type == L3_TYPE_IP4)
-	{
-	    printf("ip4 ");
-	    struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
-	    struct l3_ip4 l3_hdr;
-
-	    l3_hdr.src = *reinterpret_cast<uint32_t*>(&(ip4_hdr->ip_src));
-	    l3_hdr.dst = *reinterpret_cast<uint32_t*>(&(ip4_hdr->ip_dst));
-
-	    // Since the IPv4 header specifies the number of 32-bit words in the header, multiply by 4.
-	    l3_hdr.hdr_len = 4 * ip4_hdr->ip_hl;
-	    
-	    f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
-	    
-	    f->l4_type = ip4_hdr->ip_p;
-	    
-	    p_offset += l3_hdr.hdr_len;
-	    has_next = true;
-	}
-	else if (f->l3_type == L3_TYPE_IP6)
-	{
-	    printf("ip6 ");
-	    struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
-	    struct l3_ip6 l3_hdr;
-
-	    uint64_t* tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_src));
-	    l3_hdr.src[0] = tmp_addr[0];
-	    l3_hdr.src[1] = tmp_addr[1];
-
-	    tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_dst));
-	    l3_hdr.dst[0] = tmp_addr[0];
-	    l3_hdr.dst[1] = tmp_addr[1];
-	    
-	    f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip6) - 1);
-	    
-	    f->l4_type = ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_nxt;
-	    
-	    p_offset += sizeof(struct ip6_hdr);
-	    has_next = true;
-	}
-	else if (f->l3_type == ETHERTYPE_ARP)
-	{
-	    printf("arp ");
-	    has_next = false;
-	}
-	else if (f->l3_type == ETHERTYPE_REVARP)
-	{
-	    printf("rarp ");
-	    has_next = false;
-	}
-	else
-	{
-	    printf("3proto%u ", f->l3_type);
-	    has_next = false;
-	}
-    }
-
-    if (has_next)
-    {
-	if (f->l4_type == L4_TYPE_TCP)
-	{
-	    printf("tcp ");
-	    struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
-	    struct l4_tcp l4_hdr;
-
-	    l4_hdr.src_prt = ntohs(tcp_hdr->th_sport);
-	    l4_hdr.dst_prt = ntohs(tcp_hdr->th_dport);
-	    
-	    f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_tcp) - 1);
-	    has_next = true;
-	}
-	else if (f->l4_type == L4_TYPE_UDP)
-	{
-	    printf("udp ");
-	    struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
-	    struct l4_udp l4_hdr;
-
-	    l4_hdr.src_prt = ntohs(udp_hdr->uh_sport);
-	    l4_hdr.dst_prt = ntohs(udp_hdr->uh_dport);
-	    
-	    f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_udp) - 1);
-	    has_next = true;
-	}
-	else
-	{
-	    printf("4proto%u ", f->l4_type);
-	    has_next = false;
-	}
-    }
+    if (f->l7_type != L7_TYPE_NONE)
+	p_offset = l7_sig(&f, packet, p_offset, packet_len);
     
     print_flow(f);
     

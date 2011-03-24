@@ -12,7 +12,7 @@
 void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pkthdr, const uint8_t* packet_s)
 {
     // Collect the layer 3, 4 and 7 information.
-    struct flow_sig* sig = sig_from_packet(packet_s);
+    struct flow_sig* sig = sig_from_packet(packet_s, pkthdr->caplen);
     
     // Check if the layer 7 information is DNS
     // If the layer 7 information is DNS, then we have already 'checked' it. Otherwise it would not pass the following condition.
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
     pcap_lookupnet(dev, &net, &mask, errbuf);
 
-    if (pcap_compile(descr, &filter, " ", 0, net) == -1)
+    if (pcap_compile(descr, &filter, " udp port 53 ", 0, net) == -1)
     {
         fprintf(stderr,"Error compiling pcap\n");
         return (1);
