@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #ifndef MIN
-    #define MIN(x,y) (x < y ? x : y)
+#define MIN(x,y) (x < y ? x : y)
 #endif
 
 struct file_buffer
@@ -72,58 +72,58 @@ struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
 uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
 {
     uint32_t numput;
-    
+
     // If this write won't fill the buffer
     if (num_bytes <= (fb->size - fb->position))
     {
         memcpy(src, fb->buffer + fb->position, num_bytes);
         fb->position += num_bytes;
         numput = num_bytes;
-	
-	if (fb->position == fb->size)
-	{
-	    if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
-		fb->position = 0;
-	}
+
+        if (fb->position == fb->size)
+        {
+            if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+                fb->position = 0;
+        }
     }
     // Otherwise
     else
     {
-	uint32_t min;
-	numput = 0;
-	
-	while (numput < num_bytes)
-	{
-	    min = MIN((fb->size - fb->position), (uint32_t)(num_bytes - numput));
-	    memcpy(fb->buffer + fb->position, ((uint8_t*)src) + numput, min);
-	    fb->position += min;
-	    
-	    if (fb->position == fb->size)
+        uint32_t min;
+        numput = 0;
+
+        while (numput < num_bytes)
+        {
+            min = MIN((fb->size - fb->position), (uint32_t)(num_bytes - numput));
+            memcpy(fb->buffer + fb->position, ((uint8_t*)src) + numput, min);
+            fb->position += min;
+
+            if (fb->position == fb->size)
             {
-		if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
-		    fb->position = 0;
-		else
-		    min = 0;
+                if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+                    fb->position = 0;
+                else
+                    min = 0;
             }
-            
+
             numput += min;
-	}
+        }
     }
-    
+
     return numput;
 }
 
 uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool flush)
 {
     uint32_t numput = fb_write(fb, src, num_bytes);
-    
+
     // If we have explicitly flushed, make sure we write the buffer out, if it has anything in it.
     if ((flush) && (fb->position > 0))
     {
-	if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
-	    fb->position = 0;
+        if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
+            fb->position = 0;
     }
-    
+
     return numput;
 }
 
@@ -137,13 +137,13 @@ uint32_t fb_read(struct file_buffer* fb, void* dest, uint32_t num_bytes)
         memcpy(dest, fb->buffer + fb->position, num_bytes);
         fb->position += num_bytes;
         numread = num_bytes;
-	
-	// If this read has left the buffer empty, refill it.
-	if (fb->position == fb->size)
-	{
-	    fb->size = fread(fb->buffer, 1, fb->buf_size, fb->fp);
-	    fb->position = 0;
-	}
+
+        // If this read has left the buffer empty, refill it.
+        if (fb->position == fb->size)
+        {
+            fb->size = fread(fb->buffer, 1, fb->buf_size, fb->fp);
+            fb->position = 0;
+        }
     }
     // Otherwise
     else
@@ -156,7 +156,7 @@ uint32_t fb_read(struct file_buffer* fb, void* dest, uint32_t num_bytes)
             min = MIN((fb->size - fb->position), (uint32_t)(num_bytes - numread));
             memcpy(((uint8_t*)dest) + numread, fb->buffer + fb->position, min);
             fb->position += min;
-	    numread += min;
+            numread += min;
 
             if (fb->position == fb->size)
             {

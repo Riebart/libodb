@@ -112,7 +112,7 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     else if (a->query_len < b->query_len)
         return -1;
     else
-	return memcmp(a->query_str, b->query_str, a->query_len);
+        return memcmp(a->query_str, b->query_str, a->query_len);
 }
 
 inline void* merge_query_str(void* new_data, void* old_data)
@@ -129,9 +129,9 @@ inline void strrev(char* str, uint32_t len)
 
     for (uint32_t i = 0 ; i < (len / 2) ; i++)
     {
-	tmp = str[i];
-	str[i] = str[len - 1 - i];
-	str[len - 1 - i] = tmp;
+        tmp = str[i];
+        str[i] = str[len - 1 - i];
+        str[len - 1 - i] = tmp;
     }
 }
 
@@ -167,7 +167,7 @@ void get_data(struct dnsrec* rec, char* packet, uint16_t incl_len)
         rec->query_str = temp;
 
         rec->query_len = len;
-	strrev(rec->query_str, rec->query_len);
+        strrev(rec->query_str, rec->query_len);
 
         len = 0;
         while (*(packet + NAME_START + len) != 0)
@@ -347,7 +347,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 }
 
 int main(int argc, char *argv[])
-{   
+{
     struct timeb start, end;
     FILE *fp;
     uint64_t num, total_num;

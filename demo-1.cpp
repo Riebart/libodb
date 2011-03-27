@@ -154,7 +154,7 @@ inline int32_t compare_src_addr(void* a, void* b)
 
     assert(a != NULL);
     assert(b != NULL);
-    
+
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_src.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_src.s_addr;
 
@@ -178,7 +178,7 @@ inline int32_t compare_dst_addr(void* a, void* b)
 
     assert(a != NULL);
     assert(b != NULL);
-    
+
     uint32_t A = reinterpret_cast<struct tcpip*>(a)->ip_struct.ip_dst.s_addr;
     uint32_t B = reinterpret_cast<struct tcpip*>(b)->ip_struct.ip_dst.s_addr;
 
@@ -198,37 +198,37 @@ inline int32_t compare_dst_addr(void* a, void* b)
 
 int32_t compare_src_port(void* a, void* b)
 {
-    
+
     assert(a != NULL);
     assert(b != NULL);
-    
+
     return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_sport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_sport);
 }
 
 int32_t compare_dst_port(void* a, void* b)
 {
-    
+
     assert(a != NULL);
     assert(b != NULL);
-    
+
     return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_dport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_dport);
 }
 
 int32_t compare_payload_len(void *a, void* b)
 {
-    
+
     assert(a != NULL);
     assert(b != NULL);
-    
+
     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_len) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_len);
 }
 
 inline void* merge_src_addr(void* new_data, void* old_data)
 {
-    
+
     assert(new_data != NULL);
     assert(old_data != NULL);
-    
+
     (reinterpret_cast<struct tcpip*>(old_data))->src_addr_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->src_addr_count = 0;
     return old_data;
@@ -238,7 +238,7 @@ inline void* merge_dst_addr(void* new_data, void* old_data)
 {
     assert(new_data != NULL);
     assert(old_data != NULL);
-    
+
     (reinterpret_cast<struct tcpip*>(old_data))->dst_addr_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->dst_addr_count = 0;
     return old_data;
@@ -248,7 +248,7 @@ inline void* merge_src_port(void* new_data, void* old_data)
 {
     assert(new_data != NULL);
     assert(old_data != NULL);
-    
+
     (reinterpret_cast<struct tcpip*>(old_data))->src_port_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->src_port_count = 0;
     return old_data;
@@ -258,7 +258,7 @@ inline void* merge_dst_port(void* new_data, void* old_data)
 {
     assert(new_data != NULL);
     assert(old_data != NULL);
-    
+
     (reinterpret_cast<struct tcpip*>(old_data))->dst_port_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->dst_port_count = 0;
     return old_data;
@@ -268,7 +268,7 @@ inline void* merge_payload_len(void* new_data, void* old_data)
 {
     assert(new_data != NULL);
     assert(old_data != NULL);
-    
+
     (reinterpret_cast<struct tcpip*>(old_data))->payload_len_count++;
     (reinterpret_cast<struct tcpip*>(new_data))->payload_len_count = 0;
     return old_data;
@@ -278,7 +278,7 @@ int32_t compare_tcpip_p(void* a, void* b)
 {
     assert(a != NULL);
     assert(b != NULL);
-    
+
     return ((reinterpret_cast<struct knn*>(a)->p - (reinterpret_cast<struct knn*>(b)->p)));
 }
 
@@ -410,13 +410,13 @@ void knn_search(ODB * odb, struct knn * a, int k)
     assert (a != NULL);
     assert (a->p != NULL);
 //     if (it->data() != NULL)
-    
+
     int i;
     for (i=0; i<k; i++)
     {
         a->distances[i] = DBL_MAX;
     }
-    
+
     if (it->data() != NULL && a->p != NULL)
     {
         do //for each point
@@ -439,7 +439,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
                         temp_dist=a->distances[i];
                         a->distances[i] = cur_dist;
                         a->neighbors[i] = cur_knn;
-                        
+
                         cur_dist = temp_dist;
                         cur_knn = temp_knn;
                     }
@@ -453,7 +453,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
     }
 
     odb->it_release(it);
-    
+
     a->k_distance = a->distances[K_NN-1];
 
 }
@@ -502,10 +502,10 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     odb->it_release(it);
 
     it = odb2->it_first();
-    
+
     int i;
     int odb_size = odb2->size();
-    
+
     //Step 1: determine k-nearest-neighbors of each point. O(nlogn), in theory.
     //Our implementation is O(n^2), hence, omp.
 
@@ -519,8 +519,8 @@ double lof_calc(ODB * odb, IndexGroup * packets)
             cur_knn = reinterpret_cast<struct knn*>(it->get_data());
             it->next();
         }
-        
-        knn_search(odb2, cur_knn, K_NN);        
+
+        knn_search(odb2, cur_knn, K_NN);
     }
 
     odb2->it_release(it);
@@ -574,13 +574,13 @@ double lof_calc(ODB * odb, IndexGroup * packets)
             }
 
             p->LOF = lrd_sum/K_NN;
-            
+
             if (p->LOF > max_lof)
             {
                 max_lof = MAX( max_lof, p->LOF );
                 max_knn = p;
             }
-            
+
 
         }
         while (it->next() != NULL);
@@ -589,12 +589,12 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     odb2->purge();
 
     delete odb2;
-    
+
     if (max_knn != NULL && max_knn->p != NULL)
     {
         fprintf(stderr, "%d, %d\n", max_knn->p->tcp_struct.th_sport, max_knn->p->tcp_struct.th_dport);
     }
-    
+
     return max_lof;
 
 }
@@ -657,7 +657,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             pheader->incl_len = ntohl(pheader->incl_len);
             pheader->orig_len = ntohl(pheader->orig_len);
         }
-        
+
         pheader->incl_len = MIN( pheader->incl_len, fheader->snaplen );
 
         //         nbytes = read(fileno(fp), data, (pheader->incl_len));
@@ -839,7 +839,7 @@ int main(int argc, char *argv[])
         fclose(fp);
         fflush(stdout);
     }
-    
+
     delete odb;
 //     delete packets;
 //     delete src_addr_index;
