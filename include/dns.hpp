@@ -1,8 +1,9 @@
 #ifndef DNS_HPP
+#define DNS_HPP
+
+#define DNS_QUERY_MAX_LEN 2048
 
 // Reference: http://www.faqs.org/rfcs/rfc1035.html
-// At this point, the packet structure is:
-
 #define DNS_FLAG_RESPONSE 	0x8000
 #define DNS_FLAG_OPCODE 	0x7800
 #define DNS_FLAG_AUTHORITATIVE 	0x0400
@@ -13,6 +14,10 @@
 #define DNS_FLAG_ISAUTH		0x0020 // This applies only to DNSSEC: Specifies whether or not the response is authenticated
 #define DNS_FLAG_AUTHOK		0x0010 // This applies only to DNSSEC: Specifies whether or not unauthenticated reponses are allowed.
 #define DNS_FLAG_REPLYCODE	0x000F
+
+#ifndef ABS
+#define ABS(x) (((x) < 0) ? (-1) * (x) : (x))
+#endif
 
 struct dns_header
 {
@@ -68,57 +73,91 @@ struct dns_answer
 };
 #pragma pack()
 
-int16_t dns_query_str_len(const uint8_t* q, uint32_t q_offset, uint32_t packet_len)
+struct __dns_query_it
 {
-    int16_t ret;
-    int32_t len = 0;
+    const uint8_t* q;
     uint32_t pos;
+    int32_t incl_len;
+    uint32_t total_len;
+    uint32_t packet_len;
+};
+
+const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
+{
+    // If we are at the end of the packet, and still not done the query string,
+    // then this packet is broken. Return NULL;
+    if (q->pos >= q->packet_len)
+	return NULL;
+    // If we just hit another spacer that isn't the start of a pointer...
+    else if ((q->q[q->pos] & 0xc0) != 0xc0)
+    {
+	// If the included length is still positive, then count the token we had.
+	if (q->incl_len >= 0)
+	    q->incl_len += q->q[q->pos] + 1;
+	
+	q->total_len += q->q[q->pos] + 1;
+	
+	q->pos += q->q[q->pos] + 1;
+    }
+
+    // We might have chained pointers, so this handles that.
+    while ((q->q[q->pos] & 0xc0) == 0xc0)
+    {
+	// If we don't have enough of the packet left to read the poitner, then
+	// this packet is broken. Return NULL.
+	if (q->pos >= (q->packet_len - 1))
+	    return NULL;
+	
+	// The included length gets incremented by 2 then negated to indicate
+	// that the included length stops here.
+	if (q->incl_len >= 0)
+	    q->incl_len = (-1) * (q->incl_len + 2);
+	
+	// Move the cursor to the new start of the token.
+	q->pos = ((q->q[q->pos] & 0x3F) * 256) + q->q[q->pos + 1];
+    }
+    
+    // If we hit the null terminator.
+    if (q->q[q->pos] == 0x00)
+    {
+	// Then just return a pointer to this location.
+	// The idea is that if you call for the next token on an iteratore that
+	// is already at the end, it just continues to return a pointer to the
+	// end.
+	
+	if (q->incl_len >= 0)
+	    q->incl_len = (-1) * (q->incl_len + 1);
+	
+	q->total_len++;
+	
+	return q->q + q->pos;
+    }
+    
+    return q->q + q->pos;
+}
+
+int16_t __query_str_len(const uint8_t* p, uint32_t pos, uint32_t packet_len)
+{
+    struct __dns_query_it q = { p, pos, 0, 0, packet_len }; 
     
     while (true)
     {
-	pos = q_offset + len;
+	p = __dns_get_next_token(&q);
 	
-	// If we are at the end of the packet, and still not done the query string, return -1.
-	if (pos >= packet_len)
+	if (p == NULL)
 	{
-	    ret = -1;
-	    break;
+	    return -1;
 	}
-	// If we found a position in the query string that marks the start of a pointer, and we have another byte to get from the packet, jump to the new location.
-	else if ((q[pos] & 0xc0) == 0xc0)
+	else if (p[0] == 0)
 	{
-	    if (pos >= (packet_len - 1))
-	    {
-		ret = -1;
-		break;
-	    }
-	    
-	    len = (-1) * (len + 2);
-	    q_offset = ((q[pos] & 0x3F) * 256) + q[pos + 1];
-	}
-	// If we hit the null terminator.
-	else if (q[pos] == 0x00)
-	{
-	    if (len < -1)
-		len *= -1;
-	    else
-		len++;
-	    
-	    ret = len;
-	    break;
-	}
-	// Otherwise, we just hit another spacer.
-	else
-	{
-	    if (len >= 0)
-		len += q[pos] + 1;
+	    return ABS(q.incl_len);
 	}
     }
     
-    return ret;
+    return -1;
 }
 
-bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
+bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
 {
     const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(dns_data);
     
@@ -137,7 +176,7 @@ bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
     n = ntohs(hdr->num_questions);
     for (uint16_t i = 0 ; i < n ; i++)
     {
-	len = dns_query_str_len(dns_data, q_offset, packet_len);
+	len = __query_str_len(dns_data, q_offset, packet_len);
 	
 	if (len < 0)
 	    return false;
@@ -149,7 +188,7 @@ bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
     n = ntohs(hdr->num_answers);
     for (uint16_t i = 0 ; i < n ; i++)
     {
-	len = dns_query_str_len(dns_data, q_offset, packet_len);
+	len = __query_str_len(dns_data, q_offset, packet_len);
 	
 	if (len < 0)
 	    return false;
@@ -164,7 +203,7 @@ bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
     n = ntohs(hdr->num_auth_ns);
     for (uint16_t i = 0 ; i < n ; i++)
     {
-	len = dns_query_str_len(dns_data, q_offset, packet_len);
+	len = __query_str_len(dns_data, q_offset, packet_len);
 	
 	if (len < 0)
 	    return false;
@@ -179,7 +218,7 @@ bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
     n = ntohs(hdr->num_other_answers);
     for (uint16_t i = 0 ; i < n ; i++)
     {
-	len = dns_query_str_len(dns_data, q_offset, packet_len);
+	len = __query_str_len(dns_data, q_offset, packet_len);
 	
 	if (len < 0)
 	    return false;
@@ -191,6 +230,56 @@ bool verify_dns_packet(const uint8_t* dns_data, uint32_t packet_len)
     }
     
     return true;
+}
+
+uint16_t dns_get_query_string(const uint8_t* p, char** strp)
+{
+    char str[DNS_QUERY_MAX_LEN];
+    uint32_t len = DNS_QUERY_MAX_LEN - 1;
+    str[len] = 0;
+    
+    struct __dns_query_it q = { p, sizeof(struct dns_header), 0, 0, (uint32_t)(-1) }; 
+    
+    len -= (p[sizeof(struct dns_header)] + 1);
+    memcpy(str + len, p + sizeof(dns_header), p[sizeof(struct dns_header)] + 1);
+    
+    while (true)
+    {
+	p = __dns_get_next_token(&q);
+	
+	if (p[0] == 0)
+	    break;
+	
+	len -= (p[0] + 1);
+	memcpy(str + len, p, p[0] + 1);
+    }
+    
+    *strp = (char*)malloc(DNS_QUERY_MAX_LEN - len);
+    if (*strp == NULL)
+	return 0;
+
+    memcpy(*strp, str + len, DNS_QUERY_MAX_LEN - len);
+    
+    return len;
+}
+
+void dns_print(char* q)
+{
+    uint32_t pos = 0;
+    uint32_t jump1 = q[0] + 1;
+    uint32_t jump2;
+    
+    while (true)
+    {
+	if (jump1 == 0)
+	    break;
+	
+	jump2 = q[pos + jump1];
+	q[pos + jump1] = 0;
+	printf("%s.", q + pos);
+	pos += jump1 + 1;
+	jump1 = jump2;
+    }
 }
 
 #endif

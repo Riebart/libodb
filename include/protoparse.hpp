@@ -1,4 +1,5 @@
 #ifndef PROTOPARSE_HPP
+#define PROTOPARSE_HPP
 
 #include <stdlib.h>
 #include <string.h>
@@ -95,6 +96,14 @@ struct l4_udp
 {
     uint16_t src_prt;
     uint16_t dst_prt;
+    uint8_t next;
+};
+
+struct l7_dns
+{
+    uint16_t query_len;
+    char* query;
+//    bool answered;
     uint8_t next;
 };
 
@@ -321,7 +330,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 	l4_hdr.src_prt = ntohs(tcp_hdr->th_sport);
 	l4_hdr.dst_prt = ntohs(tcp_hdr->th_dport);
 	
-	f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_tcp) - 1);
+	f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_tcp) - 1);
 	*fp = f;
 	
 	f->l7_type = L7_TYPE_ATTEMPT;
@@ -337,7 +346,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 	l4_hdr.src_prt = ntohs(udp_hdr->uh_sport);
 	l4_hdr.dst_prt = ntohs(udp_hdr->uh_dport);
 	
-	f = append_to_flow_sig(f, &l4_hdr, sizeof(l4_udp) - 1);
+	f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_udp) - 1);
 	*fp = f;
 	
 	f->l7_type = L7_TYPE_ATTEMPT;
@@ -368,10 +377,30 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
 uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
-    //struct flow_sig* f = *fp;
+    struct flow_sig* f = *fp;
     
-    if (verify_dns_packet(packet + p_offset, packet_len))
+    if (dns_verify_packet(packet + p_offset, packet_len))
+    {
 	printf("valid_dns ");
+	
+	struct l7_dns l7_hdr;
+	
+	l7_hdr.query_len = dns_get_query_string(packet + p_offset, &(l7_hdr.query));
+	
+	//printf("%s ", l7_hdr.query);
+	dns_print(l7_hdr.query);
+	printf(" ");
+	
+	f = append_to_flow_sig(f, &l7_hdr, sizeof(struct l7_dns) - 1);
+	*fp = f;
+	
+	f->l7_type = L7_TYPE_DNS;
+    }
+    else
+    {
+	printf("no7 ");
+	f->l7_type = L7_TYPE_NONE;
+    }
     
     return p_offset;
 }
