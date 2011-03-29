@@ -6,16 +6,22 @@
 
 //simple locking macros
 #define READ_LOCK() pthread_rwlock_rdlock(&rwlock)
+#define READ_LOCK_P(x) pthread_rwlock_rdlock(&(x->rwlock))
 #define READ_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define READ_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
 #define WRITE_LOCK() pthread_rwlock_wrlock(&rwlock)
+#define WRITE_LOCK_P(x) pthread_rwlock_wrlock(&(x->rwlock))
 #define WRITE_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define WRITE_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
 #define LOCK()
 #define UNLOCK()
 
 #define RWLOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
+#define RWLOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
 #define LOCK_INIT()
 
 #define RWLOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
+#define RWLOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
 #define LOCK_DESTROY()
 
 #define LOCK_T

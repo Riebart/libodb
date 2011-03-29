@@ -5,6 +5,8 @@
 
 Iterator::Iterator()
 {
+    dataobj = new DataObj();
+    it = NULL;
 }
 
 Iterator::Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count)
@@ -19,7 +21,6 @@ Iterator::Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query
 Iterator::~Iterator()
 {
     delete dataobj;
-//     NOT_IMPLEMENTED("~Iterator()");
 }
 
 DataObj* Iterator::next()

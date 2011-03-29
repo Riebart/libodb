@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifndef MIN
 #define MIN(x,y) (x < y ? x : y)

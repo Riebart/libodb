@@ -14,6 +14,7 @@ class RedBlackTreeI : public Index
     friend class ODB;
 
     friend class RBTIterator;
+    friend class ERBTIterator;
 
 public:
     struct e_tree_root
@@ -25,6 +26,7 @@ public:
         Merger* merge;
         bool drop_duplicates;
         uint32_t count;
+        RWLOCK_T;
     };
 
     ~RedBlackTreeI();
@@ -32,13 +34,22 @@ public:
 
     static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
     static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
+    static void e_destroy_tree(struct e_tree_root* root);
+
     // Assume that rawdata here has a pair of void* at the head of it. That is, it is a node ready to be inserted into the tree.
     static bool e_add(struct e_tree_root* root, void* rawdata);
     static bool e_remove(struct e_tree_root* root, void* rawdata, void** del_node);
 
     virtual Iterator* it_first();
+    static Iterator* e_it_first(struct e_tree_root* root);
+
     virtual Iterator* it_last();
+    static Iterator* e_it_last(struct e_tree_root* root);
+
     virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
+    static Iterator* e_it_lookup(struct e_tree_root* root, void* rawdata, int8_t dir = 0);
+
+    static void e_it_release(Iterator* it, struct e_tree_root* root);
 
 protected:
     RedBlackTreeI(int ident,
@@ -103,8 +114,13 @@ protected:
     virtual void remove_sweep(std::vector<void*>* marked);
 
     static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* e_it_first(struct tree_node* root, bool drop_duiplicates);
+
     static Iterator* it_last(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* e_it_last(struct tree_node* root, bool drop_duiplicates);
+
     static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
+    static Iterator* e_it_lookup(struct tree_node* root, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
 };
 
 class RBTIterator : public Iterator
@@ -120,6 +136,22 @@ public:
 protected:
     RBTIterator();
     RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+
+    std::stack<struct RedBlackTreeI::tree_node*> trail;
+};
+
+class ERBTIterator : public Iterator
+{
+    friend class RedBlackTreeI;
+
+public:
+    virtual ~ERBTIterator();
+    virtual DataObj* next();
+    virtual DataObj* prev();
+    virtual DataObj* data();
+
+protected:
+    ERBTIterator();
 
     std::stack<struct RedBlackTreeI::tree_node*> trail;
 };

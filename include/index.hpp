@@ -35,6 +35,7 @@ class DataObj
 
     /// Requires ability to create and manipulate DataObj.
     friend class RBTIterator;
+    friend class ERBTIterator;
 
     /// Requires ability to create and manipulate DataObj.
     friend class LLIterator;
