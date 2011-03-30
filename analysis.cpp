@@ -79,11 +79,15 @@ inline void free_encapped(void* v)
     if (s->ips != NULL)
     {
         for (uint32_t i = 0 ; i < s->ips->size() ; i++)
+        {
             free(s->ips->at(i));
+        }
         delete s->ips;
     }
     else
+    {
         free(s->sig);
+    }
 }
 
 inline void free_sig_encap(struct sig_encap* s)
@@ -124,7 +128,7 @@ void* merge_dns(void* aV, void* bV)
 }
 
 // For the full list: http://publicsuffix.org
-// To reverse the domains 
+// To reverse the domains
 // cat pubsuf.txt | grep -vE "(^//|^$)" | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)$/\1\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\4.\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\5.\4.\3.\2/' > pubsuf2
 inline char* get_domain(char* q, uint32_t len)
 {
@@ -139,9 +143,13 @@ inline void process_query(struct domain_stats* stats, struct sig_encap* encap)
 {
     uint32_t cur_count;
     if (encap->ips == NULL)
+    {
         cur_count = 1;
+    }
     else
+    {
         cur_count = encap->ips->size();
+    }
 
     stats->total_queries += cur_count;
     stats->entropy += cur_count * log((double)cur_count);
@@ -153,7 +161,9 @@ inline void finalize_domain(struct domain_stats* stats)
     stats->entropy /= (stats->total_queries * M_LN2);
 
     if (stats->entropy != 0)
+    {
         stats->entropy *= -1;
+    }
 }
 
 void process_domain(Iterator* it)
@@ -176,20 +186,24 @@ void process_domain(Iterator* it)
 
     domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
     domain = get_domain(dns->query, domain_len);
-    
+
     process_query(&stats, encap);
 
     while (true)
     {
         if (it->next() == NULL)
+        {
             break;
+        }
 
         encap = (struct sig_encap*)(it->get_data());
         sig = encap->sig;
         dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
         if (memcmp(domain, dns->query, domain_len) != 0)
+        {
             break;
+        }
 
         process_query(&stats, encap);
     }
@@ -209,7 +223,9 @@ void* process_tree(void* args)
     // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
     // Once we exit the join, we can process this tree.
     if (args_t->t_index > 0)
+    {
         pthread_join(threads[args_t->t_index - 1], NULL);
+    }
 
     Iterator* it;
 
@@ -239,7 +255,9 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
     data->ips = NULL;
 
     if (interval_start_sec == 0)
+    {
         interval_start_sec = pheader->ts.tv_sec;
+    }
     // If we've over-run the interval, then hand this tree off for processing and init a replacement.
     else if ((pheader->ts.tv_sec - interval_start_sec) >= NUM_SEC_PER_INTERVAL)
     {
@@ -265,8 +283,8 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
 
         // Handle large gaps that might be longer than a single window.
         uint64_t gap = pheader->ts.tv_sec - interval_start_sec;
-	gap = gap - (gap % NUM_SEC_PER_INTERVAL);
-	interval_start_sec += gap;
+        gap = gap - (gap % NUM_SEC_PER_INTERVAL);
+        interval_start_sec += gap;
     }
 
     // Collect the layer 3, 4 and 7 information.
@@ -328,16 +346,20 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
     }
 
     if (args_start == argc)
+    {
         dev = pcap_lookupdev(errbuf);
+    }
     else
+    {
         dev = argv[args_start];
+    }
 
     if (dev == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_CRITICAL, "%s\n", errbuf);
         return 1;
     }
-    
+
     LOG_MESSAGE(LOG_LEVEL_NORMAL, "Listening on %s\n", dev);
 
     descr = pcap_open_live(dev, BUFSIZ, 1, 0, errbuf);
@@ -391,16 +413,20 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
 
     // If we've got the wrong endianness:
     if (fheader->magic == 0xD4C3B2A1) // If the file and architecture are both Little/Big Endian, but don't match, then we'll get this value.
+    {
         data = (uint8_t*)malloc(ntohl(fheader->snaplen));
+    }
     else if (fheader->magic == 0xA1B2C3D4) // If the file and the architecture are the same endianness, then we'll get this value.
+    {
         data = (uint8_t*)malloc(fheader->snaplen);
+    }
     else // If we get something else, I don't trust ntohX to do the right thing so just skip the file.
     {
-	LOG_MESSAGE(LOG_LEVEL_WARN, "Unknown magic number %x.\n", fheader->magic);
-	free(fheader);
-	free(pheader);
-	fb_destroy(fb);
-	return 0;
+        LOG_MESSAGE(LOG_LEVEL_WARN, "Unknown magic number %x.\n", fheader->magic);
+        free(fheader);
+        free(pheader);
+        fb_destroy(fb);
+        return 0;
     }
 
     while (nbytes > 0)
@@ -473,31 +499,39 @@ int file_read(uint32_t args_start, int argc, char** argv)
     for (i = 0 ; i < num_files ; i++)
     {
         if (((argv[i + args_start])[0] == '-') && ((argv[i + args_start])[1] == '\0'))
+        {
             fp = stdin;
+        }
         else
+        {
             fp = fopen(argv[i + args_start], "rb");
+        }
 
         if (fp == NULL)
         {
-	    LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for reading.\n", argv[i + args_start]);
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for reading.\n", argv[i + args_start]);
             fprintf(stderr, "\n");
             continue;
         }
         else
-	    LOG_MESSAGE(LOG_LEVEL_INFO, "Beginning read from \"%s\".\n", argv[i + args_start]);
+        {
+            LOG_MESSAGE(LOG_LEVEL_INFO, "Beginning read from \"%s\".\n", argv[i + args_start]);
+        }
 
         ftime(&start);
         num = process_file(fp, args_p);
         total_num += num;
 
         if (threads.size() > 0)
+        {
             pthread_join(threads[threads.size() - 1], NULL);
+        }
 
         ftime(&end);
         dur = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
         totaldur += dur;
-	
-	LOG_MESSAGE(LOG_LEVEL_INFO, "Completed \"%s\" (%d/%d): @ %.14g pkt/sec\n", argv[i + args_start], i + 1, num_files, (num / dur));
+
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Completed \"%s\" (%d/%d): @ %.14g pkt/sec\n", argv[i + args_start], i + 1, num_files, (num / dur));
 
         fclose(fp);
         fflush(stdout);
@@ -551,7 +585,7 @@ int main(int argc, char** argv)
     char* outfname = NULL;
     char mode = 0;
     uint32_t args_start = 0;
-    
+
     extern char* optarg;
 
     int ch;
@@ -564,53 +598,53 @@ int main(int argc, char** argv)
     {
         switch (ch)
         {
-	    case 'a':
-	    {
-		append = true;
-		break;
-	    }
-	    case 'm':
-	    {
-		mode = optarg[0];
-		args_start = optind;
-		break;
-	    }
-	    case 'o':
-	    {
-		outfname = strdup(optarg);
-		break;
-	    }
-	    default:
-	    {
-		usage();
-		return EXIT_FAILURE;
-		break;
-	    }
+        case 'a':
+        {
+            append = true;
+            break;
+        }
+        case 'm':
+        {
+            mode = optarg[0];
+            args_start = optind;
+            break;
+        }
+        case 'o':
+        {
+            outfname = strdup(optarg);
+            break;
+        }
+        default:
+        {
+            usage();
+            return EXIT_FAILURE;
+            break;
+        }
         }
     }
-    
+
     if (mode == 0)
     {
-	usage();
-	return EXIT_SUCCESS;
+        usage();
+        return EXIT_SUCCESS;
     }
-    
+
     if (outfname == NULL)
     {
-	LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
-	out = stdout;
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
+        out = stdout;
     }
     else
     {
-	out = fopen(outfname, (append ? "ab" : "wb"));
-	
-	if (out == NULL)
-	{
-	    LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to open \"%s\" for writing.\n", outfname);
-	    return EXIT_FAILURE;
-	}
+        out = fopen(outfname, (append ? "ab" : "wb"));
+
+        if (out == NULL)
+        {
+            LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to open \"%s\" for writing.\n", outfname);
+            return EXIT_FAILURE;
+        }
     }
-    
+
     // Required by the protosim header.
     init_proto_hdr_sizes();
 
@@ -626,8 +660,8 @@ int main(int argc, char** argv)
     }
     else
     {
-	LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unknown mode '%c'.\n", mode);
-	usage();
+        LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unknown mode '%c'.\n", mode);
+        usage();
     }
 
     return 0;

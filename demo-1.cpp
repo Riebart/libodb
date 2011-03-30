@@ -80,6 +80,7 @@ struct tcpip
     uint32_t src_port_count;
     uint32_t dst_port_count;
     uint32_t payload_len_count;
+    uint32_t timestamp;
 };
 #pragma pack()
 
@@ -388,11 +389,11 @@ double distance(struct tcpip * a, struct tcpip * b)
     assert (a != NULL);
     assert (b != NULL);
 
-    sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr) );
-    sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr) );
-    sum += SQUARE( (a->tcp_struct.th_sport - b->tcp_struct.th_sport) );
-    sum += SQUARE( (a->tcp_struct.th_dport - b->tcp_struct.th_dport) );
-    sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len) );
+    sum += SQUARE( (a->ip_struct.ip_src.s_addr - b->ip_struct.ip_src.s_addr)/(uint32_t)(-1));
+    sum += SQUARE( (a->ip_struct.ip_dst.s_addr - b->ip_struct.ip_dst.s_addr)/(uint32_t)(-1));
+    sum += SQUARE( (a->tcp_struct.th_sport - b->tcp_struct.th_sport)/(uint16_t)(-1) );
+    sum += SQUARE( (a->tcp_struct.th_dport - b->tcp_struct.th_dport)/(uint16_t)(-1) );
+    sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len)/1500);
 
     return sqrt(sum);
 }
@@ -585,6 +586,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
         }
         while (it->next() != NULL);
     }
+    
     odb2->it_release(it);
     odb2->purge();
 
@@ -702,11 +704,12 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             odb->purge();
 
             // Change the start time of the preiod.
-            period_start = pheader->ts_sec;
+            period_start += PERIOD;
         }
 
         struct tcpip* rec = (struct tcpip*)malloc(sizeof(struct tcpip));
         get_data(rec, data, pheader->incl_len);
+        rec->timestamp = pheader->ts_sec;
 
         DataObj* dataObj = odb->add_data(rec, false);
 
