@@ -34,7 +34,7 @@ public:
 
     static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
     static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
-    static void e_destroy_tree(struct e_tree_root* root);
+    static void e_destroy_tree(struct e_tree_root* root, void (*destroy)(void*) = NULL);
 
     // Assume that rawdata here has a pair of void* at the head of it. That is, it is a node ready to be inserted into the tree.
     static bool e_add(struct e_tree_root* root, void* rawdata);
@@ -87,6 +87,7 @@ protected:
             void* rawdata);
 
     static void free_n(struct tree_node* n, bool drop_duiplicates);
+    static void e_free_n(struct tree_node* n, bool drop_duiplicates, void (*freep)(void*));
     int rbt_verify_n(struct tree_node* root, Comparator* compare);
     void query(Condition* condition, DataStore* ds);
     void query_eq(void* rawdata, DataStore* ds);

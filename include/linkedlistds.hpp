@@ -38,7 +38,7 @@ protected:
     virtual bool remove_addr(void* addr);
     virtual std::vector<void*>** remove_sweep(Archive* archive);
     virtual void remove_cleanup(std::vector<void*>** marked);
-    virtual void purge();
+    virtual void purge(void (*freep)(void*));
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
     virtual DataStore* clone();

@@ -368,7 +368,7 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
     delete[] marked;
 }
 
-void LinkedListDS::purge()
+void LinkedListDS::purge(void (*freep)(void*))
 {
     WRITE_LOCK();
     uint32_t num_clones = clones.size();
@@ -380,11 +380,15 @@ void LinkedListDS::purge()
 
     while (next != NULL)
     {
+        if (freep != free)
+            freep(&(curr->data));
         free(curr);
         curr = next;
         next = next->next;
     }
 
+    if (freep != free)
+        free(&(curr->data));
     free(curr);
 
     data_count = 0;

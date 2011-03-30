@@ -56,9 +56,9 @@ public:
 
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
 
     ~ODB();
 
@@ -93,12 +93,12 @@ public:
 
 
 private:
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
-    void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, uint32_t sleep_duration);
+    void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
     void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static uint32_t num_unique;
@@ -112,6 +112,7 @@ private:
     pthread_t mem_thread;
     uint32_t sleep_duration;
     Archive* archive;
+    void (*freep)(void*);
 
     int running;
     RWLOCK_T;

@@ -61,7 +61,7 @@ inline void DataStore::remove_cleanup(std::vector<void*>** marked)
 {
 }
 
-inline void DataStore::purge()
+inline void DataStore::purge(void (*freep)(void*))
 {
 }
 

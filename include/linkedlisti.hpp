@@ -33,10 +33,11 @@ protected:
     virtual void purge();
     void query(Condition* condition, DataStore* ds);
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
+    static void free_list(struct node* head);
     virtual bool remove(void* data);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-    DataStore* nodeds;
+//    DataStore* nodeds;
     struct node* first;
 };
 

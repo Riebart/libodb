@@ -544,41 +544,60 @@ inline void BankIDS::remove_cleanup(vector<void*>** marked)
     delete[] marked;
 }
 
-inline void BankDS::purge()
+inline void BankDS::purge(void (*freep)(void*))
 {
     WRITE_LOCK();
 
-    uint32_t num_clones = clones.size();
-    for (uint32_t i = 0 ; i < num_clones ; i++)
-        clones[i]->purge();
+    if (freep == free)
+    {
+        uint32_t num_clones = clones.size();
+        for (uint32_t i = 0 ; i < num_clones ; i++)
+            clones[i]->purge();
 
-    // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).
-    // In order to free the 'last' bucket, have no start condition which leaves posA at the appropriate value.
-    // Since posA is unsigned, stop when posA==0.
-    for ( ; posA > 0 ; posA -= sizeof(char*))
-        // Each time free the bucket pointed to by the value.
+        // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).
+        // In order to free the 'last' bucket, have no start condition which leaves posA at the appropriate value.
+        // Since posA is unsigned, stop when posA==0.
+        for ( ; posA > 0 ; posA -= sizeof(char*))
+            // Each time free the bucket pointed to by the value.
+            free(*(data + posA));
+
+        // Free the 'first' bucket.
+        //free(*data);
+
+        // Free the list of buckets.
+        //free(data);
+
+        // Initialize the cursor position and data count
+        posA = 0;
+        posB = 0;
+        data_count = 0;
+
+        // Number of bytes currently available for pointers to buckets. When that is exceeded this list must be grown.
+        //list_size = sizeof(char*);
+
+        // Allocate memory for the list of pointers to buckets. Only one pointer to start.
+        //SAFE_MALLOC(char**, data, sizeof(char*));
+
+        // Allocate the first bucket and assign the location of it to the first location in data.
+        // This is essentially a memcpy without the memcpy call.
+        //SAFE_MALLOC(char*, *(data), cap_size);
+    }
+    //
+    else
+    {
+        ///@note: Untested and not expected to work.
+        for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
+        {
+            for (uint64_t j = 0 ; j < cap_size ; j += datalen)
+                freep(*(data + i) + j);
+            free(*(data + i));
+        }
+
+        for (uint64_t j = 0 ; j < posB ; j += datalen)
+            freep(*(data + posA) + j);
+
         free(*(data + posA));
-
-    // Free the 'first' bucket.
-    //free(*data);
-
-    // Free the list of buckets.
-    //free(data);
-
-    // Initialize the cursor position and data count
-    posA = 0;
-    posB = 0;
-    data_count = 0;
-
-    // Number of bytes currently available for pointers to buckets. When that is exceeded this list must be grown.
-    //list_size = sizeof(char*);
-
-    // Allocate memory for the list of pointers to buckets. Only one pointer to start.
-    //SAFE_MALLOC(char**, data, sizeof(char*));
-
-    // Allocate the first bucket and assign the location of it to the first location in data.
-    // This is essentially a memcpy without the memcpy call.
-    //SAFE_MALLOC(char*, *(data), cap_size);
+    }
 
     WRITE_UNLOCK();
 }

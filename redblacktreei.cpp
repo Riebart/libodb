@@ -233,15 +233,21 @@ struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicat
     return root;
 }
 
-void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root)
+void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void (*freep)(void*))
 {
-    WRITE_LOCK_P(root);
+    if (freep != NULL)
+    {
+        e_free_n((struct tree_node*)(root->data), root->drop_duplicates, freep);
+    }
+
+    delete root->compare;
+    if (root->merge != NULL)
+        delete root->merge;
+
     free(root->false_root);
     free(root->sub_false_root);
-    free(root);
-    WRITE_UNLOCK_P(root);
-
     RWLOCK_DESTROY_P(root);
+    free(root);
 }
 
 bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata)
@@ -1149,6 +1155,29 @@ void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
                 free_n(reinterpret_cast<struct tree_node*>(root->data), true);
     }
 
+    free(root);
+}
+
+void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void (*freep)(void*))
+{
+    if (root != NULL)
+    {
+        struct tree_node* left = STRIP(root->link[0]);
+        struct tree_node* right = STRIP(root->link[1]);
+
+        if (left != NULL)
+            e_free_n(left, drop_duplicates, freep);
+
+        if (right != NULL)
+            e_free_n(right, drop_duplicates, freep);
+
+        if (!drop_duplicates)
+            if (IS_TREE(root))
+                e_free_n(reinterpret_cast<struct tree_node*>(root->data), true, freep);
+    }
+
+    if (freep != NULL)
+        freep(root);
     free(root);
 }
 

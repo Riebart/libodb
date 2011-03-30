@@ -98,7 +98,7 @@ void * mem_checker(void * arg)
 }
 
 /// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive, uint32_t sleep_duration)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -123,11 +123,11 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, 
     }
     }
 
-    init(data, num_unique, datalen, archive, sleep_duration);
+    init(data, num_unique, datalen, archive, freep, sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive, uint32_t sleep_duration)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -152,10 +152,10 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     }
     }
 
-    init(data, ident, datalen, archive, sleep_duration);
+    init(data, ident, datalen, archive, freep, sleep_duration);
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, uint32_t sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -180,11 +180,11 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
     }
     }
 
-    init(data, num_unique, sizeof(void*), archive, sleep_duration);
+    init(data, num_unique, sizeof(void*), archive, freep, sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, uint32_t sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -209,10 +209,10 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
     }
     }
 
-    init(data, ident, sizeof(void*), archive, sleep_duration);
+    init(data, ident, sizeof(void*), archive, freep, sleep_duration);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, uint32_t (*len)(void*), uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -232,11 +232,11 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
     }
     }
 
-    init(data, num_unique, sizeof(void*), archive, sleep_duration);
+    init(data, num_unique, sizeof(void*), archive, freep, sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, uint32_t (*len)(void*), uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
         FAIL("Pruning function cannot be NULL.");
@@ -256,15 +256,15 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
     }
     }
 
-    init(data, ident, sizeof(void*), archive, sleep_duration);
+    init(data, ident, sizeof(void*), archive, freep, sleep_duration);
 }
 
 ODB::ODB(DataStore* data, int ident, uint32_t datalen)
 {
-    init(data, ident, datalen, NULL, 0);
+    init(data, ident, datalen, NULL, free, 0);
 }
 
-void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, uint32_t sleep_duration)
+void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     this->ident = ident;
     this->datalen = datalen;
@@ -272,6 +272,12 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, u
     dataobj = new DataObj(ident);
     this->data = data;
     this->archive = archive;
+
+    if (freep == NULL)
+        this->freep = free;
+    else
+        this->freep = freep;
+
     data->cur_time=time(NULL);
 
     RWLOCK_INIT();
@@ -474,7 +480,7 @@ void ODB::purge()
     for (uint32_t i = 0 ; i < tables.size() ; i++)
         tables[i]->purge();
 
-    data->purge();
+    data->purge(freep);
 
     WRITE_UNLOCK();
 }

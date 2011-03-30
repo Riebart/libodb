@@ -1,6 +1,7 @@
 #include "linkedlisti.hpp"
 #include "bankds.hpp"
 #include "utility.hpp"
+#include "common.hpp"
 
 #include <algorithm>
 
@@ -17,13 +18,11 @@ LinkedListI::LinkedListI(int ident, Comparator* compare, Merger* merge, bool dro
     this->merge = merge;
     this->drop_duplicates = drop_duplicates;
     count = 0;
-
-    nodeds = new BankDS(NULL, prune_false, sizeof(struct node));
 }
 
 LinkedListI::~LinkedListI()
 {
-    delete nodeds;
+    free_list(first);
     RWLOCK_DESTROY();
 }
 
@@ -34,7 +33,7 @@ inline bool LinkedListI::add_data_v(void* rawdata)
     // When the list is empty, make a new node and set it as the head of the list.
     if (first == NULL)
     {
-        first = reinterpret_cast<struct node*>(nodeds->get_addr());
+        SAFE_MALLOC(struct node*, first, sizeof(struct node));
         first->next = NULL;
         first->data = rawdata;
         count = 1;
@@ -67,7 +66,8 @@ inline bool LinkedListI::add_data_v(void* rawdata)
             }
 
             // If we're still around, make a new node, assign its data and next, and make it the head of the list.
-            struct node* new_node = reinterpret_cast<struct node*>(nodeds->get_addr());
+            struct node* new_node;
+            SAFE_MALLOC(struct node*, new_node, sizeof(struct node));
             new_node->data = rawdata;
             new_node->next = first;
             first = new_node;
@@ -97,7 +97,8 @@ inline bool LinkedListI::add_data_v(void* rawdata)
                 }
             }
 
-            struct node* new_node = reinterpret_cast<struct node*>(nodeds->get_addr());
+            struct node* new_node;
+            SAFE_MALLOC(struct node*, new_node, sizeof(struct node));
             new_node->data = rawdata;
             new_node->next = curr->next;
             curr->next = new_node;
@@ -116,7 +117,7 @@ void LinkedListI::purge()
 {
     WRITE_LOCK();
 
-    nodeds->purge();
+    free_list(first);
 
     count = 0;
     first = NULL;
@@ -133,7 +134,9 @@ bool LinkedListI::remove(void* data)
     {
         if (compare->compare(data, first->data) == 0)
         {
+            struct node* temp = first;
             first = first->next;
+            free(temp);
             ret = true;
         }
         else
@@ -145,8 +148,9 @@ bool LinkedListI::remove(void* data)
 
             if (curr->next != NULL)
             {
+                struct node* temp = curr->next;
                 curr->next = curr->next->next;
-                nodeds->remove_addr(curr);
+                free(temp);
                 ret = true;
             }
         }
@@ -154,6 +158,18 @@ bool LinkedListI::remove(void* data)
     WRITE_UNLOCK();
 
     return ret;
+}
+
+void LinkedListI::free_list(struct node* first)
+{
+    struct node* next;
+
+    while (first != NULL)
+    {
+        next = first->next;
+        free(first);
+        first = next;
+    }
 }
 
 void LinkedListI::query(Condition* condition, DataStore* ds)
@@ -207,7 +223,7 @@ inline void LinkedListI::remove_sweep(vector<void*>* marked)
     {
         temp = first;
         first = first->next;
-        nodeds->remove_addr(temp);
+        free(temp);
     }
 
     struct node* curr = first;
@@ -218,7 +234,7 @@ inline void LinkedListI::remove_sweep(vector<void*>* marked)
         {
             temp = curr->next;
             curr->next = curr->next->next;
-            nodeds->remove_addr(temp);
+            free(temp);
         }
         else
             curr = curr->next;

@@ -209,37 +209,51 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     {
         if (memcmp(eth_dhost, stpD_dhost, 6) == 0)
         {
+#ifdef DEBUG
             printf("stpD ");
+#endif
             f->l3_type = L3_TYPE_NONE;
         }
         else if (memcmp(eth_dhost, stpAD_dhost, 6) == 0)
         {
+#ifdef DEBUG
             printf("stpAD ");
+#endif
             f->l3_type = L3_TYPE_NONE;
         }
         else if (memcmp(eth_dhost, apple_dhost, 6) == 0)
         {
+#ifdef DEBUG
             printf("apple ");
+#endif
             f->l3_type = L3_TYPE_NONE;
         }
         else if (memcmp(eth_dhost, v4_dhost, 3) == 0)
         {
+#ifdef DEBUG
             printf("v4mc ");
+#endif
             f->l3_type = ntohs(eptr->ether_type);
         }
         else if (memcmp(eth_dhost, v6_dhost, 2) == 0)
         {
+#ifdef DEBUG
             printf("v6mc ");
+#endif
             f->l3_type = ntohs(eptr->ether_type);
         }
         else if (memcmp(eth_dhost, broadcast_dhost, 6) == 0)
         {
+#ifdef DEBUG
             printf("broadcast ");
+#endif
             f->l3_type = ntohs(eptr->ether_type);
         }
         else
         {
+#ifdef DEBUG
             printf("multicast ");
+#endif
             f->l3_type = ntohs(eptr->ether_type);
         }
     }
@@ -261,7 +275,9 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     // http://en.wikipedia.org/wiki/Ethertype or sys/ethernet.h (BSD) or net/ethernet.h (Linux) for values.
     if (f->l3_type == L3_TYPE_IP4)
     {
+#ifdef DEBUG
         printf("ip4 ");
+#endif
         struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
         struct l3_ip4 l3_hdr;
 
@@ -280,7 +296,9 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     }
     else if (f->l3_type == L3_TYPE_IP6)
     {
+#ifdef DEBUG
         printf("ip6 ");
+#endif
         struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
         struct l3_ip6 l3_hdr;
 
@@ -301,19 +319,25 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     }
     else if (f->l3_type == ETHERTYPE_ARP)
     {
+#ifdef DEBUG
         printf("arp ");
+#endif
 
         f->l4_type = L4_TYPE_NONE;
     }
     else if (f->l3_type == ETHERTYPE_REVARP)
     {
+#ifdef DEBUG
         printf("rarp ");
+#endif
 
         f->l4_type = L4_TYPE_NONE;
     }
     else
     {
+#ifdef DEBUG
         printf("3proto%u ", f->l3_type);
+#endif
 
         f->l4_type = L4_TYPE_NONE;
     }
@@ -329,7 +353,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     // Reference: http://www.freesoft.org/CIE/Course/Section4/8.htm
     if (f->l4_type == L4_TYPE_TCP)
     {
+#ifdef DEBUG
         printf("tcp ");
+#endif
         struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
@@ -345,7 +371,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     }
     else if (f->l4_type == L4_TYPE_UDP)
     {
+#ifdef DEBUG
         printf("udp ");
+#endif
         struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
         struct l4_udp l4_hdr;
 
@@ -361,19 +389,25 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     }
     else if (f->l4_type == L4_TYPE_ICMP4)
     {
+#ifdef DEBUG
         printf("icmp ");
+#endif
 
         f->l7_type = L7_TYPE_NONE;
     }
     else if (f->l4_type == L4_TYPE_ICMP6)
     {
+#ifdef DEBUG
         printf("icmp6 ");
+#endif
 
         f->l7_type = L7_TYPE_NONE;
     }
     else
     {
+#ifdef DEBUG
         printf("4proto%u ", f->l4_type);
+#endif
 
         f->l7_type = L7_TYPE_NONE;
     }
@@ -385,22 +419,24 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 {
     struct flow_sig* f = *fp;
 
-    if (dns_verify_packet(packet + p_offset, packet_len))
+    if (((p_offset + sizeof(dns_header)) < packet_len) && (dns_verify_packet(packet + p_offset, packet_len)))
     {
         const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(packet + p_offset);
-        printf("valid_dns ");
 
         struct l7_dns l7_hdr;
         l7_hdr.flags = ntohs(hdr->flags);
 
-        l7_hdr.query_len = dns_get_query_string(packet + p_offset, &(l7_hdr.query));
+        l7_hdr.query_len = dns_get_query_string(packet + p_offset, &(l7_hdr.query), packet_len);
 
         f = append_to_flow_sig(f, &l7_hdr, sizeof(struct l7_dns) - 1);
         *fp = f;
 
+#ifdef DEBUG
+        printf("valid_dns ");
         struct l7_dns* l7_hdrp = (struct l7_dns*)(&(f->hdr_start) + l3_hdr_size[f->l3_type] + l4_hdr_size[f->l4_type]);
         dns_print(l7_hdrp->query);
         printf(" ");
+#endif
 
         f->l7_type = L7_TYPE_DNS;
 
@@ -408,7 +444,9 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     }
     else
     {
+#ifdef DEBUG
         printf("no7 ");
+#endif
         f->l7_type = L7_TYPE_NONE;
     }
 
@@ -434,9 +472,11 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
     if (f->l7_type != L7_TYPE_NONE)
         p_offset = l7_sig(&f, packet, p_offset, packet_len);
 
+#ifdef DEBUG
     print_flow(f);
-
     printf("\n");
+#endif
+
     fflush(stdout);
 
     return f;
