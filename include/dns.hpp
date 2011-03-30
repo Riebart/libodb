@@ -24,7 +24,7 @@
 #endif
 
 #ifndef TO_LOWER
-#define TO_LOWER(x) (x - 'A')
+#define TO_LOWER(x) (x + ('a' - 'A'))
 #endif
 
 struct dns_header
@@ -353,7 +353,7 @@ void dns_print(FILE* fp, char* q)
 
         jump2 = q[pos + jump1];
         q[pos + jump1] = 0;
-        fprintf(fp, "%s.", q + pos + 1);
+        fprintf(fp, "%s.", q + (pos == 0 ? 1 : pos));
         q[pos + jump1] = jump2;
         pos += jump1 + 1;
         jump1 = jump2;

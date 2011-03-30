@@ -212,7 +212,7 @@ void process_domain(Iterator* it)
     finalize_domain(&stats);
 
     dns_print(out, domain);
-    fprintf(out, " @ %g / %u\n", stats.entropy, stats.total_queries);
+    fprintf(out, " %g %u\n", stats.entropy, stats.total_queries);
 
     free(domain);
 }
