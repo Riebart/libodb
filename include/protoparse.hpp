@@ -419,7 +419,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 {
     struct flow_sig* f = *fp;
 
-    if (((p_offset + sizeof(dns_header)) < packet_len) && (dns_verify_packet(packet + p_offset, packet_len)))
+    if (((p_offset + sizeof(struct dns_header)) < packet_len) && (dns_verify_packet(packet + p_offset, packet_len)))
     {
         const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(packet + p_offset);
 

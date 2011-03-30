@@ -207,10 +207,12 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     // Now check the query strings in all of the questions.
     int16_t len;
     uint32_t q_offset = sizeof(struct dns_header);
-    uint16_t n;
+    uint32_t n;
+    uint32_t total_n = 0;
 
     // Queries
     n = ntohs(hdr->num_questions);
+    total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
         len = __query_str_len(dns_data, q_offset, packet_len);
@@ -221,12 +223,13 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         }
         else
         {
-            q_offset += (len + sizeof(dns_query));
+            q_offset += (len + sizeof(struct dns_query));
         }
     }
 
     // Answers
     n = ntohs(hdr->num_answers);
+    total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
         len = __query_str_len(dns_data, q_offset, packet_len);
@@ -238,12 +241,13 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            q_offset += (len + sizeof(dns_answer) + ntohs(a->num_bytes));
+            q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
     }
 
     // Authoritative Nameservers
     n = ntohs(hdr->num_auth_ns);
+    total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
         len = __query_str_len(dns_data, q_offset, packet_len);
@@ -255,12 +259,13 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            q_offset += (len + sizeof(dns_answer) + ntohs(a->num_bytes));
+            q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
     }
 
     // Other Answers
     n = ntohs(hdr->num_other_answers);
+    total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
         len = __query_str_len(dns_data, q_offset, packet_len);
@@ -272,11 +277,14 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            q_offset += (len + sizeof(dns_answer) + ntohs(a->num_bytes));
+            q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
     }
-
-    return true;
+    
+    if (total_n == 0)
+        return false;
+    else
+        return true;
 }
 
 void str_tolower(char* str)
@@ -303,7 +311,7 @@ uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len
     struct __dns_query_it q = { p, sizeof(struct dns_header), 0, 0, packet_len, false };
 
     len -= (p[sizeof(struct dns_header)] + 1);
-    memcpy(str + len, p + sizeof(dns_header), p[sizeof(struct dns_header)] + 1);
+    memcpy(str + len, p + sizeof(struct dns_header), p[sizeof(struct dns_header)] + 1);
 
     while (true)
     {

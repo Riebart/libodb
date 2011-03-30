@@ -2,11 +2,18 @@
 #define BUFFER_HPP
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
 #ifndef MIN
 #define MIN(x,y) (x < y ? x : y)
+#endif
+
+// This will be used to ensure that the buffer is never smaller than 4096 bytes.
+// This helps with page-aligned memory, and should be large enough for sectors on a hard disk.
+#ifndef MAX
+#define MAX(x, y) (x > y ? x : y)
 #endif
 
 struct file_buffer
@@ -49,6 +56,12 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
     return fb;
 }
 
+struct file_buffer* fb_read_init(char* fname, uint32_t num_bytes)
+{
+    FILE* fp = fopen(fname, "rb");
+    return fb_read_init(fp, num_bytes);
+}
+
 struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
 {
     struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
@@ -72,6 +85,12 @@ struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
     fb->position = 0;
 
     return fb;
+}
+
+struct file_buffer* fb_write_init(char* fname, uint32_t num_bytes)
+{
+    FILE* fp = fopen(fname, "wb");
+    return fb_write_init(fp, num_bytes);
 }
 
 uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
@@ -124,21 +143,38 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
     return numput;
 }
 
-uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool flush)
+uint32_t fb_write_flush(struct file_buffer* fb)
 {
-    uint32_t numput = fb_write(fb, src, num_bytes);
-
-    // If we have explicitly flushed, make sure we write the buffer out, if it has anything in it.
-    if ((flush) && (fb->position > 0))
+    uint32_t numput = 0;
+    
+    if (fb->position > 0)
     {
-        if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
+        numput = fwrite(fb->buffer, fb->position, 1, fb->fp);
+        
+        if (numput > 0)
         {
             fb->position = 0;
         }
     }
-
+    
     return numput;
 }
+
+// uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool flush)
+// {
+//     uint32_t numput = fb_write(fb, src, num_bytes);
+// 
+//     // If we have explicitly flushed, make sure we write the buffer out, if it has anything in it.
+//     if ((flush) && (fb->position > 0))
+//     {
+//         if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
+//         {
+//             fb->position = 0;
+//         }
+//     }
+// 
+//     return numput;
+// }
 
 uint32_t fb_read(struct file_buffer* fb, void* dest, uint32_t num_bytes)
 {

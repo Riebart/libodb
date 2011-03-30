@@ -418,10 +418,10 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
 }
 
 /// Called on each file that is pulled off the command line.
-uint32_t process_file(FILE* fp, struct ph_args* args_p)
+uint64_t process_file(FILE* fp, struct ph_args* args_p)
 {
-    uint32_t num_records = 0;
-    uint32_t nbytes;
+    uint64_t num_records = 0;
+    uint64_t nbytes;
     uint8_t* data;
 
     struct file_buffer* fb = fb_read_init(fp, 1048576);
@@ -436,7 +436,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
     nbytes = fb_read(fb, fheader, sizeof(struct pcap_file_header));
     if (nbytes < sizeof(struct pcap_file_header))
     {
-        LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Short read on file header (%u of %lu).\n", nbytes, sizeof(struct pcap_file_header));
+        LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Short read on file header (%lu of %lu).\n", nbytes, sizeof(struct pcap_file_header));
         return 0;
     }
 
@@ -458,13 +458,13 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
         return 0;
     }
 
-    while (nbytes > 0)
+    while (true)
     {
         nbytes = fb_read(fb, pheader, sizeof(struct pcap_pkthdr32));
 
         if ((nbytes < sizeof(struct pcap_pkthdr32)) && (nbytes > 0))
         {
-            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet header (%u of %lu).\n", nbytes, sizeof(struct pcap_pkthdr32));
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet header (%lu of %lu).\n", nbytes, sizeof(struct pcap_pkthdr32));
             break;
         }
 
@@ -481,7 +481,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
 
         if (nbytes < pheader->caplen)
         {
-            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet body. This could be normal. (%u of %u)\n", nbytes, pheader->caplen);
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet body. This could be normal. (%lu of %u)\n", nbytes, pheader->caplen);
             break;
         }
 
@@ -565,7 +565,7 @@ int file_read(uint32_t args_start, int argc, char** argv)
         dur = (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
         totaldur += dur;
 
-        LOG_MESSAGE(LOG_LEVEL_INFO, "Completed \"%s\" (%d/%d): @ %.14g pkt/sec\n", argv[i + args_start], i + 1, num_files, (num / dur));
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Completed \"%s\" (%d/%d): %lu @ %.14g pkt/sec\n", argv[i + args_start], i + 1, num_files, num, (num / dur));
 
         fclose(fp);
         fflush(stdout);
