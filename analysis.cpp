@@ -390,9 +390,9 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
     }
 
     // If we've got the wrong endianness:
-    if (fheader->magic == 3569595041) // If the file and architecture are both Little/Big Endian, but don't match, then we'll get this value.
+    if (fheader->magic == 0xD4C3B2A1) // If the file and architecture are both Little/Big Endian, but don't match, then we'll get this value.
         data = (uint8_t*)malloc(ntohl(fheader->snaplen));
-    else if (fheader->magic == 2712847316) // If the file and the architecture are the same endianness, then we'll get this value.
+    else if (fheader->magic == 0xA1B2C3D4) // If the file and the architecture are the same endianness, then we'll get this value.
         data = (uint8_t*)malloc(fheader->snaplen);
     else // If we get something else, I don't trust ntohX to do the right thing so just skip the file.
     {
@@ -414,7 +414,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
         }
 
         // ntohl all of the contents of pheader if we need to. Goddam endianness.
-        if (fheader->magic == 3569595041)
+        if (fheader->magic == 0xD4C3B2A1)
         {
             pheader->ts.tv_sec = ntohl(pheader->ts.tv_sec);
             pheader->ts.tv_usec = ntohl(pheader->ts.tv_usec);
