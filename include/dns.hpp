@@ -19,6 +19,14 @@
 #define ABS(x) (((x) < 0) ? (-1) * (x) : (x))
 #endif
 
+#ifndef IS_UPPER
+#define IS_UPPER(x) ( (('A' <= x) && (x <= 'Z')) ? true : false)
+#endif
+
+#ifndef TO_LOWER
+#define TO_LOWER(x) (x - 'A')
+#endif
+
 struct dns_header
 {
     uint16_t transaction_id;
@@ -88,13 +96,17 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
     // If we are at the end of the packet, and still not done the query string,
     // then this packet is broken. Return NULL;
     if (q->pos >= q->packet_len)
+    {
         return NULL;
+    }
     // If we just hit another spacer that isn't the start of a pointer...
     else if ((q->q[q->pos] & 0xc0) != 0xc0)
     {
         // If the included length is still positive, then count the token we had.
         if (q->incl_len >= 0)
+        {
             q->incl_len += q->q[q->pos] + 1;
+        }
 
         q->total_len += q->q[q->pos] + 1;
 
@@ -103,23 +115,31 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
 
     // Disallowing chained pointers
     if (q->pos >= q->packet_len)
+    {
         return NULL;
+    }
     else if ((q->q[q->pos] & 0xc0) == 0xc0)
     {
         // If we already encountered a pointer, and we're encountering another
         // one, then this packet is broken.
         if (q->ptd)
+        {
             return NULL;
+        }
 
         // If we don't have enough of the packet left to read the poitner, then
         // this packet is broken. Return NULL.
         if (q->pos >= (q->packet_len - 1))
+        {
             return NULL;
+        }
 
         // The included length gets incremented by 2 then negated to indicate
         // that the included length stops here.
         if (q->incl_len >= 0)
+        {
             q->incl_len = (-1) * (q->incl_len + 2);
+        }
 
         // Move the cursor to the new start of the token.
         q->pos = ((q->q[q->pos] & 0x3F) * 256) + q->q[q->pos + 1];
@@ -129,7 +149,9 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
 
     // If we hit the null terminator.
     if (q->pos >= q->packet_len)
+    {
         return NULL;
+    }
     else if (q->q[q->pos] == 0x00)
     {
         // Then just return a pointer to this location.
@@ -138,7 +160,9 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         // end.
 
         if (q->incl_len >= 0)
+        {
             q->incl_len = (-1) * (q->incl_len + 1);
+        }
 
         q->total_len++;
 
@@ -176,7 +200,9 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     // First check the flags.
     uint16_t flags = ntohs(hdr->flags);
     if ((flags & DNS_FLAG_Z) != 0)
+    {
         return false;
+    }
 
     // Now check the query strings in all of the questions.
     int16_t len;
@@ -190,9 +216,13 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         len = __query_str_len(dns_data, q_offset, packet_len);
 
         if (len < 0)
+        {
             return false;
+        }
         else
+        {
             q_offset += (len + sizeof(dns_query));
+        }
     }
 
     // Answers
@@ -202,7 +232,9 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         len = __query_str_len(dns_data, q_offset, packet_len);
 
         if (len < 0)
+        {
             return false;
+        }
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
@@ -217,7 +249,9 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         len = __query_str_len(dns_data, q_offset, packet_len);
 
         if (len < 0)
+        {
             return false;
+        }
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
@@ -232,7 +266,9 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         len = __query_str_len(dns_data, q_offset, packet_len);
 
         if (len < 0)
+        {
             return false;
+        }
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
@@ -241,6 +277,21 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     }
 
     return true;
+}
+
+void str_tolower(char* str)
+{
+    uint32_t i = 0;
+
+    while (str[i] != 0)
+    {
+        if (IS_UPPER(str[i]))
+        {
+            str[i] = TO_LOWER(str[i]);
+        }
+
+        i++;
+    }
 }
 
 uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len)
@@ -259,7 +310,9 @@ uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len
         p = __dns_get_next_token(&q);
 
         if (p[0] == 0)
+        {
             break;
+        }
 
         len -= (p[0] + 1);
         memcpy(str + len, p, p[0] + 1);
@@ -267,9 +320,12 @@ uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len
 
     *strp = (char*)malloc(DNS_QUERY_MAX_LEN - len);
     if (*strp == NULL)
+    {
         return 0;
+    }
 
     memcpy(*strp, str + len, DNS_QUERY_MAX_LEN - len);
+    str_tolower(*strp);
 
     return DNS_QUERY_MAX_LEN - len;
 }
@@ -283,7 +339,9 @@ void dns_print(FILE* fp, char* q)
     while (true)
     {
         if (jump1 == 0)
+        {
             break;
+        }
 
         jump2 = q[pos + jump1];
         q[pos + jump1] = 0;

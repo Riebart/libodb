@@ -73,10 +73,14 @@ inline void* LinkedListDS::add_data(void* rawdata)
     memcpy(ret, rawdata, true_datalen);
 
     if (time_stamp)
+    {
         SET_TIME_STAMP(ret, cur_time);
+    }
 
     if (query_count)
+    {
         SET_QUERY_COUNT(ret, 0);
+    }
 
     return ret;
 }
@@ -109,10 +113,14 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
     int true_datalen = nbytes;
 
     if (time_stamp)
+    {
         SET_TIME_STAMP(ret, cur_time);
+    }
 
     if (query_count)
+    {
         SET_QUERY_COUNT(ret, 0);
+    }
 
     return ret;
 }
@@ -153,7 +161,9 @@ inline bool LinkedListDS::remove_at(uint64_t index)
     // THIS IS REALLY A STACK, NOT A QUEUE!
 
     if (index >= data_count)
+    {
         return false;
+    }
 
     index = data_count - 1 - index;
 
@@ -164,7 +174,9 @@ inline bool LinkedListDS::remove_at(uint64_t index)
         bottom = bottom->next;
 
         if (old_bottom != NULL)
+        {
             free(old_bottom);
+        }
 
         data_count--;
         WRITE_UNLOCK();
@@ -188,7 +200,9 @@ inline bool LinkedListDS::remove_at(uint64_t index)
             struct datanode* curr = bottom;
 
             for (uint64_t i = 1 ; i < index ; i++)
+            {
                 curr = curr->next;
+            }
 
             temp = curr->next;
             curr->next = curr->next->next;
@@ -218,7 +232,9 @@ inline bool LinkedListDS::remove_addr(void* addr)
         struct datanode* curr = bottom;
 
         while (((curr->next) != NULL) && ((&(curr->next->data)) != addr))
+        {
             curr = curr->next;
+        }
 
         if ((curr->next) == NULL)
         {
@@ -254,7 +270,9 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
         {
             marked[0]->push_back(&(curr->data));
             if (archive != NULL)
+            {
                 archive->write(&(curr->data), datalen);
+            }
 
             marked[1]->push_back(NULL);
         }
@@ -265,7 +283,9 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
             {
                 marked[0]->push_back(&((curr->next)->data));
                 if (archive != NULL)
+                {
                     archive->write(&((curr->next)->data), datalen);
+                }
 
                 marked[1]->push_back(curr);
             }
@@ -286,7 +306,9 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
         sort(marked[0]->begin(), marked[0]->end());
     }
     else
+    {
         READ_UNLOCK();
+    }
 
     return marked;
 }
@@ -341,7 +363,9 @@ std::vector<void*>** LinkedListIDS::remove_sweep(Archive* archive)
         sort(marked[0]->begin(), marked[0]->end());
     }
     else
+    {
         READ_UNLOCK();
+    }
 
     return marked;
 }
@@ -373,7 +397,9 @@ void LinkedListDS::purge(void (*freep)(void*))
     WRITE_LOCK();
     uint32_t num_clones = clones.size();
     for (uint32_t i = 0 ; i < num_clones ; i++)
+    {
         clones[i]->purge();
+    }
 
     struct datanode* curr = bottom;
     struct datanode* next = bottom->next;
@@ -381,14 +407,18 @@ void LinkedListDS::purge(void (*freep)(void*))
     while (next != NULL)
     {
         if (freep != free)
+        {
             freep(&(curr->data));
+        }
         free(curr);
         curr = next;
         next = next->next;
     }
 
     if (freep != free)
+    {
         free(&(curr->data));
+    }
     free(curr);
 
     data_count = 0;
@@ -442,9 +472,13 @@ inline void* LinkedListDS::get_at(uint64_t index)
 
     READ_UNLOCK();
     if (cur_item != NULL)
+    {
         return &(cur_item->data);
+    }
     else
+    {
         return NULL;
+    }
 }
 
 inline void* LinkedListIDS::get_at(uint64_t index)

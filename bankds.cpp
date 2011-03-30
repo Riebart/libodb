@@ -69,7 +69,9 @@ BankDS::~BankDS()
     // Since posA is unsigned, stop when posA==0.
     for ( ; posA > 0 ; posA -= sizeof(char*))
         // Each time free the bucket pointed to by the value.
+    {
         free(*(data + posA));
+    }
 
     // Free the 'first' bucket.
     free(*data);
@@ -90,10 +92,14 @@ inline void* BankDS::add_data(void* rawdata)
 
     // Stores a timestamp right after the data if the datastore is set to do that.
     if (time_stamp)
+    {
         SET_TIME_STAMP(ret, cur_time);
+    }
 
     if (query_count)
+    {
         SET_QUERY_COUNT(ret, 0);
+    }
 
     return ret;
 }
@@ -228,7 +234,9 @@ inline bool BankDS::remove_at(uint64_t index)
         return true;
     }
     else
+    {
         return false;
+    }
 }
 
 inline bool BankDS::remove_addr(void* addr)
@@ -236,11 +244,15 @@ inline bool BankDS::remove_addr(void* addr)
     bool found = false;
 
     if ((addr >= (*(data + posA))) && (addr < ((*(data + posA)) + posB)))
+    {
         found = true;
+    }
 
     for (uint64_t i = 0 ; ((i < posA) && (!found)) ; i += sizeof(char*))
         if ((addr >= (*(data + i))) && (addr < ((*(data + i)) + cap_size)))
+        {
             found = true;
+        }
 
     if (found)
     {
@@ -280,7 +292,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
     }
     // Otherwise, if we're in the middle of a row, just step back one data object.
     else
+    {
         posB_t -= datalen;
+    }
 
     // Now, as long as our end-cursor is pointing at a prune-able item, prune it and keep stepping back.
     // Stop when we find one that won't be thrown away.
@@ -291,7 +305,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         marked[0]->push_back(*(data + posA_t) + posB_t);
 
         if (archive != NULL)
+        {
             archive->write(*(data + posA_t) + posB_t, true_datalen);
+        }
 
         // Step back.
         if (posB_t == 0)
@@ -300,7 +316,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
             posB_t = cap_size - datalen;
         }
         else
+        {
             posB_t -= datalen;
+        }
     }
 
     // Now we can start work forwards from the other end.
@@ -320,7 +338,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
             marked[0]->push_back(*(data + i) + j);
 
             if (archive != NULL)
+            {
                 archive->write(*(data + i) + j, true_datalen);
+            }
 
             // Also mark it as as location to copy data to later in the defrag step.
             marked[3]->push_back(*(data + i) + j);
@@ -339,7 +359,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
                 }
             }
             else
+            {
                 posB_t -= datalen;
+            }
 
             // Now keep stepping backwards as long as we're at a pruneable location.
             // We also should take care not to step back past the forward-moving cursor.
@@ -349,7 +371,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
                 marked[0]->push_back(*(data + posA_t) + posB_t);
 
                 if (archive != NULL)
+                {
                     archive->write(*(data + posA_t) + posB_t, true_datalen);
+                }
 
                 // Step back.
                 if (posB_t == 0)
@@ -358,7 +382,9 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
                     posB_t = cap_size - datalen;
                 }
                 else
+                {
                     posB_t -= datalen;
+                }
             }
         }
 
@@ -412,7 +438,9 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
     }
     // Otherwise, if we're in the middle of a row, just step back one data object.
     else
+    {
         posB_t -= datalen;
+    }
 
     // Now, as long as our end-cursor is pointing at a prune-able item, prune it and keep stepping back.
     // Stop when we find one that won't be thrown away.
@@ -429,7 +457,9 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
             posB_t = cap_size - datalen;
         }
         else
+        {
             posB_t -= datalen;
+        }
     }
 
     // Now we can start work forwards from the other end.
@@ -462,7 +492,9 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
                 }
             }
             else
+            {
                 posB_t -= datalen;
+            }
 
             // Now keep stepping backwards as long as we're at a pruneable location.
             // We also should take care not to step back past the forward-moving cursor.
@@ -478,7 +510,9 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
                     posB_t = cap_size - datalen;
                 }
                 else
+                {
                     posB_t -= datalen;
+                }
             }
         }
 
@@ -528,7 +562,9 @@ inline void BankDS::remove_cleanup(vector<void*>** marked)
         posB = cap_size - shift + posB;
     }
     else
+    {
         posB -= shift;
+    }
 
     WRITE_UNLOCK();
 
@@ -552,14 +588,18 @@ inline void BankDS::purge(void (*freep)(void*))
     {
         uint32_t num_clones = clones.size();
         for (uint32_t i = 0 ; i < num_clones ; i++)
+        {
             clones[i]->purge();
+        }
 
         // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).
         // In order to free the 'last' bucket, have no start condition which leaves posA at the appropriate value.
         // Since posA is unsigned, stop when posA==0.
         for ( ; posA > 0 ; posA -= sizeof(char*))
             // Each time free the bucket pointed to by the value.
+        {
             free(*(data + posA));
+        }
 
         // Free the 'first' bucket.
         //free(*data);
@@ -589,12 +629,16 @@ inline void BankDS::purge(void (*freep)(void*))
         for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         {
             for (uint64_t j = 0 ; j < cap_size ; j += datalen)
+            {
                 freep(*(data + i) + j);
+            }
             free(*(data + i));
         }
 
         for (uint64_t j = 0 ; j < posB ; j += datalen)
+        {
             freep(*(data + posA) + j);
+        }
 
         free(*(data + posA));
     }
@@ -611,10 +655,14 @@ inline void BankDS::populate(Index* index)
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
+        {
             index->add_data_v(*(data + i) + j);
+        }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
+    {
         index->add_data_v(*(data + posA) + j);
+    }
 
     READ_UNLOCK();
 }
@@ -627,10 +675,14 @@ inline void BankIDS::populate(Index* index)
     // Last bucket needs to be handled specially.
     for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         for (uint64_t j = 0 ; j < cap_size ; j += datalen)
+        {
             index->add_data_v(*(reinterpret_cast<void**>(*(data + i) + j)));
+        }
 
     for (uint64_t j = 0 ; j < posB ; j += datalen)
+    {
         index->add_data_v(*(reinterpret_cast<void**>(*(data + posA) + j)));
+    }
 
     READ_UNLOCK();
 }

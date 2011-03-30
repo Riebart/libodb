@@ -464,13 +464,19 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
     p_offset = l2_sig(&f, packet, p_offset, packet_len);
 
     if (f->l3_type != L3_TYPE_NONE)
+    {
         p_offset = l3_sig(&f, packet, p_offset, packet_len);
+    }
 
     if (f->l4_type != L4_TYPE_NONE)
+    {
         p_offset = l4_sig(&f, packet, p_offset, packet_len);
+    }
 
     if (f->l7_type != L7_TYPE_NONE)
+    {
         p_offset = l7_sig(&f, packet, p_offset, packet_len);
+    }
 
 #ifdef DEBUG
     print_flow(f);

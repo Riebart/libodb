@@ -57,6 +57,7 @@ struct th_args
 {
     struct RedBlackTreeI::e_tree_root* tree_root;
     uint32_t t_index;
+    uint32_t ts_sec;
 };
 
 struct sig_encap
@@ -216,35 +217,11 @@ void process_domain(Iterator* it)
     free(domain);
 }
 
-void* process_tree(void* args)
-{
-    struct th_args* args_t = (struct th_args*)(args);
-
-    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
-    // Once we exit the join, we can process this tree.
-    if (args_t->t_index > 0)
-    {
-        pthread_join(threads[args_t->t_index - 1], NULL);
-    }
-
-    Iterator* it;
-
-    it = RedBlackTreeI::e_it_first(args_t->tree_root);
-
-    do
-    {
-        process_domain(it);
-    }
-    while (it->next() != NULL);
-
-    RedBlackTreeI::e_it_release(it, args_t->tree_root);
-    RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
-
-    free(args_t);
-
-    return NULL;
-}
-
+// =============================================================================
+// The functions in this section mark those that are used by the driving functions
+// below this section. So their contents can be tailored to suit your application
+// bit their names and signatures must stay as they are.
+// =============================================================================
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
     struct RedBlackTreeI::e_tree_root* tree_root = args_p->tree_root;
@@ -253,39 +230,6 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
     data->link[0] = NULL;
     data->link[1] = NULL;
     data->ips = NULL;
-
-    if (interval_start_sec == 0)
-    {
-        interval_start_sec = pheader->ts.tv_sec;
-    }
-    // If we've over-run the interval, then hand this tree off for processing and init a replacement.
-    else if ((pheader->ts.tv_sec - interval_start_sec) >= NUM_SEC_PER_INTERVAL)
-    {
-        pthread_t t;
-        struct th_args* args_t = (struct th_args*)malloc(sizeof(struct th_args));;
-        args_t->tree_root = tree_root;
-        args_t->t_index = threads.size();
-
-        int32_t e = pthread_create(&t, NULL, &process_tree, reinterpret_cast<void*>(args_t));
-
-        // e is zero on success: http://pubs.opengroup.org/onlinepubs/007908799/xsh/pthread_create.html
-        if (e == 0)
-        {
-            threads.push_back(t);
-            args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
-            tree_root = args_p->tree_root;
-        }
-        else
-        {
-            LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to spawn thread to process the domain.\n");
-            abort();
-        }
-
-        // Handle large gaps that might be longer than a single window.
-        uint64_t gap = pheader->ts.tv_sec - interval_start_sec;
-        gap = gap - (gap % NUM_SEC_PER_INTERVAL);
-        interval_start_sec += gap;
-    }
 
     // Collect the layer 3, 4 and 7 information.
     data->sig = sig_from_packet(packet, pheader->caplen);
@@ -317,13 +261,97 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
     }
 }
 
-void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pheader, const uint8_t* packet)
+void* process_interval(void* args)
 {
-    struct ph_args* args_p = (struct ph_args*)(args);
+    struct th_args* args_t = (struct th_args*)(args);
+
+    fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
+
+    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
+    // Once we exit the join, we can process this tree.
+    if (args_t->t_index > 0)
+    {
+        pthread_join(threads[args_t->t_index - 1], NULL);
+    }
+
+    Iterator* it;
+
+    it = RedBlackTreeI::e_it_first(args_t->tree_root);
+
+    do
+    {
+        process_domain(it);
+    }
+    while (it->next() != NULL);
+
+    RedBlackTreeI::e_it_release(it, args_t->tree_root);
+    RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
+
+    free(args_t);
+
+    return NULL;
+}
+
+struct th_args* make_thread_args(struct ph_args* args_p)
+{
+    struct th_args* args_t = (struct th_args*)malloc(sizeof(struct th_args));
+    args_t->tree_root = args_p->tree_root;
+    args_t->t_index = threads.size();
+    args_t->ts_sec = interval_start_sec;
+
+    return args_t;
+}
+
+// =============================================================================
+// =============================================================================
+
+/// Drives the processing of packets. Is also in charge of handling when a new
+///interval has been entered and calling process_interval accordingly.
+void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
+{
+    if (interval_start_sec == 0)
+    {
+        interval_start_sec = pheader->ts.tv_sec;
+    }
+    // If we've over-run the interval, then hand this tree off for processing and init a replacement.
+    else if ((pheader->ts.tv_sec - interval_start_sec) >= NUM_SEC_PER_INTERVAL)
+    {
+        pthread_t t;
+        struct th_args* args_t = make_thread_args(args_p);
+
+        int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
+
+        // e is zero on success: http://pubs.opengroup.org/onlinepubs/007908799/xsh/pthread_create.html
+        if (e == 0)
+        {
+            threads.push_back(t);
+            args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+        }
+        else
+        {
+            LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to spawn a thread to process the interval.\n");
+            abort();
+        }
+
+        // Handle large gaps that might be longer than a single window.
+        uint64_t gap = pheader->ts.tv_sec - interval_start_sec;
+        gap = gap - (gap % NUM_SEC_PER_INTERVAL);
+        interval_start_sec += gap;
+    }
 
     process_packet(args_p, pheader, packet);
 }
 
+/// Callback function for when a packet is nabbed off the wire. Simply passes
+///processing on to packet_driver.
+void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pheader, const uint8_t* packet)
+{
+    struct ph_args* args_p = (struct ph_args*)(args);
+    packet_driver(args_p, pheader, packet);
+}
+
+/// Listens to an interface using libpcap, and then starts an infinite loop of
+///packet sniffing.
 int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
 {
     pcap_t *descr;                 /* Session descr             */
@@ -389,6 +417,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
     return 0;
 }
 
+/// Called on each file that is pulled off the command line.
 uint32_t process_file(FILE* fp, struct ph_args* args_p)
 {
     uint32_t num_records = 0;
@@ -407,7 +436,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
     nbytes = fb_read(fb, fheader, sizeof(struct pcap_file_header));
     if (nbytes < sizeof(struct pcap_file_header))
     {
-        LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Short read on file header.\n");
+        LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Short read on file header (%u of %lu).\n", nbytes, sizeof(struct pcap_file_header));
         return 0;
     }
 
@@ -435,7 +464,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
 
         if ((nbytes < sizeof(struct pcap_pkthdr32)) && (nbytes > 0))
         {
-            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet header.\n");
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet header (%u of %lu).\n", nbytes, sizeof(struct pcap_pkthdr32));
             break;
         }
 
@@ -452,7 +481,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
 
         if (nbytes < pheader->caplen)
         {
-            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet body. This could be normal.\n");
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Short read on packet body. This could be normal. (%u of %u)\n", nbytes, pheader->caplen);
             break;
         }
 
@@ -463,7 +492,7 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
         pkthdr.caplen = pheader->caplen;
         pkthdr.len = pheader->len;
 
-        process_packet(args_p, &pkthdr, data);
+        packet_driver(args_p, &pkthdr, data);
 
         num_records++;
     }
@@ -476,6 +505,11 @@ uint32_t process_file(FILE* fp, struct ph_args* args_p)
     return num_records;
 }
 
+/// Called as the primary driver for processing a list of files off the command
+///line. Joins to the most recent thread spawned when each file is completed so
+///that file reading doesn't get too insanely far ahead of processing. Also
+///calls process_interval when all files are completely read so that the final
+///(likely incomplete) interval can be handled.
 int file_read(uint32_t args_start, int argc, char** argv)
 {
     struct timeb start, end;
@@ -539,13 +573,8 @@ int file_read(uint32_t args_start, int argc, char** argv)
     }
 
     // Clean up the last interval we didn't finish.
-    struct th_args* args_t = (struct th_args*)malloc(sizeof(struct th_args));
-    args_t->tree_root = args_p->tree_root;
-    args_t->t_index = threads.size();
-
-    process_tree(args_t);
-
-    // Now join with the
+    struct th_args* args_t = make_thread_args(args_p);
+    process_interval(args_t);
 
     free(args_p);
 

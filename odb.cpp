@@ -101,7 +101,9 @@ void * mem_checker(void * arg)
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -130,7 +132,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, 
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -158,7 +162,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -187,7 +193,9 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -215,7 +223,9 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -239,7 +249,9 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
 {
     if (prune == NULL)
+    {
         FAIL("Pruning function cannot be NULL.");
+    }
 
     DataStore* data;
 
@@ -274,9 +286,13 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, v
     this->archive = archive;
 
     if (freep == NULL)
+    {
         this->freep = free;
+    }
     else
+    {
         this->freep = freep;
+    }
 
     data->cur_time=time(NULL);
 
@@ -295,7 +311,9 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, v
         pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
     }
     else
+    {
         running = 0;
+    }
 }
 
 ODB::~ODB()
@@ -352,7 +370,9 @@ DataObj* ODB::add_data(void* rawdata, bool add_to_all)
     dataobj->data = data->add_data(rawdata);
 
     if (add_to_all)
+    {
         all->add_data_v(dataobj->data);
+    }
 
     return dataobj;
 }
@@ -362,7 +382,9 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
     dataobj->data = data->add_data(rawdata, nbytes);
 
     if (add_to_all)
+    {
         all->add_data_v(dataobj->data);
+    }
 
     return dataobj;
 }
@@ -378,13 +400,19 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     READ_LOCK();
 
     if (compare == NULL)
+    {
         FAIL("Comparison function cannot be NULL.");
+    }
 
     if (keylen < -1)
+    {
         FAIL("When specifying keylen, value must be >= 0");
+    }
 
     if (((keylen == -1) && (keygen != NULL)) || ((keylen != -1) && (keygen == NULL)))
+    {
         FAIL("Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
+    }
 
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
     bool do_not_populate = flags & DO_NOT_POPULATE;
@@ -413,10 +441,14 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     tables.push_back(new_index);
 
     if (!do_not_add_to_all)
+    {
         all->add_index(new_index);
+    }
 
     if (!do_not_populate)
+    {
         data->populate(new_index);
+    }
 
     READ_UNLOCK();
     return new_index;
@@ -439,14 +471,20 @@ void ODB::remove_sweep()
     if (n > 0)
     {
         if (n == 1)
+        {
             tables[0]->remove_sweep(marked[0]);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 tables[i]->remove_sweep(marked[0]);
+            }
 
         if (marked[2] != NULL)
+        {
             update_tables(marked[2], marked[3]);
+        }
     }
 
     data->remove_cleanup(marked);
@@ -460,17 +498,23 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
     if (n > 0)
     {
         if (n == 0)
+        {
             tables[0]->update(old_addr, new_addr, datalen);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 tables[i]->update(old_addr, new_addr, datalen);
+            }
     }
 
     n = data->clones.size();
 
     for (int32_t i = 0 ; i < n ; i++)
+    {
         data->clones[i]->update_tables(old_addr, new_addr);
+    }
 }
 
 void ODB::purge()
@@ -478,7 +522,9 @@ void ODB::purge()
     WRITE_LOCK();
 
     for (uint32_t i = 0 ; i < tables.size() ; i++)
+    {
         tables[i]->purge();
+    }
 
     data->purge(freep);
 

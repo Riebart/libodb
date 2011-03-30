@@ -116,7 +116,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
         default:
             if (test_type != 4)
+            {
                 FAIL("Incorrect test type.");
+            }
         }
 
         break;
@@ -151,9 +153,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
 
     if (index_type & 1)
+    {
         iopts = ODB::DROP_DUPLICATES;
+    }
     else
+    {
         iopts = ODB::NONE;
+    }
 
     switch (index_type >> 1)
     {
@@ -184,7 +190,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
+    {
         ind[i] = odb->create_index(itype, iopts, (test_type == 4 ? str_compare : compare));
+    }
 
 
     //for the VDS, if necessary
@@ -220,10 +228,14 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             dn = odb->add_data(temp_str, str_index+1, false);
         }
         else
+        {
             dn = odb->add_data(&v, false);
+        }
 
         for (int j = 0 ; j < NUM_TABLES ; j++)
+        {
             ind[j]->add_data(dn);
+        }
 
         if (i == (test_size/2))
         {
@@ -236,7 +248,9 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     ftime(&end);
 
     if (test_type != 4)
+    {
         odb->remove_sweep();
+    }
 
     if ((index_type >> 1) == 0)
     {
@@ -375,16 +389,22 @@ int main (int argc, char* argv[])
     }
     default:
         if (test_type != 4)
+        {
             FAIL("Incorrect test type.");
+        }
     }
     printf("\n");
 
     printf("Index Type: ");
 
     if (index_type & 1)
+    {
         printf("DROP_DUPLICATES ");
+    }
     else
+    {
         printf("NONE ");
+    }
 
     switch (index_type >> 1)
     {
@@ -411,10 +431,14 @@ int main (int argc, char* argv[])
         cur = odb_test(element_size, test_size, test_type, index_type, max_mem);
 
         if (cur > max)
+        {
             max = cur;
+        }
 
         if (cur < min)
+        {
             min = cur;
+        }
 
         duration += cur;
 
@@ -432,7 +456,9 @@ int main (int argc, char* argv[])
         printf("\nMax and min times dropped.\n");
     }
     else
+    {
         printf(" ");
+    }
 
     duration /= test_num;
 

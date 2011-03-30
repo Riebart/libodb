@@ -29,7 +29,9 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
     struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
 
     if (fb == NULL)
+    {
         return NULL;
+    }
 
     fb->buf_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
@@ -52,7 +54,9 @@ struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
     struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
 
     if (fb == NULL)
+    {
         return NULL;
+    }
 
     fb->buf_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
@@ -84,7 +88,9 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
         if (fb->position == fb->size)
         {
             if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+            {
                 fb->position = 0;
+            }
         }
     }
     // Otherwise
@@ -102,9 +108,13 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
             if (fb->position == fb->size)
             {
                 if (fwrite(fb->buffer, fb->buf_size, 1, fb->fp) > 0)
+                {
                     fb->position = 0;
+                }
                 else
+                {
                     min = 0;
+                }
             }
 
             numput += min;
@@ -122,7 +132,9 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool fl
     if ((flush) && (fb->position > 0))
     {
         if (fwrite(fb->buffer, fb->position, 1, fb->fp) > 0)
+        {
             fb->position = 0;
+        }
     }
 
     return numput;
@@ -165,7 +177,9 @@ uint32_t fb_read(struct file_buffer* fb, void* dest, uint32_t num_bytes)
                 fb->position = 0;
 
                 if (fb->size == 0)
+                {
                     return numread;
+                }
             }
         }
     }

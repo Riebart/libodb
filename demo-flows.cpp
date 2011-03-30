@@ -47,9 +47,13 @@ inline bool prune_false(void* rawdata)
 {
     struct fts3rec_v5_gen* data = reinterpret_cast<struct fts3rec_v5_gen*>(rawdata);
     if (((data->srcport) >= 32768) && ((data->srcport) <= 65535))
+    {
         return true;
+    }
     else
+    {
         return false;
+    }
 }
 
 inline int compare_time_dur(void* a, void* b)
@@ -183,7 +187,9 @@ int main(int argc, char *argv[])
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
+        {
             break;
+        }
 
         ftime(&start);
 

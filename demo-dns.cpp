@@ -108,11 +108,17 @@ inline int32_t compare_invalid(void* a_i, void* b_i)
     struct dnsrec* b = reinterpret_cast<struct dnsrec*>(b_i);
 
     if (a->query_len > b->query_len)
+    {
         return 1;
+    }
     else if (a->query_len < b->query_len)
+    {
         return -1;
+    }
     else
+    {
         return memcmp(a->query_str, b->query_str, a->query_len);
+    }
 }
 
 inline void* merge_query_str(void* new_data, void* old_data)

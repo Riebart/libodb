@@ -31,11 +31,17 @@ inline bool search(std::vector<void*>* marked, void* addr)
         c = reinterpret_cast<int64_t>(addr) - reinterpret_cast<int64_t>(marked->at(midpoint));
 
         if (c == 0)
+        {
             return true;
+        }
         else if (c < 0)
+        {
             end = midpoint - 1;
+        }
         else
+        {
             start = midpoint + 1;
+        }
 
         midpoint = (start + end) / 2;
     }
@@ -58,9 +64,13 @@ inline int32_t compare_addr_f(void* a, void* b)
     int64_t c = reinterpret_cast<int64_t>(a) - reinterpret_cast<int64_t>(b);
 
     if (c < 0)
+    {
         return -1;
+    }
     if (c > 0)
+    {
         return 1;
+    }
     return 0;
 }
 

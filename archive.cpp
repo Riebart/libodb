@@ -31,7 +31,9 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename)
 inline bool AppendOnlyFile::write(void* rawdata, uint32_t datalen)
 {
     if ((cond != NULL) && (cond->condition(rawdata)))
+    {
         return false;
+    }
 
     if (fwrite(rawdata, datalen, 1, data))
     {
@@ -41,8 +43,12 @@ inline bool AppendOnlyFile::write(void* rawdata, uint32_t datalen)
             return true;
         }
         else
+        {
             return false;
+        }
     }
     else
+    {
         return false;
+    }
 }

@@ -79,7 +79,9 @@ inline bool LinkedListI::add_data_v(void* rawdata)
 
             // As long as the next node is not NULL and the new data belongs before it.
             while ((curr->next != NULL) && (comp = compare->compare(rawdata, curr->next->data)) && (comp > 0))
+            {
                 curr = curr->next;
+            }
 
             if (comp == 0)
             {
@@ -144,7 +146,9 @@ bool LinkedListI::remove(void* data)
             struct node* curr = first;
 
             while ((curr->next != NULL) && (compare->compare(data, curr->next->data) != 0))
+            {
                 curr = curr->next;
+            }
 
             if (curr->next != NULL)
             {
@@ -180,7 +184,9 @@ void LinkedListI::query(Condition* condition, DataStore* ds)
     while (curr != NULL)
     {
         if (condition->condition(curr->data))
+        {
             ds->add_data(curr->data);
+        }
 
         curr = curr->next;
     }
@@ -203,7 +209,9 @@ inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr
             curr->data = new_addr->at(i);
 
             if (datalen > 0)
+            {
                 memcpy(new_addr->at(i), old_addr, datalen);
+            }
 
             i++;
         }
@@ -237,7 +245,9 @@ inline void LinkedListI::remove_sweep(vector<void*>* marked)
             free(temp);
         }
         else
+        {
             curr = curr->next;
+        }
     }
     WRITE_UNLOCK();
 }
@@ -272,7 +282,9 @@ LLIterator::~LLIterator()
 inline DataObj* LLIterator::next()
 {
     if ((dataobj->data) == NULL)
+    {
         return NULL;
+    }
 
     cursor = cursor->next;
 

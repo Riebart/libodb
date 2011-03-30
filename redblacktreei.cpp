@@ -242,7 +242,9 @@ void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void
 
     delete root->compare;
     if (root->merge != NULL)
+    {
         delete root->merge;
+    }
 
     free(root->false_root);
     free(root->sub_false_root);
@@ -276,7 +278,9 @@ bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawd
 
     uint8_t ret = TAINTED(root->data);
     if (ret)
+    {
         root->data = (void**)UNTAINT(root->data);
+    }
 
     root->count -= ret;
     WRITE_UNLOCK_P(root);
@@ -364,10 +368,14 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
                 if (dir == prev_dir)
                     // The direction of the rotation is in the opposite direction of the last link.
                     //  - i.e: If this is a right child, the rotation is a left rotation.
+                {
                     SET_LINK(ggp->link[dir2], single_rotation(gp, !prev_dir));
+                }
                 // Since inside children are harder to resolve, a double rotation is necessary to resolve the violation.
                 else
+                {
                     SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
+                }
             }
 
             // At the moment no duplicates are allowed.
@@ -431,7 +439,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
             // Update the various context pointers.
             // Bring the great-grandparent into the mix when we get far enough down.
             if (gp != NULL)
+            {
                 ggp = gp;
+            }
 
             gp = p;
             p = i;
@@ -448,7 +458,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
 
     // Encode whether a node was added into the colour of the new root. RED = something was added.
     if (ret)
+    {
         new_root = TAINT(new_root);
+    }
 
     return new_root;
 }
@@ -523,10 +535,14 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
                 if (dir == prev_dir)
                     // The direction of the rotation is in the opposite direction of the last link.
                     //  - i.e: If this is a right child, the rotation is a left rotation.
+                {
                     SET_LINK(ggp->link[dir2], single_rotation(gp, !prev_dir));
+                }
                 // Since inside children are harder to resolve, a double rotation is necessary to resolve the violation.
                 else
+                {
                     SET_LINK(ggp->link[dir2], double_rotation(gp, !prev_dir));
+                }
             }
 
             // At the moment no duplicates are allowed.
@@ -538,7 +554,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
                 if (ret == 0)
                 {
                     if (merge != NULL)
+                    {
                         i->data = merge->merge(rawdata, i->data);
+                    }
                     // And we're allowing duplicates...
                     else if (!drop_duplicates)
                     {
@@ -588,7 +606,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
             // Update the various context pointers.
             // Bring the great-grandparent into the mix when we get far enough down.
             if (gp != NULL)
+            {
                 ggp = gp;
+            }
 
             gp = p;
             p = i;
@@ -605,7 +625,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
 
     // Encode whether a node was added into the colour of the new root. RED = something was added.
     if (ret)
+    {
         new_root = TAINT(new_root);
+    }
 
     return new_root;
 }
@@ -615,12 +637,16 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
     int height_l, height_r;
 
     if (root == NULL)
+    {
         return 1;
+    }
     else
     {
         if (IS_TREE(root))
             if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(root->data), compare_addr)) == 0)
+            {
                 FAIL("Child tree is broken.\n");
+            }
 
         struct tree_node* left = STRIP(root->link[0]);
         struct tree_node* right = STRIP(root->link[1]);
@@ -639,9 +665,13 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
 
 #ifdef VERBOSE_RBT_VERIFY
         if (left)
+        {
             printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_TREE(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
+        }
         if (right)
+        {
             printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_TREE(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
+        }
 #endif
 
         height_l = rbt_verify_n(left, compare);
@@ -672,9 +702,13 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
 
         // Only count black nodes
         if ((height_r != 0) && (height_l != 0))
+        {
             return height_r + (1 - IS_RED(root));
+        }
         else
+        {
             return 0;
+        }
     }
 }
 
@@ -717,7 +751,9 @@ void RedBlackTreeI::query_eq(void* rawdata, DataStore* ds)
                 ds->add_data(temp);
             }
             else
+            {
                 break;
+            }
         }
         while (it->next());
     }
@@ -763,7 +799,9 @@ inline bool RedBlackTreeI::remove(void* rawdata)
 
     uint8_t ret = TAINTED(root);
     if (ret)
+    {
         root = UNTAINT(root);
+    }
 
     count -= ret;
     WRITE_UNLOCK();
@@ -832,7 +870,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                         f = i;
                     }
                     else
+                    {
                         i->data = new_sub_root;
+                    }
                 }
                 else
                 {
@@ -879,9 +919,13 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                             uint8_t dir2 = (STRIP(gp->link[1]) == p);
 
                             if (IS_RED(STRIP(s->link[prev_dir])))
+                            {
                                 SET_LINK(gp->link[dir2], double_rotation(p, prev_dir));
+                            }
                             else
+                            {
                                 SET_LINK(gp->link[dir2], single_rotation(p, prev_dir));
+                            }
 
                             // Fix the colours post rotation.
                             struct tree_node* p2 = STRIP(gp->link[dir2]);
@@ -900,9 +944,13 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
         {
             f->data = i->data;
             if (IS_TREE(i))
+            {
                 SET_TREE(f);
+            }
             else
+            {
                 SET_VALUE(f);
+            }
 
             SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[STRIP(i->link[0]) == NULL]);
             free(i);
@@ -912,11 +960,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
         struct tree_node* new_root = STRIP(false_root->link[1]);
 
         if (new_root != NULL)
+        {
             SET_BLACK(new_root);
+        }
 
         // Encode whether a node was deleted or not.
         if (ret)
+        {
             new_root = TAINT(new_root);
+        }
 
         return new_root;
     }
@@ -986,7 +1038,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
                         f = i;
                     }
                     else
+                    {
                         i = new_sub_root;
+                    }
                 }
                 else
                 {
@@ -1033,9 +1087,13 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
                             uint8_t dir2 = (STRIP(gp->link[1]) == p);
 
                             if (IS_RED(STRIP(s->link[prev_dir])))
+                            {
                                 SET_LINK(gp->link[dir2], double_rotation(p, prev_dir));
+                            }
                             else
+                            {
                                 SET_LINK(gp->link[dir2], single_rotation(p, prev_dir));
+                            }
 
                             // Fix the colours post rotation.
                             struct tree_node* p2 = STRIP(gp->link[dir2]);
@@ -1075,11 +1133,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
         struct tree_node* new_root = STRIP(false_root->link[1]);
 
         if (new_root != NULL)
+        {
             SET_BLACK(new_root);
+        }
 
         // Encode whether a node was deleted or not.
         if (ret)
+        {
             new_root = TAINT(new_root);
+        }
 
         return new_root;
     }
@@ -1090,7 +1152,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
 inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
 {
     for (uint32_t i = 0 ; i < marked->size() ; i++)
+    {
         remove(marked->at(i));
+    }
 }
 
 inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
@@ -1118,13 +1182,19 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
                     curr->data = remove_n(reinterpret_cast<struct tree_node*>(curr->data), sub_false_root, NULL, compare_addr, NULL, true, addr);
 
                     if (TAINTED(curr->data))
+                    {
                         curr->data = UNTAINT(add_data_n(UNTAINT(curr->data), sub_false_root, NULL, compare_addr, NULL, true, new_addr->at(i)));
+                    }
                 }
                 else if ((curr->data) == addr)
+                {
                     curr->data = new_addr->at(i);
+                }
 
                 if (datalen > 0)
+                {
                     memcpy(new_addr->at(i), addr, datalen);
+                }
 
                 break;
             }
@@ -1145,14 +1215,20 @@ void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
         struct tree_node* right = STRIP(root->link[1]);
 
         if (left != NULL)
+        {
             free_n(left, drop_duplicates);
+        }
 
         if (right != NULL)
+        {
             free_n(right, drop_duplicates);
+        }
 
         if (!drop_duplicates)
             if (IS_TREE(root))
+            {
                 free_n(reinterpret_cast<struct tree_node*>(root->data), true);
+            }
     }
 
     free(root);
@@ -1166,18 +1242,26 @@ void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void 
         struct tree_node* right = STRIP(root->link[1]);
 
         if (left != NULL)
+        {
             e_free_n(left, drop_duplicates, freep);
+        }
 
         if (right != NULL)
+        {
             e_free_n(right, drop_duplicates, freep);
+        }
 
         if (!drop_duplicates)
             if (IS_TREE(root))
+            {
                 e_free_n(reinterpret_cast<struct tree_node*>(root->data), true, freep);
+            }
     }
 
     if (freep != NULL)
+    {
         freep(root);
+    }
     free(root);
 }
 
@@ -1200,7 +1284,9 @@ inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node* curr = root;
@@ -1225,7 +1311,9 @@ inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI
                 it->dataobj->data = it->it->get_data();
             }
             else
+            {
                 it->dataobj->data = top->data;
+            }
         }
     }
 
@@ -1238,7 +1326,9 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node* curr = root;
@@ -1263,7 +1353,9 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
                 it->dataobj->data = it->it->get_data();
             }
             else
+            {
                 it->dataobj->data = top;
+            }
         }
     }
 
@@ -1289,7 +1381,9 @@ inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI:
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node* curr = root;
@@ -1314,7 +1408,9 @@ inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI:
                 it->dataobj->data = it->it->get_data();
             }
             else
+            {
                 it->dataobj->data = top->data;
+            }
         }
     }
 
@@ -1327,7 +1423,9 @@ inline Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::tree_node* root,
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node* curr = root;
@@ -1352,7 +1450,9 @@ inline Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::tree_node* root,
                 it->dataobj->data = it->it->get_data();
             }
             else
+            {
                 it->dataobj->data = top;
+            }
         }
     }
 
@@ -1378,7 +1478,9 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node *i = root, *p = NULL;
@@ -1391,7 +1493,9 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
             d = (c > 0);
 
             if (c == 0)
+            {
                 break;
+            }
 
             it->trail.push((d ? TAINT(i) : i));
 
@@ -1411,16 +1515,22 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
                     it->dataobj->data = it->it->get_data();
                 }
                 else
+                {
                     it->dataobj->data = i->data;
+                }
             }
             else
             {
                 it->dataobj->data = i->data;
 
                 if (dir > 0)
+                {
                     it->next();
+                }
                 else
+                {
                     it->prev();
+                }
             }
         }
         else
@@ -1448,7 +1558,9 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
                             it->dataobj->data = it->it->get_data();
                         }
                         else
+                        {
                             it->dataobj->data = i->data;
+                        }
                     }
                 }
                 else
@@ -1466,7 +1578,9 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
                             it->dataobj->data = it->it->get_data();
                         }
                         else
+                        {
                             it->dataobj->data = i->data;
+                        }
                     }
                 }
             }
@@ -1482,7 +1596,9 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
     it->drop_duplicates = drop_duplicates;
 
     if (root == NULL)
+    {
         it->dataobj->data = NULL;
+    }
     else
     {
         struct RedBlackTreeI::tree_node *i = root, *p = NULL;
@@ -1495,7 +1611,9 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
             d = (c > 0);
 
             if (c == 0)
+            {
                 break;
+            }
 
             it->trail.push((d ? TAINT(i) : i));
 
@@ -1515,16 +1633,22 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
                     it->dataobj->data = it->it->get_data();
                 }
                 else
+                {
                     it->dataobj->data = i;
+                }
             }
             else
             {
                 it->dataobj->data = i;
 
                 if (dir > 0)
+                {
                     it->next();
+                }
                 else
+                {
                     it->prev();
+                }
             }
         }
         else
@@ -1552,7 +1676,9 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
                             it->dataobj->data = it->it->get_data();
                         }
                         else
+                        {
                             it->dataobj->data = i;
+                        }
                     }
                 }
                 else
@@ -1570,7 +1696,9 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
                             it->dataobj->data = it->it->get_data();
                         }
                         else
+                        {
                             it->dataobj->data = i;
+                        }
                     }
                 }
             }
@@ -1601,10 +1729,14 @@ RBTIterator::~RBTIterator()
 inline DataObj* RBTIterator::next()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
 
     if ((it != NULL) && ((it->next()) != NULL))
+    {
         dataobj->data = it->get_data();
+    }
     else
     {
         if (it != NULL)
@@ -1631,7 +1763,9 @@ inline DataObj* RBTIterator::next()
             trail.pop();
 
             while ((!(trail.empty())) && (TAINTED(trail.top())))
+            {
                 trail.pop();
+            }
 
             if (trail.empty())
             {
@@ -1642,7 +1776,9 @@ inline DataObj* RBTIterator::next()
 
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
         if (drop_duplicates)
+        {
             dataobj->data = top->data;
+        }
         else
         {
             if (IS_TREE(top))
@@ -1651,7 +1787,9 @@ inline DataObj* RBTIterator::next()
                 dataobj->data = it->get_data();
             }
             else
+            {
                 dataobj->data = top->data;
+            }
         }
     }
 
@@ -1661,10 +1799,14 @@ inline DataObj* RBTIterator::next()
 inline DataObj* RBTIterator::prev()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
 
     if ((it != NULL) && ((it->prev()) != NULL))
+    {
         dataobj->data = it->get_data();
+    }
     else
     {
         if (it != NULL)
@@ -1691,7 +1833,9 @@ inline DataObj* RBTIterator::prev()
             trail.pop();
 
             while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            {
                 trail.pop();
+            }
 
             if (trail.empty())
             {
@@ -1702,7 +1846,9 @@ inline DataObj* RBTIterator::prev()
 
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
         if (drop_duplicates)
+        {
             dataobj->data = top->data;
+        }
         else
         {
             if (IS_TREE(top))
@@ -1711,7 +1857,9 @@ inline DataObj* RBTIterator::prev()
                 dataobj->data = it->get_data();
             }
             else
+            {
                 dataobj->data = top->data;
+            }
         }
     }
 
@@ -1721,9 +1869,13 @@ inline DataObj* RBTIterator::prev()
 inline DataObj* RBTIterator::data()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
     else
+    {
         return dataobj;
+    }
 }
 
 ERBTIterator::ERBTIterator()
@@ -1737,10 +1889,14 @@ ERBTIterator::~ERBTIterator()
 inline DataObj* ERBTIterator::next()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
 
     if ((it != NULL) && ((it->next()) != NULL))
+    {
         dataobj->data = it->get_data();
+    }
     else
     {
         if (it != NULL)
@@ -1767,7 +1923,9 @@ inline DataObj* ERBTIterator::next()
             trail.pop();
 
             while ((!(trail.empty())) && (TAINTED(trail.top())))
+            {
                 trail.pop();
+            }
 
             if (trail.empty())
             {
@@ -1778,7 +1936,9 @@ inline DataObj* ERBTIterator::next()
 
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
         if (drop_duplicates)
+        {
             dataobj->data = top;
+        }
         else
         {
             if (IS_TREE(top))
@@ -1787,7 +1947,9 @@ inline DataObj* ERBTIterator::next()
                 dataobj->data = it->get_data();
             }
             else
+            {
                 dataobj->data = top;
+            }
         }
     }
 
@@ -1797,10 +1959,14 @@ inline DataObj* ERBTIterator::next()
 inline DataObj* ERBTIterator::prev()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
 
     if ((it != NULL) && ((it->prev()) != NULL))
+    {
         dataobj->data = it->get_data();
+    }
     else
     {
         if (it != NULL)
@@ -1827,7 +1993,9 @@ inline DataObj* ERBTIterator::prev()
             trail.pop();
 
             while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            {
                 trail.pop();
+            }
 
             if (trail.empty())
             {
@@ -1838,7 +2006,9 @@ inline DataObj* ERBTIterator::prev()
 
         struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
         if (drop_duplicates)
+        {
             dataobj->data = top;
+        }
         else
         {
             if (IS_TREE(top))
@@ -1847,7 +2017,9 @@ inline DataObj* ERBTIterator::prev()
                 dataobj->data = it->get_data();
             }
             else
+            {
                 dataobj->data = top;
+            }
         }
     }
 
@@ -1857,7 +2029,11 @@ inline DataObj* ERBTIterator::prev()
 inline DataObj* ERBTIterator::data()
 {
     if (dataobj->data == NULL)
+    {
         return NULL;
+    }
     else
+    {
         return dataobj;
+    }
 }

@@ -46,15 +46,21 @@ bool IndexGroup::add_index(IndexGroup* ig)
         return true;
     }
     else
+    {
         return false;
+    }
 }
 
 IndexGroup* IndexGroup::at(uint32_t i)
 {
     if (i < indices.size())
+    {
         return indices[i];
+    }
     else
+    {
         return NULL;
+    }
 }
 
 vector<Index*> IndexGroup::flatten()
@@ -66,7 +72,9 @@ vector<Index*> IndexGroup::flatten()
     {
         temp = indices[i]->flatten();
         for (uint32_t j = 0 ; j < temp.size() ; j++)
+        {
             ret.push_back(temp[j]);
+        }
     }
 
     return ret;
@@ -81,7 +89,9 @@ inline bool IndexGroup::add_data(DataObj* data)
         return add_data_v(data->data);
     }
     else
+    {
         return false;
+    }
 }
 
 inline ODB* IndexGroup::query(bool (*condition)(void*))
@@ -150,11 +160,15 @@ inline bool IndexGroup::add_data_v(void* data)
     if (n > 0)
     {
         if (n == 1)
+        {
             something_added = indices[0]->add_data_v(data);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 something_added |= indices[i]->add_data_v(data);
+            }
     }
 
     return something_added;
@@ -168,11 +182,15 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
     if (n > 0)
     {
         if (n == 1)
+        {
             indices[0]->query(condition, ds);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 indices[i]->query(condition, ds);
+            }
     }
 }
 
@@ -184,11 +202,15 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
     if (n > 0)
     {
         if (n == 1)
+        {
             indices[0]->query_eq(rawdata, ds);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 indices[i]->query_eq(rawdata, ds);
+            }
     }
 }
 
@@ -200,11 +222,15 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
     if (n > 0)
     {
         if (n == 1)
+        {
             indices[0]->query_lt(rawdata, ds);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 indices[i]->query_lt(rawdata, ds);
+            }
     }
 }
 
@@ -216,11 +242,15 @@ inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
     if (n > 0)
     {
         if (n == 1)
+        {
             indices[0]->query_gt(rawdata, ds);
+        }
         else
 #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
+            {
                 indices[i]->query_gt(rawdata, ds);
+            }
     }
 }
 
@@ -244,7 +274,9 @@ inline bool Index::add_data(DataObj* data)
         return add_data_v(data->data);
     }
     else
+    {
         return false;
+    }
 }
 
 uint64_t Index::size()
