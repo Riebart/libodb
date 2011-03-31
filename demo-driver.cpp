@@ -544,15 +544,14 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
 ///that file reading doesn't get too insanely far ahead of processing. Also
 ///calls process_interval when all files are completely read so that the final
 ///(likely incomplete) interval can be handled.
-int file_read(uint32_t args_start, int argc, char** argv)
+int file_read(uint32_t args_start, uint32_t argc, char** argv)
 {
     struct timeb start, end;
     FILE *fp;
     uint64_t num, total_num;
     double dur;
     double totaldur;
-    int num_files;
-    int i;
+    uint32_t num_files;
 
     struct ph_args* args_p = (struct ph_args*)malloc(sizeof(struct ph_args));
     args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
@@ -561,10 +560,11 @@ int file_read(uint32_t args_start, int argc, char** argv)
     dur = 0;
     total_num = 0;
 
-    sscanf(argv[args_start], "%d", &num_files);
+    sscanf(argv[args_start], "%u", &num_files);
+    num_files = MIN(num_files, (argc - args_start - 1));
     args_start++;
 
-    for (i = 0 ; i < num_files ; i++)
+    for (uint32_t i = 0 ; i < num_files ; i++)
     {
         if (((argv[i + args_start])[0] == '-') && ((argv[i + args_start])[1] == '\0'))
         {
