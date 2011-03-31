@@ -44,11 +44,18 @@ struct pcap_pkthdr32
     uint32_t len;       /* actual length of packet */
 };
 
-struct domain_stats
+struct domain_stat
 {
     char* domain;
     double entropy;
-    uint32_t total_queries;
+    uint64_t total_queries;
+};
+
+struct interval_stat
+{
+    double entropy;
+    uint64_t total_queries;
+    uint64_t total_unique_queries;
 };
 
 // This struct gets handed off to the packet handler.
@@ -73,20 +80,20 @@ struct sig_encap
 };
 
 // Reference: http://www.cplusplus.com/reference/algorithm/sort/
-bool vec_sort_domain(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_domain(struct domain_stat* a, struct domain_stat* b)
 {
     int32_t c = strcmp(a->domain, b->domain);
 
     return (c < 0 ? true : false);
 }
 
-bool vec_sort_entropy(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_entropy(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
     return ((a->entropy > b->entropy) ? true : false);
 }
 
-bool vec_sort_count(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_count(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
     return ((a->total_queries > b->total_queries) ? true : false);
@@ -165,7 +172,7 @@ inline char* get_domain(char* q, uint32_t len)
     return ret;
 }
 
-inline void process_query(struct domain_stats* stats, struct sig_encap* encap)
+inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
 {
     uint32_t cur_count;
     if (encap->ips == NULL)
@@ -181,18 +188,18 @@ inline void process_query(struct domain_stats* stats, struct sig_encap* encap)
     stats->entropy += cur_count * log((double)cur_count);
 }
 
-inline void finalize_domain(struct domain_stats* stats)
+inline void finalize_interval(struct interval_stat* istat)
 {
-    stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
-    stats->entropy /= (stats->total_queries * M_LN2);
+    istat->entropy -= istat->total_queries * log((double)(istat->total_queries));
+    istat->entropy /= (istat->total_queries * M_LN2);
 
-    if (stats->entropy != 0)
+    if (istat->entropy != 0)
     {
-        stats->entropy *= -1;
+        istat->entropy *= -1;
     }
 }
 
-void process_domain(Iterator* it, struct domain_stats* stats)
+void process_domain(Iterator* it, struct domain_stat* stats, struct interval_stat* istat)
 {
     stats->entropy = 0;
     stats->total_queries = 0;
@@ -234,7 +241,19 @@ void process_domain(Iterator* it, struct domain_stats* stats)
         process_query(stats, encap);
     }
 
-    finalize_domain(stats);
+    // Finalize the entropy computation for the domain, and put together this domain's
+    // contribution to the interval.
+    istat->entropy += stats->total_queries * log((double)stats->total_queries);
+    istat->total_queries += stats->total_queries;
+    istat->total_unique_queries++;
+
+    stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
+    stats->entropy /= (stats->total_queries * M_LN2);
+
+    if (stats->entropy != 0)
+    {
+        stats->entropy *= -1;
+    }
 }
 
 // =============================================================================
@@ -283,21 +302,28 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
 
 void* process_interval(void* args)
 {
-    std::vector<struct domain_stats*> stats;
+    std::vector<struct domain_stat*> stats;
     struct th_args* args_t = (struct th_args*)(args);
 
-    struct domain_stats* cur_stat;
+    struct interval_stat istat;
+    istat.entropy = 0;
+    istat.total_queries = 0;
+    istat.total_unique_queries = 0;
+
+    struct domain_stat* cur_stat;
     Iterator* it;
 
     it = RedBlackTreeI::e_it_first(args_t->tree_root);
 
     do
     {
-        cur_stat = (struct domain_stats*)malloc(sizeof(struct domain_stats));
-        process_domain(it, cur_stat);
+        cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
+        process_domain(it, cur_stat, &istat);
         stats.push_back(cur_stat);
     }
     while (it->next() != NULL);
+
+    finalize_interval(&istat);
 
     RedBlackTreeI::e_it_release(it, args_t->tree_root);
     RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
@@ -312,11 +338,11 @@ void* process_interval(void* args)
         pthread_join(threads[args_t->t_index - 1], NULL);
     }
 
-    fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
+    fprintf(out, "\n\n%u %g %lu %lu\n", args_t->ts_sec, istat.entropy, istat.total_queries, istat.total_unique_queries);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
-        fprintf(out, "%g %u ", stats[i]->entropy, stats[i]->total_queries);
+        fprintf(out, "%g %lu ", stats[i]->entropy, stats[i]->total_queries);
         dns_print(out, stats[i]->domain);
         fprintf(out, "\n");
         free(stats[i]);
