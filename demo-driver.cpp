@@ -286,15 +286,6 @@ void* process_interval(void* args)
     std::vector<struct domain_stats*> stats;
     struct th_args* args_t = (struct th_args*)(args);
 
-    fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
-
-    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
-    // Once we exit the join, we can process this tree.
-    if (args_t->t_index > 0)
-    {
-        pthread_join(threads[args_t->t_index - 1], NULL);
-    }
-
     struct domain_stats* cur_stat;
     Iterator* it;
 
@@ -312,6 +303,16 @@ void* process_interval(void* args)
     RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
+
+    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
+    // By doing all of the heavy lifting before joining, we cna make maximum use of multithreading.
+    // Leaving the printing out until after joining ensures that data gets printed out in the right order.
+    if (args_t->t_index > 0)
+    {
+        pthread_join(threads[args_t->t_index - 1], NULL);
+    }
+
+    fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {

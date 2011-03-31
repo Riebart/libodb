@@ -20,4 +20,4 @@ do
     let "i += 1"
 done
 
-echo $1 $2 $files | sh
+echo $1 $2 $files
