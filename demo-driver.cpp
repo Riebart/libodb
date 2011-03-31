@@ -21,12 +21,11 @@
 #include "redblacktreei.hpp"
 #include "log.hpp"
 
-#define FIELD_SEPARATOR ,
-#define NUM_SEC_PER_INTERVAL 300
-
 std::vector<pthread_t> threads;
 uint32_t interval_start_sec = 0;
 FILE* out;
+uint64_t interval_len = 300;
+bool verbose = false;
 
 // We need some 32-bit structs for the file format, since the time stamps in the file are 32-bit.
 // But the timeval struct on 64-bit machines uses 64-bit timestamps.
@@ -375,8 +374,14 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         interval_start_sec = pheader->ts.tv_sec;
     }
     // If we've over-run the interval, then hand this tree off for processing and init a replacement.
-    else if ((pheader->ts.tv_sec - interval_start_sec) >= NUM_SEC_PER_INTERVAL)
+    else if ((uint64_t)(pheader->ts.tv_sec - interval_start_sec) >= interval_len)
     {
+        if (verbose)
+        {
+            printf("!");
+            fflush(stdout);
+        }
+
         pthread_t t;
         struct th_args* args_t = make_thread_args(args_p);
 
@@ -396,7 +401,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
 
         // Handle large gaps that might be longer than a single window.
         uint64_t gap = pheader->ts.tv_sec - interval_start_sec;
-        gap = gap - (gap % NUM_SEC_PER_INTERVAL);
+        gap = gap - (gap % interval_len);
         interval_start_sec += gap;
     }
 
@@ -407,6 +412,12 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
 ///processing on to packet_driver.
 void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
+    if (verbose)
+    {
+        printf(".");
+        fflush(stdout);
+    }
+
     struct ph_args* args_p = (struct ph_args*)(args);
     packet_driver(args_p, pheader, packet);
 }
@@ -434,7 +445,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
         return 1;
     }
 
-    if (args_start == argc)
+    if (args_start >= argc)
     {
         dev = pcap_lookupdev(errbuf);
     }
@@ -443,13 +454,22 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
         dev = argv[args_start];
     }
 
+    LOG_MESSAGE(LOG_LEVEL_NORMAL, "Listening on %s\n", dev);
+
+    if (args_start >= (argc - 1))
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Not using a pcap filter. ALL PACKETS WILL BE PROCESSED.\n");
+    }
+    else
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Using pcap filter \"%s\".\n", argv[args_start + 1]);
+    }
+
     if (dev == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_CRITICAL, "%s\n", errbuf);
         return 1;
     }
-
-    LOG_MESSAGE(LOG_LEVEL_NORMAL, "Listening on %s\n", dev);
 
     descr = pcap_open_live(dev, BUFSIZ, 1, 0, errbuf);
 
@@ -461,7 +481,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
 
     pcap_lookupnet(dev, &net, &mask, errbuf);
 
-    if (pcap_compile(descr, &filter, " udp port 53 ", 0, net) == -1)
+    if (pcap_compile(descr, &filter, ((args_start >= (argc - 1)) ? "" : argv[args_start + 1]), 0, net) == -1)
     {
         LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Error compiling pcap filter\n");
         return 1;
@@ -652,6 +672,9 @@ Usage:\n\
 		file, if it exists. if it doesn't, then it will be created.\n\
 		The default overwrites existing files. If -o is not specified, \n\
 		then this switch has no effect.\n\
+        -i      Takes an argument which specifies the number of seconds that an\n\
+                interval will last. If this is not specified, the default of 300\n\
+                seconds is used.\n\
 	-o	Filename to write output to. It will be created if it doesn't\n\
 		exist aready. If this is not specified, then stdout is used.\n\
 	-m 	Specifies the mode of operation. Acceptable values are F for\n\
@@ -659,12 +682,22 @@ Usage:\n\
 		Values are case sensitive. The argument to the mode switch must\n\
 		be the final command line argument before the mode-specific\n\
 		arguemnts.\n\
+        -v      Specify verbose operation. Verbose markers are as follows:\n\
+\n\
+                    .   When capturing off the wire, a '.' indicates a packet\n\
+                        was processed.\n\
+                    !   Under any processing scheme, a '!' indicates that an\n\
+                        interval was completed and a processing thread was\n\
+                        spawned\n\
 \n\
     Reading from files:\n\
 	$ analysis [-ao] -m F <number of files> <filename+> ...\n\
 \n\
     Sniffing from an interface:\n\
-	# analysis [-ao] -m I [interface name]\n\
+	# analysis [-ao] -m I [interface name] [pcap filter]\n\
+	\n\
+	- Note: If you want to specify a pcap filter, then you must specify an\n\
+                interface to sniff on.\n\
 \n");
 }
 
@@ -684,13 +717,18 @@ int main(int argc, char** argv)
     srand(0);
 
     //Parse the options. TODO: validity checks
-    while ( (ch = getopt(argc, argv, "am:o:")) != -1)
+    while ( (ch = getopt(argc, argv, "ai:m:o:v")) != -1)
     {
         switch (ch)
         {
         case 'a':
         {
             append = true;
+            break;
+        }
+        case 'i':
+        {
+            sscanf(optarg, "%lu", &interval_len);
             break;
         }
         case 'm':
@@ -704,6 +742,12 @@ int main(int argc, char** argv)
             outfname = strdup(optarg);
             break;
         }
+        case 'v':
+        {
+            verbose = true;
+            LOG_MESSAGE(LOG_LEVEL_INFO, "Verbose operation enabled.\n");
+            break;
+        }
         default:
         {
             usage();
@@ -712,6 +756,8 @@ int main(int argc, char** argv)
         }
         }
     }
+
+    LOG_MESSAGE(LOG_LEVEL_INFO, "Interval windows will be %lus in length.\n", interval_len);
 
     if (mode == 0)
     {
