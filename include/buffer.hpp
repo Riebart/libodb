@@ -146,24 +146,24 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
 uint32_t fb_write_flush(struct file_buffer* fb)
 {
     uint32_t numput = 0;
-    
+
     if (fb->position > 0)
     {
         numput = fwrite(fb->buffer, fb->position, 1, fb->fp);
-        
+
         if (numput > 0)
         {
             fb->position = 0;
         }
     }
-    
+
     return numput;
 }
 
 // uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes, bool flush)
 // {
 //     uint32_t numput = fb_write(fb, src, num_bytes);
-// 
+//
 //     // If we have explicitly flushed, make sure we write the buffer out, if it has anything in it.
 //     if ((flush) && (fb->position > 0))
 //     {
@@ -172,7 +172,7 @@ uint32_t fb_write_flush(struct file_buffer* fb)
 //             fb->position = 0;
 //         }
 //     }
-// 
+//
 //     return numput;
 // }
 

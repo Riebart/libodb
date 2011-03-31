@@ -38,5 +38,5 @@
 #define SAFE_REALLOC(t, x, n) { x = reinterpret_cast<t>(realloc(x, n)); if (!x) OOM(); } (void)0
 
 #define NOT_IMPLEMENTED(str...) FAIL("Function not yet implemented: %s\n", str);
- 
+
 #endif

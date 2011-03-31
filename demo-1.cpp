@@ -586,7 +586,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
         }
         while (it->next() != NULL);
     }
-    
+
     odb2->it_release(it);
     odb2->purge();
 
@@ -635,9 +635,13 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     //     printf("Snaplen: %d", (fheader->snaplen));
     // If we've got the wrong endianness:
     if (fheader->magic_number == 3569595041)
+    {
         data = (char*)malloc(ntohl(fheader->snaplen));
+    }
     else
+    {
         data = (char*)malloc(fheader->snaplen);
+    }
 
     while (nbytes > 0)
     {

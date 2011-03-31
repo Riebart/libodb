@@ -280,11 +280,15 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
     }
-    
+
     if (total_n == 0)
+    {
         return false;
+    }
     else
+    {
         return true;
+    }
 }
 
 void str_tolower(char* str)

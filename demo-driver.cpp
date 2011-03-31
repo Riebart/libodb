@@ -12,6 +12,7 @@
 #include <math.h>
 #include <pcap.h>
 #include <vector>
+#include <algorithm>
 
 #include "buffer.hpp"
 #include "protoparse.hpp"
@@ -20,6 +21,7 @@
 #include "redblacktreei.hpp"
 #include "log.hpp"
 
+#define FIELD_SEPARATOR ,
 #define NUM_SEC_PER_INTERVAL 300
 
 std::vector<pthread_t> threads;
@@ -44,15 +46,18 @@ struct pcap_pkthdr32
 
 struct domain_stats
 {
+    char* domain;
     double entropy;
     uint32_t total_queries;
 };
 
+// This struct gets handed off to the packet handler.
 struct ph_args
 {
     struct RedBlackTreeI::e_tree_root* tree_root;
 };
 
+// This struct gets handed off to the new thread handler.
 struct th_args
 {
     struct RedBlackTreeI::e_tree_root* tree_root;
@@ -66,6 +71,26 @@ struct sig_encap
     struct flow_sig* sig;
     vector<struct flow_sig*>* ips;
 };
+
+// Reference: http://www.cplusplus.com/reference/algorithm/sort/
+bool vec_sort_domain(struct domain_stats* a, struct domain_stats* b)
+{
+    int32_t c = strcmp(a->domain, b->domain);
+
+    return (c < 0 ? true : false);
+}
+
+bool vec_sort_entropy(struct domain_stats* a, struct domain_stats* b)
+{
+    // We're flipping the return values here so that it sorts hight->low
+    return ((a->entropy > b->entropy) ? true : false);
+}
+
+bool vec_sort_count(struct domain_stats* a, struct domain_stats* b)
+{
+    // We're flipping the return values here so that it sorts hight->low
+    return ((a->total_queries > b->total_queries) ? true : false);
+}
 
 inline void free_encapped(void* v)
 {
@@ -167,11 +192,10 @@ inline void finalize_domain(struct domain_stats* stats)
     }
 }
 
-void process_domain(Iterator* it)
+void process_domain(Iterator* it, struct domain_stats* stats)
 {
-    struct domain_stats stats;
-    stats.entropy = 0;
-    stats.total_queries = 0;
+    stats->entropy = 0;
+    stats->total_queries = 0;
 
     struct sig_encap* encap;
     struct flow_sig* sig;
@@ -187,8 +211,9 @@ void process_domain(Iterator* it)
 
     domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
     domain = get_domain(dns->query, domain_len);
+    stats->domain = domain;
 
-    process_query(&stats, encap);
+    process_query(stats, encap);
 
     while (true)
     {
@@ -206,15 +231,10 @@ void process_domain(Iterator* it)
             break;
         }
 
-        process_query(&stats, encap);
+        process_query(stats, encap);
     }
 
-    finalize_domain(&stats);
-
-    dns_print(out, domain);
-    fprintf(out, " %g %u\n", stats.entropy, stats.total_queries);
-
-    free(domain);
+    finalize_domain(stats);
 }
 
 // =============================================================================
@@ -263,6 +283,7 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
 
 void* process_interval(void* args)
 {
+    std::vector<struct domain_stats*> stats;
     struct th_args* args_t = (struct th_args*)(args);
 
     fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
@@ -274,18 +295,31 @@ void* process_interval(void* args)
         pthread_join(threads[args_t->t_index - 1], NULL);
     }
 
+    struct domain_stats* cur_stat;
     Iterator* it;
 
     it = RedBlackTreeI::e_it_first(args_t->tree_root);
 
     do
     {
-        process_domain(it);
+        cur_stat = (struct domain_stats*)malloc(sizeof(struct domain_stats));
+        process_domain(it, cur_stat);
+        stats.push_back(cur_stat);
     }
     while (it->next() != NULL);
 
     RedBlackTreeI::e_it_release(it, args_t->tree_root);
     RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
+
+    sort(stats.begin(), stats.end(), vec_sort_entropy);
+
+    for (uint32_t i = 0 ; i < stats.size() ; i++)
+    {
+        fprintf(out, "%g %u ", stats[i]->entropy, stats[i]->total_queries);
+        dns_print(out, stats[i]->domain);
+        fprintf(out, "\n");
+        free(stats[i]);
+    }
 
     free(args_t);
 
