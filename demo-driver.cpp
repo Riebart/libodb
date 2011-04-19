@@ -21,9 +21,14 @@
 #include "redblacktreei.hpp"
 #include "log.hpp"
 
+#ifndef MIN
+#define MIN(x, y) ((x < y) ? x : y)
+#endif
+
 std::vector<pthread_t> threads;
 uint32_t interval_start_sec = 0;
-FILE* out;
+char* outfname = NULL;
+uint16_t outfname_len;
 uint64_t interval_len = 300;
 bool verbose = false;
 
@@ -60,15 +65,19 @@ struct interval_stat
 // This struct gets handed off to the packet handler.
 struct ph_args
 {
-    struct RedBlackTreeI::e_tree_root* tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root;
+    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
+    uint64_t num_invalid_udp53;
 };
 
 // This struct gets handed off to the new thread handler.
 struct th_args
 {
-    struct RedBlackTreeI::e_tree_root* tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root;
+    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
     uint32_t t_index;
     uint32_t ts_sec;
+    uint64_t num_invalid_udp53;
 };
 
 struct sig_encap
@@ -142,8 +151,22 @@ int32_t compare_dns(void* aV, void* bV)
     return strcmp(a->query, b->query);
 }
 
+int32_t compare_memcmp(void* aV, void* bV)
+{
+    struct flow_sig* aF = (reinterpret_cast<struct sig_encap*>(aV))->sig;
+    struct flow_sig* bF = (reinterpret_cast<struct sig_encap*>(bV))->sig;
+
+    int32_t c = aF->hdr_size - bF->hdr_size;
+    if (c == 0)
+    {
+        c = memcmp(aV, bV, sizeof(struct flow_sig) + aF->hdr_size);
+    }
+
+    return c;
+}
+
 // New data is being merged into old data: aV is new, bV is existing.
-void* merge_dns(void* aV, void* bV)
+void* merge_sig_encap(void* aV, void* bV)
 {
     struct sig_encap* a = reinterpret_cast<struct sig_encap*>(aV);
     struct sig_encap* b = reinterpret_cast<struct sig_encap*>(bV);
@@ -262,7 +285,8 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
 // =============================================================================
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
-    struct RedBlackTreeI::e_tree_root* tree_root = args_p->tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root = args_p->valid_tree_root;
+//     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
 
     struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
     data->link[0] = NULL;
@@ -279,7 +303,7 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
         struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
 
         // If it was not added due to being a duplicate
-        if (!RedBlackTreeI::e_add(tree_root, data))
+        if (!RedBlackTreeI::e_add(valid_tree_root, data))
         {
             // Free the query and the encapculating struct, but keep the
             // signature alive since it is still live in the vector of the
@@ -287,15 +311,43 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
             free(a->query);
             free(data);
         }
-        // If it successfully added...
         else
         {
+            // If it was successfully added...
         }
     }
     // What to do with non-DNS ?
     else
     {
-        free_sig_encap(data);
+        // If we're looking at a UDP port 53 that made it here, make note of it.
+        if (data->sig->l4_type == L4_TYPE_UDP)
+        {
+            struct l4_udp* udp = (struct l4_udp*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type]);
+
+            // If either port is 53 (DNS), and it doesn't make it into the tree...
+            if ((udp->sport == 53) || (udp->dport == 53))
+            {
+                args_p->num_invalid_udp53++;
+                free_sig_encap(data);
+
+//                 if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
+//                 {
+//                     free(data);
+//                 }
+//                 else
+//                 {
+//                     // If it was successfully added...
+//                 }
+            }
+            else
+            {
+            }
+        }
+        else
+        {
+            // Everything not DNS or UDP port 53 gets completely freed.
+            free_sig_encap(data);
+        }
     }
 }
 
@@ -312,7 +364,7 @@ void* process_interval(void* args)
     struct domain_stat* cur_stat;
     Iterator* it;
 
-    it = RedBlackTreeI::e_it_first(args_t->tree_root);
+    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
     do
     {
@@ -324,8 +376,9 @@ void* process_interval(void* args)
 
     finalize_interval(&istat);
 
-    RedBlackTreeI::e_it_release(it, args_t->tree_root);
-    RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
+    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+    RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
+    RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
 
@@ -336,14 +389,36 @@ void* process_interval(void* args)
     {
         pthread_join(threads[args_t->t_index - 1], NULL);
     }
+    
+    FILE* out;
+    
+    if (outfname == NULL)
+    {
+        out = stdout;
+    }
+    else
+    {
+        char* curoutfname = (char*)malloc(outfname_len + 1 + 10);
+        strcat(curoutfname, atoi(args_t->ts_sec));
+        out = fopen(curoutfname, (append ? "ab" : "wb"));
+        
+        if (out == NULL)
+        {
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
+            out = stdout;
+        }
+        
+        free(curoutfname);
+    }
 
-    fprintf(out, "\n\n%u %g %lu %lu\n", args_t->ts_sec, istat.entropy, istat.total_queries, istat.total_unique_queries);
+    fprintf(out, "%u,%g,%lu,%lu,%lu\n", args_t->ts_sec, istat.entropy, istat.total_unique_queries, istat.total_queries, args_t->num_invalid_udp53);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
-        fprintf(out, "%g %lu ", stats[i]->entropy, stats[i]->total_queries);
+        fprintf(out, "%g,%lu,", stats[i]->entropy, stats[i]->total_queries);
         dns_print(out, stats[i]->domain);
         fprintf(out, "\n");
+        free(stats[i]->domain);
         free(stats[i]);
     }
 
@@ -352,14 +427,27 @@ void* process_interval(void* args)
     return NULL;
 }
 
-struct th_args* make_thread_args(struct ph_args* args_p)
+void init_thread_args(struct ph_args* args_p, struct th_args* args_t)
 {
-    struct th_args* args_t = (struct th_args*)malloc(sizeof(struct th_args));
-    args_t->tree_root = args_p->tree_root;
+    args_t->valid_tree_root = args_p->valid_tree_root;
+    args_t->invalid_tree_root = args_p->invalid_tree_root;
+    args_t->num_invalid_udp53 = args_p->num_invalid_udp53;
     args_t->t_index = threads.size();
     args_t->ts_sec = interval_start_sec;
+}
 
-    return args_t;
+void init_persistent_args(struct ph_args* args_p)
+{
+    args_p->valid_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
+    args_p->invalid_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
+    args_p->num_invalid_udp53 = 0;
+}
+
+// Called at the end of an interval. Use this callback to handle initializing a new
+// tree root and such.
+void reset_persistent_args(struct ph_args* args_p)
+{
+    init_persistent_args(args_p);
 }
 
 // =============================================================================
@@ -383,7 +471,8 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         }
 
         pthread_t t;
-        struct th_args* args_t = make_thread_args(args_p);
+        struct th_args* args_t = reinterpret_cast<struct th_args*>(malloc(sizeof(struct th_args)));
+        init_thread_args(args_p, args_t);
 
         int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
 
@@ -391,7 +480,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         if (e == 0)
         {
             threads.push_back(t);
-            args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+            reset_persistent_args(args_p);
         }
         else
         {
@@ -434,8 +523,9 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
     uint32_t net;               /* Our IP address            */
     uint8_t* args = NULL;           /* Retval for pcacp callback */
 
-    struct ph_args* args_p = (struct ph_args*)malloc(sizeof(struct ph_args));
-    args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+
+    struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
+    init_persistent_args(args_p);
 
     args = reinterpret_cast<uint8_t*>(args_p);
 
@@ -600,8 +690,8 @@ int file_read(uint32_t args_start, uint32_t argc, char** argv)
     double totaldur;
     uint32_t num_files;
 
-    struct ph_args* args_p = (struct ph_args*)malloc(sizeof(struct ph_args));
-    args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+    struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
+    init_persistent_args(args_p);
 
     totaldur = 0;
     dur = 0;
@@ -654,7 +744,8 @@ int file_read(uint32_t args_start, uint32_t argc, char** argv)
     }
 
     // Clean up the last interval we didn't finish.
-    struct th_args* args_t = make_thread_args(args_p);
+    struct th_args* args_t = reinterpret_cast<struct th_args*>(malloc(sizeof(struct th_args)));
+    init_thread_args(args_p, args_t);
     process_interval(args_t);
 
     free(args_p);
@@ -705,7 +796,6 @@ Usage:\n\
 int main(int argc, char** argv)
 {
     bool append = false;
-    char* outfname = NULL;
     char mode = 0;
     uint32_t args_start = 0;
 
@@ -756,15 +846,7 @@ int main(int argc, char** argv)
         }
         }
     }
-
-    LOG_MESSAGE(LOG_LEVEL_INFO, "Interval windows will be %lus in length.\n", interval_len);
-
-    if (mode == 0)
-    {
-        usage();
-        return EXIT_SUCCESS;
-    }
-
+    
     if (outfname == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
@@ -772,13 +854,16 @@ int main(int argc, char** argv)
     }
     else
     {
-        out = fopen(outfname, (append ? "ab" : "wb"));
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Will write to output files with base file name \"%s\".\n", outfname);
+        outfname_len = strlen(outfname);
+    }
 
-        if (out == NULL)
-        {
-            LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to open \"%s\" for writing.\n", outfname);
-            return EXIT_FAILURE;
-        }
+    LOG_MESSAGE(LOG_LEVEL_INFO, "Interval windows will be %lus in length.\n", interval_len);
+
+    if (mode == 0)
+    {
+        usage();
+        return EXIT_SUCCESS;
     }
 
     // Required by the protosim header.

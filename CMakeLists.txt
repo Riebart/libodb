@@ -45,8 +45,8 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     find_library(TCMALLOC_LIB tcmalloc_minimal)
     if(${TCMALLOC_LIB} MATCHES "tcmalloc")
 	message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
-	list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
-	list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+#	list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
+#	list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
     endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 

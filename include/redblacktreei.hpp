@@ -25,7 +25,7 @@ public:
         Comparator* compare;
         Merger* merge;
         bool drop_duplicates;
-        uint32_t count;
+        uint64_t count;
         RWLOCK_T;
     };
 

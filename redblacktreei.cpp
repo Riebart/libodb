@@ -1225,13 +1225,15 @@ void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
         }
 
         if (!drop_duplicates)
+        {
             if (IS_TREE(root))
             {
                 free_n(reinterpret_cast<struct tree_node*>(root->data), true);
             }
-    }
+        }
 
-    free(root);
+        free(root);
+    }
 }
 
 void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void (*freep)(void*))
@@ -1252,17 +1254,20 @@ void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void 
         }
 
         if (!drop_duplicates)
+        {
             if (IS_TREE(root))
             {
                 e_free_n(reinterpret_cast<struct tree_node*>(root->data), true, freep);
             }
-    }
+        }
 
-    if (freep != NULL)
-    {
-        freep(root);
+        if (freep != NULL)
+        {
+            freep(root);
+        }
+
+        free(root);
     }
-    free(root);
 }
 
 inline Iterator* RedBlackTreeI::it_first()
