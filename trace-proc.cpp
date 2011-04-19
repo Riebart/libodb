@@ -83,28 +83,34 @@ double distance(struct flow_stats * a, struct flow_stats * b)
 
     assert (a != NULL);
     assert (b != NULL);
+//     assert (a != b);
 
     sum += SQUARE( (a->a_ip - b->a_ip)/(uint32_t)(-1));
     sum += SQUARE( (a->b_ip - b->b_ip)/(uint32_t)(-1));
     sum += SQUARE( (a->a_port - b->a_port)/(uint16_t)(-1) );
     sum += SQUARE( (a->b_port - b->b_port)/(uint16_t)(-1) );
-    LAZY(num_packets_a2b);
-    LAZY(num_packets_b2a);
-    LAZY(num_acks_a2b);
-    LAZY(num_acks_b2a);
-    LAZYL(num_bytes_a2b);
-    LAZYL(num_bytes_b2a);
-    LAZY(num_resent_a2b);
-    LAZY(num_resent_b2a);
-    LAZY(num_pushed_a2b);
-    LAZY(num_pushed_b2a);
-    LAZY(num_syns_a2b);
-    LAZY(num_syns_b2a);
-    LAZY(num_fins_a2b);
-    LAZY(num_fins_b2a);
+//     LAZY(num_packets_a2b);
+//     LAZY(num_packets_b2a);
+//     LAZY(num_acks_a2b);
+//     LAZY(num_acks_b2a);
+//     LAZYL(num_bytes_a2b);
+//     LAZYL(num_bytes_b2a);
+//     LAZY(num_resent_a2b);
+//     LAZY(num_resent_b2a);
+//     LAZY(num_pushed_a2b);
+//     LAZY(num_pushed_b2a);
+//     LAZY(num_syns_a2b);
+//     LAZY(num_syns_b2a);
+//     LAZY(num_fins_a2b);
+//     LAZY(num_fins_b2a);
     
 //     sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len)/1500);
 
+    if (sum != 0.0)
+    {
+        fprintf(stderr, "Distance: %f\n", sum);
+    }
+    
     return sqrt(sum);
 }
 
@@ -317,7 +323,7 @@ bool process_data (struct flow_stats * cur_stats, char * data)
     char b_ip [16];
     int num_matched;
     
-    num_matched = sscanf(data, "%u,%[^,],%[^,],%hu,%hu,%lf , %lf , %hu, %hu, %d, %d, %hu, %hu, %d, %d, %d, %d",
+    num_matched = sscanf(data, "%d,%[^,],%[^,],%hu,%hu,%lf , %lf , %hu, %hu, %d, %d, %hu, %hu, %d, %d, %d, %d",
            &throwaway,
            a_ip,
            b_ip,
@@ -360,9 +366,14 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
     struct file_buffer* fb = fb_read_init(fp, 1048576);
 
-    nbytes = fb_read(fb, data, HEADER_SIZE);
+    //throwaway the first 10 lines, and prep the first line
+    int i;
+    for (i=0; i<11; i++)
+    {
+        nbytes = fb_read_line(fb, data, BUF_SIZE);
+    }
 
-    while (nbytes > 0)
+    while (nbytes >= 0)
     {
         //         nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
 
@@ -370,12 +381,14 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
         //         nbytes = read(fileno(fp), data, (pheader->incl_len));
 //         nbytes = fb_read(fb, data, pheader->incl_len);
-
-        nbytes = fb_read_line(fb, data, BUF_SIZE);
-
         
-        process_data(&cur_stats, data);
         
+        if (process_data(&cur_stats, data) == false)
+        {
+            fprintf(stderr, "Error on flow: %30s\n", data);
+        }
+
+        //set the start of the period
         if (period_start == 0)
         {
             period_start = cur_stats.flow_start;
@@ -383,7 +396,6 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         
         if ((cur_stats.flow_start - period_start) > PERIOD && total > 0)
         {
-
 
 //             do_it_calcs();
             if (total > K_NN)
@@ -395,9 +407,9 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
                 printf("0,");
             }
 
-//     printf("%d\n", total);
+            printf("%d\n", total);
 
-            printf("0\n");
+//             printf("0\n");
             // Include the timestamp that marks the END of this interval
 //             printf("TIMESTAMP %u\n", pheader->ts_sec);
             fflush(stdout);
@@ -422,6 +434,9 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         packets->add_data(dataObj);
 
         num_records++;
+        total++;
+        
+        nbytes = fb_read_line(fb, data, BUF_SIZE);
     }
     
     return num_records;
