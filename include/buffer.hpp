@@ -231,6 +231,12 @@ uint32_t fb_read_line(struct file_buffer* fb, void* dest, uint32_t num_bytes)
     
     while (numread < num_bytes && fb->buffer[fb->position] != '\n') 
     {
+        
+        str_dest[numread] = fb->buffer[fb->position];
+        
+        numread++;
+        fb->position++;
+
         //expand the buffer, if necessary
         if (fb->size <= fb->position)
         {
@@ -241,17 +247,11 @@ uint32_t fb_read_line(struct file_buffer* fb, void* dest, uint32_t num_bytes)
             {
                 str_dest[numread+1] = '\0';
                 return numread;
-            }
-            
-        }
-        
-        str_dest[numread] = fb->buffer[fb->position];
-        
-        numread++;
-        fb->position++;
-        
+            }            
+        }        
     }
-    
+
+    //advance past newline
     fb->position++;
     str_dest[numread] = '\0';
     
