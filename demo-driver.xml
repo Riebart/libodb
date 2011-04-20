@@ -34,22 +34,19 @@
         <value type="double_l" name="Domain Entropy" />
         <value type="uint64_l" name="Queries to Domain" />
     </loop>
-    <loop count="_numqueries_" prefix="Query">
+    <loop count="_inf_" prefix="Query">
         <value type="cstr" name="Query String" />
         <value type="uint32_l" name="Count" label="numcontribs" />
         <loop count="_numcontribs_" prefix="Contributor">
             <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
             <if lhs="_l3type_" op="eq" rhs="2048">
-                <value type="uint32_l" name="Source IP" />
-                <value type="uint32_l" name="Destination IP" />
-                <value type="uint16_l" name="IPv4 Header Length (bytes)" />
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
             </if>
-<!--            <if lhs="_l3type_" op="eq" rhs="34525">
-                <value type="uint64_l" name="Source IP (low)" />
-                <value type="uint64_l" name="Source IP (high)" />
-                <value type="uint64_l" name="Destination IP (low)" />
-                <value type="uint64_l" name="Destination IP (high)" />
-            </if>-->
+            <if lhs="_l3type_" op="eq" rhs="34525">
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
+            </if>
         </loop>
     </loop>
 </fmt2xml>

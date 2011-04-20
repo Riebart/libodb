@@ -119,7 +119,28 @@ inline void write_out_sig(struct flow_sig* sig, FILE* out)
 {
     // Write out the layer 3 and 7 information.
     fwrite(&(sig->l3_type), 1, sizeof(uint16_t), out);
-    fwrite(&(sig->hdr_start), 1, l3_hdr_size[sig->l3_type], out);
+    
+    if (sig->l3_type == L3_TYPE_IP4)
+    {
+        struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
+        
+        fprintf(out, "%d.%d.%d.%d%c%d.%d.%d.%d%c",
+               ((uint8_t*)(&(l3->src)))[0], ((uint8_t*)(&(l3->src)))[1], ((uint8_t*)(&(l3->src)))[2], ((uint8_t*)(&(l3->src)))[3], 0,
+               ((uint8_t*)(&(l3->dst)))[0], ((uint8_t*)(&(l3->dst)))[1], ((uint8_t*)(&(l3->dst)))[2], ((uint8_t*)(&(l3->dst)))[3], 0
+        );
+    }
+    else if (sig->l3_type == L3_TYPE_IP6)
+    {
+        struct l3_ip6* l3 = reinterpret_cast<struct l3_ip6*>(&(sig->hdr_start));
+        
+        uint8_t* s = reinterpret_cast<uint8_t*>(&(l3->src));
+        uint8_t* d = reinterpret_cast<uint8_t*>(&(l3->dst));
+        
+        fprintf(out, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c",
+               s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10], s[11], s[12], s[13], s[14], s[15], 0,
+               d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15], 0
+        );
+    }
 }
 
 void write_out_contributors(struct sig_encap* encap, FILE* out)
