@@ -51,6 +51,7 @@ struct pcap_pkthdr32
 struct domain_stat
 {
     char* domain;
+    uint32_t domain_len;
     double entropy;
     uint64_t total_queries;
 };
@@ -105,6 +106,44 @@ bool vec_sort_count(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
     return ((a->total_queries > b->total_queries) ? true : false);
+}
+
+inline void write_out_query(struct flow_sig* sig, FILE* out)
+{
+    struct l7_dns* dns;
+    dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
+    fprintf(out, "%s%c", dns->query, '\0');
+}
+
+inline void write_out_sig(struct flow_sig* sig, FILE* out)
+{
+    // Write out the layer 3 and 7 information.
+    fwrite(&(sig->l3_type), 1, sizeof(uint16_t), out);
+    fwrite(&(sig->hdr_start), 1, l3_hdr_size[sig->l3_type], out);
+}
+
+void write_out_contributors(struct sig_encap* encap, FILE* out)
+{
+    vector<struct flow_sig*>* ips = encap->ips;
+    uint32_t num_addrs;
+    
+    if (ips == NULL)
+    {
+        write_out_query(encap->sig, out);
+        num_addrs = 1;
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        write_out_sig(encap->sig, out);
+    }
+    else
+    {
+        write_out_query(ips->at(0), out);
+        num_addrs = ips->size();
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        for (uint32_t i = 0 ; i < ips->size() ; i++)
+        {
+            write_out_sig(ips->at(i), out);
+        }
+    }
 }
 
 inline void free_encapped(void* v)
@@ -241,6 +280,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
     domain = get_domain(dns->query, domain_len);
     stats->domain = domain;
+    stats->domain_len = domain_len;
 
     process_query(stats, encap);
 
@@ -261,13 +301,13 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
         }
 
         process_query(stats, encap);
+        istat->total_unique_queries++;
     }
 
     // Finalize the entropy computation for the domain, and put together this domain's
     // contribution to the interval.
     istat->entropy += stats->total_queries * log((double)stats->total_queries);
     istat->total_queries += stats->total_queries;
-    istat->total_unique_queries++;
 
     stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
     stats->entropy /= (stats->total_queries * M_LN2);
@@ -366,6 +406,7 @@ void* process_interval(void* args)
 
     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
+    /// TODO: Some off-by-one errors here.
     do
     {
         cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
@@ -377,8 +418,6 @@ void* process_interval(void* args)
     finalize_interval(&istat);
 
     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
-    RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
-    RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
 
@@ -398,29 +437,86 @@ void* process_interval(void* args)
     }
     else
     {
-        char* curoutfname = (char*)malloc(outfname_len + 1 + 10);
-        strcat(curoutfname, atoi(args_t->ts_sec));
-        out = fopen(curoutfname, (append ? "ab" : "wb"));
+        char curoutfname[outfname_len + 1 + 10 + 1];
+        strcpy(curoutfname, outfname);
+        curoutfname[outfname_len] = '.';
+        curoutfname[outfname_len + 1] = 0;
+        char cursuffix[11];
+        sprintf(cursuffix, "%u", args_t->ts_sec);
+        strcat(curoutfname, cursuffix);
+        out = fopen(curoutfname, "wb");
         
         if (out == NULL)
         {
             LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
             out = stdout;
         }
-        
-        free(curoutfname);
+        else
+        {
+            LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
+        }
     }
 
-    fprintf(out, "%u,%g,%lu,%lu,%lu\n", args_t->ts_sec, istat.entropy, istat.total_unique_queries, istat.total_queries, args_t->num_invalid_udp53);
+    fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
+    fwrite(&istat, 1, sizeof(struct interval_stat), out);
+    
+    /// TODO: See previous note about off-by-one errors for why I need to offset this value.
+    uint32_t num_domains = stats.size() + 3;
+    fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
-        fprintf(out, "%g,%lu,", stats[i]->entropy, stats[i]->total_queries);
-        dns_print(out, stats[i]->domain);
-        fprintf(out, "\n");
+        fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        fwrite(&(stats[i]->entropy), 1, sizeof(uint64_t) + sizeof(double), out);
         free(stats[i]->domain);
         free(stats[i]);
     }
+    
+    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+    
+    do
+    {
+        struct sig_encap* encap;
+        struct flow_sig* sig;
+        struct l7_dns* dns;
+        
+        // Identify the domain that the query belongs to.
+        uint32_t domain_len = 0;
+        char* domain = NULL;
+        
+        encap = (struct sig_encap*)(it->get_data());
+        sig = encap->sig;
+        dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
+        
+        domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+        domain = get_domain(dns->query, domain_len);
+        
+        write_out_contributors(encap, out);
+        
+        while (true)
+        {
+            if (it->next() == NULL)
+            {
+                break;
+            }
+            
+            encap = (struct sig_encap*)(it->get_data());
+            
+            if (memcmp(domain, dns->query, domain_len) != 0)
+            {
+                it->prev();
+                break;
+            }
+            
+            write_out_contributors(encap, out);
+        }
+    }
+    while (it->next() != NULL);
+    
+    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+    
+    RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
+    RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     free(args_t);
 
@@ -850,7 +946,6 @@ int main(int argc, char** argv)
     if (outfname == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
-        out = stdout;
     }
     else
     {
