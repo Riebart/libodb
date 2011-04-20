@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+
+<!--
+     Value types:
+        bool, uint8, int8, uint16_l, int16_l, uint32_l, int32_l, uint64_l, int64_l
+        bool, uint8, int8, uint16_b, int16_b, uint32_b, int32_b, uint64_b, int64_b
+        prestr  = A string whose length is indicated by the first byte of the field.
+        pre2str_l/pre2str_b = Same as prestr, but the length is 2 bytes (l/b indicates endianness of that field).
+        cstr = C-style string that is null-terminated.
+            ** The "_l" or "_b" indicates whether it is stored in little or big endian in the file.
+            
+     Notes:
+       - Currently is probably not Unicode friendly.
+       - label names cannot contain underscores. Use camel casing to separate words instead.
+       - type and name are not optional values. The application will not gracefully handle those.
+       - Every value has precisely one handler. The default handler simply mates the name with the value.
+           > It is possible to define a new handler by defining a handler immediately after the value. If you do, Each command in the handler represents one line of output on the 'right' side.
+           > To use the value of the "value" you are handling, use the special variable "_value_" in your statements (if, print, etc...)
+       - When using a label in a condition or other control statement, pre and post fix the label name with underscores.
+       - Strings that are used as lhs/rhs/count values must have spaces between the 'items' (operators, labels, numeric values, etc...).
+           > These are used as separators, and without them you'll get either crashes or unexpected results.
+           > Also currently doesn't handle negative numeric values.
+-->
+
+<fmt2xml name="demo-driver Output Description">
+    <value type="uint32_l" name="Timestamp (Unix)" />
+    <value type="uint64_l" name="Number of non-DNS packets over UDP 53" />
+    <value type="double_l" name="Query Entropy" />
+    <value type="uint64_l" name="Total Number of DNS Queries" />
+    <value type="uint64_l" name="Total Number of Unique DNS Queries" label="numqueries" />
+    <value type="uint32_l" name="Number of Unique Domains" label="numdomains" />
+    <loop count="_numdomains_" prefix="Domain">
+        <value type="cstr" name="Registered Domain" />
+        <value type="double_l" name="Domain Entropy" />
+        <value type="uint64_l" name="Queries to Domain" />
+    </loop>
+    <loop count="_inf_" prefix="Query">
+        <value type="cstr" name="Query String" />
+        <value type="uint32_l" name="Count" label="numcontribs" />
+        <loop count="_numcontribs_" prefix="Contributor">
+            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+            <if lhs="_l3type_" op="eq" rhs="2048">
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
+            </if>
+            <if lhs="_l3type_" op="eq" rhs="34525">
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
+            </if>
+        </loop>
+    </loop>
+</fmt2xml>

@@ -21,12 +21,16 @@
 #include "redblacktreei.hpp"
 #include "log.hpp"
 
-#define FIELD_SEPARATOR ,
-#define NUM_SEC_PER_INTERVAL 300
+#ifndef MIN
+#define MIN(x, y) ((x < y) ? x : y)
+#endif
 
 std::vector<pthread_t> threads;
 uint32_t interval_start_sec = 0;
-FILE* out;
+char* outfname = NULL;
+uint16_t outfname_len;
+uint64_t interval_len = 300;
+bool verbose = false;
 
 // We need some 32-bit structs for the file format, since the time stamps in the file are 32-bit.
 // But the timeval struct on 64-bit machines uses 64-bit timestamps.
@@ -44,25 +48,37 @@ struct pcap_pkthdr32
     uint32_t len;       /* actual length of packet */
 };
 
-struct domain_stats
+struct domain_stat
 {
     char* domain;
+    uint32_t domain_len;
     double entropy;
-    uint32_t total_queries;
+    uint64_t total_queries;
+};
+
+struct interval_stat
+{
+    double entropy;
+    uint64_t total_queries;
+    uint64_t total_unique_queries;
 };
 
 // This struct gets handed off to the packet handler.
 struct ph_args
 {
-    struct RedBlackTreeI::e_tree_root* tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root;
+    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
+    uint64_t num_invalid_udp53;
 };
 
 // This struct gets handed off to the new thread handler.
 struct th_args
 {
-    struct RedBlackTreeI::e_tree_root* tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root;
+    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
     uint32_t t_index;
     uint32_t ts_sec;
+    uint64_t num_invalid_udp53;
 };
 
 struct sig_encap
@@ -73,23 +89,82 @@ struct sig_encap
 };
 
 // Reference: http://www.cplusplus.com/reference/algorithm/sort/
-bool vec_sort_domain(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_domain(struct domain_stat* a, struct domain_stat* b)
 {
     int32_t c = strcmp(a->domain, b->domain);
 
     return (c < 0 ? true : false);
 }
 
-bool vec_sort_entropy(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_entropy(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
     return ((a->entropy > b->entropy) ? true : false);
 }
 
-bool vec_sort_count(struct domain_stats* a, struct domain_stats* b)
+bool vec_sort_count(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
     return ((a->total_queries > b->total_queries) ? true : false);
+}
+
+inline void write_out_query(struct flow_sig* sig, FILE* out)
+{
+    struct l7_dns* dns;
+    dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
+    fprintf(out, "%s%c", dns->query, '\0');
+}
+
+inline void write_out_sig(struct flow_sig* sig, FILE* out)
+{
+    // Write out the layer 3 and 7 information.
+    fwrite(&(sig->l3_type), 1, sizeof(uint16_t), out);
+    
+    if (sig->l3_type == L3_TYPE_IP4)
+    {
+        struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
+        
+        fprintf(out, "%d.%d.%d.%d%c%d.%d.%d.%d%c",
+               ((uint8_t*)(&(l3->src)))[0], ((uint8_t*)(&(l3->src)))[1], ((uint8_t*)(&(l3->src)))[2], ((uint8_t*)(&(l3->src)))[3], 0,
+               ((uint8_t*)(&(l3->dst)))[0], ((uint8_t*)(&(l3->dst)))[1], ((uint8_t*)(&(l3->dst)))[2], ((uint8_t*)(&(l3->dst)))[3], 0
+        );
+    }
+    else if (sig->l3_type == L3_TYPE_IP6)
+    {
+        struct l3_ip6* l3 = reinterpret_cast<struct l3_ip6*>(&(sig->hdr_start));
+        
+        uint8_t* s = reinterpret_cast<uint8_t*>(&(l3->src));
+        uint8_t* d = reinterpret_cast<uint8_t*>(&(l3->dst));
+        
+        fprintf(out, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c",
+               s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10], s[11], s[12], s[13], s[14], s[15], 0,
+               d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15], 0
+        );
+    }
+}
+
+void write_out_contributors(struct sig_encap* encap, FILE* out)
+{
+    vector<struct flow_sig*>* ips = encap->ips;
+    uint32_t num_addrs;
+    
+    if (ips == NULL)
+    {
+        write_out_query(encap->sig, out);
+        num_addrs = 1;
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        write_out_sig(encap->sig, out);
+    }
+    else
+    {
+        write_out_query(ips->at(0), out);
+        num_addrs = ips->size();
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        for (uint32_t i = 0 ; i < ips->size() ; i++)
+        {
+            write_out_sig(ips->at(i), out);
+        }
+    }
 }
 
 inline void free_encapped(void* v)
@@ -136,8 +211,22 @@ int32_t compare_dns(void* aV, void* bV)
     return strcmp(a->query, b->query);
 }
 
+int32_t compare_memcmp(void* aV, void* bV)
+{
+    struct flow_sig* aF = (reinterpret_cast<struct sig_encap*>(aV))->sig;
+    struct flow_sig* bF = (reinterpret_cast<struct sig_encap*>(bV))->sig;
+
+    int32_t c = aF->hdr_size - bF->hdr_size;
+    if (c == 0)
+    {
+        c = memcmp(aV, bV, sizeof(struct flow_sig) + aF->hdr_size);
+    }
+
+    return c;
+}
+
 // New data is being merged into old data: aV is new, bV is existing.
-void* merge_dns(void* aV, void* bV)
+void* merge_sig_encap(void* aV, void* bV)
 {
     struct sig_encap* a = reinterpret_cast<struct sig_encap*>(aV);
     struct sig_encap* b = reinterpret_cast<struct sig_encap*>(bV);
@@ -165,7 +254,7 @@ inline char* get_domain(char* q, uint32_t len)
     return ret;
 }
 
-inline void process_query(struct domain_stats* stats, struct sig_encap* encap)
+inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
 {
     uint32_t cur_count;
     if (encap->ips == NULL)
@@ -181,18 +270,18 @@ inline void process_query(struct domain_stats* stats, struct sig_encap* encap)
     stats->entropy += cur_count * log((double)cur_count);
 }
 
-inline void finalize_domain(struct domain_stats* stats)
+inline void finalize_interval(struct interval_stat* istat)
 {
-    stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
-    stats->entropy /= (stats->total_queries * M_LN2);
+    istat->entropy -= istat->total_queries * log((double)(istat->total_queries));
+    istat->entropy /= (istat->total_queries * M_LN2);
 
-    if (stats->entropy != 0)
+    if (istat->entropy != 0)
     {
-        stats->entropy *= -1;
+        istat->entropy *= -1;
     }
 }
 
-void process_domain(Iterator* it, struct domain_stats* stats)
+void process_domain(Iterator* it, struct domain_stat* stats, struct interval_stat* istat)
 {
     stats->entropy = 0;
     stats->total_queries = 0;
@@ -212,6 +301,7 @@ void process_domain(Iterator* it, struct domain_stats* stats)
     domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
     domain = get_domain(dns->query, domain_len);
     stats->domain = domain;
+    stats->domain_len = domain_len;
 
     process_query(stats, encap);
 
@@ -232,9 +322,21 @@ void process_domain(Iterator* it, struct domain_stats* stats)
         }
 
         process_query(stats, encap);
+        istat->total_unique_queries++;
     }
 
-    finalize_domain(stats);
+    // Finalize the entropy computation for the domain, and put together this domain's
+    // contribution to the interval.
+    istat->entropy += stats->total_queries * log((double)stats->total_queries);
+    istat->total_queries += stats->total_queries;
+
+    stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
+    stats->entropy /= (stats->total_queries * M_LN2);
+
+    if (stats->entropy != 0)
+    {
+        stats->entropy *= -1;
+    }
 }
 
 // =============================================================================
@@ -244,7 +346,8 @@ void process_domain(Iterator* it, struct domain_stats* stats)
 // =============================================================================
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
-    struct RedBlackTreeI::e_tree_root* tree_root = args_p->tree_root;
+    struct RedBlackTreeI::e_tree_root* valid_tree_root = args_p->valid_tree_root;
+//     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
 
     struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
     data->link[0] = NULL;
@@ -261,7 +364,7 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
         struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
 
         // If it was not added due to being a duplicate
-        if (!RedBlackTreeI::e_add(tree_root, data))
+        if (!RedBlackTreeI::e_add(valid_tree_root, data))
         {
             // Free the query and the encapculating struct, but keep the
             // signature alive since it is still live in the vector of the
@@ -269,38 +372,73 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
             free(a->query);
             free(data);
         }
-        // If it successfully added...
         else
         {
+            // If it was successfully added...
         }
     }
     // What to do with non-DNS ?
     else
     {
-        free_sig_encap(data);
+        // If we're looking at a UDP port 53 that made it here, make note of it.
+        if (data->sig->l4_type == L4_TYPE_UDP)
+        {
+            struct l4_udp* udp = (struct l4_udp*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type]);
+
+            // If either port is 53 (DNS), and it doesn't make it into the tree...
+            if ((udp->sport == 53) || (udp->dport == 53))
+            {
+                args_p->num_invalid_udp53++;
+                free_sig_encap(data);
+
+//                 if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
+//                 {
+//                     free(data);
+//                 }
+//                 else
+//                 {
+//                     // If it was successfully added...
+//                 }
+            }
+            else
+            {
+            }
+        }
+        else
+        {
+            // Everything not DNS or UDP port 53 gets completely freed.
+            free_sig_encap(data);
+        }
     }
 }
 
 void* process_interval(void* args)
 {
-    std::vector<struct domain_stats*> stats;
+    std::vector<struct domain_stat*> stats;
     struct th_args* args_t = (struct th_args*)(args);
 
-    struct domain_stats* cur_stat;
+    struct interval_stat istat;
+    istat.entropy = 0;
+    istat.total_queries = 0;
+    istat.total_unique_queries = 0;
+
+    struct domain_stat* cur_stat;
     Iterator* it;
 
-    it = RedBlackTreeI::e_it_first(args_t->tree_root);
+    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
+    /// TODO: Some off-by-one errors here.
     do
     {
-        cur_stat = (struct domain_stats*)malloc(sizeof(struct domain_stats));
-        process_domain(it, cur_stat);
+        cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
+        process_domain(it, cur_stat, &istat);
         stats.push_back(cur_stat);
     }
     while (it->next() != NULL);
 
-    RedBlackTreeI::e_it_release(it, args_t->tree_root);
-    RedBlackTreeI::e_destroy_tree(args_t->tree_root, free_encapped);
+    finalize_interval(&istat);
+
+    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
 
@@ -311,30 +449,122 @@ void* process_interval(void* args)
     {
         pthread_join(threads[args_t->t_index - 1], NULL);
     }
+    
+    FILE* out;
+    
+    if (outfname == NULL)
+    {
+        out = stdout;
+    }
+    else
+    {
+        char curoutfname[outfname_len + 1 + 10 + 1];
+        strcpy(curoutfname, outfname);
+        curoutfname[outfname_len] = '.';
+        curoutfname[outfname_len + 1] = 0;
+        char cursuffix[11];
+        sprintf(cursuffix, "%u", args_t->ts_sec);
+        strcat(curoutfname, cursuffix);
+        out = fopen(curoutfname, "wb");
+        
+        if (out == NULL)
+        {
+            LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
+            out = stdout;
+        }
+        else
+        {
+            LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
+        }
+    }
 
-    fprintf(out, "\n\nInterval: %u\n", args_t->ts_sec);
+    fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
+    fwrite(&istat, 1, sizeof(struct interval_stat), out);
+    
+    /// TODO: See previous note about off-by-one errors for why I need to offset this value.
+    uint32_t num_domains = stats.size() + 3;
+    fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
-        fprintf(out, "%g %u ", stats[i]->entropy, stats[i]->total_queries);
-        dns_print(out, stats[i]->domain);
-        fprintf(out, "\n");
+        fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        fwrite(&(stats[i]->entropy), 1, sizeof(uint64_t) + sizeof(double), out);
+        free(stats[i]->domain);
         free(stats[i]);
     }
+    
+    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+    
+    do
+    {
+        struct sig_encap* encap;
+        struct flow_sig* sig;
+        struct l7_dns* dns;
+        
+        // Identify the domain that the query belongs to.
+        uint32_t domain_len = 0;
+        char* domain = NULL;
+        
+        encap = (struct sig_encap*)(it->get_data());
+        sig = encap->sig;
+        dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
+        
+        domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+        domain = get_domain(dns->query, domain_len);
+        
+        write_out_contributors(encap, out);
+        
+        while (true)
+        {
+            if (it->next() == NULL)
+            {
+                break;
+            }
+            
+            encap = (struct sig_encap*)(it->get_data());
+            
+            if (memcmp(domain, dns->query, domain_len) != 0)
+            {
+                it->prev();
+                break;
+            }
+            
+            write_out_contributors(encap, out);
+        }
+    }
+    while (it->next() != NULL);
+    
+    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+    
+    RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
+    RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     free(args_t);
 
     return NULL;
 }
 
-struct th_args* make_thread_args(struct ph_args* args_p)
+void init_thread_args(struct ph_args* args_p, struct th_args* args_t)
 {
-    struct th_args* args_t = (struct th_args*)malloc(sizeof(struct th_args));
-    args_t->tree_root = args_p->tree_root;
+    args_t->valid_tree_root = args_p->valid_tree_root;
+    args_t->invalid_tree_root = args_p->invalid_tree_root;
+    args_t->num_invalid_udp53 = args_p->num_invalid_udp53;
     args_t->t_index = threads.size();
     args_t->ts_sec = interval_start_sec;
+}
 
-    return args_t;
+void init_persistent_args(struct ph_args* args_p)
+{
+    args_p->valid_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
+    args_p->invalid_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
+    args_p->num_invalid_udp53 = 0;
+}
+
+// Called at the end of an interval. Use this callback to handle initializing a new
+// tree root and such.
+void reset_persistent_args(struct ph_args* args_p)
+{
+    init_persistent_args(args_p);
 }
 
 // =============================================================================
@@ -349,10 +579,17 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         interval_start_sec = pheader->ts.tv_sec;
     }
     // If we've over-run the interval, then hand this tree off for processing and init a replacement.
-    else if ((pheader->ts.tv_sec - interval_start_sec) >= NUM_SEC_PER_INTERVAL)
+    else if ((uint64_t)(pheader->ts.tv_sec - interval_start_sec) >= interval_len)
     {
+        if (verbose)
+        {
+            printf("!");
+            fflush(stdout);
+        }
+
         pthread_t t;
-        struct th_args* args_t = make_thread_args(args_p);
+        struct th_args* args_t = reinterpret_cast<struct th_args*>(malloc(sizeof(struct th_args)));
+        init_thread_args(args_p, args_t);
 
         int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
 
@@ -360,7 +597,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         if (e == 0)
         {
             threads.push_back(t);
-            args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+            reset_persistent_args(args_p);
         }
         else
         {
@@ -370,7 +607,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
 
         // Handle large gaps that might be longer than a single window.
         uint64_t gap = pheader->ts.tv_sec - interval_start_sec;
-        gap = gap - (gap % NUM_SEC_PER_INTERVAL);
+        gap = gap - (gap % interval_len);
         interval_start_sec += gap;
     }
 
@@ -381,6 +618,12 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
 ///processing on to packet_driver.
 void pcap_callback(uint8_t* args, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
+    if (verbose)
+    {
+        printf(".");
+        fflush(stdout);
+    }
+
     struct ph_args* args_p = (struct ph_args*)(args);
     packet_driver(args_p, pheader, packet);
 }
@@ -397,8 +640,9 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
     uint32_t net;               /* Our IP address            */
     uint8_t* args = NULL;           /* Retval for pcacp callback */
 
-    struct ph_args* args_p = (struct ph_args*)malloc(sizeof(struct ph_args));
-    args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+
+    struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
+    init_persistent_args(args_p);
 
     args = reinterpret_cast<uint8_t*>(args_p);
 
@@ -408,7 +652,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
         return 1;
     }
 
-    if (args_start == argc)
+    if (args_start >= argc)
     {
         dev = pcap_lookupdev(errbuf);
     }
@@ -417,13 +661,22 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
         dev = argv[args_start];
     }
 
+    LOG_MESSAGE(LOG_LEVEL_NORMAL, "Listening on %s\n", dev);
+
+    if (args_start >= (argc - 1))
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Not using a pcap filter. ALL PACKETS WILL BE PROCESSED.\n");
+    }
+    else
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Using pcap filter \"%s\".\n", argv[args_start + 1]);
+    }
+
     if (dev == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_CRITICAL, "%s\n", errbuf);
         return 1;
     }
-
-    LOG_MESSAGE(LOG_LEVEL_NORMAL, "Listening on %s\n", dev);
 
     descr = pcap_open_live(dev, BUFSIZ, 1, 0, errbuf);
 
@@ -435,7 +688,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
 
     pcap_lookupnet(dev, &net, &mask, errbuf);
 
-    if (pcap_compile(descr, &filter, " udp port 53 ", 0, net) == -1)
+    if (pcap_compile(descr, &filter, ((args_start >= (argc - 1)) ? "" : argv[args_start + 1]), 0, net) == -1)
     {
         LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Error compiling pcap filter\n");
         return 1;
@@ -554,8 +807,8 @@ int file_read(uint32_t args_start, uint32_t argc, char** argv)
     double totaldur;
     uint32_t num_files;
 
-    struct ph_args* args_p = (struct ph_args*)malloc(sizeof(struct ph_args));
-    args_p->tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_dns);
+    struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
+    init_persistent_args(args_p);
 
     totaldur = 0;
     dur = 0;
@@ -608,7 +861,8 @@ int file_read(uint32_t args_start, uint32_t argc, char** argv)
     }
 
     // Clean up the last interval we didn't finish.
-    struct th_args* args_t = make_thread_args(args_p);
+    struct th_args* args_t = reinterpret_cast<struct th_args*>(malloc(sizeof(struct th_args)));
+    init_thread_args(args_p, args_t);
     process_interval(args_t);
 
     free(args_p);
@@ -626,6 +880,9 @@ Usage:\n\
 		file, if it exists. if it doesn't, then it will be created.\n\
 		The default overwrites existing files. If -o is not specified, \n\
 		then this switch has no effect.\n\
+        -i      Takes an argument which specifies the number of seconds that an\n\
+                interval will last. If this is not specified, the default of 300\n\
+                seconds is used.\n\
 	-o	Filename to write output to. It will be created if it doesn't\n\
 		exist aready. If this is not specified, then stdout is used.\n\
 	-m 	Specifies the mode of operation. Acceptable values are F for\n\
@@ -633,12 +890,22 @@ Usage:\n\
 		Values are case sensitive. The argument to the mode switch must\n\
 		be the final command line argument before the mode-specific\n\
 		arguemnts.\n\
+        -v      Specify verbose operation. Verbose markers are as follows:\n\
+\n\
+                    .   When capturing off the wire, a '.' indicates a packet\n\
+                        was processed.\n\
+                    !   Under any processing scheme, a '!' indicates that an\n\
+                        interval was completed and a processing thread was\n\
+                        spawned\n\
 \n\
     Reading from files:\n\
 	$ analysis [-ao] -m F <number of files> <filename+> ...\n\
 \n\
     Sniffing from an interface:\n\
-	# analysis [-ao] -m I [interface name]\n\
+	# analysis [-ao] -m I [interface name] [pcap filter]\n\
+	\n\
+	- Note: If you want to specify a pcap filter, then you must specify an\n\
+                interface to sniff on.\n\
 \n");
 }
 
@@ -646,7 +913,6 @@ Usage:\n\
 int main(int argc, char** argv)
 {
     bool append = false;
-    char* outfname = NULL;
     char mode = 0;
     uint32_t args_start = 0;
 
@@ -658,13 +924,18 @@ int main(int argc, char** argv)
     srand(0);
 
     //Parse the options. TODO: validity checks
-    while ( (ch = getopt(argc, argv, "am:o:")) != -1)
+    while ( (ch = getopt(argc, argv, "ai:m:o:v")) != -1)
     {
         switch (ch)
         {
         case 'a':
         {
             append = true;
+            break;
+        }
+        case 'i':
+        {
+            sscanf(optarg, "%lu", &interval_len);
             break;
         }
         case 'm':
@@ -678,6 +949,12 @@ int main(int argc, char** argv)
             outfname = strdup(optarg);
             break;
         }
+        case 'v':
+        {
+            verbose = true;
+            LOG_MESSAGE(LOG_LEVEL_INFO, "Verbose operation enabled.\n");
+            break;
+        }
         default:
         {
             usage();
@@ -686,27 +963,23 @@ int main(int argc, char** argv)
         }
         }
     }
+    
+    if (outfname == NULL)
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
+    }
+    else
+    {
+        LOG_MESSAGE(LOG_LEVEL_INFO, "Will write to output files with base file name \"%s\".\n", outfname);
+        outfname_len = strlen(outfname);
+    }
+
+    LOG_MESSAGE(LOG_LEVEL_INFO, "Interval windows will be %lus in length.\n", interval_len);
 
     if (mode == 0)
     {
         usage();
         return EXIT_SUCCESS;
-    }
-
-    if (outfname == NULL)
-    {
-        LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
-        out = stdout;
-    }
-    else
-    {
-        out = fopen(outfname, (append ? "ab" : "wb"));
-
-        if (out == NULL)
-        {
-            LOG_MESSAGE(LOG_LEVEL_CRITICAL, "Unable to open \"%s\" for writing.\n", outfname);
-            return EXIT_FAILURE;
-        }
     }
 
     // Required by the protosim header.

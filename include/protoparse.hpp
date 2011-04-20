@@ -91,15 +91,15 @@ struct l3_ip6
 
 struct l4_tcp
 {
-    uint16_t src_prt;
-    uint16_t dst_prt;
+    uint16_t sport;
+    uint16_t dport;
     uint8_t next;
 };
 
 struct l4_udp
 {
-    uint16_t src_prt;
-    uint16_t dst_prt;
+    uint16_t sport;
+    uint16_t dport;
     uint8_t next;
 };
 
@@ -117,7 +117,7 @@ struct flow_sig
     uint16_t l3_type;
     uint16_t l4_type;
     uint16_t l7_type;
-    uint16_t hdr_size;
+    uint16_t hdr_size; // This does not include the size of the enclosing flow_sig struct.
     uint8_t hdr_start;
 };
 #pragma pack()
@@ -182,7 +182,7 @@ void print_flow(struct flow_sig* f)
     {
         struct l4_tcp* l4 = reinterpret_cast<struct l4_tcp*>(&(f->hdr_start) + p_offset);
 
-        printf("%u -> %u : ", l4->src_prt, l4->dst_prt);
+        printf("%u -> %u : ", l4->sport, l4->dport);
 
         p_offset += sizeof(struct l4_tcp) - 1;
     }
@@ -190,7 +190,7 @@ void print_flow(struct flow_sig* f)
     {
         struct l4_udp* l4 = reinterpret_cast<struct l4_udp*>(&(f->hdr_start) + p_offset);
 
-        printf("%u -> %u : ", l4->src_prt, l4->dst_prt);
+        printf("%u -> %u : ", l4->sport, l4->dport);
 
         p_offset += sizeof(struct l4_udp) - 1;
     }
@@ -359,8 +359,8 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
-        l4_hdr.src_prt = ntohs(tcp_hdr->th_sport);
-        l4_hdr.dst_prt = ntohs(tcp_hdr->th_dport);
+        l4_hdr.sport = ntohs(tcp_hdr->th_sport);
+        l4_hdr.dport = ntohs(tcp_hdr->th_dport);
 
         f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_tcp) - 1);
         *fp = f;
@@ -377,8 +377,8 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
         struct l4_udp l4_hdr;
 
-        l4_hdr.src_prt = ntohs(udp_hdr->uh_sport);
-        l4_hdr.dst_prt = ntohs(udp_hdr->uh_dport);
+        l4_hdr.sport = ntohs(udp_hdr->uh_sport);
+        l4_hdr.dport = ntohs(udp_hdr->uh_dport);
 
         f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_udp) - 1);
         *fp = f;
