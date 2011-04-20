@@ -229,7 +229,7 @@ int32_t fb_read_line(struct file_buffer* fb, void* dest, uint32_t num_bytes)
     uint32_t numread=0;
     char * str_dest = (char*)dest;
 
-    if (fb->size <= fb->position && feof(fb->fp))
+    if (fb->size <= fb->position && (feof(fb->fp) || ferror(fb->fp)))
     {
         return -1;
     }
@@ -251,7 +251,7 @@ int32_t fb_read_line(struct file_buffer* fb, void* dest, uint32_t num_bytes)
             if (fb->size == 0)
             {
                 str_dest[numread] = '\0';
-                return numread-1;
+                return numread;
             }
         }        
     }
@@ -260,7 +260,7 @@ int32_t fb_read_line(struct file_buffer* fb, void* dest, uint32_t num_bytes)
     fb->position++;
     str_dest[numread] = '\0';
     
-    return numread;
+    return numread+1;
     
 }
 
