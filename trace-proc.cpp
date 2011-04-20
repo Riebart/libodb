@@ -3,6 +3,8 @@
 //1,194.7.248.153,172.16.114.148,1028,21,896702544.267986 , 896702572.12615 ,             40,             31,              0,              0,             38,             31,             19,              5,              0,              0,              0,              0,              0,              0,            272,            903,             18,             24,            272,            903,              1,              0,              1,              0,              0,              0,              0,              0,              0,              0,             18,             24,            2/1,            1/1,            N/N,            N/N,              0,              0,              N,              N,              0,              0,              0,              0,              0,              0,           1460,           1460,             29,             96,              6,             14,             15,             37,          32120,          32736,            512,          32735,              0,              0,          31329,          32735,             16,             96,              1,              1,            272,            903,              0,              0,              0,              0,              0,              0,         24.260,         24.596,        10871.1,        10891.4,              0,              0,             10,             33,
 
 
+//req_1323_ws/ts_a2b,req_1323_ws/ts_b2a,adv_wind_scale_a2b,adv_wind_scale_b2a,req_sack_a2b,req_sack_b2a,sacks_sent_a2b,sacks_sent_b2a,urgent_data_pkts_a2b,urgent_data_pkts_b2a,urgent_data_bytes_a2b,urgent_data_bytes_b2a,mss_requested_a2b,mss_requested_b2a,max_segm_size_a2b,max_segm_size_b2a,min_segm_size_a2b,min_segm_size_b2a,avg_segm_size_a2b,avg_segm_size_b2a,max_win_adv_a2b,max_win_adv_b2a,min_win_adv_a2b,min_win_adv_b2a,zero_win_adv_a2b,zero_win_adv_b2a,avg_win_adv_a2b,avg_win_adv_b2a,initial_window_bytes_a2b,initial_window_bytes_b2a,initial_window_pkts_a2b,initial_window_pkts_b2a,ttl_stream_length_a2b,ttl_stream_length_b2a,missed_data_a2b,missed_data_b2a,truncated_data_a2b,truncated_data_b2a,truncated_packets_a2b,truncated_packets_b2a,data_xmit_time_a2b,data_xmit_time_b2a,idletime_max_a2b,idletime_max_b2a,hardware_dups_a2b,hardware_dups_b2a,throughput_a2b,throughput_b2a,
+
 #include "odb.hpp"
 #include "index.hpp"
 #include "buffer.hpp"
@@ -26,22 +28,22 @@
 
 struct flow_stats
 {
+    double flow_start;
+    double flow_end;
     uint32_t a_ip;
     uint32_t b_ip;
     uint16_t a_port;
     uint16_t b_port;
-    double flow_start;
-    double flow_end;
-    uint16_t num_packets_a2b;
-    uint16_t num_packets_b2a;
-    uint16_t num_acks_a2b;
-    uint16_t num_acks_b2a;
+    uint32_t num_packets_a2b;
+    uint32_t num_packets_b2a;
+    uint32_t num_acks_a2b;
+    uint32_t num_acks_b2a;
     uint32_t num_bytes_a2b;
     uint32_t num_bytes_b2a;
-    uint16_t num_resent_a2b;
-    uint16_t num_resent_b2a;
-    uint16_t num_pushed_a2b;
-    uint16_t num_pushed_b2a;
+    uint32_t num_resent_a2b;
+    uint32_t num_resent_b2a;
+    uint32_t num_pushed_a2b;
+    uint32_t num_pushed_b2a;
     uint16_t num_syns_a2b;
     uint16_t num_syns_b2a;
     uint16_t num_fins_a2b;
@@ -73,8 +75,8 @@ int32_t compare_flow_stats_p(void* a, void* b)
     return ((reinterpret_cast<struct knn*>(a)->p - (reinterpret_cast<struct knn*>(b)->p)));
 }
 
-#define LAZY(x) sum += SQUARE( (a->x - b->x)/(uint16_t)(-1))
-#define LAZYL(x) sum += SQUARE( (a->x - b->x)/(uint32_t)(-1))
+#define LAZY(x) sum += SQUARE( ((double)(a->x - b->x))/(uint16_t)(-1))
+#define LAZYL(x) sum += SQUARE( ((double)(a->x - b->x))/(uint32_t)(-1))
 
 double distance(struct flow_stats * a, struct flow_stats * b)
 {
@@ -85,31 +87,33 @@ double distance(struct flow_stats * a, struct flow_stats * b)
     assert (b != NULL);
 //     assert (a != b);
 
-    sum += SQUARE( (a->a_ip - b->a_ip)/(uint32_t)(-1));
-    sum += SQUARE( (a->b_ip - b->b_ip)/(uint32_t)(-1));
-    sum += SQUARE( (a->a_port - b->a_port)/(uint16_t)(-1) );
-    sum += SQUARE( (a->b_port - b->b_port)/(uint16_t)(-1) );
-//     LAZY(num_packets_a2b);
-//     LAZY(num_packets_b2a);
-//     LAZY(num_acks_a2b);
-//     LAZY(num_acks_b2a);
-//     LAZYL(num_bytes_a2b);
-//     LAZYL(num_bytes_b2a);
-//     LAZY(num_resent_a2b);
-//     LAZY(num_resent_b2a);
-//     LAZY(num_pushed_a2b);
-//     LAZY(num_pushed_b2a);
-//     LAZY(num_syns_a2b);
-//     LAZY(num_syns_b2a);
-//     LAZY(num_fins_a2b);
-//     LAZY(num_fins_b2a);
+    LAZYL(a_ip);
+    LAZYL(b_ip);
+    LAZY(a_port);
+    LAZY(b_port);
+    LAZY(num_packets_a2b);
+    LAZY(num_packets_b2a);
+    LAZY(num_acks_a2b);
+    LAZY(num_acks_b2a);
+    LAZYL(num_bytes_a2b);
+    LAZYL(num_bytes_b2a);
+    LAZY(num_resent_a2b);
+    LAZY(num_resent_b2a);
+    LAZY(num_pushed_a2b);
+    LAZY(num_pushed_b2a);
+    LAZY(num_syns_a2b);
+    LAZY(num_syns_b2a);
+    LAZY(num_fins_a2b);
+    LAZY(num_fins_b2a);
     
 //     sum += SQUARE( (a->ip_struct.ip_len - b->ip_struct.ip_len)/1500);
 
-    if (sum != 0.0)
-    {
-        fprintf(stderr, "Distance: %f\n", sum);
-    }
+//     if (sum != 0.0)
+//     {
+//         fprintf(stderr, "Distance: %f\n", sum);
+//     }
+    
+//     fprintf(stderr, "IPs: %d, %d, %f\n", a->a_ip, b->a_ip, SQUARE( ((double)(a->a_ip - b->a_ip))/(uint32_t)(-1)));
     
     return sqrt(sum);
 }
@@ -122,6 +126,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
     double cur_dist = 0;
     double temp_dist;
     struct knn * temp_knn;
+    DataObj * dobj;
 
     //the a-check should not be necessary. And yet...
     assert (a != NULL);
@@ -134,11 +139,11 @@ void knn_search(ODB * odb, struct knn * a, int k)
         a->distances[i] = DBL_MAX;
     }
 
-    if (it->data() != NULL && a->p != NULL)
+    if ( (dobj=it->data()) != NULL && a->p != NULL)
     {
         do //for each point
         {
-            struct knn * cur_knn = reinterpret_cast<struct knn *>(it->get_data());
+            struct knn * cur_knn = reinterpret_cast<struct knn *>(dobj->get_data());
 
             assert(cur_knn != NULL);
             assert(cur_knn->p != NULL);
@@ -165,7 +170,7 @@ void knn_search(ODB * odb, struct knn * a, int k)
 //                 cur_n++;
             }
         }
-        while (it->next() != NULL);
+        while ( (dobj=it->next()) != NULL);
 
     }
 
@@ -318,35 +323,65 @@ double lof_calc(ODB * odb, IndexGroup * packets)
 
 bool process_data (struct flow_stats * cur_stats, char * data)
 {
+    int conn_num;
     int throwaway;
     char a_ip [16];
     char b_ip [16];
     int num_matched;
+   
     
-    num_matched = sscanf(data, "%d,%[^,],%[^,],%hu,%hu,%lf , %lf , %hu, %hu, %d, %d, %hu, %hu, %d, %d, %d, %d",
-           &throwaway,
+    num_matched = sscanf(data, "%d,%[^,],%[^,],%hu,%hu,%lf , %lf , %u, %u, %d, %d, %u, %u, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %u, %u, %u, %u, %u, %u, %d, %d, %d, %d, %d, %d, %u, %u, %hu/%hu, %hu/%hu",
+           &conn_num,
            a_ip,
            b_ip,
-           &cur_stats->a_port,
-           &cur_stats->b_port,
-           &cur_stats->flow_start,
-           &cur_stats->flow_end,
-           &cur_stats->num_packets_a2b,
-           &cur_stats->num_packets_b2a,
+           &(cur_stats->a_port),
+           &(cur_stats->b_port),
+           &(cur_stats->flow_start),
+           &(cur_stats->flow_end),
+           &(cur_stats->num_packets_a2b),
+           &(cur_stats->num_packets_b2a),
            &throwaway, //resets_sent_a2b
            &throwaway, //resets_sent_b2a
-           &cur_stats->num_acks_a2b,
-           &cur_stats->num_acks_b2a,
+           &(cur_stats->num_acks_a2b),
+           &(cur_stats->num_acks_b2a),
            &throwaway, //pure_acks_a2b
-           &throwaway, //pure_acks_b2a
+           &throwaway, //pure_acks_b2
            &throwaway, //sack_packets_a2b
-           &throwaway //sack_packets_b2a
+           &throwaway, //sack_packets_b2a
+           &throwaway, //dsack
+           &throwaway,
+           &throwaway, //dsack
+           &throwaway,
+           &throwaway, //unique_bytes_a2b
+           &throwaway, //unique_bytes_b2a
+           &throwaway, //actual_data_packets
+           &throwaway,
+           &(cur_stats->num_bytes_a2b),
+           &(cur_stats->num_bytes_b2a),
+           &(cur_stats->num_resent_a2b),
+           &(cur_stats->num_resent_b2a),
+           &throwaway, //rxmt_data_bytes
+           &throwaway,
+           &throwaway,//zwnd? packets
+           &throwaway,
+           &throwaway,//zwnd? bytes
+           &throwaway,
+           &throwaway, //OOO pkts
+           &throwaway,
+           &(cur_stats->num_pushed_a2b),
+           &(cur_stats->num_pushed_b2a),
+           &(cur_stats->num_syns_a2b),
+           &(cur_stats->num_fins_a2b),
+           &(cur_stats->num_syns_b2a),
+           &(cur_stats->num_fins_b2a)           
     );
     
-    inet_pton(AF_INET, a_ip, &cur_stats->a_ip);
-    inet_pton(AF_INET, b_ip, &cur_stats->b_ip);
+    inet_pton(AF_INET, a_ip, &(cur_stats->a_ip));
+    inet_pton(AF_INET, b_ip, &(cur_stats->b_ip));
     
-    if (num_matched < 5)
+//      fprintf(stderr, "%.30s %lf\n", data, (cur_stats->flow_start));
+    
+    if (num_matched < 17)
     {
         return false;
     }
@@ -359,7 +394,7 @@ bool process_data (struct flow_stats * cur_stats, char * data)
 uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 {
     uint32_t num_records = 0;
-    uint32_t nbytes;
+    int32_t nbytes;
     char data [BUF_SIZE];
     struct flow_stats cur_stats;
     double period_start =0;
@@ -371,9 +406,10 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     for (i=0; i<11; i++)
     {
         nbytes = fb_read_line(fb, data, BUF_SIZE);
+//         printf("%30s", data);
     }
 
-    while (nbytes >= 0)
+    while (nbytes > 0)
     {
         //         nbytes = read(fileno(fp), pheader, sizeof(pcaprec_hdr_t));
 
@@ -382,10 +418,11 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         //         nbytes = read(fileno(fp), data, (pheader->incl_len));
 //         nbytes = fb_read(fb, data, pheader->incl_len);
         
+//         printf("%30s", data);
         
         if (process_data(&cur_stats, data) == false)
         {
-            fprintf(stderr, "Error on flow: %30s\n", data);
+            fprintf(stderr, "Error on flow: %.30s\n", data);
         }
 
         //set the start of the period
@@ -422,8 +459,8 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             odb->purge();
 
             // Change the start time of the preiod.
-            period_start += PERIOD;
-        }
+            period_start += (((int)(cur_stats.flow_start - period_start))/PERIOD)*PERIOD;
+        } //if
 
 /*        struct tcpip* rec = (struct tcpip*)malloc(sizeof(struct tcpip));
         get_data(rec, data, pheader->incl_len);*/
@@ -437,7 +474,8 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         total++;
         
         nbytes = fb_read_line(fb, data, BUF_SIZE);
-    }
+//         printf("numbytes: %d\n", nbytes);
+    } //while
     
     return num_records;
 }
