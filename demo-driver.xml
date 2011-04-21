@@ -23,7 +23,7 @@
 -->
 
 <fmt2xml name="demo-driver Output Description">
-    <value type="uint32_l" name="Timestamp (Unix)" />
+    <value type="uint32_l" name="Unix Timestamp" />
     <value type="uint64_l" name="Number of non-DNS packets over UDP 53" />
     <value type="double_l" name="Query Entropy" />
     <value type="uint64_l" name="Total Number of DNS Queries" />
