@@ -117,9 +117,6 @@ inline void write_out_query(struct flow_sig* sig, FILE* out)
 
 inline void write_out_sig(struct flow_sig* sig, FILE* out)
 {
-    // Write out the layer 3 and 7 information.
-    fwrite(&(sig->l3_type), 1, sizeof(uint16_t), out);
-    
     if (sig->l3_type == L3_TYPE_IP4)
     {
         struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
