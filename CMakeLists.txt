@@ -74,7 +74,8 @@ add_executable (minimal minimal.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
-add_executable (demo-driver demo-driver.cpp)
+add_executable (dnsstats dnsstats.cpp)
+add_executable (ipstats ipstats.cpp)
 add_executable (trace-proc trace-proc.cpp)
 #add_executable (py-demo py-demo.cpp)
 
@@ -85,9 +86,11 @@ target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
 target_link_libraries(trace-proc ${LIBS})
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-    target_link_libraries(demo-driver ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+    target_link_libraries(dnsstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+    target_link_libraries(ipstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
 else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-    target_link_libraries(demo-driver ${LIBS} pcap)
+    target_link_libraries(dnsstats ${LIBS} pcap)
+    target_link_libraries(ipstats ${LIBS} pcap)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
