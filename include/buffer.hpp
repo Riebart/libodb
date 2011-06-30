@@ -100,7 +100,7 @@ uint32_t fb_write(struct file_buffer* fb, void* src, uint32_t num_bytes)
     // If this write won't fill the buffer
     if (num_bytes <= (fb->size - fb->position))
     {
-        memcpy(src, fb->buffer + fb->position, num_bytes);
+        memcpy(fb->buffer + fb->position, src, num_bytes);
         fb->position += num_bytes;
         numput = num_bytes;
 
