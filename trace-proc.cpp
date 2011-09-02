@@ -50,6 +50,8 @@ struct flow_stats
     uint16_t num_fins_b2a;
 };
 
+struct flow_stats max_stats;
+
 struct knn
 {
     struct flow_stats * p;
@@ -75,8 +77,9 @@ int32_t compare_flow_stats_p(void* a, void* b)
     return ((reinterpret_cast<struct knn*>(a)->p - (reinterpret_cast<struct knn*>(b)->p)));
 }
 
-#define LAZY(x) sum += SQUARE( ((double)(a->x - b->x))/(uint16_t)(-1))
-#define LAZYL(x) sum += SQUARE( ((double)(a->x - b->x))/(uint32_t)(-1))
+#define LAZY(x) sum += SQUARE( ((double)(a->x - b->x))/(max_stats.x == 0 ? 1 : max_stats.x))
+// #define LAZYL(x) sum += SQUARE( ((double)(a->x - b->x))/(max_stats.x))
+#define LAZYA(x) sum += SQUARE( ((double)(a->x - b->x))/((uint16_t)(-1)))
 
 double distance(struct flow_stats * a, struct flow_stats * b)
 {
@@ -87,16 +90,16 @@ double distance(struct flow_stats * a, struct flow_stats * b)
     assert (b != NULL);
 //     assert (a != b);
 
-    LAZYL(a_ip);
-    LAZYL(b_ip);
-    LAZY(a_port);
-    LAZY(b_port);
+//     LAZYL(a_ip);
+//     LAZYL(b_ip);
+    LAZYA(a_port);
+    LAZYA(b_port);
     LAZY(num_packets_a2b);
     LAZY(num_packets_b2a);
     LAZY(num_acks_a2b);
     LAZY(num_acks_b2a);
-    LAZYL(num_bytes_a2b);
-    LAZYL(num_bytes_b2a);
+    LAZY(num_bytes_a2b);
+    LAZY(num_bytes_b2a);
     LAZY(num_resent_a2b);
     LAZY(num_resent_b2a);
     LAZY(num_pushed_a2b);
@@ -310,16 +313,20 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     odb2->it_release(it);
     odb2->purge();
 
-    delete odb2;
 
-//     if (max_knn != NULL && max_knn->p != NULL)
-//     {
-//         fprintf(stderr, "%d, %d\n", max_knn->p->tcp_struct.th_sport, max_knn->p->tcp_struct.th_dport);
-//     }
+    if (max_knn != NULL && max_knn->p != NULL)
+    {
+        fprintf(stderr, "%d, %d\n", max_knn->p->a_port, max_knn->p->b_port);
+    }
+
+
+    delete odb2;
 
     return max_lof;
 
 }
+
+#define MAXIMIZE(x) if (cur_stats->x > max_stats.x) max_stats.x = cur_stats->x
 
 bool process_data (struct flow_stats * cur_stats, char * data)
 {
@@ -376,6 +383,21 @@ bool process_data (struct flow_stats * cur_stats, char * data)
            &(cur_stats->num_fins_b2a)           
     );
     
+    MAXIMIZE(num_packets_a2b);
+    MAXIMIZE(num_packets_b2a);
+    MAXIMIZE(num_acks_a2b);
+    MAXIMIZE(num_acks_b2a);
+    MAXIMIZE(num_bytes_a2b);
+    MAXIMIZE(num_bytes_b2a);
+    MAXIMIZE(num_resent_a2b);
+    MAXIMIZE(num_resent_b2a);
+    MAXIMIZE(num_pushed_a2b);
+    MAXIMIZE(num_pushed_b2a);
+    MAXIMIZE(num_syns_a2b);
+    MAXIMIZE(num_syns_b2a);
+    MAXIMIZE(num_fins_a2b);
+    MAXIMIZE(num_fins_b2a);
+    
     inet_pton(AF_INET, a_ip, &(cur_stats->a_ip));
     inet_pton(AF_INET, b_ip, &(cur_stats->b_ip));
     
@@ -400,6 +422,8 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
     double period_start =0;
 
     struct file_buffer* fb = fb_read_init(fp, 1048576);
+    
+    memset(&max_stats, 0, sizeof(struct flow_stats));
 
     //throwaway the first 10 lines, and prep the first line
     int i;
@@ -457,6 +481,8 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
             // Reset the ODB object, and carry forward.
             odb->purge();
+            
+//             memset(&max_stats, 0, sizeof(struct flow_stats));
 
             // Change the start time of the preiod.
             period_start += (((int)(cur_stats.flow_start - period_start))/PERIOD)*PERIOD;
