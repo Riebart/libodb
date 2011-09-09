@@ -153,6 +153,10 @@ inline bool prune(void* rawdata)
             && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->src_port_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->dst_port_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->seq_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->ack_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->flags_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->win_size_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->payload_len_count == 0 );
 }
 
@@ -167,9 +171,13 @@ int32_t name (void* a, void* b) { \
     assert (a != NULL); assert (b != NULL); \
     return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.field_name) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.field_name); }
 
+COMPARE_MACRO(compare_src_port, th_sport);
+COMPARE_MACRO(compare_dst_port, th_dport);
+COMPARE_MACRO(compare_flags, th_flags);
 COMPARE_MACRO(compare_win_size, th_win);
 COMPARE_MACRO(compare_seq, th_seq);
 COMPARE_MACRO(compare_ack, th_ack);
+
 
 inline int32_t compare_src_addr(void* a, void* b)
 {
@@ -219,33 +227,6 @@ inline int32_t compare_dst_addr(void* a, void* b)
     }
 }
 
-int32_t compare_src_port(void* a, void* b)
-{
-
-    assert(a != NULL);
-    assert(b != NULL);
-
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_sport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_sport);
-}
-
-int32_t compare_dst_port(void* a, void* b)
-{
-
-    assert(a != NULL);
-    assert(b != NULL);
-
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_dport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_dport);
-}
-
-int32_t compare_flags(void* a, void* b)
-{
-
-    assert(a != NULL);
-    assert(b != NULL);
-
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_flags) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_flags);
-}
-
 
 int32_t compare_payload_len(void *a, void* b)
 {
@@ -267,68 +248,12 @@ int32_t compare_payload_len(void *a, void* b)
 MERGE_MACRO(merge_win_size, win_size_count);
 MERGE_MACRO(merge_seq, seq_count);
 MERGE_MACRO(merge_ack, ack_count);
-        
-
-inline void* merge_src_addr(void* new_data, void* old_data)
-{
-
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->src_addr_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->src_addr_count = 0;
-    return old_data;
-}
-
-inline void* merge_dst_addr(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->dst_addr_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->dst_addr_count = 0;
-    return old_data;
-}
-
-inline void* merge_src_port(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->src_port_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->src_port_count = 0;
-    return old_data;
-}
-
-inline void* merge_dst_port(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->dst_port_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->dst_port_count = 0;
-    return old_data;
-}
-
-inline void* merge_payload_len(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->payload_len_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->payload_len_count = 0;
-    return old_data;
-}
-
-inline void* merge_flags(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->flags_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->flags_count = 0;
-    return old_data;
-}
+MERGE_MACRO(merge_src_addr, src_addr_count);
+MERGE_MACRO(merge_dst_addr, dst_addr_count);
+MERGE_MACRO(merge_src_port, src_port_count);
+MERGE_MACRO(merge_dst_port, dst_port_count);
+MERGE_MACRO(merge_flags, flags_count);
+MERGE_MACRO(merge_payload_len, payload_len_count);
 
 
 int32_t compare_timestamp(void* a, void* b)
@@ -347,8 +272,8 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
     //I decided to convert the ip addresses to host endianness to make comparisons
     //simpler. This means that two ip addresses that are 'close' will also be
     //'close' numerically
-    rec->ip_struct.ip_src.s_addr = ntohl(rec->ip_struct.ip_src.s_addr);
-    rec->ip_struct.ip_dst.s_addr = ntohl(rec->ip_struct.ip_dst.s_addr);
+//     rec->ip_struct.ip_src.s_addr = ntohl(rec->ip_struct.ip_src.s_addr);
+//     rec->ip_struct.ip_dst.s_addr = ntohl(rec->ip_struct.ip_dst.s_addr);
 
     rec->src_addr_count = 1;
     rec->dst_addr_count = 1;
@@ -366,6 +291,8 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
 //     struct in_addr src_ip = temp->ip_struct.ip_src;
 
 //     printf("%s\n", inet_ntoa(src_ip));
+//     printf("%u\n", ntohs(rec->tcp_struct.th_sport));
+//     printf("%u\n", ntohs(rec->ip_struct.ip_len));
 }
 
 //calculates entropy and the gini coefficient of the passed index. Currently
@@ -416,7 +343,7 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
             if (old_value > cur_value)
             {
 //                 printf("%d: %s, %d: %s\n", old_value, inet_ntoa((struct in_addr *) &(htonl(old_value))), cur_value, inet_ntoa((struct in_addr *) &(htonl(curvalue)));
-                printf("%u, %u, /%ld\n", old_value, cur_value, total);
+//                 printf("%u, %u, /%ld\n", old_value, cur_value, total);
             }
 
 
@@ -431,9 +358,10 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
     }
     index->it_release(it);
 
-    entropy -= total * log((double)total);
-    entropy /= (total * M_LN2);
-    entropy *= -1;
+//     entropy -= total * log((double)total);
+//     entropy /= (total * M_LN2);
+    entropy = entropy/total - log((double)total);
+    entropy *= -1/M_LN2;
 
 //     assert(curG <= curS);
     curG = 1.0 - curG/curS;
@@ -474,17 +402,18 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     
     struct entropy_stats es;
     
-    ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
-    ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
-    ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
     
     es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
 //             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
     es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
     es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
     es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
+//     es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
     es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+
+    ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
+    ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
+    ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
     
 //     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
 //     max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
@@ -542,7 +471,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 
         if ((nbytes < sizeof(pcaprec_hdr_t)) && (nbytes > 0))
         {
-            printf("Broke on packet header! %d\n", nbytes);
+            fprintf(stderr, "Broke on packet header! %d\n", nbytes);
             break;
         }
 
@@ -564,7 +493,8 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 //         printf("packet %d\n", ++counta);
 
         //skip non-tcp values, for now
-        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM || !(data[47] & 2) )
+//         if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM || !(data[47] & 2) )
+        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM )
         {
 //             printf("data:%s\n", data);ip_struct
             continue;
@@ -658,26 +588,18 @@ int main(int argc, char *argv[])
     name = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, comp_name, merge_name);\
     packets->add_index(name)
     
-    INDEX_MACRO(win_size_index, compare_win_size, merge_win_size);
+    
+    INDEX_MACRO(src_addr_index, compare_src_addr, merge_src_addr);
+    INDEX_MACRO(dst_addr_index, compare_dst_addr, merge_dst_addr);
+    INDEX_MACRO(src_port_index, compare_src_port, merge_src_port);
+    INDEX_MACRO(dst_port_index, compare_dst_port, merge_dst_port);    
     INDEX_MACRO(seq_index, compare_seq, merge_seq);
     INDEX_MACRO(ack_index, compare_ack, merge_ack);
+    INDEX_MACRO(flags_index, compare_flags, merge_flags);
+    INDEX_MACRO(win_size_index, compare_win_size, merge_win_size);
+    INDEX_MACRO(payload_len_index, compare_payload_len, merge_payload_len);
     
-    src_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_addr, merge_src_addr);
-    dst_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_addr, merge_dst_addr);
-    src_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port, merge_src_port);
-    dst_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port, merge_dst_port);
-    flags_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port, merge_dst_port);
-    payload_len_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_payload_len, merge_payload_len);
-
     entropy_ts_index = entropies->create_index(ODB::LINKED_LIST, ODB::NONE, compare_timestamp);
-
-    packets->add_index(src_addr_index);
-    packets->add_index(dst_addr_index);
-    packets->add_index(src_port_index);
-    packets->add_index(dst_port_index);
-    packets->add_index(flags_index);
-    packets->add_index(payload_len_index);
-    
 
     memset(&max_entropies, 0, sizeof(struct entropy_stats));
     
@@ -744,6 +666,8 @@ int main(int argc, char *argv[])
         fclose(fp);
         fflush(stdout);
     }
+    fprintf(stderr, "%f\n", max_entropies.src_ip_entropy);
+    fprintf(stderr, "%f\n", max_entropies.payload_len_entropy);
     fprintf(stderr, "%f\n", max_entropies.win_size_entropy);
     fprintf(stderr, "%f\n", max_entropies.seq_entropy);
     fprintf(stderr, "%f\n", max_entropies.ack_entropy);

@@ -368,9 +368,8 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     }
     index->it_release(it);
 
-    entropy -= total * log((double)total);
-    entropy /= (total * M_LN2);
-    entropy *= -1;
+    entropy = entropy/total - log((double)total);
+    entropy *= -1/M_LN2;
 
 //     assert(curG <= curS);
     curG = 1.0 - curG/curS;
@@ -673,7 +672,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 //         printf("packet %d\n", ++counta);
 
         //skip non-tcp values, for now
-        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM || !(data[47] & 2) )
+        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM)
         {
 //             printf("data:%s\n", data);ip_struct
             continue;
@@ -683,14 +682,14 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
         {
 
 
-//             do_it_calcs();
+            do_it_calcs();
             if (total > K_NN)
             {
-                printf("%.15f,", lof_calc(odb, packets));
+//                 printf("%.15f,", lof_calc(odb, packets));
             }
             else
             {
-                printf("0,");
+//                 printf("0,");
             }
 
 //     printf("%d\n", total);
@@ -725,14 +724,14 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
 //     printf("Packet parsing complete\n");
 
-//     do_it_calcs();
+    do_it_calcs();
     if (total > K_NN)
     {
-        printf("%15f,", lof_calc(odb, packets));
+//         printf("%15f,", lof_calc(odb, packets));
     }
     else
     {
-        printf("0,");
+//         printf("0,");
     }
 
     printf("1\n");
