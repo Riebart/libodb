@@ -32,7 +32,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
-#set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
+# set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2 -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
@@ -76,7 +76,11 @@ add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
 add_executable (dnsstats dnsstats.cpp)
 add_executable (ipstats ipstats.cpp)
+add_executable (dpep demo-pack-ent-pca.cpp)
+#add_executable (demo-driver demo-driver.cpp)
+
 add_executable (trace-proc trace-proc.cpp)
+# add_executable (pca_test pca.c)
 #add_executable (py-demo py-demo.cpp)
 
 target_link_libraries(minimal ${LIBS})
@@ -84,7 +88,9 @@ target_link_libraries(test ${LIBS})
 target_link_libraries(demo-flows z ft ${LIBS})
 target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
+target_link_libraries(dpep ${LIBS})
 target_link_libraries(trace-proc ${LIBS})
+# target_link_libraries(pca_test m)
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     target_link_libraries(dnsstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
     target_link_libraries(ipstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409

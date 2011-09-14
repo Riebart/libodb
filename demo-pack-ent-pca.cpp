@@ -38,10 +38,9 @@ using namespace std;
 #define UDP_SRC_PORT_OFFSET DSTIP_START+4
 #define UDP_DST_PORT_OFFSET UDP_SRC_PORT_OFFSET+2
 
-#define K_NN 10
-
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
+//the offset distance, in number of bytes of element 'b' into struct 'a'
 #define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
 
 #define PERIOD 600
@@ -79,50 +78,58 @@ struct tcpip
     uint32_t dst_addr_count;
     uint32_t src_port_count;
     uint32_t dst_port_count;
+    uint32_t seq_count;
+    uint32_t ack_count;
+    uint32_t flags_count;
+    uint32_t win_size_count;
     uint32_t payload_len_count;
     uint32_t timestamp;
 };
 #pragma pack()
+//
+// #pragma pack(1)
+// struct ip_data
+// {
+//     struct ip ip_struct;
+//     uint32_t src_addr_count;
+//     uint32_t dst_addr_count;
+//     uint32_t payload_len_count;
+// };
+// #pragma pack()
+//
+// #pragma pack(1)
+// struct tcp_data
+// {
+//     struct tcphdr tcp_struct;
+//     uint32_t src_port_count;
+//     uint32_t dst_port_count;
+// };
+// #pragma pack()
+//
+// #pragma pack(1)
+// struct udp_data
+// {
+//     struct udphdr udp_struct;
+//     uint32_t src_port_count;
+//     uint32_t dst_port_count;
+// };
+// #pragma pack()
 
-#pragma pack(1)
-struct ip_data
+struct entropy_stats
 {
-    struct ip ip_struct;
-    uint32_t src_addr_count;
-    uint32_t dst_addr_count;
-    uint32_t payload_len_count;
+    uint32_t timestamp;
+    double src_ip_entropy;
+    double dst_ip_entropy;
+    double src_port_entropy;
+    double dst_port_entropy;
+    double seq_entropy;
+    double ack_entropy;
+    double flags_entropy;
+    double win_size_entropy;
+    double payload_len_entropy;
 };
-#pragma pack()
 
-#pragma pack(1)
-struct tcp_data
-{
-    struct tcphdr tcp_struct;
-    uint32_t src_port_count;
-    uint32_t dst_port_count;
-};
-#pragma pack()
-
-#pragma pack(1)
-struct udp_data
-{
-    struct udphdr udp_struct;
-    uint32_t src_port_count;
-    uint32_t dst_port_count;
-};
-#pragma pack()
-
-struct knn;
-
-struct knn
-{
-    struct tcpip * p;
-    struct knn * neighbors [K_NN];
-    double distances [K_NN];
-    double k_distance;
-    double lrd;
-    double LOF;
-};
+struct entropy_stats max_entropies;
 
 //Globals are bad, but I am lazy
 // uint64_t valid_total = 0;
@@ -133,7 +140,12 @@ Index * src_addr_index;
 Index * dst_addr_index;
 Index * src_port_index;
 Index * dst_port_index;
+Index * seq_index;
+Index * ack_index;
+Index * flags_index;
+Index * win_size_index;
 Index * payload_len_index;
+
 
 inline bool prune(void* rawdata)
 {
@@ -141,6 +153,10 @@ inline bool prune(void* rawdata)
             && reinterpret_cast<struct tcpip *>(rawdata)->dst_addr_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->src_port_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->dst_port_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->seq_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->ack_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->flags_count == 0
+            && reinterpret_cast<struct tcpip *>(rawdata)->win_size_count == 0
             && reinterpret_cast<struct tcpip *>(rawdata)->payload_len_count == 0 );
 }
 
@@ -148,6 +164,20 @@ bool null_prune (void* rawdata)
 {
     return false;
 }
+
+
+#define COMPARE_MACRO(name, field_name) \
+int32_t name (void* a, void* b) { \
+    assert (a != NULL); assert (b != NULL); \
+    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.field_name) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.field_name); }
+
+COMPARE_MACRO(compare_src_port, th_sport);
+COMPARE_MACRO(compare_dst_port, th_dport);
+COMPARE_MACRO(compare_flags, th_flags);
+COMPARE_MACRO(compare_win_size, th_win);
+COMPARE_MACRO(compare_seq, th_seq);
+COMPARE_MACRO(compare_ack, th_ack);
+
 
 inline int32_t compare_src_addr(void* a, void* b)
 {
@@ -197,23 +227,6 @@ inline int32_t compare_dst_addr(void* a, void* b)
     }
 }
 
-int32_t compare_src_port(void* a, void* b)
-{
-
-    assert(a != NULL);
-    assert(b != NULL);
-
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_sport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_sport);
-}
-
-int32_t compare_dst_port(void* a, void* b)
-{
-
-    assert(a != NULL);
-    assert(b != NULL);
-
-    return ((reinterpret_cast<struct tcpip*>(a))->tcp_struct.th_dport) - ((reinterpret_cast<struct tcpip*>(b))->tcp_struct.th_dport);
-}
 
 int32_t compare_payload_len(void *a, void* b)
 {
@@ -224,63 +237,31 @@ int32_t compare_payload_len(void *a, void* b)
     return ((reinterpret_cast<struct tcpip*>(a))->ip_struct.ip_len) - ((reinterpret_cast<struct tcpip*>(b))->ip_struct.ip_len);
 }
 
-inline void* merge_src_addr(void* new_data, void* old_data)
-{
 
-    assert(new_data != NULL);
-    assert(old_data != NULL);
+#define MERGE_MACRO(name, field_name)\
+    inline void* name (void* new_data, void* old_data) {\
+        assert(new_data != NULL); assert(old_data != NULL); \
+        (reinterpret_cast<struct tcpip*>(old_data))->field_name++;\
+        (reinterpret_cast<struct tcpip*>(new_data))->field_name = 0;\
+        return old_data; }
 
-    (reinterpret_cast<struct tcpip*>(old_data))->src_addr_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->src_addr_count = 0;
-    return old_data;
-}
+MERGE_MACRO(merge_win_size, win_size_count);
+MERGE_MACRO(merge_seq, seq_count);
+MERGE_MACRO(merge_ack, ack_count);
+MERGE_MACRO(merge_src_addr, src_addr_count);
+MERGE_MACRO(merge_dst_addr, dst_addr_count);
+MERGE_MACRO(merge_src_port, src_port_count);
+MERGE_MACRO(merge_dst_port, dst_port_count);
+MERGE_MACRO(merge_flags, flags_count);
+MERGE_MACRO(merge_payload_len, payload_len_count);
 
-inline void* merge_dst_addr(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
 
-    (reinterpret_cast<struct tcpip*>(old_data))->dst_addr_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->dst_addr_count = 0;
-    return old_data;
-}
-
-inline void* merge_src_port(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->src_port_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->src_port_count = 0;
-    return old_data;
-}
-
-inline void* merge_dst_port(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->dst_port_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->dst_port_count = 0;
-    return old_data;
-}
-
-inline void* merge_payload_len(void* new_data, void* old_data)
-{
-    assert(new_data != NULL);
-    assert(old_data != NULL);
-
-    (reinterpret_cast<struct tcpip*>(old_data))->payload_len_count++;
-    (reinterpret_cast<struct tcpip*>(new_data))->payload_len_count = 0;
-    return old_data;
-}
-
-int32_t compare_tcpip_p(void* a, void* b)
+int32_t compare_timestamp(void* a, void* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return ((reinterpret_cast<struct knn*>(a)->p - (reinterpret_cast<struct knn*>(b)->p)));
+    return ((reinterpret_cast<struct entropy_stats*>(a))->timestamp) - ((reinterpret_cast<struct entropy_stats*>(b))->timestamp);
 }
 
 void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
@@ -291,23 +272,32 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
     //I decided to convert the ip addresses to host endianness to make comparisons
     //simpler. This means that two ip addresses that are 'close' will also be
     //'close' numerically
-    rec->ip_struct.ip_src.s_addr = ntohl(rec->ip_struct.ip_src.s_addr);
-    rec->ip_struct.ip_dst.s_addr = ntohl(rec->ip_struct.ip_dst.s_addr);
+//     rec->ip_struct.ip_src.s_addr = ntohl(rec->ip_struct.ip_src.s_addr);
+//     rec->ip_struct.ip_dst.s_addr = ntohl(rec->ip_struct.ip_dst.s_addr);
 
     rec->src_addr_count = 1;
     rec->dst_addr_count = 1;
     rec->src_port_count = 1;
     rec->dst_port_count = 1;
+    rec->seq_count = 1;
+    rec->ack_count = 1;
+    rec->flags_count = 1;
+    rec->win_size_count = 1;
     rec->payload_len_count = 1;
+
 
     total++;
 //     struct tcpip* temp = (struct tcpip*)(packet+14);
 //     struct in_addr src_ip = temp->ip_struct.ip_src;
 
 //     printf("%s\n", inet_ntoa(src_ip));
+//     printf("%u\n", ntohs(rec->tcp_struct.th_sport));
+//     printf("%u\n", ntohs(rec->ip_struct.ip_len));
 }
 
-void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
+//calculates entropy and the gini coefficient of the passed index. Currently
+//returns the entropy
+double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
 {
 
     double entropy = 0;
@@ -353,7 +343,7 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
             if (old_value > cur_value)
             {
 //                 printf("%d: %s, %d: %s\n", old_value, inet_ntoa((struct in_addr *) &(htonl(old_value))), cur_value, inet_ntoa((struct in_addr *) &(htonl(curvalue)));
-                printf("%u, %u, /%ld\n", old_value, cur_value, total);
+//                 printf("%u, %u, /%ld\n", old_value, cur_value, total);
             }
 
 
@@ -368,6 +358,8 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     }
     index->it_release(it);
 
+//     entropy -= total * log((double)total);
+//     entropy /= (total * M_LN2);
     entropy = entropy/total - log((double)total);
     entropy *= -1/M_LN2;
 
@@ -378,6 +370,8 @@ void it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size)
     printf("%.15f,", entropy);
 
     printf("%.15f,", curG);
+
+    return entropy;
 }
 
 double distance(struct tcpip * a, struct tcpip * b)
@@ -397,224 +391,51 @@ double distance(struct tcpip * a, struct tcpip * b)
     return sqrt(sum);
 }
 
-void knn_search(ODB * odb, struct knn * a, int k)
+
+void do_it_calcs(ODB * entropies, uint32_t timestamp)
 {
-    Iterator * it = odb->it_first();
 
-//     int cur_n = 0;
-    double cur_dist = 0;
-    double temp_dist;
-    struct knn * temp_knn;
-
-    //the a-check should not be necessary. And yet...
-    assert (a != NULL);
-    assert (a->p != NULL);
-//     if (it->data() != NULL)
-
-    int i;
-    for (i=0; i<k; i++)
-    {
-        a->distances[i] = DBL_MAX;
-    }
-
-    if (it->data() != NULL && a->p != NULL)
-    {
-        do //for each point
-        {
-            struct knn * cur_knn = reinterpret_cast<struct knn *>(it->get_data());
-
-            assert(cur_knn != NULL);
-            assert(cur_knn->p != NULL);
-
-            if (a->p != cur_knn->p)
-            {
-                cur_dist = distance( a->p, cur_knn->p );
-
-                for (i=0; i<k; i++)
-                {
-                    //a wee little bubble sort.
-                    if (cur_dist < a->distances[i])
-                    {
-                        temp_knn=a->neighbors[i];
-                        temp_dist=a->distances[i];
-                        a->distances[i] = cur_dist;
-                        a->neighbors[i] = cur_knn;
-
-                        cur_dist = temp_dist;
-                        cur_knn = temp_knn;
-                    }
-                }
-
-//                 cur_n++;
-            }
-        }
-        while (it->next() != NULL);
-
-    }
-
-    odb->it_release(it);
-
-    a->k_distance = a->distances[K_NN-1];
-
-}
-
-double lof_calc(ODB * odb, IndexGroup * packets)
-{
-    std::vector<Index*> indices = packets->flatten();
-    int num_indices = indices.size();
-    std::deque<void*> * candidates = new std::deque<void*>();
-    double max_lof = 0;
-    struct knn* max_knn = NULL;
-
-    Iterator * it;
-
-    struct ip * temp;
-
-    struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
-    //TODO: determine appropriate struct
-    ODB * odb2 = new ODB(ODB::BANK_DS, prune, sizeof(struct knn));
-    //For now, index by the pointer to data
-
-    Index * knn_index = odb2->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_tcpip_p, NULL);
-
-    it = odb->it_first();
-
-    //Step 0: populate the data structures
-    if (it->data() != NULL)
-    {
-        do //for each point
-        {
-            //zero the struct
-            memset(cur_knn, 0, sizeof(struct knn));
-
-            cur_knn->p=reinterpret_cast<struct tcpip*>(it->get_data());
-
-            //this is run-time catch for null pointers
-            assert(cur_knn->p != NULL);
-
-            DataObj * dobj = odb2->add_data(cur_knn, false);
-            knn_index->add_data(dobj);
-
-        }
-        while (it->next() != NULL);
-    }
-
-    odb->it_release(it);
-
-    it = odb2->it_first();
-
-    int i;
-    int odb_size = odb2->size();
-
-    //Step 1: determine k-nearest-neighbors of each point. O(nlogn), in theory.
-    //Our implementation is O(n^2), hence, omp.
-
-#pragma omp parallel for
-    for (i=0; i< odb_size; i++)
-//     for ( ; it->get_data() != NULL; )
-    {
-        struct knn * cur_knn;
-#pragma omp critical
-        {
-            cur_knn = reinterpret_cast<struct knn*>(it->get_data());
-            it->next();
-        }
-
-        knn_search(odb2, cur_knn, K_NN);
-    }
-
-    odb2->it_release(it);
+#define ENTROPY_MACRO(ent_name, index_name, field_name, count_name, size) \
+    es.ent_name = it_calc(index_name, sizeof(struct ip) + OFFSET(struct tcphdr, field_name), OFFSET(struct tcpip, count_name), size); \
+    max_entropies.ent_name = MAX(max_entropies.ent_name, es.ent_name);
 
 
-    //Step 2: calculate the lrd of each point. This is O(n)
-
-    it = odb2->it_first();
-
-    if (it->data() != NULL)
-    {
-        double reach_sum = 0.0;
-        Iterator * it_o;
-
-        do //for each point p
-        {
-            struct knn * p = reinterpret_cast<struct knn *>(it->get_data());
-            assert(p != NULL);
-            //for each point o in p's k-neighborhood
-            for (int i=0; i<K_NN; i++)
-            {
-                assert(p->distances[i] < DBL_MAX);
-                assert(p->neighbors[i] != NULL);
-//                 reach_sum += MAX(distance(p, p->neighbors[i]),
-//                     (reinterpret_cast<struct knn *>(knn_index->it_lookup(p->neighbors[i])->get_data())->k_distance));
-                reach_sum += MAX( distance(p->p, p->neighbors[i]->p), p->neighbors[i]->k_distance);
-            }
-
-            p->lrd=K_NN/reach_sum;
-
-        }
-        while (it->next() != NULL);
-    }
-    odb2->it_release(it);
-
-    //Step 3: calculate the LOF of each point. O(n)
-    it = odb2->it_first();
-
-    if (it->data() != NULL)
-    {
-        do //for each point p
-        {
-            double lrd_sum = 0;
-            struct knn * p = reinterpret_cast<struct knn *>(it->get_data());
-
-            //for each neighbor o
-            //sum of lrd(o)/lrd(p)
-            for (int i=0; i<K_NN; i++)
-            {
-                lrd_sum += (p->neighbors[i]->lrd)/(p->lrd);
-            }
-
-            p->LOF = lrd_sum/K_NN;
-
-            if (p->LOF > max_lof)
-            {
-                max_lof = MAX( max_lof, p->LOF );
-                max_knn = p;
-            }
+    struct entropy_stats es;
 
 
-        }
-        while (it->next() != NULL);
-    }
-
-    odb2->it_release(it);
-    odb2->purge();
-
-    delete odb2;
-
-    if (max_knn != NULL && max_knn->p != NULL)
-    {
-        fprintf(stderr, "%d, %d\n", max_knn->p->tcp_struct.th_sport, max_knn->p->tcp_struct.th_dport);
-    }
-
-    return max_lof;
-
-}
-
-void do_it_calcs()
-{
-    it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
+    es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
 //             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
-    it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+    es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
+    es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+//     es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
+    es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+
+    ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
+    ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
+    ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
+
+//     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
+//     max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
+
+    es.timestamp = timestamp;
+
+    max_entropies.src_ip_entropy = MAX(max_entropies.src_ip_entropy, es.src_ip_entropy);
+    max_entropies.dst_ip_entropy = MAX(max_entropies.dst_ip_entropy, es.dst_ip_entropy);
+    max_entropies.src_port_entropy = MAX(max_entropies.src_port_entropy, es.src_port_entropy);
+    max_entropies.dst_port_entropy = MAX(max_entropies.dst_port_entropy, es.dst_port_entropy);
+    max_entropies.flags_entropy = MAX(max_entropies.flags_entropy, es.flags_entropy);
+    max_entropies.payload_len_entropy = MAX(max_entropies.payload_len_entropy, es.payload_len_entropy);
+
+    entropies->add_data(&es, true);
 }
 
-uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
+uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 {
     uint32_t num_records = 0;
     uint32_t nbytes;
     char *data;
+    struct tcpip rec;
 
     struct file_buffer* fb = fb_read_init(fp, 1048576);
 
@@ -650,7 +471,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 
         if ((nbytes < sizeof(pcaprec_hdr_t)) && (nbytes > 0))
         {
-            printf("Broke on packet header! %d\n", nbytes);
+            fprintf(stderr, "Broke on packet header! %d\n", nbytes);
             break;
         }
 
@@ -672,31 +493,29 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
 //         printf("packet %d\n", ++counta);
 
         //skip non-tcp values, for now
-        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM)
+//         if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM || !(data[47] & 2) )
+        if ( (uint8_t)(data[PROTO_OFFSET]) != TCP_PROTO_NUM )
         {
 //             printf("data:%s\n", data);ip_struct
             continue;
         }
 
+        if (period_start == 0)
+        {
+            period_start = pheader->ts_sec;
+        }
+
         if ((pheader->ts_sec - period_start) > PERIOD && total > 0)
         {
 
+            do_it_calcs(entropies, period_start);
 
-            do_it_calcs();
-            if (total > K_NN)
-            {
-//                 printf("%.15f,", lof_calc(odb, packets));
-            }
-            else
-            {
-//                 printf("0,");
-            }
+            printf("Tot: %lu,", total);
 
-//     printf("%d\n", total);
-
-            printf("0\n");
+//             printf("0\n");
             // Include the timestamp that marks the END of this interval
 //             printf("TIMESTAMP %u\n", pheader->ts_sec);
+            printf("TIMESTAMP %u\n", period_start);
             fflush(stdout);
 //             fprintf(stderr, "\n");
 
@@ -707,34 +526,27 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, FILE *fp)
             odb->purge();
 
             // Change the start time of the preiod.
+//             period_start += ((pheader->ts_sec-period_start)/PERIOD)*PERIOD;
             period_start += PERIOD;
         }
 
-        struct tcpip* rec = (struct tcpip*)malloc(sizeof(struct tcpip));
-        get_data(rec, data, pheader->incl_len);
-        rec->timestamp = pheader->ts_sec;
+//         struct tcpip* rec = (struct tcpip*)malloc(sizeof(struct tcpip));
+        get_data(&rec, data, pheader->incl_len);
+        rec.timestamp = pheader->ts_sec;
 
-        DataObj* dataObj = odb->add_data(rec, false);
+        DataObj* dataObj = odb->add_data(&rec, false);
 
         packets->add_data(dataObj);
 
         num_records++;
-        free(rec);
+//         free(rec);
     }
 
 //     printf("Packet parsing complete\n");
 
-    do_it_calcs();
-    if (total > K_NN)
-    {
-//         printf("%15f,", lof_calc(odb, packets));
-    }
-    else
-    {
-//         printf("0,");
-    }
+    do_it_calcs(entropies, period_start);
 
-    printf("1\n");
+//     printf("1\n");
 //     lof_calc(odb, packets);
 
 //     printf("%d\n", total);
@@ -763,29 +575,38 @@ int main(int argc, char *argv[])
     double totaldur;
     int num_files;
     int i;
-    ODB* odb;
+    ODB* odb, * entropies;
 
     odb = new ODB(ODB::BANK_DS, prune, sizeof(struct tcpip));
+    entropies = new ODB(ODB::BANK_DS, null_prune, sizeof(struct entropy_stats));
+
+    Index * entropy_ts_index;
 
     IndexGroup* packets = odb->create_group();
 
-    src_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_addr, merge_src_addr);
-    dst_addr_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_addr, merge_dst_addr);
-    src_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_src_port, merge_src_port);
-    dst_port_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_dst_port, merge_dst_port);
-    payload_len_index = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, compare_payload_len, merge_payload_len);
+#define INDEX_MACRO(name, comp_name, merge_name) \
+    name = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, comp_name, merge_name);\
+    packets->add_index(name)
 
 
-    packets->add_index(src_addr_index);
-    packets->add_index(dst_addr_index);
-    packets->add_index(src_port_index);
-    packets->add_index(dst_port_index);
-    packets->add_index(payload_len_index);
+    INDEX_MACRO(src_addr_index, compare_src_addr, merge_src_addr);
+    INDEX_MACRO(dst_addr_index, compare_dst_addr, merge_dst_addr);
+    INDEX_MACRO(src_port_index, compare_src_port, merge_src_port);
+    INDEX_MACRO(dst_port_index, compare_dst_port, merge_dst_port);
+    INDEX_MACRO(seq_index, compare_seq, merge_seq);
+    INDEX_MACRO(ack_index, compare_ack, merge_ack);
+    INDEX_MACRO(flags_index, compare_flags, merge_flags);
+    INDEX_MACRO(win_size_index, compare_win_size, merge_win_size);
+    INDEX_MACRO(payload_len_index, compare_payload_len, merge_payload_len);
+
+    entropy_ts_index = entropies->create_index(ODB::LINKED_LIST, ODB::NONE, compare_timestamp);
+
+    memset(&max_entropies, 0, sizeof(struct entropy_stats));
 
 
     if (argc < 2)
     {
-        printf("Alternatively: demo-1 <Number of files> <file name>+\n");
+        printf("Alternatively: dpep <Number of files> <file name>+\n");
         return EXIT_FAILURE;
     }
 
@@ -819,7 +640,7 @@ int main(int argc, char *argv[])
 
         ftime(&start);
 
-        num = read_data(odb, packets, fp);
+        num = read_data(odb, packets, entropies, fp);
 
 //         printf("(");
         fflush(stdout);
@@ -845,6 +666,11 @@ int main(int argc, char *argv[])
         fclose(fp);
         fflush(stdout);
     }
+    fprintf(stderr, "%f\n", max_entropies.src_ip_entropy);
+    fprintf(stderr, "%f\n", max_entropies.payload_len_entropy);
+    fprintf(stderr, "%f\n", max_entropies.win_size_entropy);
+    fprintf(stderr, "%f\n", max_entropies.seq_entropy);
+    fprintf(stderr, "%f\n", max_entropies.ack_entropy);
 
     delete odb;
 //     delete packets;

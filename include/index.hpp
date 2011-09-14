@@ -43,10 +43,13 @@ class DataObj
     friend class BankDSIterator;
 
     friend class BankDS;
-    
+
 public:
-    inline void * get_data() { return data; };
-    
+    inline void * get_data()
+    {
+        return data;
+    };
+
 
 private:
     DataObj();

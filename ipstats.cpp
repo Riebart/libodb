@@ -93,76 +93,76 @@ struct th_args
 // but their names and signatures must stay as they are.
 // =============================================================================
 // This function is called whenever a new packet is read from a file or off an
-// interface. It is passed the relevant packet data (pcap header and packet) as 
+// interface. It is passed the relevant packet data (pcap header and packet) as
 // well as a pointer to a ph_args struct. The ph_args struct should contain all
 // of the persistent information (throughout an interval) necessary to give
 // context to the processing of a packet.
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
-    struct RedBlackTreeI::e_tree_root* valid_tree_root = args_p->valid_tree_root;
-//     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
-
-    struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
-    data->link[0] = NULL;
-    data->link[1] = NULL;
-    data->ips = NULL;
-
-    // Collect the layer 3, 4 and 7 information.
-    data->sig = sig_from_packet(packet, pheader->caplen);
-
-    // Check if the layer 7 information is DNS
-    // If the layer 7 information is DNS, then we have already 'checked' it. Otherwise it would not pass the following condition.
-    if (data->sig->l7_type == L7_TYPE_DNS)
-    {
-        struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
-
-        // If it was not added due to being a duplicate
-        if (!RedBlackTreeI::e_add(valid_tree_root, data))
-        {
-            // Free the query and the encapculating struct, but keep the
-            // signature alive since it is still live in the vector of the
-            // representative in the tree.
-            free(a->query);
-            free(data);
-        }
-        else
-        {
-            // If it was successfully added...
-        }
-    }
-    // What to do with non-DNS ?
-    else
-    {
-        // If we're looking at a UDP port 53 that made it here, make note of it.
-        if (data->sig->l4_type == L4_TYPE_UDP)
-        {
-            struct l4_udp* udp = (struct l4_udp*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type]);
-
-            // If either port is 53 (DNS), and it doesn't make it into the tree...
-            if ((udp->sport == 53) || (udp->dport == 53))
-            {
-                args_p->num_invalid_udp53++;
-                free_sig_encap(data);
-
-//                 if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
-//                 {
-//                     free(data);
-//                 }
-//                 else
-//                 {
-//                     // If it was successfully added...
-//                 }
-            }
-            else
-            {
-            }
-        }
-        else
-        {
-            // Everything not DNS or UDP port 53 gets completely freed.
-            free_sig_encap(data);
-        }
-    }
+//     struct RedBlackTreeI::e_tree_root* valid_tree_root = args_p->valid_tree_root;
+// //     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
+//
+//     struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
+//     data->link[0] = NULL;
+//     data->link[1] = NULL;
+//     data->ips = NULL;
+//
+//     // Collect the layer 3, 4 and 7 information.
+//     data->sig = sig_from_packet(packet, pheader->caplen);
+//
+//     // Check if the layer 7 information is DNS
+//     // If the layer 7 information is DNS, then we have already 'checked' it. Otherwise it would not pass the following condition.
+//     if (data->sig->l7_type == L7_TYPE_DNS)
+//     {
+//         struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
+//
+//         // If it was not added due to being a duplicate
+//         if (!RedBlackTreeI::e_add(valid_tree_root, data))
+//         {
+//             // Free the query and the encapculating struct, but keep the
+//             // signature alive since it is still live in the vector of the
+//             // representative in the tree.
+//             free(a->query);
+//             free(data);
+//         }
+//         else
+//         {
+//             // If it was successfully added...
+//         }
+//     }
+//     // What to do with non-DNS ?
+//     else
+//     {
+//         // If we're looking at a UDP port 53 that made it here, make note of it.
+//         if (data->sig->l4_type == L4_TYPE_UDP)
+//         {
+//             struct l4_udp* udp = (struct l4_udp*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type]);
+//
+//             // If either port is 53 (DNS), and it doesn't make it into the tree...
+//             if ((udp->sport == 53) || (udp->dport == 53))
+//             {
+//                 args_p->num_invalid_udp53++;
+//                 free_sig_encap(data);
+//
+// //                 if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
+// //                 {
+// //                     free(data);
+// //                 }
+// //                 else
+// //                 {
+// //                     // If it was successfully added...
+// //                 }
+//             }
+//             else
+//             {
+//             }
+//         }
+//         else
+//         {
+//             // Everything not DNS or UDP port 53 gets completely freed.
+//             free_sig_encap(data);
+//         }
+//     }
 }
 
 // This function is called at the end of an interval, and is passed a pointer to
@@ -171,132 +171,132 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
 // variables.
 void* process_interval(void* args)
 {
-    std::vector<struct domain_stat*> stats;
-    struct th_args* args_t = (struct th_args*)(args);
-
-    struct interval_stat istat;
-    istat.entropy = 0;
-    istat.total_queries = 0;
-    istat.total_unique_queries = 0;
-
-    struct domain_stat* cur_stat;
-    Iterator* it;
-
-    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-
-    /// TODO: Some off-by-one errors here.
-    do
-    {
-        cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
-        process_domain(it, cur_stat, &istat);
-        stats.push_back(cur_stat);
-    }
-    while (it->next() != NULL);
-
-    finalize_interval(&istat);
-
-    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
-
-    sort(stats.begin(), stats.end(), vec_sort_entropy);
-
-    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
-    // By doing all of the heavy lifting before joining, we cna make maximum use of multithreading.
-    // Leaving the printing out until after joining ensures that data gets printed out in the right order.
-    if (args_t->t_index > 0)
-    {
-        pthread_join(threads[args_t->t_index - 1], NULL);
-    }
-    
-    FILE* out;
-    
-    if (outfname == NULL)
-    {
-        out = stdout;
-    }
-    else
-    {
-        char curoutfname[outfname_len + 1 + 10 + 1];
-        strcpy(curoutfname, outfname);
-        curoutfname[outfname_len] = '.';
-        curoutfname[outfname_len + 1] = 0;
-        char cursuffix[11];
-        sprintf(cursuffix, "%u", args_t->ts_sec);
-        strcat(curoutfname, cursuffix);
-        out = fopen(curoutfname, "wb");
-        
-        if (out == NULL)
-        {
-            LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
-            out = stdout;
-        }
-        else
-        {
-            LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
-        }
-    }
-
-    fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
-    fwrite(&istat, 1, sizeof(struct interval_stat), out);
-    
-    /// TODO: See previous note about off-by-one errors for why I need to offset this value.
-    uint32_t num_domains = stats.size() + 3;
-    fwrite(&num_domains, 1, sizeof(uint32_t), out);
-
-    for (uint32_t i = 0 ; i < stats.size() ; i++)
-    {
-        fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
-        fwrite(&(stats[i]->entropy), 1, sizeof(uint64_t) + sizeof(double), out);
-        free(stats[i]->domain);
-        free(stats[i]);
-    }
-    
-    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-    
-    do
-    {
-        struct sig_encap* encap;
-        struct flow_sig* sig;
-        struct l7_dns* dns;
-        
-        // Identify the domain that the query belongs to.
-        uint32_t domain_len = 0;
-        char* domain = NULL;
-        
-        encap = (struct sig_encap*)(it->get_data());
-        sig = encap->sig;
-        dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-        
-        domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
-        domain = get_domain(dns->query, domain_len);
-        
-        write_out_contributors(encap, out);
-        
-        while (true)
-        {
-            if (it->next() == NULL)
-            {
-                break;
-            }
-            
-            encap = (struct sig_encap*)(it->get_data());
-            
-            if (memcmp(domain, dns->query, domain_len) != 0)
-            {
-                it->prev();
-                break;
-            }
-            
-            write_out_contributors(encap, out);
-        }
-    }
-    while (it->next() != NULL);
-    
-    RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
-    
-    RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
-    RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
-
-    free(args_t);
+//     std::vector<struct domain_stat*> stats;
+//     struct th_args* args_t = (struct th_args*)(args);
+//
+//     struct interval_stat istat;
+//     istat.entropy = 0;
+//     istat.total_queries = 0;
+//     istat.total_unique_queries = 0;
+//
+//     struct domain_stat* cur_stat;
+//     Iterator* it;
+//
+//     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+//
+//     /// TODO: Some off-by-one errors here.
+//     do
+//     {
+//         cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
+//         process_domain(it, cur_stat, &istat);
+//         stats.push_back(cur_stat);
+//     }
+//     while (it->next() != NULL);
+//
+//     finalize_interval(&istat);
+//
+//     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+//
+//     sort(stats.begin(), stats.end(), vec_sort_entropy);
+//
+//     // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
+//     // By doing all of the heavy lifting before joining, we cna make maximum use of multithreading.
+//     // Leaving the printing out until after joining ensures that data gets printed out in the right order.
+//     if (args_t->t_index > 0)
+//     {
+//         pthread_join(threads[args_t->t_index - 1], NULL);
+//     }
+//
+//     FILE* out;
+//
+//     if (outfname == NULL)
+//     {
+//         out = stdout;
+//     }
+//     else
+//     {
+//         char curoutfname[outfname_len + 1 + 10 + 1];
+//         strcpy(curoutfname, outfname);
+//         curoutfname[outfname_len] = '.';
+//         curoutfname[outfname_len + 1] = 0;
+//         char cursuffix[11];
+//         sprintf(cursuffix, "%u", args_t->ts_sec);
+//         strcat(curoutfname, cursuffix);
+//         out = fopen(curoutfname, "wb");
+//
+//         if (out == NULL)
+//         {
+//             LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
+//             out = stdout;
+//         }
+//         else
+//         {
+//             LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
+//         }
+//     }
+//
+//     fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
+//     fwrite(&istat, 1, sizeof(struct interval_stat), out);
+//
+//     /// TODO: See previous note about off-by-one errors for why I need to offset this value.
+//     uint32_t num_domains = stats.size() + 3;
+//     fwrite(&num_domains, 1, sizeof(uint32_t), out);
+//
+//     for (uint32_t i = 0 ; i < stats.size() ; i++)
+//     {
+//         fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+//         fwrite(&(stats[i]->entropy), 1, sizeof(uint64_t) + sizeof(double), out);
+//         free(stats[i]->domain);
+//         free(stats[i]);
+//     }
+//
+//     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+//
+//     do
+//     {
+//         struct sig_encap* encap;
+//         struct flow_sig* sig;
+//         struct l7_dns* dns;
+//
+//         // Identify the domain that the query belongs to.
+//         uint32_t domain_len = 0;
+//         char* domain = NULL;
+//
+//         encap = (struct sig_encap*)(it->get_data());
+//         sig = encap->sig;
+//         dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
+//
+//         domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+//         domain = get_domain(dns->query, domain_len);
+//
+//         write_out_contributors(encap, out);
+//
+//         while (true)
+//         {
+//             if (it->next() == NULL)
+//             {
+//                 break;
+//             }
+//
+//             encap = (struct sig_encap*)(it->get_data());
+//
+//             if (memcmp(domain, dns->query, domain_len) != 0)
+//             {
+//                 it->prev();
+//                 break;
+//             }
+//
+//             write_out_contributors(encap, out);
+//         }
+//     }
+//     while (it->next() != NULL);
+//
+//     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+//
+//     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
+//     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
+//
+//     free(args_t);
 
     return NULL;
 }
@@ -311,8 +311,8 @@ void init_thread_args(struct ph_args* args_p, struct th_args* args_t)
 
 void init_packet_args(struct ph_args* args_p)
 {
-    args_p->src_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
-    args_p->dst_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
+//     args_p->src_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
+//     args_p->dst_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
 }
 
 // Called at the end of an interval. Use this callback to handle initializing a new
@@ -428,9 +428,11 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
     {
         sscanf(argv[args_start + 1], "%d", &snaplen);
         if ((snaplen <= 0) || (snaplen > 65535))
+        {
             snaplen = 65535;
+        }
     }
-    
+
     LOG_MESSAGE(LOG_LEVEL_INFO, "Using snaplen of %d bytes.\n", snaplen);
 
     if (args_start >= (argc - 2))
@@ -737,7 +739,7 @@ int main(int argc, char** argv)
         }
         }
     }
-    
+
     if (outfname == NULL)
     {
         LOG_MESSAGE(LOG_LEVEL_INFO, "Writing output to stdout.\n");
