@@ -49,12 +49,17 @@ uint16_t outfname_len;
 // =============================================================================
 // =============================================================================
 
+// =============================================================================
+// Place your application-specific includes, globals, and #defines here.
+// =============================================================================
 #include <algorithm>
 
 #include "protoparse.hpp"
 #include "odb.hpp"
 #include "index.hpp"
 #include "redblacktreei.hpp"
+// =============================================================================
+// =============================================================================
 
 // =============================================================================
 // The items in this section are structs that are passed from driver functions
@@ -66,293 +71,21 @@ uint16_t outfname_len;
 // an interval.
 struct ph_args
 {
-    struct RedBlackTreeI::e_tree_root* valid_tree_root;
-    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
-    uint64_t num_invalid_udp53;
+    struct RedBlackTreeI::e_tree_root* src_tree_root;
+    struct RedBlackTreeI::e_tree_root* dst_tree_root;
 };
 
 // This struct gets handed off to the new thread handler. It should contain all
 // of the information a necessary to compute end-of-interval statistics.
 struct th_args
 {
-    struct RedBlackTreeI::e_tree_root* valid_tree_root;
-    struct RedBlackTreeI::e_tree_root* invalid_tree_root;
+    struct RedBlackTreeI::e_tree_root* src_tree_root;
+    struct RedBlackTreeI::e_tree_root* dst_tree_root;
     uint32_t t_index;
     uint32_t ts_sec;
-    uint64_t num_invalid_udp53;
 };
 // =============================================================================
 // =============================================================================
-
-struct domain_stat
-{
-    char* domain;
-    uint32_t domain_len;
-    double entropy;
-    uint64_t total_queries;
-};
-
-struct interval_stat
-{
-    double entropy;
-    uint64_t total_queries;
-    uint64_t total_unique_queries;
-};
-
-struct sig_encap
-{
-    void* link[2];
-    struct flow_sig* sig;
-    vector<struct flow_sig*>* ips;
-};
-
-// Reference: http://www.cplusplus.com/reference/algorithm/sort/
-bool vec_sort_domain(struct domain_stat* a, struct domain_stat* b)
-{
-    int32_t c = strcmp(a->domain, b->domain);
-
-    return (c < 0 ? true : false);
-}
-
-bool vec_sort_entropy(struct domain_stat* a, struct domain_stat* b)
-{
-    // We're flipping the return values here so that it sorts hight->low
-    return ((a->entropy > b->entropy) ? true : false);
-}
-
-bool vec_sort_count(struct domain_stat* a, struct domain_stat* b)
-{
-    // We're flipping the return values here so that it sorts hight->low
-    return ((a->total_queries > b->total_queries) ? true : false);
-}
-
-inline void write_out_query(struct flow_sig* sig, FILE* out)
-{
-    struct l7_dns* dns;
-    dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-    fprintf(out, "%s%c", dns->query, '\0');
-}
-
-inline void write_out_sig(struct flow_sig* sig, FILE* out)
-{
-    if (sig->l3_type == L3_TYPE_IP4)
-    {
-        struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
-        
-        fprintf(out, "%d.%d.%d.%d%c%d.%d.%d.%d%c",
-               ((uint8_t*)(&(l3->src)))[0], ((uint8_t*)(&(l3->src)))[1], ((uint8_t*)(&(l3->src)))[2], ((uint8_t*)(&(l3->src)))[3], 0,
-               ((uint8_t*)(&(l3->dst)))[0], ((uint8_t*)(&(l3->dst)))[1], ((uint8_t*)(&(l3->dst)))[2], ((uint8_t*)(&(l3->dst)))[3], 0
-        );
-    }
-    else if (sig->l3_type == L3_TYPE_IP6)
-    {
-        struct l3_ip6* l3 = reinterpret_cast<struct l3_ip6*>(&(sig->hdr_start));
-        
-        uint8_t* s = reinterpret_cast<uint8_t*>(&(l3->src));
-        uint8_t* d = reinterpret_cast<uint8_t*>(&(l3->dst));
-        
-        fprintf(out, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x%c",
-               s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10], s[11], s[12], s[13], s[14], s[15], 0,
-               d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15], 0
-        );
-    }
-}
-
-void write_out_contributors(struct sig_encap* encap, FILE* out)
-{
-    vector<struct flow_sig*>* ips = encap->ips;
-    uint32_t num_addrs;
-    
-    if (ips == NULL)
-    {
-        write_out_query(encap->sig, out);
-        num_addrs = 1;
-        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
-        write_out_sig(encap->sig, out);
-    }
-    else
-    {
-        write_out_query(ips->at(0), out);
-        num_addrs = ips->size();
-        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
-        for (uint32_t i = 0 ; i < ips->size() ; i++)
-        {
-            write_out_sig(ips->at(i), out);
-        }
-    }
-}
-
-inline void free_encapped(void* v)
-{
-    struct sig_encap* s = (struct sig_encap*)v;
-
-    if (s->sig->l7_type == L7_TYPE_DNS)
-    {
-        struct l7_dns* dns = (struct l7_dns*)(&(s->sig->hdr_start) + l3_hdr_size[s->sig->l3_type] + l4_hdr_size[s->sig->l4_type]);
-        free(dns->query);
-    }
-
-    if (s->ips != NULL)
-    {
-        for (uint32_t i = 0 ; i < s->ips->size() ; i++)
-        {
-            free(s->ips->at(i));
-        }
-        delete s->ips;
-    }
-    else
-    {
-        free(s->sig);
-    }
-}
-
-inline void free_sig_encap(struct sig_encap* s)
-{
-    free_encapped(s);
-    free(s);
-}
-
-int32_t compare_dns(void* aV, void* bV)
-{
-    struct flow_sig* aF = (reinterpret_cast<struct sig_encap*>(aV))->sig;
-    struct flow_sig* bF = (reinterpret_cast<struct sig_encap*>(bV))->sig;
-
-    // At this point, we know that we're looking at the layer 7 and that it'll be of the DNS type.
-    uint16_t offset = l3_hdr_size[aF->l3_type] + l4_hdr_size[aF->l4_type];
-
-    struct l7_dns* a = (struct l7_dns*)(&(aF->hdr_start) + offset);
-    struct l7_dns* b = (struct l7_dns*)(&(bF->hdr_start) + offset);
-
-    return strcmp(a->query, b->query);
-}
-
-int32_t compare_memcmp(void* aV, void* bV)
-{
-    struct flow_sig* aF = (reinterpret_cast<struct sig_encap*>(aV))->sig;
-    struct flow_sig* bF = (reinterpret_cast<struct sig_encap*>(bV))->sig;
-
-    int32_t c = aF->hdr_size - bF->hdr_size;
-    if (c == 0)
-    {
-        c = memcmp(aV, bV, sizeof(struct flow_sig) + aF->hdr_size);
-    }
-
-    return c;
-}
-
-// New data is being merged into old data: aV is new, bV is existing.
-void* merge_sig_encap(void* aV, void* bV)
-{
-    struct sig_encap* a = reinterpret_cast<struct sig_encap*>(aV);
-    struct sig_encap* b = reinterpret_cast<struct sig_encap*>(bV);
-
-    if (b->ips == NULL)
-    {
-        b->ips = new std::vector<struct flow_sig*>();
-        b->ips->push_back(b->sig); // Also count the existing item, since we're counting them anyway.
-    }
-
-    b->ips->push_back(a->sig);
-
-    return bV;
-}
-
-// For the full list: http://publicsuffix.org
-// To reverse the domains
-// cat pubsuf.txt | grep -vE "(^//|^$)" | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)$/\1\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\4.\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\5.\4.\3.\2/' > pubsuf2
-inline char* get_domain(char* q, uint32_t len)
-{
-    char* ret = reinterpret_cast<char*>(malloc(len + 1));
-    memcpy(ret, q, len);
-    ((char*)ret)[len] = 0;
-
-    return ret;
-}
-
-inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
-{
-    uint32_t cur_count;
-    if (encap->ips == NULL)
-    {
-        cur_count = 1;
-    }
-    else
-    {
-        cur_count = encap->ips->size();
-    }
-
-    stats->total_queries += cur_count;
-    stats->entropy += cur_count * log((double)cur_count);
-}
-
-inline void finalize_interval(struct interval_stat* istat)
-{
-    istat->entropy -= istat->total_queries * log((double)(istat->total_queries));
-    istat->entropy /= (istat->total_queries * M_LN2);
-
-    if (istat->entropy != 0)
-    {
-        istat->entropy *= -1;
-    }
-}
-
-void process_domain(Iterator* it, struct domain_stat* stats, struct interval_stat* istat)
-{
-    stats->entropy = 0;
-    stats->total_queries = 0;
-
-    struct sig_encap* encap;
-    struct flow_sig* sig;
-    struct l7_dns* dns;
-
-    // Identify the domain that the query belongs to.
-    uint32_t domain_len = 0;
-    char* domain = NULL;
-
-    encap = (struct sig_encap*)(it->get_data());
-    sig = encap->sig;
-    dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-    domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
-    domain = get_domain(dns->query, domain_len);
-    stats->domain = domain;
-    stats->domain_len = domain_len;
-
-    process_query(stats, encap);
-
-    while (true)
-    {
-        if (it->next() == NULL)
-        {
-            break;
-        }
-
-        encap = (struct sig_encap*)(it->get_data());
-        sig = encap->sig;
-        dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-        if (memcmp(domain, dns->query, domain_len) != 0)
-        {
-            break;
-        }
-
-        process_query(stats, encap);
-        istat->total_unique_queries++;
-    }
-
-    // Finalize the entropy computation for the domain, and put together this domain's
-    // contribution to the interval.
-    istat->entropy += stats->total_queries * log((double)stats->total_queries);
-    istat->total_queries += stats->total_queries;
-
-    stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
-    stats->entropy /= (stats->total_queries * M_LN2);
-
-    if (stats->entropy != 0)
-    {
-        stats->entropy *= -1;
-    }
-}
 
 // =============================================================================
 // The functions in this section mark those that are used by the driving functions
@@ -570,25 +303,23 @@ void* process_interval(void* args)
 
 void init_thread_args(struct ph_args* args_p, struct th_args* args_t)
 {
-    args_t->valid_tree_root = args_p->valid_tree_root;
-    args_t->invalid_tree_root = args_p->invalid_tree_root;
-    args_t->num_invalid_udp53 = args_p->num_invalid_udp53;
+    args_t->src_tree_root = args_p->src_tree_root;
+    args_t->dst_tree_root = args_p->dst_tree_root;
     args_t->t_index = threads.size();
     args_t->ts_sec = interval_start_sec;
 }
 
-void init_persistent_args(struct ph_args* args_p)
+void init_packet_args(struct ph_args* args_p)
 {
-    args_p->valid_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
-    args_p->invalid_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
-    args_p->num_invalid_udp53 = 0;
+    args_p->src_tree_root = RedBlackTreeI::e_init_tree(true, compare_dns, merge_sig_encap);
+    args_p->dst_tree_root = RedBlackTreeI::e_init_tree(true, compare_memcmp, merge_sig_encap);
 }
 
 // Called at the end of an interval. Use this callback to handle initializing a new
 // tree root and such.
-void reset_persistent_args(struct ph_args* args_p)
+void reset_packet_args(struct ph_args* args_p)
 {
-    init_persistent_args(args_p);
+    init_packet_args(args_p);
 }
 
 // =============================================================================
@@ -626,7 +357,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         if (e == 0)
         {
             threads.push_back(t);
-            reset_persistent_args(args_p);
+            reset_packet_args(args_p);
         }
         else
         {
@@ -672,7 +403,7 @@ int pcap_listen(uint32_t args_start, uint32_t argc, char** argv)
 
 
     struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
-    init_persistent_args(args_p);
+    init_packet_args(args_p);
 
     args = reinterpret_cast<uint8_t*>(args_p);
 
@@ -851,7 +582,7 @@ int file_read(uint32_t args_start, uint32_t argc, char** argv)
     uint32_t num_files;
 
     struct ph_args* args_p = reinterpret_cast<struct ph_args*>(malloc(sizeof(struct ph_args)));
-    init_persistent_args(args_p);
+    init_packet_args(args_p);
 
     totaldur = 0;
     dur = 0;
