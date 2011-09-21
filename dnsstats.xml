@@ -38,7 +38,6 @@
         <value type="cstr" name="Query String" />
         <value type="uint32_l" name="Count" label="numcontribs" />
         <loop count="_numcontribs_" prefix="Contributor">
-            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
             <if lhs="_l3type_" op="eq" rhs="2048">
                 <value type="cstr" name="Source IP" />
                 <value type="cstr" name="Destination IP" />

@@ -89,7 +89,7 @@ struct tcpip
     uint32_t timestamp;
 };
 #pragma pack()
-// 
+//
 // #pragma pack(1)
 // struct ip_data
 // {
@@ -99,7 +99,7 @@ struct tcpip
 //     uint32_t payload_len_count;
 // };
 // #pragma pack()
-// 
+//
 // #pragma pack(1)
 // struct tcp_data
 // {
@@ -108,7 +108,7 @@ struct tcpip
 //     uint32_t dst_port_count;
 // };
 // #pragma pack()
-// 
+//
 // #pragma pack(1)
 // struct udp_data
 // {
@@ -263,7 +263,7 @@ int32_t compare_timestamp(void* a, void* b)
 {
     assert(a != NULL);
     assert(b != NULL);
-    
+
     return ((reinterpret_cast<struct entropy_stats*>(a))->timestamp) - ((reinterpret_cast<struct entropy_stats*>(b))->timestamp);
 }
 
@@ -287,7 +287,7 @@ void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
     rec->flags_count = 1;
     rec->win_size_count = 1;
     rec->payload_len_count = 1;
-    
+
 
     total++;
 //     struct tcpip* temp = (struct tcpip*)(packet+14);
@@ -374,6 +374,7 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
 
 //     printf("%.15f,", curG);
     
+
     return entropy;
 }
 
@@ -397,15 +398,15 @@ double distance(struct tcpip * a, struct tcpip * b)
 
 void do_it_calcs(ODB * entropies, uint32_t timestamp)
 {
-    
+
 #define ENTROPY_MACRO(ent_name, index_name, field_name, count_name, size) \
     es.ent_name = it_calc(index_name, sizeof(struct ip) + OFFSET(struct tcphdr, field_name), OFFSET(struct tcpip, count_name), size); \
     max_entropies.ent_name = MAX(max_entropies.ent_name, es.ent_name);
-    
-    
+
+
     struct entropy_stats es;
-    
-    
+
+
     es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
     es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
     es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
@@ -416,19 +417,19 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
     ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
     ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
-    
+
 //     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
 //     max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
-    
+
     es.timestamp = timestamp;
-    
+
     max_entropies.src_ip_entropy = MAX(max_entropies.src_ip_entropy, es.src_ip_entropy);
     max_entropies.dst_ip_entropy = MAX(max_entropies.dst_ip_entropy, es.dst_ip_entropy);
     max_entropies.src_port_entropy = MAX(max_entropies.src_port_entropy, es.src_port_entropy);
     max_entropies.dst_port_entropy = MAX(max_entropies.dst_port_entropy, es.dst_port_entropy);
     max_entropies.flags_entropy = MAX(max_entropies.flags_entropy, es.flags_entropy);
     max_entropies.payload_len_entropy = MAX(max_entropies.payload_len_entropy, es.payload_len_entropy);
-    
+
     entropies->add_data(&es, true);
 }
 
@@ -557,7 +558,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 //             printf("data:%s\n", data);ip_struct
             continue;
         }
-        
+
         if (period_start == 0)
         {
             period_start = pheader->ts_sec;
@@ -638,7 +639,7 @@ int main(int argc, char *argv[])
 
     odb = new ODB(ODB::BANK_DS, prune, sizeof(struct tcpip));
     entropies = new ODB(ODB::BANK_DS, null_prune, sizeof(struct entropy_stats));
-    
+
     Index * entropy_ts_index;
 
     IndexGroup* packets = odb->create_group();
@@ -646,23 +647,23 @@ int main(int argc, char *argv[])
 #define INDEX_MACRO(name, comp_name, merge_name) \
     name = odb->create_index(ODB::RED_BLACK_TREE, ODB::DROP_DUPLICATES, comp_name, merge_name);\
     packets->add_index(name)
-    
-    
+
+
     INDEX_MACRO(src_addr_index, compare_src_addr, merge_src_addr);
     INDEX_MACRO(dst_addr_index, compare_dst_addr, merge_dst_addr);
     INDEX_MACRO(src_port_index, compare_src_port, merge_src_port);
-    INDEX_MACRO(dst_port_index, compare_dst_port, merge_dst_port);    
+    INDEX_MACRO(dst_port_index, compare_dst_port, merge_dst_port);
     INDEX_MACRO(seq_index, compare_seq, merge_seq);
     INDEX_MACRO(ack_index, compare_ack, merge_ack);
     INDEX_MACRO(flags_index, compare_flags, merge_flags);
     INDEX_MACRO(win_size_index, compare_win_size, merge_win_size);
     INDEX_MACRO(payload_len_index, compare_payload_len, merge_payload_len);
-    
+
     entropy_ts_index = entropies->create_index(ODB::LINKED_LIST, ODB::NONE, compare_timestamp);
 
     memset(&max_entropies, 0, sizeof(struct entropy_stats));
-    
-    
+
+
     if (argc < 2)
     {
         printf("Alternatively: dpep <Number of files> <file name>+\n");
