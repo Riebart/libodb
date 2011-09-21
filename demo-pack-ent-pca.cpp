@@ -22,6 +22,8 @@
 #include "iterator.hpp"
 #include "utility.hpp"
 
+#include "pca.h"
+
 #include <assert.h>
 
 using namespace std;
@@ -44,6 +46,7 @@ using namespace std;
 #define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
 
 #define PERIOD 600
+#define DIMENSIONS 9
 uint32_t period_start = 0;
 
 typedef uint32_t uint32;
@@ -367,9 +370,9 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
     curG = 1.0 - curG/curS;
 
 //     printf("TOTAL %lu\n", total);
-    printf("%.15f,", entropy);
+//     printf("%.15f,", entropy);
 
-    printf("%.15f,", curG);
+//     printf("%.15f,", curG);
     
     return entropy;
 }
@@ -404,11 +407,10 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     
     
     es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
-//             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
     es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
     es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
     es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-//     es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
+    es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
     es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 
     ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
@@ -429,6 +431,62 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     
     entropies->add_data(&es, true);
 }
+
+
+void do_pca_analysis(Index * entropies)
+{
+    uint32_t size = entropies->size();
+    int i=0;
+    struct mat pca;
+    pca.rows = size;
+    pca.cols = DIMENSIONS;
+    pca.data = matrix(pca.rows, pca.cols);
+    
+        
+    Iterator * it = entropies->it_first();
+        
+    if (it->data() != NULL)
+    {
+        do
+        {
+            struct entropy_stats * es = reinterpret_cast<struct entropy_stats *>(it->get_data());
+            
+            //TODO ; normalize these? (by dividing by max_entropies)
+            pca.data[i][0] = es->src_ip_entropy/max_entropies.src_ip_entropy;
+            pca.data[i][1] = es->dst_ip_entropy/max_entropies.dst_ip_entropy;
+            pca.data[i][2] = es->src_port_entropy/max_entropies.src_port_entropy;
+            pca.data[i][3] = es->dst_port_entropy/max_entropies.dst_port_entropy;
+            pca.data[i][4] = es->seq_entropy/max_entropies.seq_entropy;
+            pca.data[i][5] = es->ack_entropy/max_entropies.ack_entropy;
+            pca.data[i][6] = es->flags_entropy/max_entropies.flags_entropy;
+            pca.data[i][7] = es->win_size_entropy/max_entropies.win_size_entropy;
+            pca.data[i][8] = es->payload_len_entropy/max_entropies.payload_len_entropy;
+                        
+            i++;
+            
+        }
+        while (it->next() != NULL);
+    }
+    
+    entropies->it_release(it);
+    
+    do_pca(pca);
+    
+    int j;
+    for(i=0; i<pca.rows; i++)
+    {
+        for (j=0; j<pca.cols; j++)
+        {
+            printf("%12.5f ", pca.data[i][j]);
+        }
+        printf("\n");
+    }
+    
+    
+    free_matrix(pca.data, pca.rows, pca.cols);
+    
+}
+
 
 uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 {
@@ -510,15 +568,16 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 
             do_it_calcs(entropies, period_start);
 
-            printf("Tot: %lu,", total);
+//             printf("Tot: %lu,", total);
 
 //             printf("0\n");
             // Include the timestamp that marks the END of this interval
 //             printf("TIMESTAMP %u\n", pheader->ts_sec);
-            printf("TIMESTAMP %u\n", period_start);
-            fflush(stdout);
+//             printf("TIMESTAMP %u\n", period_start);
+//             fflush(stdout);
 //             fprintf(stderr, "\n");
 
+            
 
             total = 0;
 
@@ -671,6 +730,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%f\n", max_entropies.win_size_entropy);
     fprintf(stderr, "%f\n", max_entropies.seq_entropy);
     fprintf(stderr, "%f\n", max_entropies.ack_entropy);
+    
+    do_pca_analysis(entropies->get_indexes()->flatten()[0]);
 
     delete odb;
 //     delete packets;

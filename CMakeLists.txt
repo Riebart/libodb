@@ -62,6 +62,8 @@ include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/i
 
 add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp iterator.cpp)
 
+# add_library(pca STATIC pca.c)
+
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)
 
@@ -74,7 +76,7 @@ add_executable (minimal minimal.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
-add_executable (dpep demo-pack-ent-pca.cpp)
+add_executable (dpep pca.c demo-pack-ent-pca.cpp)
 add_executable (demo-driver demo-driver.cpp)
 add_executable (trace-proc trace-proc.cpp)
 # add_executable (pca_test pca.c)
