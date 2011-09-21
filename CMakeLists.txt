@@ -78,7 +78,7 @@ add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
 add_executable (dnsstats dnsstats.cpp)
 add_executable (ipstats ipstats.cpp)
-add_executable (dpep demo-pack-ent-pca.cpp)
+add_executable (dpep pca.c demo-pack-ent-pca.cpp)
 #add_executable (demo-driver demo-driver.cpp)
 
 add_executable (trace-proc trace-proc.cpp)
