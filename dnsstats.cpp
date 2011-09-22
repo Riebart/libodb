@@ -424,14 +424,17 @@ void* process_interval(void* args)
 
     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
-#warning "TODO: Some off-by-one errors here."
-    do
+    if (it->get_data() != NULL)
     {
-        cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
-        process_domain(it, cur_stat, &istat);
-        stats.push_back(cur_stat);
+#warning "TODO: Some off-by-one errors here."
+        do
+        {
+            cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
+            process_domain(it, cur_stat, &istat);
+            stats.push_back(cur_stat);
+        }
+        while (it->next() != NULL);
     }
-    while (it->next() != NULL);
 
     finalize_interval(&istat);
 
@@ -491,45 +494,48 @@ void* process_interval(void* args)
     }
 
     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-
-    do
+    
+    if (it->get_data() != NULL)
     {
-        struct sig_encap* encap;
-        struct flow_sig* sig;
-        struct l7_dns* dns;
-
-        // Identify the domain that the query belongs to.
-        uint32_t domain_len = 0;
-        char* domain = NULL;
-
-        encap = (struct sig_encap*)(it->get_data());
-        sig = encap->sig;
-        dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-        domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
-        domain = get_domain(dns->query, domain_len);
-
-        write_out_contributors(encap, out);
-
-        while (true)
+        do
         {
-            if (it->next() == NULL)
-            {
-                break;
-            }
+            struct sig_encap* encap;
+            struct flow_sig* sig;
+            struct l7_dns* dns;
+
+            // Identify the domain that the query belongs to.
+            uint32_t domain_len = 0;
+            char* domain = NULL;
 
             encap = (struct sig_encap*)(it->get_data());
+            sig = encap->sig;
+            dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
-            if (memcmp(domain, dns->query, domain_len) != 0)
-            {
-                it->prev();
-                break;
-            }
+            domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+            domain = get_domain(dns->query, domain_len);
 
             write_out_contributors(encap, out);
+
+            while (true)
+            {
+                if (it->next() == NULL)
+                {
+                    break;
+                }
+
+                encap = (struct sig_encap*)(it->get_data());
+
+                if (memcmp(domain, dns->query, domain_len) != 0)
+                {
+                    it->prev();
+                    break;
+                }
+
+                write_out_contributors(encap, out);
+            }
         }
+        while (it->next() != NULL);
     }
-    while (it->next() != NULL);
 
     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
 
@@ -537,6 +543,7 @@ void* process_interval(void* args)
     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     free(args_t);
+    fclose(out);
 
     return NULL;
 }
@@ -589,6 +596,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         init_thread_args(args_p, args_t);
 
         int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
+//        sleep(1000);
 
         // e is zero on success: http://pubs.opengroup.org/onlinepubs/007908799/xsh/pthread_create.html
         if (e == 0)
