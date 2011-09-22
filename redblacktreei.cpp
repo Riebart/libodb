@@ -98,14 +98,14 @@ using namespace std;
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 #define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
 
-RedBlackTreeI::RedBlackTreeI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates)
+RedBlackTreeI::RedBlackTreeI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
     RWLOCK_INIT();
-    this->ident = ident;
+    this->ident = _ident;
     root = NULL;
-    this->compare = compare;
-    this->merge = merge;
-    this->drop_duplicates = drop_duplicates;
+    this->compare = _compare;
+    this->merge = _merge;
+    this->drop_duplicates = _drop_duplicates;
     count = 0;
 
     // Initialize the false root
@@ -632,31 +632,31 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
     return new_root;
 }
 
-int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
+int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare)
 {
     int height_l, height_r;
 
-    if (root == NULL)
+    if (_root == NULL)
     {
         return 1;
     }
     else
     {
-        if (IS_TREE(root))
-            if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(root->data), compare_addr)) == 0)
+        if (IS_TREE(_root))
+            if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(_root->data), compare_addr)) == 0)
             {
                 FAIL("Child tree is broken.\n");
             }
 
-        struct tree_node* left = STRIP(root->link[0]);
-        struct tree_node* right = STRIP(root->link[1]);
+        struct tree_node* left = STRIP(_root->link[0]);
+        struct tree_node* right = STRIP(_root->link[1]);
 
         // Check for consecutive red links.
-        if (IS_RED(root))
+        if (IS_RED(_root))
             if (IS_RED(left) || IS_RED(right))
             {
 #ifndef VERBOSE_RBT_VERIFY
-                FAIL("Red violation @ %ld, %p : %p", *(long*)GET_DATA(root), left, right);
+                FAIL("Red violation @ %ld, %p : %p", *(long*)GET_DATA(_root), left, right);
 #else
                 fprintf(stderr, "Red violation\n");
 #endif
@@ -666,20 +666,20 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
 #ifdef VERBOSE_RBT_VERIFY
         if (left)
         {
-            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_TREE(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
+            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(_root), (IS_TREE(_root) ? 'L' : 'V'), (IS_RED(_root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_TREE(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
         }
         if (right)
         {
-            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_TREE(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
+            printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(_root), (IS_TREE(_root) ? 'L' : 'V'), (IS_RED(_root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_TREE(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
         }
 #endif
 
-        height_l = rbt_verify_n(left, compare);
-        height_r = rbt_verify_n(right, compare);
+        height_l = rbt_verify_n(left, _compare);
+        height_r = rbt_verify_n(right, _compare);
 
         // Verify BST property.
-        if (((left != NULL) && (compare->compare(GET_DATA(left), GET_DATA(root)) >= 0)) ||
-                ((right != NULL) && (compare->compare(GET_DATA(right), GET_DATA(root)) <= 0)))
+        if (((left != NULL) && (_compare->compare(GET_DATA(left), GET_DATA(_root)) >= 0)) ||
+                ((right != NULL) && (_compare->compare(GET_DATA(right), GET_DATA(_root)) <= 0)))
         {
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
@@ -703,7 +703,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* root, Comparator* compare)
         // Only count black nodes
         if ((height_r != 0) && (height_l != 0))
         {
-            return height_r + (1 - IS_RED(root));
+            return height_r + (1 - IS_RED(_root));
         }
         else
         {
@@ -1723,8 +1723,15 @@ RBTIterator::RBTIterator()
 {
 }
 
-RBTIterator::RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count) : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
+#warning "TODO: Find out why this doesn't work right under sunCC"
+RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
+    //dataobj = new DataObj(ident);
+    dataobj->ident = ident;
+    this->time_stamp = _time_stamp;
+    this->query_count = _query_count;
+    this->true_datalen = _true_datalen;
+    it = NULL;
 }
 
 RBTIterator::~RBTIterator()

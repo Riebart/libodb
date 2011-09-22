@@ -34,7 +34,7 @@ void * mem_checker(void * arg)
     uint32_t sleep_duration = *reinterpret_cast<uint32_t*>(&(args[1]));
 
     uint64_t vsize;
-    uint64_t rsize;
+    uint64_t rsize = 0;
 
     uint32_t count = 0;
 
@@ -52,24 +52,6 @@ void * mem_checker(void * arg)
 
     while (parent->is_running())
     {
-        time_t cur = time(NULL);
-
-        // Since time(NULL) has a resolution of one second, this will execute every second (approximately).
-        if (parent->get_time() < cur)
-        {
-            parent->update_time(cur);
-            count++;
-
-            if (count > sleep_duration)
-            {
-                printf("Time: %lu - ODB instance: %p - Rsize: %ld - mem_limit: %lu...", cur, parent, rsize, parent->mem_limit);
-                fflush(stdout);
-                parent->remove_sweep();
-                printf("Done\n");
-                count = 0;
-            }
-        }
-
         stat_file = freopen(path, "r", stat_file);
         if (stat_file == NULL)
         {
@@ -87,6 +69,24 @@ void * mem_checker(void * arg)
         {
             FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
         }
+        
+	time_t cur = time(NULL);
+
+        // Since time(NULL) has a resolution of one second, this will execute every second (approximately).
+        if (parent->get_time() < cur)
+        {
+            parent->update_time(cur);
+            count++;
+
+            if (count > sleep_duration)
+            {
+                printf("Time: %lu - ODB instance: %p - Rsize: %ld - mem_limit: %lu...", cur, parent, rsize, parent->mem_limit);
+                fflush(stdout);
+                parent->remove_sweep();
+                printf("Done\n");
+                count = 0;
+            }
+        }
 
         nanosleep(&ts, NULL);
     }
@@ -97,26 +97,26 @@ void * mem_checker(void * arg)
 
 }
 
-/// @todo Handle these failures gracefully instead. Applies to all ODB Constructors.
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
+#warning "TODO: Handle these failures gracefully instead. Applies to all ODB Constructors."
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new BankDS(NULL, prune, _datalen, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new LinkedListDS(NULL, prune, _datalen, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -125,29 +125,29 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, 
     }
     }
 
-    init(data, num_unique, datalen, archive, freep, sleep_duration);
+    init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case BANK_DS:
     {
-        data = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_DS:
     {
-        data = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -156,28 +156,28 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_
     }
     }
 
-    init(data, ident, datalen, archive, freep, sleep_duration);
+    init(datastore, _ident, _datalen, _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new BankIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -186,29 +186,29 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
     }
     }
 
-    init(data, num_unique, sizeof(void*), archive, freep, sleep_duration);
+    init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case BANK_I_DS:
     {
-        data = new BankIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new BankIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        data = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -217,23 +217,23 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
     }
     }
 
-    init(data, ident, sizeof(void*), archive, freep, sleep_duration);
+    init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
+        datastore = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -242,24 +242,24 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archiv
     }
     }
 
-    init(data, num_unique, sizeof(void*), archive, freep, sleep_duration);
+    init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
     num_unique++;
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive, void (*freep)(void*), uint32_t (*len)(void*), uint32_t sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
         FAIL("Pruning function cannot be NULL.");
     }
 
-    DataStore* data;
+    DataStore* datastore;
 
     switch (dt)
     {
     case LINKED_LIST_V_DS:
     {
-        data = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
+        datastore = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
         break;
     }
     default:
@@ -268,30 +268,30 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Arch
     }
     }
 
-    init(data, ident, sizeof(void*), archive, freep, sleep_duration);
+    init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(DataStore* data, int ident, uint32_t datalen)
+ODB::ODB(DataStore* _data, int _ident, uint32_t _datalen)
 {
-    init(data, ident, datalen, NULL, free, 0);
+    init(_data, _ident, _datalen, NULL, NULL, 0);
 }
 
-void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration)
+void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
-    this->ident = ident;
-    this->datalen = datalen;
-    all = new IndexGroup(ident, data);
-    dataobj = new DataObj(ident);
-    this->data = data;
-    this->archive = archive;
+    this->ident = _ident;
+    this->datalen = _datalen;
+    all = new IndexGroup(_ident, _data);
+    dataobj = new DataObj(_ident);
+    this->data = _data;
+    this->archive = _archive;
 
-    if (freep == NULL)
+    if (_freep == NULL)
     {
         this->freep = free;
     }
     else
     {
-        this->freep = freep;
+        this->freep = _freep;
     }
 
     data->cur_time=time(NULL);
@@ -307,7 +307,7 @@ void ODB::init(DataStore* data, int ident, uint32_t datalen, Archive* archive, v
         void** args;
         SAFE_MALLOC(void**, args, sizeof(ODB*) + sizeof(uint32_t));
         args[0] = this;
-        *reinterpret_cast<uint32_t*>(&(args[1])) = sleep_duration;
+        *reinterpret_cast<uint32_t*>(&(args[1])) = _sleep_duration;
         pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
     }
     else
@@ -352,7 +352,7 @@ ODB::~ODB()
 void ODB::add_data(void* rawdata)
 {
     all->add_data_v(data->add_data(rawdata));
-///TODO: Make sure the datastores handle this properly. This also isn't threadsafe.
+#warning "TODO: Make sure the datastores handle this properly. This also isn't threadsafe."
 //    if ((all->add_data_v(data->add_data(rawdata))) == false)
 //        data->remove_at(data->data_count - 1);
 }
@@ -360,7 +360,7 @@ void ODB::add_data(void* rawdata)
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
     all->add_data_v(data->add_data(rawdata, nbytes));
-///TODO: Make sure the datastores handle this properly. This also isn't threadsafe.
+#warning "TODO: Make sure the datastores handle this properly. This also isn't threadsafe."
 //     if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
 //         data->remove_at(data->data_count - 1);
 }
@@ -394,7 +394,7 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
     return create_index(type, flags, new CompareCust(compare), (merge == NULL ? NULL : new MergeCust(merge)), (keygen == NULL ? NULL : new KeygenCust(keygen)), keylen);
 }
 
-/// @todo Handle these failures gracefully instead.
+#warning "TODO: Handle these failures gracefully instead."
 Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
 {
     READ_LOCK();

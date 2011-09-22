@@ -11,9 +11,9 @@ class Archive
 {
 public:
     virtual bool write(void* rawdata, uint32_t datalen) = 0;
-    virtual void set_constraint(Condition* cond)
+    virtual void set_constraint(Condition* _cond)
     {
-        this->cond = cond;
+        this->cond = _cond;
     };
 
 protected:

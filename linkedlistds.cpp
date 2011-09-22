@@ -11,45 +11,45 @@
 
 using namespace std;
 
-LinkedListDS::LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags)
+LinkedListDS::LinkedListDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags)
 {
-    this->flags = flags;
-    time_stamp = (flags & DataStore::TIME_STAMP);
-    query_count = (flags & DataStore::QUERY_COUNT);
+    this->flags = _flags;
+    time_stamp = (_flags & DataStore::TIME_STAMP);
+    query_count = (_flags & DataStore::QUERY_COUNT);
 
-    init(parent, prune, datalen);
+    init(_parent, _prune, _datalen);
 }
 
-LinkedListIDS::LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags) : LinkedListDS(parent, prune, sizeof(char*), flags)
+LinkedListIDS::LinkedListIDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint32_t _flags) : LinkedListDS(_parent, _prune, sizeof(char*), _flags)
 {
     // If the parent is not NULL
     if (parent != NULL)
     {
         // Then we need to 'borrow' its true datalen.
         // As well, we need to reset the datalen for this object since we aren't storing the meta data in this DS (It is in the parent).
-        true_datalen = parent->true_datalen;
+        true_datalen = _parent->true_datalen;
         datalen = sizeof(char*);
     }
 }
 
-LinkedListVDS::LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*), uint32_t flags) : LinkedListDS(parent, prune, 0, flags)
+LinkedListVDS::LinkedListVDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint32_t (*_len)(void*), uint32_t _flags) : LinkedListDS(_parent, _prune, 0, _flags)
 {
-    this->len = len;
+    this->len = _len;
 }
 
-inline void LinkedListDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen)
+inline void LinkedListDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen)
 {
     //since the only read case we (currently) have is trivial, might a general lock be better suited?
     RWLOCK_INIT();
-    this->true_datalen = datalen;
-    this->datalen = datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);;
+    this->true_datalen = _datalen;
+    this->datalen = _datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);;
     bottom = NULL;
-    this->parent = parent;
-    this->prune = prune;
+    this->parent = _parent;
+    this->prune = _prune;
     data_count = 0;
 }
 
-//TODO: free memory
+#warning "TODO: free memory"
 LinkedListDS::~LinkedListDS()
 {
     WRITE_LOCK();
@@ -74,12 +74,12 @@ inline void* LinkedListDS::add_data(void* rawdata)
 
     if (time_stamp)
     {
-        SET_TIME_STAMP(ret, cur_time);
+        SET_TIME_STAMP(ret, cur_time, true_datalen);
     }
 
     if (query_count)
     {
-        SET_QUERY_COUNT(ret, 0);
+        SET_QUERY_COUNT(ret, 0, true_datalen);
     }
 
     return ret;
@@ -110,16 +110,16 @@ inline void* LinkedListVDS::add_data(void* rawdata, uint32_t nbytes)
 
     memcpy(ret, rawdata, nbytes);
 
-    int true_datalen = nbytes;
+    int _true_datalen = nbytes;
 
     if (time_stamp)
     {
-        SET_TIME_STAMP(ret, cur_time);
+        SET_TIME_STAMP(ret, cur_time, _true_datalen);
     }
 
     if (query_count)
     {
-        SET_QUERY_COUNT(ret, 0);
+        SET_QUERY_COUNT(ret, 0, _true_datalen);
     }
 
     return ret;
@@ -253,7 +253,7 @@ inline bool LinkedListDS::remove_addr(void* addr)
     return true;
 }
 
-/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
+// This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[3];
@@ -313,7 +313,7 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
     return marked;
 }
 
-/// @todo Documentation note: This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
+// This takes the pruned locations out of the available pool for reallocation and for queries (Like limbo). Reintroducing them to the allocation pool is handled by remove_cleanup1
 std::vector<void*>** LinkedListIDS::remove_sweep(Archive* archive)
 {
     vector<void*>** marked = new vector<void*>*[3];

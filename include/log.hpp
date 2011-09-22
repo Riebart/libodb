@@ -51,15 +51,15 @@
 ))))))))
 
 //Reference: http://stackoverflow.com/questions/679979/c-c-how-to-make-a-variadic-macro-variable-number-of-arguments
-#define LOG_MESSAGE_F(loglvl, fp, message, ...) \
+#define LOG_MESSAGE_F(loglvl, fp, ...) \
 if (LOG_LEVEL <= loglvl) \
 { \
 print_cur_time_stamp(LOG_LEVEL_MESSAGE_DESCRIPTOR(loglvl));\
 fprintf(fp, LOG_LEVEL_MESSAGE_HEADER(loglvl)); \
-fprintf(fp, message, ##__VA_ARGS__);\
+fprintf(fp, ##__VA_ARGS__);\
 }
 
-#define LOG_MESSAGE(loglvl, message, ...) LOG_MESSAGE_F(loglvl, LOG_LEVEL_MESSAGE_DESCRIPTOR(loglvl), message, ##__VA_ARGS__)
+#define LOG_MESSAGE(loglvl, ...) LOG_MESSAGE_F(loglvl, LOG_LEVEL_MESSAGE_DESCRIPTOR(loglvl), ##__VA_ARGS__)
 
 // Reference: http://www.cplusplus.com/reference/clibrary/ctime/strftime/
 static inline void print_cur_time_stamp(FILE* f)

@@ -84,9 +84,9 @@ inline bool (*DataStore::get_prune())(void*)
     return prune;
 }
 
-inline void DataStore::set_prune(bool (*prune)(void*))
+inline void DataStore::set_prune(bool (*_prune)(void*))
 {
-    this->prune = prune;
+    this->prune = _prune;
 }
 
 inline uint64_t DataStore::size()

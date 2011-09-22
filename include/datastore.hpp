@@ -7,11 +7,11 @@
 
 #include "lock.hpp"
 
-#define GET_TIME_STAMP(x) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + true_datalen))
-#define SET_TIME_STAMP(x, t) (GET_TIME_STAMP(x) = t);
-#define GET_QUERY_COUNT(x) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + true_datalen + time_stamp * sizeof(time_t)))
-#define SET_QUERY_COUNT(x, c) (GET_QUERY_COUNT(x) = c);
-#define UPDATE_QUERY_COUNT(x) (GET_QUERY_COUNT(x)++);
+#define GET_TIME_STAMP(x, dlen) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + dlen))
+#define SET_TIME_STAMP(x, t, dlen) (GET_TIME_STAMP(x, dlen) = t);
+#define GET_QUERY_COUNT(x, dlen) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + dlen + time_stamp * sizeof(time_t)))
+#define SET_QUERY_COUNT(x, c, dlen) (GET_QUERY_COUNT(x, dlen) = c);
+#define UPDATE_QUERY_COUNT(x, dlen) (GET_QUERY_COUNT(x, dlen)++);
 
 class ODB;
 class Index;

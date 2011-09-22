@@ -5,18 +5,62 @@ cmake_minimum_required(VERSION 2.6)
 # to the root binary directory of the project as ${TM-PROJECT_BINARY_DIR}.)
 project (TM-PROJECT)
 
-set(CMAKE_C_COMPILER "gcc")
-set(CMAKE_CXX_COMPILER "g++")
+message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
+
 #set(CMAKE_LINKER "/bin/ld")
+set(COMPILER_C)
+set(COMPILER_CXX)
+set(SKIP_SUN_COMPILER "true")
 
-message(STATUS "Operating System detected as: ${CMAKE_SYSTEM_NAME}")
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+    message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
+    find_program(COMPILER_C NAMES suncc)
+    find_program(COMPILER_CXX NAMES sunCC)
+    message(STATUS " -> Found ${COMPILER_C} and ${COMPILER_CXX}")
 
-#this is probably the wrong way to do this: setting compile-time defines
-# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
-# Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
-add_definitions(-DPTHREAD_LOCK)
+    if(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+	set(COMPILER_SUITE "none")
+	set(COMPILER_C "none")
+	set(COMPILER_CXX "none")
+	message(STATUS "Sun Studio failed")
+    else(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+	set(CMAKE_C_COMPILER "suncc")
+	set(CMAKE_CXX_COMPILER "sunCC")
+	set(COMPILER_SUITE "sun")
+    endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+    message(STATUS "Skipping search for Sun Studio compiler on Solaris")
+    set(COMPILER_SUITE "none")
+endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
+    message(STATUS "Attempting to set compiler to GCC")
+    set(COMPILER_C)
+    set(COMPILER_CXX)
+    find_program(COMPILER_C NAMES gcc)
+    find_program(COMPILER_CXX NAMES g++)
+    message(STATUS " -> Found ${COMPILER_C} and ${COMPILER_CXX}")
+    
+    if(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+	set(COMPILER_SUITE "none")
+	set(COMPILER_C "none")
+	set(COMPILER_CXX "none")
+	message(STATUS "GCC failed")
+    else(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+	set(CMAKE_C_COMPILER "gcc")
+	set(CMAKE_CXX_COMPILER "g++")
+	set(COMPILER_SUITE "gcc")
+    endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
+
+if(${COMPILER_SUITE} MATCHES "none")
+    message(FATAL_ERROR "Unable to find a compiler collection (Sun Studio or GCC)")
+    return()
+endif(${COMPILER_SUITE} MATCHES "none")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+# See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
+# Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
     message(STATUS "Ensuring use of BSD-style headers on Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -27,15 +71,26 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
     set(CMAKE_FLAGS_X64 "-m64")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native")
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
+    list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
 
+#this is probably the wrong way to do this: setting compile-time defines
+add_definitions(-DPTHREAD_LOCK)
 
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2 -fopenmp")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
+if(NOT ${COMPILER_SUITE} MATCHES "sun")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2 -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
+else(NOT ${COMPILER_SUITE} MATCHES "sun")
+# http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
+    set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
+    set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -fast -xopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -fast -xopenmp")
+endif(NOT ${COMPILER_SUITE} MATCHES "sun")
+
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
@@ -61,12 +116,10 @@ endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/include/spinlock /usr/include/python2.6)
 
 add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp iterator.cpp)
-
-# add_library(pca STATIC pca.c)
+#add_library(pca STATIC pca.c)
 
 # Make sure the linker can find the Hello library once it is built.
 #link_directories (${HELLO_BINARY_DIR}/Hello)
-
 
 # Add executable called "helloDemo" that is built from the source files
 # "demo.cxx" and "demo_b.cxx".  The extensions are automatically found.
@@ -79,10 +132,8 @@ add_executable (demo-1 demo-1.cpp)
 add_executable (dnsstats dnsstats.cpp)
 add_executable (ipstats ipstats.cpp)
 add_executable (dpep pca.c demo-pack-ent-pca.cpp)
-#add_executable (demo-driver demo-driver.cpp)
-
 add_executable (trace-proc trace-proc.cpp)
-# add_executable (pca_test pca.c)
+#add_executable (pca_test pca.c)
 #add_executable (py-demo py-demo.cpp)
 
 target_link_libraries(minimal ${LIBS})
@@ -91,11 +142,11 @@ target_link_libraries(demo-flows z ft ${LIBS})
 target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
 target_link_libraries(dpep ${LIBS})
-target_link_libraries(trace-proc ${LIBS})
 # target_link_libraries(pca_test m)
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    target_link_libraries(trace-proc ${LIBS} nsl)
     target_link_libraries(dnsstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
-    target_link_libraries(ipstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
+    target_link_libraries(ipstats ${LIBS} pcap socket nsl)
 else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     target_link_libraries(dnsstats ${LIBS} pcap)
     target_link_libraries(ipstats ${LIBS} pcap)

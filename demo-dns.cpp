@@ -206,7 +206,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
     fheader = (pcap_hdr_t*)malloc(sizeof(pcap_hdr_t));
     pheader = (pcaprec_hdr_t*)malloc(sizeof(pcaprec_hdr_t));
 
-    nbytes = read(fileno(fp), fheader, sizeof(pcap_hdr_t));
+    nbytes = fb_read(fb, fheader, sizeof(pcap_hdr_t));
     if (nbytes < sizeof(pcap_hdr_t))
     {
         printf("Broke on file header! %d", nbytes);

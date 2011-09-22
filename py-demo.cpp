@@ -14,7 +14,7 @@ char * handle_indent(char * string)
 
     printf("... ");
 
-    //TODO: don't overflow me buffers
+#warning "TODO: don't overflow me buffers"
     tmp2 = fgets(string, BUF_SIZE-1, stdin);
 
     while (string[0] == '\t')

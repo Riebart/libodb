@@ -12,28 +12,28 @@
 
 using namespace std;
 
-BankDS::BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags, uint64_t cap)
+BankDS::BankDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags, uint64_t _cap)
 {
-    this->flags = flags;
-    time_stamp = (flags & DataStore::TIME_STAMP);
-    query_count = (flags & DataStore::QUERY_COUNT);
+    this->flags = _flags;
+    time_stamp = (_flags & DataStore::TIME_STAMP);
+    query_count = (_flags & DataStore::QUERY_COUNT);
 
-    init(parent, prune, datalen, cap);
+    init(_parent, _prune, _datalen, _cap);
 }
 
-BankIDS::BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags, uint64_t cap) : BankDS(parent, prune, sizeof(char*), flags, cap)
+BankIDS::BankIDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint32_t _flags, uint64_t _cap) : BankDS(_parent, _prune, sizeof(char*), _flags, _cap)
 {
     // If the parent is not NULL
     if (parent != NULL)
     {
         // Then we need to 'borrow' its true datalen.
         // As well, we need to reset the datalen for this object since we aren't storing the meta data in this DS (It is in the parent).
-        true_datalen = parent->true_datalen;
+        true_datalen = _parent->true_datalen;
         datalen = sizeof(char*);
     }
 }
 
-inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint64_t cap)
+inline void BankDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint64_t _cap)
 {
     // Initialize the cursor position and data count
     posA = 0;
@@ -44,12 +44,12 @@ inline void BankDS::init(DataStore* parent, bool (*prune)(void* rawdata), uint64
     list_size = sizeof(char*);
 
     // Initialize a few other values.
-    this->cap = cap;
-    this->true_datalen = datalen;
-    this->datalen = datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);
-    cap_size = cap * (this->datalen);
-    this->parent = parent;
-    this->prune = prune;
+    this->cap = _cap;
+    this->true_datalen = _datalen;
+    this->datalen = _datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);
+    cap_size = _cap * (this->datalen);
+    this->parent = _parent;
+    this->prune = _prune;
 
     // Allocate memory for the list of pointers to buckets. Only one pointer to start.
     SAFE_MALLOC(char**, data, sizeof(char*));
@@ -93,12 +93,12 @@ inline void* BankDS::add_data(void* rawdata)
     // Stores a timestamp right after the data if the datastore is set to do that.
     if (time_stamp)
     {
-        SET_TIME_STAMP(ret, cur_time);
+        SET_TIME_STAMP(ret, cur_time, true_datalen);
     }
 
     if (query_count)
     {
-        SET_QUERY_COUNT(ret, 0);
+        SET_QUERY_COUNT(ret, 0, true_datalen);
     }
 
     return ret;
@@ -397,7 +397,7 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         }
     }
 
-    /// @todo Make this more efficient by replacing it with a vector and a binary search.
+#warning "TODO: Make this more efficient by replacing it with a vector and a binary search."
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -529,7 +529,7 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
 
     WRITE_UNLOCK();
 
-    /// @todo Make this more efficient by replacing it with a vector and a binary search.
+#warning "TODO: Make this more efficient by replacing it with a vector and a binary search."
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -749,7 +749,8 @@ BankDSIterator::BankDSIterator()
 
 DataObj * BankDSIterator::next()
 {
-    //TODO: skip deleted elements. Not difficult, but we need to change the
+#warning "TODO: Skip deleted elements (see comment)"
+    // Not difficult, but we need to change the
     //datastructure from a stack to something else, a vector, deque or list.
     //Then we can check the current address vs the next one in the deleted list
     posB += dstore->datalen;
@@ -768,7 +769,7 @@ DataObj * BankDSIterator::next()
 
     dataobj->data=*(dstore->data + posA) + posB;
 
-    //TODO: should this be here?
+#warning "TODO: Should this be here?"
     if(dataobj->data == NULL)
     {
         return NULL;

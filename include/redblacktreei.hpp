@@ -9,6 +9,12 @@
 
 class RedBlackTreeI : public Index
 {
+    using Index::query;
+    using Index::query_lt;
+    using Index::query_eq;
+    using Index::query_gt;
+    using Index::remove;
+
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;

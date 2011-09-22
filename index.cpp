@@ -16,9 +16,9 @@ DataObj::DataObj()
 {
 }
 
-DataObj::DataObj(int ident)
+DataObj::DataObj(int _ident)
 {
-    this->ident = ident;
+    this->ident = _ident;
 }
 
 // ============================================================================
@@ -31,10 +31,10 @@ IndexGroup::~IndexGroup()
 {
 }
 
-IndexGroup::IndexGroup(int ident, DataStore* parent)
+IndexGroup::IndexGroup(int _ident, DataStore* _parent)
 {
-    this->ident = ident;
-    this->parent = parent;
+    this->ident = _ident;
+    this->parent = _parent;
 }
 
 bool IndexGroup::add_index(IndexGroup* ig)

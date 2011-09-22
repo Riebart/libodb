@@ -373,7 +373,7 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
 //     printf("%.15f,", entropy);
 
 //     printf("%.15f,", curG);
-    
+
 
     return entropy;
 }
@@ -442,17 +442,17 @@ void do_pca_analysis(Index * entropies)
     pca.rows = size;
     pca.cols = DIMENSIONS;
     pca.data = matrix(pca.rows, pca.cols);
-    
-        
+
+
     Iterator * it = entropies->it_first();
-        
+
     if (it->data() != NULL)
     {
         do
         {
             struct entropy_stats * es = reinterpret_cast<struct entropy_stats *>(it->get_data());
-            
-            //TODO ; normalize these? (by dividing by max_entropies)
+
+#warning "TODO: normalize these? (by dividing by max_entropies)"
             pca.data[i][0] = es->src_ip_entropy/max_entropies.src_ip_entropy;
             pca.data[i][1] = es->dst_ip_entropy/max_entropies.dst_ip_entropy;
             pca.data[i][2] = es->src_port_entropy/max_entropies.src_port_entropy;
@@ -462,17 +462,17 @@ void do_pca_analysis(Index * entropies)
             pca.data[i][6] = es->flags_entropy/max_entropies.flags_entropy;
             pca.data[i][7] = es->win_size_entropy/max_entropies.win_size_entropy;
             pca.data[i][8] = es->payload_len_entropy/max_entropies.payload_len_entropy;
-                        
+
             i++;
-            
+
         }
         while (it->next() != NULL);
     }
-    
+
     entropies->it_release(it);
-    
+
     do_pca(pca);
-    
+
     int j;
     for(i=0; i<pca.rows; i++)
     {
@@ -482,10 +482,10 @@ void do_pca_analysis(Index * entropies)
         }
         printf("\n");
     }
-    
-    
+
+
     free_matrix(pca.data, pca.rows, pca.cols);
-    
+
 }
 
 
@@ -578,7 +578,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 //             fflush(stdout);
 //             fprintf(stderr, "\n");
 
-            
+
 
             total = 0;
 
@@ -705,7 +705,7 @@ int main(int argc, char *argv[])
 //         printf("(");
         fflush(stdout);
 
-        //TODO: ask Mike what this does
+// This sweeps the ODB, and was used for testing the correctness of the sweeping algorithm.
 //         if (((i % 10) == 0) || (i == (num_files - 1)))
 //         {
 //             odb->remove_sweep();
@@ -731,7 +731,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%f\n", max_entropies.win_size_entropy);
     fprintf(stderr, "%f\n", max_entropies.seq_entropy);
     fprintf(stderr, "%f\n", max_entropies.ack_entropy);
-    
+
     do_pca_analysis(entropies->get_indexes()->flatten()[0]);
 
     delete odb;

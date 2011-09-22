@@ -9,6 +9,9 @@
 
 class BankDS : public DataStore
 {
+    using DataStore::add_data;
+    using DataStore::get_addr;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
@@ -56,6 +59,8 @@ protected:
 
 class BankIDS : public BankDS
 {
+    using DataStore::add_data;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
@@ -65,6 +70,9 @@ class BankIDS : public BankDS
 
 protected:
     BankIDS();
+#warning "Make proper use of the parent pointers where necessary. (See comment)"
+    //(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
+    //Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
     BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags = 0, uint64_t cap = 102400);
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
@@ -274,9 +282,6 @@ protected:
 /// @param [in] cap The number of items to store in each block. (The default
 ///value is 102400 = 4096*25 as it has shown to have very good performance
 ///and guarantees memory alignment)
-/// @todo Make proper use of the parent pointers where necessary.
-///(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
-///Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
 
 /// @fn void* BankIDS::add_data(void* rawdata)
 /// Add a piece of raw data to the datastore.

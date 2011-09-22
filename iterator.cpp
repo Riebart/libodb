@@ -9,12 +9,12 @@ Iterator::Iterator()
     it = NULL;
 }
 
-Iterator::Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count)
+Iterator::Iterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
 {
     dataobj = new DataObj(ident);
-    this->time_stamp = time_stamp;
-    this->query_count = query_count;
-    this->true_datalen = true_datalen;
+    this->time_stamp = _time_stamp;
+    this->query_count = _query_count;
+    this->true_datalen = _true_datalen;
     it = NULL;
 }
 
@@ -59,7 +59,7 @@ time_t Iterator::get_time_stamp()
 //     else
 //         return 0;
 
-    return time_stamp ? GET_TIME_STAMP(dataobj->data) : 0;
+    return (time_stamp ? GET_TIME_STAMP(dataobj->data, true_datalen) : 0);
 }
 
 uint32_t Iterator::get_query_count()
@@ -73,14 +73,14 @@ uint32_t Iterator::get_query_count()
 //         return 0;
 //     }
 //
-    return query_count ? GET_QUERY_COUNT(dataobj->data) : 0;
+    return (query_count ? GET_QUERY_COUNT(dataobj->data, true_datalen) : 0);
 }
 
 void Iterator::update_query_count()
 {
     if (query_count)
     {
-        UPDATE_QUERY_COUNT(dataobj->data);
+        UPDATE_QUERY_COUNT(dataobj->data, true_datalen);
     }
 }
 

@@ -471,7 +471,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     struct ip * temp;
 
     struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
-    //TODO: determine appropriate struct
+#warning "TODO: determine appropriate struct"
     ODB * odb2 = new ODB(ODB::BANK_DS, prune, sizeof(struct knn));
     //For now, index by the pointer to data
 
@@ -824,7 +824,7 @@ int main(int argc, char *argv[])
 //         printf("(");
         fflush(stdout);
 
-        //TODO: ask Mike what this does
+// This sweeps the ODB, and was used for testing the correctness of the sweeping algorithm.
 //         if (((i % 10) == 0) || (i == (num_files - 1)))
 //         {
 //             odb->remove_sweep();

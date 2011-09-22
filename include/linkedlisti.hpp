@@ -8,6 +8,9 @@
 
 class LinkedListI : public Index
 {
+    using Index::query;
+    using Index::remove;
+
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;

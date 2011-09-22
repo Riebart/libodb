@@ -195,7 +195,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     struct ip * temp;
 
     struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
-    //TODO: determine appropriate struct
+#warning "TODO: determine appropriate struct"
     ODB * odb2 = new ODB(ODB::BANK_DS, null_prune, sizeof(struct knn));
     //For now, index by the pointer to data
 

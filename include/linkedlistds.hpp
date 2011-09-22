@@ -7,6 +7,9 @@ class Index;
 
 class LinkedListDS : public DataStore
 {
+    using DataStore::add_data;
+    using DataStore::get_addr;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
@@ -50,6 +53,8 @@ protected:
 
 class LinkedListIDS : public LinkedListDS
 {
+    using DataStore::add_data;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;

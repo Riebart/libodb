@@ -9,14 +9,14 @@ using namespace std;
 
 #define GET_DATA(x) (x->data)
 
-LinkedListI::LinkedListI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates)
+LinkedListI::LinkedListI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
     RWLOCK_INIT();
-    this->ident = ident;
+    this->ident = _ident;
     first = NULL;
-    this->compare = compare;
-    this->merge = merge;
-    this->drop_duplicates = drop_duplicates;
+    this->compare = _compare;
+    this->merge = _merge;
+    this->drop_duplicates = _drop_duplicates;
     count = 0;
 }
 
@@ -114,7 +114,7 @@ inline bool LinkedListI::add_data_v(void* rawdata)
     return true;
 }
 
-///@todo move this to use malloc/free instead of a DS for storage.
+#warning "TODO: move this to use malloc/free instead of a DS for storage."
 void LinkedListI::purge()
 {
     WRITE_LOCK();
@@ -271,8 +271,15 @@ LLIterator::LLIterator()
 {
 }
 
-LLIterator::LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count) : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
+#warning "TODO: Find out why this doesn't work right under sunCC"
+LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
+    //dataobj = new DataObj(ident);
+    dataobj->ident = ident;
+    this->time_stamp = _time_stamp;
+    this->query_count = _query_count;
+    this->true_datalen = _true_datalen;
+    it = NULL;
 }
 
 LLIterator::~LLIterator()

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/// TODO: Do something like the comparators for the free() function we're passing around.
+//#warning "TODO: Do something like the comparators for the free() function we're passing around."
 class Condition
 {
 public:
@@ -14,9 +14,9 @@ public:
 class ConditionCust : public Condition
 {
 public:
-    ConditionCust(bool (*c)(void*))
+    ConditionCust(bool (*_c)(void*))
     {
-        this->c = c;
+        this->c = _c;
     }
 
     virtual inline bool condition(void* a)
@@ -37,9 +37,9 @@ public:
 class PruneCust : public Pruner
 {
 public:
-    PruneCust(bool (*p)(void*))
+    PruneCust(bool (*_p)(void*))
     {
-        this->p = p;
+        this->p = _p;
     }
 
     virtual inline bool prune(void* a)
@@ -60,9 +60,9 @@ public:
 class KeygenCust : public Keygen
 {
 public:
-    KeygenCust(void* (*k)(void*))
+    KeygenCust(void* (*_k)(void*))
     {
-        this->k = k;
+        this->k = _k;
     }
 
     virtual inline void* keygen(void* a)
@@ -83,9 +83,9 @@ public:
 class MergeCust : public Merger
 {
 public:
-    MergeCust(void* (*m)(void*, void*))
+    MergeCust(void* (*_m)(void*, void*))
     {
-        this->m = m;
+        this->m = _m;
     }
 
     virtual inline void* merge(void* a, void* b)
@@ -112,10 +112,10 @@ public:
 class ModCompare : public Comparator
 {
 public:
-    ModCompare(Modifier* m, Comparator* c)
+    ModCompare(Modifier* _m, Comparator* _c)
     {
-        this->m = m;
-        this->c = c;
+        this->m = _m;
+        this->c = _c;
     }
 
     virtual inline int32_t compare(void* a, void* b)
@@ -131,9 +131,9 @@ private:
 class ModOffset : public Modifier
 {
 public:
-    ModOffset(uint32_t offset)
+    ModOffset(uint32_t _offset)
     {
-        this->offset = offset;
+        this->offset = _offset;
     }
 
     virtual inline void* mod(void* a)
@@ -170,9 +170,9 @@ public:
 class CompareCust : public Comparator
 {
 public:
-    CompareCust(int32_t (*c)(void*, void*))
+    CompareCust(int32_t (*_c)(void*, void*))
     {
-        this->c = c;
+        this->c = _c;
     }
 
     virtual inline int32_t compare(void* a, void* b)
@@ -225,7 +225,7 @@ class CompareInt64 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<int64_t*>(a) - *reinterpret_cast<int64_t*>(b);
+        return (int32_t)(*reinterpret_cast<int64_t*>(a) - *reinterpret_cast<int64_t*>(b));
     }
 };
 

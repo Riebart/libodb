@@ -424,7 +424,7 @@ void* process_interval(void* args)
 
     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
-    /// TODO: Some off-by-one errors here.
+#warning "TODO: Some off-by-one errors here."
     do
     {
         cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
@@ -455,7 +455,7 @@ void* process_interval(void* args)
     }
     else
     {
-        char curoutfname[outfname_len + 1 + 10 + 1];
+        char* curoutfname = (char*)calloc(1, outfname_len + 1 + 10 + 1);
         strcpy(curoutfname, outfname);
         curoutfname[outfname_len] = '.';
         curoutfname[outfname_len + 1] = 0;
@@ -478,7 +478,7 @@ void* process_interval(void* args)
     fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
     fwrite(&istat, 1, sizeof(struct interval_stat), out);
 
-    /// TODO: See previous note about off-by-one errors for why I need to offset this value.
+#warning "TODO: See previous note about off-by-one errors for why I need to offset this value."
     uint32_t num_domains = stats.size() + 3;
     fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
@@ -920,7 +920,8 @@ int main(int argc, char** argv)
     // This should standardize between the operating systems how the random number generator is seeded.
     srand(0);
 
-    //Parse the options. TODO: validity checks
+    //Parse the options.
+#warning "TODO: Validity checks in option parsing"
     while ( (ch = getopt(argc, argv, "ai:m:o:v")) != -1)
     {
         switch (ch)

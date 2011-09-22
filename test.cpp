@@ -15,9 +15,9 @@
 
 #include "odb.hpp"
 
-/// @todo NOT ALLOWED! (Needed for Verify)
+// NOTE: NOT ALLOWED! (Needed for Verify)
 #include "redblacktreei.hpp"
-/// @todo NOT ALLOWED! (Needed for FAIL)
+// NOTE: NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
 
 #define SPREAD 500
@@ -209,7 +209,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         //v = 117;
         //v = i;
 
-        /// @todo Free the memory when running indirect datastore tests.
+#warning "TODO: Free the memory when running indirect datastore tests."
         if (use_indirect)
         {
             vp = (long*)malloc(element_size);
@@ -326,7 +326,7 @@ int main (int argc, char* argv[])
     // This should standardize between the operating systems how the random number generator is seeded.
     srand(0);
 
-    //Parse the options. TODO: validity checks
+#warning "TODO: Validity checks on the options"
     while ( (ch = getopt(argc, argv, "e:t:n:T:i:hm:")) != -1)
     {
         switch (ch)

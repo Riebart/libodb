@@ -38,7 +38,7 @@ class ODB
     friend class Index;
 
 public:
-    /// @todo Apparently this isn't the appropriate way to do this (flags).
+//#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     /// Enum defining the specific index implementations available.
@@ -67,7 +67,7 @@ public:
     Index* create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
     IndexGroup* create_group();
     IndexGroup* get_indexes();
-    
+
     void add_data(void* raw_data);
     void add_data(void* raw_data, uint32_t nbytes);
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.

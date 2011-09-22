@@ -80,6 +80,10 @@ public:
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
     virtual int get_ident();
+#warning "TODO: Add a recursive flavour of size() (See comment)"
+    //It will have to return the number of items
+    //in all contained indices though. Is there a way to stop before indices at
+    //the last layer of IndexGroups?
     virtual uint64_t size();
 
 protected:
@@ -268,9 +272,6 @@ protected:
 /// Note that this does not recurse at all and returns a number equal to the
 ///number of times this instance's IndexGroup::add_index function was called.
 /// @return The number of IndexGroups in this IndexGroup.
-/// @todo Add a recursive flavour. It will have to return the number of items
-///in all contained indices though. Is there a way to stop before indices at
-///the last layer of IndexGroups?
 
 /// @fn IndexGroup::IndexGroup()
 /// Protected default constructor.
