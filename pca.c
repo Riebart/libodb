@@ -19,11 +19,9 @@ void covcol(double **, int, int, double **);
 void tred2(double **, int, double *, double *);
 void tqli(double [], double [], int, double **);
 double * vector(int);
-double ** matrix(int, int);
 void free_vector(double*, int);
-void free_matrix(double **, int, int);
 
-double ** do_pca(struct mat pca)
+void do_pca(struct mat pca)
 {
     double ** symmat, ** symmat2, * evals, * interm;
     int i,j,k,k2;
@@ -217,13 +215,14 @@ int n, m;
         mean[j] /= (double)n;
     }
 
+#ifdef TESTING_PCA
     printf("\nMeans of column vectors:\n");
     for (j = 0; j < m; j++)
     {
         printf("%7.1f",mean[j]);
     }
     printf("\n");
-
+#endif
     /* Center the column vectors. */
 
     for (i = 0; i < n; i++)

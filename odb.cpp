@@ -461,6 +461,11 @@ IndexGroup* ODB::create_group()
     return g;
 }
 
+IndexGroup* ODB::get_indexes()
+{
+    return all;
+}
+
 void ODB::remove_sweep()
 {
     WRITE_LOCK();
