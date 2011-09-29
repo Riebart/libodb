@@ -10,7 +10,7 @@ message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
 #set(CMAKE_LINKER "/bin/ld")
 set(COMPILER_C)
 set(COMPILER_CXX)
-set(SKIP_SUN_COMPILER "true")
+set(SKIP_SUN_COMPILER "false")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
     message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
@@ -81,14 +81,14 @@ add_definitions(-DPTHREAD_LOCK)
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2 -fopenmp")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
 else(NOT ${COMPILER_SUITE} MATCHES "sun")
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
     set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
     set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -fast -xopenmp")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -fast -xopenmp")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -xO5 -fast")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -xO5 -fast")
 endif(NOT ${COMPILER_SUITE} MATCHES "sun")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
