@@ -196,7 +196,7 @@ void print_flow(struct flow_sig* f)
     }
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
+#warning "TODO: There is no checking to ensure we don't run off the end of the packet in the l2, l3 and l4 sig functions."
 uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
@@ -267,7 +267,6 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
 uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
@@ -345,7 +344,6 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
 uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
