@@ -1,25 +1,30 @@
 #ifndef LINKEDLISTI_HPP
 #define LINKEDLISTI_HPP
 
-#include "index.hpp"
-#include "lock.hpp"
+#include <vector>
 
-/// @todo Apparently queries don't work, fix those. (See minimal test case: p=10000, N=100000)
+#include "index.hpp"
+#include "iterator.hpp"
+
 class LinkedListI : public Index
 {
+    using Index::query;
+    using Index::remove;
+
     /// Since the constructor is protected, ODB needs to be able to create new
     ///index tables.
     friend class ODB;
 
+    friend class LLIterator;
+
 public:
     ~LinkedListI();
-    bool del(void* data);
-    bool del(uint64_t n);
-    int prune(int (*condition)(void*));
-    uint64_t size();
+
+    virtual Iterator* it_first();
+    virtual Iterator* it_middle(DataObj* data);
 
 protected:
-    LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates);
+    LinkedListI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates);
 
     struct node
     {
@@ -27,14 +32,32 @@ protected:
         void* data;
     };
 
-    /// @todo My spidey-senses tell me this function can be improved. Also,
-    ///it likely too big to be inlined.
-    virtual void add_data_v(void* data);
-    void query(bool (*condition)(void*), DataStore* ds);
+    virtual bool add_data_v(void* data);
+    virtual void purge();
+    void query(Condition* condition, DataStore* ds);
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
+    static void free_list(struct node* head);
+    virtual bool remove(void* data);
+    virtual void remove_sweep(std::vector<void*>* marked);
 
-    DataStore* nodeds;
+//    DataStore* nodeds;
     struct node* first;
-    RWLOCK_T;
+};
+
+class LLIterator : public Iterator
+{
+    friend class LinkedListI;
+
+public:
+    virtual ~LLIterator();
+    virtual DataObj* next();
+    virtual DataObj* data();
+
+protected:
+    LLIterator();
+    LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+
+    struct LinkedListI::node* cursor;
 };
 
 #endif

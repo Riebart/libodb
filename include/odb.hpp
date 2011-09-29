@@ -1,19 +1,32 @@
 #ifndef ODB_HPP
 #define ODB_HPP
 
-#include <vector>
 #include <stdint.h>
+#include <string.h>
+#include <pthread.h>
+#include <time.h>
+#include <vector>
 
-#include "common.hpp"
+#include "lock.hpp"
 
-// Forward declarations
-class IndexGroup;
-class Index;
+#ifndef LEN_V
+#define LEN_V
+inline uint32_t len_v(void* rawdata)
+{
+    return strlen((const char*)rawdata);
+}
+#endif
+
 class DataStore;
+class Archive;
+class Index;
+class IndexGroup;
 class DataObj;
-class WorkQueue;
+class Comparator;
+class Merger;
+class Keygen;
+class Iterator;
 
-/// @todo Add the add_data overload that will accept a data length. Enforce it for variable-size data only?
 class ODB
 {
     /// Allow IndexGroup objects to create a new specifically identified ODB
@@ -25,7 +38,7 @@ class ODB
     friend class Index;
 
 public:
-    /// @todo Apparently this isn't the appropriate way to do this (flags).
+//#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     /// Enum defining the specific index implementations available.
@@ -35,38 +48,60 @@ public:
     ///and may result in more complicated compare functions. Key-value index
     ///tables however require a keygen function that generates a key from a piece
     ///of data.
-    /// @todo Actually implement all of these. :)
-    typedef enum { LINKED_LIST, KEYED_LINKED_LIST, RED_BLACK_TREE, KEYED_RED_BLACK_TREE } IndexType;
+    typedef enum { LINKED_LIST, RED_BLACK_TREE } IndexType;
 
     typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
 
-    /// @todo Verify that these work as intended: "Just add a pointer to wherever the data sits in memory"
     typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
 
-    /// @todo Implement these.
-    typedef enum { BANK_V_DS, LINKED_LIST_V_DS } VariableDatastoreType;
+    typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, uint32_t datalen);
-    ODB(IndirectDatastoreType dt);
-    ODB(VariableDatastoreType dt, uint32_t avg_datalen = 64, uint32_t (*len)(void*) = ODB::len_v);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
 
     ~ODB();
-    Index* create_index(IndexType type, int flags, int (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void (*keygen)(void*, void*) = NULL, uint32_t keylen = 0);
+
+    /// @warning Merging of nodes implies dropping duplicates post merge.
+    Index* create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
+    Index* create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
     IndexGroup* create_group();
+    IndexGroup* get_indexes();
+
     void add_data(void* raw_data);
+    void add_data(void* raw_data, uint32_t nbytes);
     DataObj* add_data(void* raw_data, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
-    void add_to_index(DataObj* d, IndexGroup* i);
+    DataObj* add_data(void* raw_data, uint32_t nbytes, bool add_to_all); // The bool here cannot have a default value, even though the standard choice would be false. A default value makes the call ambiguous with the one above.
+    void remove_sweep();
+    void purge();
+    void set_prune(bool (*prune)(void*));
+    virtual bool (*get_prune())(void*);
     uint64_t size();
+    void update_time(time_t);
+    time_t get_time();
+
+    Iterator* it_first();
+    Iterator* it_last();
+    void it_release(Iterator *);
+
+    //the memory limit, in pages
+    uint64_t mem_limit;
+
+    //to determine if the thread should stop
+    int is_running()
+    {
+        return running;
+    };
+
 
 private:
-    static uint32_t len_v(void* rawdata);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
+    ODB(DataStore* dt, int ident, uint32_t datalen);
 
-    ODB(FixedDatastoreType, int ident, uint32_t datalen);
-    ODB(IndirectDatastoreType, int ident);
-    ODB(VariableDatastoreType dt, int ident, uint32_t avg_datalen = 64, uint32_t (*len)(void*) = ODB::len_v);
-    ODB(DataStore *, int ident, uint32_t datalen);
-
-    void init(DataStore* data, int ident, uint32_t datalen);
+    void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
+    void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     static uint32_t num_unique;
     int ident;
@@ -76,7 +111,13 @@ private:
     DataStore* data;
     IndexGroup* all;
     DataObj* dataobj;
-    WorkQueue * work_queue;
+    pthread_t mem_thread;
+    uint32_t sleep_duration;
+    Archive* archive;
+    void (*freep)(void*);
+
+    int running;
+    RWLOCK_T;
 };
 
 #endif

@@ -3,37 +3,68 @@
 
 #include "odb.hpp"
 #include "index.hpp"
+#include "archive.hpp"
+#include "iterator.hpp"
 
-bool condition(void* a)
+inline bool prune(void* rawdata)
+{
+    return (((*(long*)rawdata) % 2) == 0);
+}
+
+inline bool condition(void* a)
 {
     return ((*(long*)a) < 0);
 }
 
-int compare(void* a, void* b)
+inline int compare(void* a, void* b)
 {
     return (*(int*)b - *(int*)a);
 }
 
+#pragma pack(1)
+struct test_s
+{
+    uint32_t a; // 4
+    uint16_t b; // 2
+    double c;   // 8
+    float d;    // 4
+    char e[5];  // 5
+};
+#pragma pack()
+
 int main (int argc, char ** argv)
 {
-    long v, p = 1000, n = 0;
+//    printf("%u\n", sizeof(void*));
+//    return 0;
 
-    ODB odb(ODB::BANK_DS, sizeof(long));
+    AppendOnlyFile out((char*)"/home/mike/Desktop/test");
+
+    long v, p = 100;
+
+    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"/home/mike/Desktop/test"));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
-    for (long i = 0 ; i < 100000 ; i++)
+    for (long i = 0 ; i < 100 ; i++)
     {
         v = (i + ((rand() % (2 * p + 1)) - p));
-        if (v < 0) n++;
         odb.add_data(&v);
     }
+
+    odb.remove_sweep();
+
+    v = 0;
+    Iterator* it = ind->it_lookup(&v, 1);
+    do
+    {
+        printf("%ld\n", *(long*)(it->get_data()));
+    }
+    while (it->next());
+
+    ind->it_release(it);
 
     ODB* res = ind->query(condition);
 
     printf("Query contains %lu items.\n", res->size());
-    printf("Actual number: %ld.\n", n);
-
-    delete res;
 
     return EXIT_SUCCESS;
 }

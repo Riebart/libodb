@@ -1,54 +1,101 @@
 #include "datastore.hpp"
+#include "odb.hpp"
+#include "utility.hpp"
 
 DataStore::DataStore()
 {
+    data_count = 0;
     parent = NULL;
 }
 
 DataStore::~DataStore()
 {
+    while (!clones.empty())
+    {
+        delete clones.back();
+        clones.pop_back();
+    }
 }
 
-void* DataStore::add_data(void* rawdata)
+inline void* DataStore::add_data(void* rawdata)
 {
     return NULL;
 }
 
-void* DataStore::get_addr()
+inline void* DataStore::add_data(void* rawdata, uint32_t nbytes)
+{
+    return add_data(rawdata);
+}
+
+inline void* DataStore::get_addr()
 {
     return NULL;
 }
 
-void* DataStore::get_at(uint64_t index)
+inline void* DataStore::get_addr(uint32_t nbytes)
+{
+    return get_addr();
+}
+
+inline void* DataStore::get_at(uint64_t index)
 {
     return NULL;
 }
 
-bool DataStore::remove_at(uint64_t index)
+inline bool DataStore::remove_at(uint64_t index)
 {
     return false;
 }
 
-bool DataStore::remove_addr(void* index)
+inline bool DataStore::remove_addr(void* index)
 {
     return false;
 }
 
-void DataStore::populate(Index* index)
-{
-}
-
-DataStore* DataStore::clone()
+inline std::vector<void*>** DataStore::remove_sweep(Archive* archive)
 {
     return NULL;
 }
 
-DataStore* DataStore::clone_indirect()
+inline void DataStore::remove_cleanup(std::vector<void*>** marked)
+{
+}
+
+inline void DataStore::purge(void (*freep)(void*))
+{
+}
+
+inline void DataStore::populate(Index* index)
+{
+}
+
+inline DataStore* DataStore::clone()
 {
     return NULL;
 }
 
-uint64_t DataStore::size()
+inline DataStore* DataStore::clone_indirect()
 {
-    return 0;
+    return NULL;
 }
+
+inline bool (*DataStore::get_prune())(void*)
+{
+    return prune;
+}
+
+inline void DataStore::set_prune(bool (*_prune)(void*))
+{
+    this->prune = _prune;
+}
+
+inline uint64_t DataStore::size()
+{
+    return data_count;
+}
+
+inline void DataStore::update_parent(ODB* odb)
+{
+    parent->clones.push_back(odb);
+}
+

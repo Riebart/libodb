@@ -1,125 +1,160 @@
 #include "linkedlisti.hpp"
 #include "bankds.hpp"
+#include "utility.hpp"
+#include "common.hpp"
 
-LinkedListI::LinkedListI(int ident, int (*compare)(void*, void*), void* (*merge)(void*, void*), bool drop_duplicates)
+#include <algorithm>
+
+using namespace std;
+
+#define GET_DATA(x) (x->data)
+
+LinkedListI::LinkedListI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
     RWLOCK_INIT();
-    this->ident = ident;
+    this->ident = _ident;
     first = NULL;
-    this->compare = compare;
-    this->merge = merge;
-    this->drop_duplicates = drop_duplicates;
+    this->compare = _compare;
+    this->merge = _merge;
+    this->drop_duplicates = _drop_duplicates;
     count = 0;
-
-    nodeds = new BankDS(NULL, sizeof(struct node));
 }
 
 LinkedListI::~LinkedListI()
 {
-    delete nodeds;
+    free_list(first);
     RWLOCK_DESTROY();
 }
 
-inline void LinkedListI::add_data_v(void* data)
+inline bool LinkedListI::add_data_v(void* rawdata)
 {
     WRITE_LOCK();
+
+    // When the list is empty, make a new node and set it as the head of the list.
     if (first == NULL)
     {
-        first = (struct node*)(nodeds->get_addr());
+        SAFE_MALLOC(struct node*, first, sizeof(struct node));
         first->next = NULL;
-        first->data = data;
+        first->data = rawdata;
         count = 1;
     }
     else
     {
-        int comp = compare(data, first->data);
+        // Special case when we need to insert before the head of the list since we need to update the 'first' pointer.
+        int comp = compare->compare(rawdata, first->data);
 
+        // If the new data comes before the head.
         if (comp <= 0)
         {
+            // If we have equality...
             if (comp == 0)
             {
+                // Merge them, if we want.
                 if (merge != NULL)
-                    first->data = merge(data, first->data);
+                {
+                    first->data = merge->merge(rawdata, first->data);
+                    WRITE_UNLOCK();
+                    return false;
+                }
 
+                // If we don't allow duplicates, return now.
                 if (drop_duplicates)
-                    return;
+                {
+                    WRITE_UNLOCK();
+                    return false;
+                }
             }
 
-            struct node* new_node = (struct node*)(nodeds->get_addr());
-            new_node->data = data;
+            // If we're still around, make a new node, assign its data and next, and make it the head of the list.
+            struct node* new_node;
+            SAFE_MALLOC(struct node*, new_node, sizeof(struct node));
+            new_node->data = rawdata;
             new_node->next = first;
             first = new_node;
         }
+        // If we're not inserting before the head of the list...
         else
         {
             struct node* curr = first;
 
-            if (first->next != NULL)
+            // As long as the next node is not NULL and the new data belongs before it.
+            while ((curr->next != NULL) && (comp = compare->compare(rawdata, curr->next->data)) && (comp > 0))
             {
-                comp = compare(data, curr->next->data);
+                curr = curr->next;
+            }
 
-                while ((curr->next->next != NULL) && (comp > 0))
+            if (comp == 0)
+            {
+                if (merge != NULL)
                 {
-                    curr = curr->next;
-                    comp = compare(data, curr->next->data);
+                    curr->next->data = merge->merge(rawdata, curr->next->data);
+                    WRITE_UNLOCK();
+                    return false;
                 }
 
-                if (comp > 0)
-                    curr = curr->next;
-
-                if (comp == 0)
+                if (drop_duplicates)
                 {
-                    if (merge != NULL)
-                        curr->data = merge(data, curr->data);
-
-                    if (drop_duplicates)
-                        return;
-                }
-
-                struct node* new_node = (struct node*)(nodeds->get_addr());
-                new_node->data = data;
-
-                if (curr->next == NULL)
-                {
-                    curr->next = new_node;
-                    new_node->next = NULL;
-                }
-                else
-                {
-                    new_node->next = curr->next;
-                    curr->next = new_node;
+                    WRITE_UNLOCK();
+                    return false;
                 }
             }
+
+            struct node* new_node;
+            SAFE_MALLOC(struct node*, new_node, sizeof(struct node));
+            new_node->data = rawdata;
+            new_node->next = curr->next;
+            curr->next = new_node;
         }
 
         count++;
     }
+
+    WRITE_UNLOCK();
+
+    return true;
+}
+
+#warning "TODO: move this to use malloc/free instead of a DS for storage."
+void LinkedListI::purge()
+{
+    WRITE_LOCK();
+
+    free_list(first);
+
+    count = 0;
+    first = NULL;
+
     WRITE_UNLOCK();
 }
 
-bool LinkedListI::del(void* data)
+bool LinkedListI::remove(void* data)
 {
     bool ret = false;
 
     WRITE_LOCK();
     if (first != NULL)
     {
-        if (compare(first->data, data) == 0)
+        if (compare->compare(data, first->data) == 0)
         {
+            struct node* temp = first;
             first = first->next;
+            free(temp);
             ret = true;
         }
         else
         {
             struct node* curr = first;
 
-            while ((curr->next != NULL) && (compare(data, curr->next->data) != 0))
+            while ((curr->next != NULL) && (compare->compare(data, curr->next->data) != 0))
+            {
                 curr = curr->next;
+            }
 
             if (curr->next != NULL)
             {
+                struct node* temp = curr->next;
                 curr->next = curr->next->next;
-                nodeds->remove_addr(curr);
+                free(temp);
                 ret = true;
             }
         }
@@ -129,77 +164,150 @@ bool LinkedListI::del(void* data)
     return ret;
 }
 
-bool LinkedListI::del(uint64_t n)
+void LinkedListI::free_list(struct node* first)
 {
-    bool ret = false;
+    struct node* next;
 
-    WRITE_LOCK();
-    if (n == 0)
+    while (first != NULL)
     {
-        first = first->next;
-        ret = true;
+        next = first->next;
+        free(first);
+        first = next;
     }
-    else if (n <= count)
-    {
-        struct node* curr = first;
-        uint64_t i = 0;
-
-        while (i < (n - 1))
-        {
-            curr = curr->next;
-            i++;
-        }
-
-        curr->next = curr->next->next;
-        nodeds->remove_addr(curr);
-        ret = true;
-    }
-    WRITE_UNLOCK();
-
-    return ret;
 }
 
-int LinkedListI::prune(int (*condition)(void*))
+void LinkedListI::query(Condition* condition, DataStore* ds)
 {
-    struct node* curr = first;
-    int ret = 0;
-
-    WRITE_LOCK();
-    while (condition(first->data) > 0)
-    {
-        ret++;
-        first = first->next;
-    }
-
-    while (curr->next != NULL)
-    {
-        if (condition(curr->next->data) > 0)
-        {
-            ret++;
-            curr->next = curr->next->next;
-        }
-        else
-            curr = curr->next;
-    }
-    WRITE_UNLOCK();
-
-    return ret;
-}
-
-uint64_t LinkedListI::size()
-{
-    return count;
-}
-
-void LinkedListI::query(bool (*condition)(void*), DataStore* ds)
-{
+    READ_LOCK();
     struct node* curr = first;
 
     while (curr != NULL)
     {
-        if (condition(curr->data))
-            ds->add_data(&(curr->data));
+        if (condition->condition(curr->data))
+        {
+            ds->add_data(curr->data);
+        }
 
         curr = curr->next;
     }
+    READ_UNLOCK();
+}
+
+inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
+{
+    sort(old_addr->begin(), old_addr->end());
+
+    WRITE_LOCK();
+
+    struct node* curr = first;
+    uint32_t i = 0;
+
+    while (curr != NULL)
+    {
+        if (search(old_addr, curr->data))
+        {
+            curr->data = new_addr->at(i);
+
+            if (datalen > 0)
+            {
+                memcpy(new_addr->at(i), old_addr, datalen);
+            }
+
+            i++;
+        }
+
+        curr = curr->next;
+    }
+
+    WRITE_UNLOCK();
+}
+
+inline void LinkedListI::remove_sweep(vector<void*>* marked)
+{
+    WRITE_LOCK();
+    void* temp;
+
+    while ((first != NULL) && (search(marked, first->data)))
+    {
+        temp = first;
+        first = first->next;
+        free(temp);
+    }
+
+    struct node* curr = first;
+
+    while ((curr->next) != NULL)
+    {
+        if (search(marked, curr->next->data))
+        {
+            temp = curr->next;
+            curr->next = curr->next->next;
+            free(temp);
+        }
+        else
+        {
+            curr = curr->next;
+        }
+    }
+    WRITE_UNLOCK();
+}
+
+inline Iterator* LinkedListI::it_first()
+{
+    READ_LOCK();
+    LLIterator* it = new LLIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
+    it->cursor = first;
+    it->dataobj->data = GET_DATA(first);
+    return it;
+}
+
+inline Iterator* LinkedListI::it_middle(DataObj* data)
+{
+    READ_LOCK();
+    return NULL;
+}
+
+LLIterator::LLIterator()
+{
+}
+
+#warning "TODO: Find out why this doesn't work right under sunCC"
+LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
+{
+    //dataobj = new DataObj(ident);
+    dataobj->ident = ident;
+    this->time_stamp = _time_stamp;
+    this->query_count = _query_count;
+    this->true_datalen = _true_datalen;
+    it = NULL;
+}
+
+LLIterator::~LLIterator()
+{
+}
+
+inline DataObj* LLIterator::next()
+{
+    if ((dataobj->data) == NULL)
+    {
+        return NULL;
+    }
+
+    cursor = cursor->next;
+
+    if (cursor == NULL)
+    {
+        dataobj->data = NULL;
+        return NULL;
+    }
+    else
+    {
+        dataobj->data = GET_DATA(cursor);
+        return dataobj;
+    }
+}
+
+inline DataObj* LLIterator::data()
+{
+    return dataobj;
 }

@@ -1,0 +1,86 @@
+#include "iterator.hpp"
+#include "index.hpp"
+#include "datastore.hpp"
+#include "common.hpp"
+
+Iterator::Iterator()
+{
+    dataobj = new DataObj();
+    it = NULL;
+}
+
+Iterator::Iterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
+{
+    dataobj = new DataObj(ident);
+    this->time_stamp = _time_stamp;
+    this->query_count = _query_count;
+    this->true_datalen = _true_datalen;
+    it = NULL;
+}
+
+Iterator::~Iterator()
+{
+    delete dataobj;
+}
+
+DataObj* Iterator::next()
+{
+    NOT_IMPLEMENTED("next()");
+    return NULL;
+}
+
+DataObj* Iterator::prev()
+{
+    NOT_IMPLEMENTED("prev()");
+    return NULL;
+}
+
+DataObj* Iterator::data()
+{
+    if (dataobj->data == NULL)
+    {
+        return NULL;
+    }
+    else
+    {
+        return dataobj;
+    }
+}
+
+void* Iterator::get_data()
+{
+    return dataobj->data;
+}
+
+time_t Iterator::get_time_stamp()
+{
+//     if (time_stamp)
+//         return GET_TIME_STAMP(dataobj->data);
+//     else
+//         return 0;
+
+    return (time_stamp ? GET_TIME_STAMP(dataobj->data, true_datalen) : 0);
+}
+
+uint32_t Iterator::get_query_count()
+{
+//     if (query_count)
+//     {
+//         return GET_QUERY_COUNT(dataobj->data);
+//     }
+//     else
+//     {
+//         return 0;
+//     }
+//
+    return (query_count ? GET_QUERY_COUNT(dataobj->data, true_datalen) : 0);
+}
+
+void Iterator::update_query_count()
+{
+    if (query_count)
+    {
+        UPDATE_QUERY_COUNT(dataobj->data, true_datalen);
+    }
+}
+

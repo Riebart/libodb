@@ -6,6 +6,9 @@
 #include <sys/timeb.h>
 #include <zlib.h>
 
+#include "odb.hpp"
+#include "archive.hpp"
+
 extern "C"
 {
 #include <ftlib.h>
@@ -39,7 +42,19 @@ extern "C"
 //     u_int16 dst_as;         /* AS of destination address */
 // };
 
-#include "odb.hpp"
+
+inline bool prune_false(void* rawdata)
+{
+    struct fts3rec_v5_gen* data = reinterpret_cast<struct fts3rec_v5_gen*>(rawdata);
+    if (((data->srcport) >= 32768) && ((data->srcport) <= 65535))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 inline int compare_time_dur(void* a, void* b)
 {
@@ -138,18 +153,18 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::BANK_DS, sizeof(struct fts3rec_v5_gen));
+    odb = new ODB(ODB::BANK_DS, prune_false, sizeof(struct fts3rec_v5_gen), new AppendOnlyFile((char*)"/tmp/flowdata"));
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_addr);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_port);
     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_port);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_as);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_as);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_prot);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_octs);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_pkts);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_dur);
-//     odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_start);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_src_as);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_dst_as);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_prot);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_octs);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_num_pkts);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_dur);
+    odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_time_start);
 
     if (argc < 2)
     {
@@ -172,12 +187,19 @@ int main(int argc, char *argv[])
         printf("%s (%d/%d): ", argv[i+2], i+1, num_files);
 
         if (fp == NULL)
+        {
             break;
+        }
 
         ftime(&start);
 
         num = read_flows(odb, fp);
+        printf("(");
+        fflush(stdout);
+        odb->remove_sweep();
         total_num += num;
+        printf("%lu) ", total_num - odb->size());
+        fflush(stdout);
 
         ftime(&end);
 
@@ -191,7 +213,7 @@ int main(int argc, char *argv[])
         fflush(stdout);
     }
 
-    printf("%lu records processed.\n", total_num);
+    printf("%lu records processed, %lu remain in the datastore.\n", total_num, odb->size());
     fprintf(stderr, "\n");
 
     return EXIT_SUCCESS;

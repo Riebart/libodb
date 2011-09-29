@@ -6,22 +6,46 @@
 
 //simple locking macros
 #define READ_LOCK() pthread_rwlock_rdlock(&rwlock)
+#define READ_LOCK_P(x) pthread_rwlock_rdlock(&(x->rwlock))
 #define READ_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define READ_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
 #define WRITE_LOCK() pthread_rwlock_wrlock(&rwlock)
+#define WRITE_LOCK_P(x) pthread_rwlock_wrlock(&(x->rwlock))
 #define WRITE_UNLOCK() pthread_rwlock_unlock(&rwlock)
+#define WRITE_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
 #define LOCK()
 #define UNLOCK()
 
 #define RWLOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
+#define RWLOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
 #define LOCK_INIT()
 
 #define RWLOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
+#define RWLOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
 #define LOCK_DESTROY()
 
 #define LOCK_T
 #define RWLOCK_T pthread_rwlock_t rwlock
 
+#elif defined(GOOGLE_LOCK_SPIN)
 
+#include "spinlock/spinlock.h"
+
+#define READ_LOCK() lock.Lock()
+#define READ_UNLOCK() lock.Unlock()
+#define WRITE_LOCK() lock.Lock()
+#define WRITE_UNLOCK() lock.Unlock()
+#define LOCK()
+#define UNLOCK()
+
+#define RWLOCK_INIT()
+#define LOCK_INIT()
+
+#define RWLOCK_DESTROY()
+#define LOCK_DESTROY()
+
+#define LOCK_T
+#define RWLOCK_T SpinLock lock;
 
 #elif defined(PTHREAD_LOCK_SIMPLE)
 #include "pthread.h"

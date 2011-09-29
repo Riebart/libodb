@@ -1,16 +1,15 @@
 #ifndef LINKEDLISTDS_HPP
 #define LINKEDLISTDS_HPP
 
-#include <vector>
-
 #include "datastore.hpp"
 
 class Index;
 
-/// @todo Implement remove_addr and fix remove_at
-/// @todo This segfaults, find out why and fix it.
 class LinkedListDS : public DataStore
 {
+    using DataStore::add_data;
+    using DataStore::get_addr;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
@@ -33,33 +32,35 @@ protected:
     ///instance.
     LinkedListDS();
 
-    LinkedListDS(DataStore* parent, uint64_t datalen);
+    LinkedListDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen, uint32_t flags = 0);
 
-    virtual void init(DataStore* parent, uint64_t datalen);
+    virtual void init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t datalen);
     virtual void* add_data(void* rawdata);
     virtual void* get_addr();
-    virtual bool del_at(uint64_t index);
+    virtual bool remove_at(uint64_t index);
+    virtual bool remove_addr(void* addr);
+    virtual std::vector<void*>** remove_sweep(Archive* archive);
+    virtual void remove_cleanup(std::vector<void*>** marked);
+    virtual void purge(void (*freep)(void*));
     virtual void* get_at(uint64_t index);
     virtual void populate(Index* index);
-    virtual uint64_t size();
-    virtual void cleanup();
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
 
     struct datanode * bottom;
-    std::vector<bool> deleted_list;
     uint64_t datalen;
-    RWLOCK_T;
 };
 
-/// @todo Implement deletion: remove_at, remove_addr
 class LinkedListIDS : public LinkedListDS
 {
+    using DataStore::add_data;
+
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
 
     friend class LinkedListDS;
+    friend class LinkedListVDS;
 
 protected:
     /// Protected default constructor.
@@ -68,11 +69,43 @@ protected:
     ///instance.
     LinkedListIDS();
 
-    LinkedListIDS(DataStore* parent = NULL);
+    LinkedListIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags = 0);
 
     virtual void* add_data(void* rawdata);
     virtual void* get_at(uint64_t index);
+    virtual std::vector<void*>** remove_sweep(Archive* archive);
     virtual void populate(Index* index);
+};
+
+class LinkedListVDS : public LinkedListDS
+{
+    /// Since the constructors are protected, ODB needs to be able to create new
+    ///datastores.
+    friend class ODB;
+
+protected:
+#pragma pack(1)
+    struct datanode
+    {
+        struct datanode* next;
+        uint32_t datalen;
+        char data;
+    };
+#pragma pack()
+
+    LinkedListVDS();
+
+    LinkedListVDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t (*len)(void*), uint32_t flags = 0);
+
+    virtual void* add_data(void* rawdata);
+    virtual void* add_data(void* rawdata, uint32_t datalen);
+    virtual void* get_addr();
+    virtual void* get_addr(uint32_t nbytes);
+    virtual DataStore* clone();
+    virtual DataStore* clone_indirect();
+
+    struct datanode * bottom;
+    uint32_t (*len)(void*);
 };
 
 #endif

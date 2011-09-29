@@ -11,15 +11,38 @@
 #include <stdio.h>
 #include <string.h>
 #include <omp.h>
+#include <unistd.h>
 
 #include "odb.hpp"
 
-// NOT ALLOWED!
+// NOTE: NOT ALLOWED! (Needed for Verify)
 #include "redblacktreei.hpp"
+// NOTE: NOT ALLOWED! (Needed for FAIL)
+#include "common.hpp"
 
 #define SPREAD 500
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
+
+inline int32_t str_compare(void* a, void* b)
+{
+    return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
+}
+
+inline bool prune_1(void* rawdata)
+{
+    return (((*(long*)rawdata) % 3) == 0);
+}
+
+inline bool prune_2(void* rawdata)
+{
+    return (((*(long*)rawdata) % 2) == 0);
+}
+
+inline bool prune_false(void* rawdata)
+{
+    return false;
+}
 
 /// Example of a condtional function for use in general queries.
 /// @ingroup example
@@ -46,8 +69,15 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf("Usage: test <element size> <number of elements> <number of tests> <test type> <index type>\n\tWhere: test type {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\n\tWhere: index type {1-bit: on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE");
-    exit(EXIT_SUCCESS);
+    printf(" Usage test -[ntTiehm]\n"
+           "\t-h\tPrint this help message\n"
+           "\t-n\tNumber of elements (default=10000)\n"
+           "\t-t\tNumber of tests (default=1)\n"
+           "\t-T\tTest type (default=0)\n"
+           "\t-i\tIndex types (default=0)\n"
+           "\t-e\tElement size, in bytes (default=8)\n"
+           "\t-m\tMemory limit, in pages (default=1000000, ie, a lot)\n\n"
+           "Where: test type (T) {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type (i) {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE}\n");
 }
 
 /// Function for testing the database.
@@ -59,11 +89,11 @@ void usage()
 ///insertion, query, deletion, or any combination (perhaps all of them). This
 ///gives flexibility for determining which events count towards the timing when
 ///muiltiple actions are performed each run.
-double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type)
+double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type, uint32_t max_mem)
 {
     ODB::IndexType itype;
     ODB::IndexOps iopts;
-    
+
     bool use_indirect = false;
     ODB* odb;
 
@@ -75,17 +105,20 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::BANK_DS, element_size);
+            odb = new ODB(ODB::BANK_DS, prune_2, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::BANK_I_DS);
+            odb = new ODB(ODB::BANK_I_DS, prune_2);
             break;
         }
         default:
-            FAIL("Incorrect test type.");
+            if (test_type != 4)
+            {
+                FAIL("Incorrect test type.");
+            }
         }
 
         break;
@@ -96,13 +129,13 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::LINKED_LIST_DS, element_size);
+            odb = new ODB(ODB::LINKED_LIST_DS, prune_2, element_size);
             break;
         }
         case 1:
         {
             use_indirect = true;
-            odb = new ODB(ODB::LINKED_LIST_I_DS);
+            odb = new ODB(ODB::LINKED_LIST_I_DS, prune_2);
             break;
         }
         default:
@@ -113,27 +146,38 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     default:
         FAIL("Incorrect test type.");
     }
-    
+
+    if (test_type == 4)
+    {
+        odb = new ODB(ODB::LINKED_LIST_V_DS, prune_2);
+    }
+
     if (index_type & 1)
+    {
         iopts = ODB::DROP_DUPLICATES;
+    }
     else
+    {
         iopts = ODB::NONE;
-    
+    }
+
     switch (index_type >> 1)
     {
-        case 0:
-        {
-            itype = ODB::RED_BLACK_TREE;
-            break;
-        }
-        case 1:
-        {
-            itype = ODB::LINKED_LIST;
-            break;
-        }
-        default:
-            FAIL("Incorrect index type.");
+    case 0:
+    {
+        itype = ODB::RED_BLACK_TREE;
+        break;
     }
+    case 1:
+    {
+        itype = ODB::LINKED_LIST;
+        break;
+    }
+    default:
+        FAIL("Incorrect index type.");
+    }
+
+    odb->mem_limit = max_mem;
 
     struct timeb start;
     struct timeb end;
@@ -146,7 +190,16 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     DataObj* dn;
 
     for (int i = 0 ; i < NUM_TABLES ; i++)
-        ind[i] = odb->create_index(itype, iopts, compare);
+    {
+        ind[i] = odb->create_index(itype, iopts, (test_type == 4 ? str_compare : compare));
+    }
+
+
+    //for the VDS, if necessary
+    char * test_str = (char*)("The quick brown fox jumped over the lazy dog.");
+    char temp_str [500];
+    int test_str_len = strlen(test_str);
+
 
     ftime(&start);
 
@@ -156,24 +209,48 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         //v = 117;
         //v = i;
 
-        /// @todo Free the memory when running indirect datastore tests.
+#warning "TODO: Free the memory when running indirect datastore tests."
         if (use_indirect)
         {
             vp = (long*)malloc(element_size);
             memcpy(vp, &v, element_size);
             dn = odb->add_data(vp, false);
         }
-        else
-            dn = odb->add_data(&v, false);
+        else if (test_type == 4)
+        {
+            int str_index = rand() % test_str_len;
 
-        //#pragma omp parallel for
+            strncpy(temp_str, test_str, test_str_len);
+
+            //NULL terminate the string
+            temp_str[str_index] = 0;
+
+            dn = odb->add_data(temp_str, str_index+1, false);
+        }
+        else
+        {
+            dn = odb->add_data(&v, false);
+        }
+
         for (int j = 0 ; j < NUM_TABLES ; j++)
+        {
             ind[j]->add_data(dn);
+        }
+
+        if (i == (test_size/2))
+        {
+//            printf("ODB size (before): %lu\n", odb->size());
+//            odb->purge(free);
+//            printf("ODB size (after): %lu\n", odb->size());
+        }
     }
 
-    //printf("%lu\n", ind[0]->size());
-
     ftime(&end);
+
+    if (test_type != 4)
+    {
+        odb->remove_sweep();
+    }
 
     if ((index_type >> 1) == 0)
     {
@@ -184,39 +261,100 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
     }
 
-    //ftime(&start);
-
     printf(":");
-    //#pragma omp parallel for
-    for (int j = 0 ; j < NUM_QUERIES ; j++)
+    if (test_type == 4)
     {
-        res[j] = ind[0]->query(condition);
-        printf("%lu:", res[j]->size());
+        for (int j = 0 ; j < NUM_QUERIES ; j++)
+        {
+            Iterator* it = ind[j]->it_first();
+            if (it->data() != NULL)
+            {
+                do
+                {
+                    fprintf(stderr, "%s\n", (char*)(it->get_data()));
+                }
+                while (it->next());
+            }
+            ind[j]->it_release(it);
+        }
     }
+    else
+    {
+        for (int j = 0 ; j < NUM_QUERIES ; j++)
+        {
+            res[j] = ind[j]->query(condition);
+            Index* ind2 = res[j]->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
-    //ftime(&end);
+            res[j]->set_prune(prune_1);
+            res[j]->remove_sweep();
+
+            Iterator* it = ind2->it_first();
+            if (it->data() != NULL)
+            {
+                do
+                {
+                    //fprintf(stderr, "%ld @ %lu + %u\n", *(long*)(it->get_data()), it->get_time_stamp(), it->get_query_count());
+                    //fprintf(stderr, "%ld (%u)\n", *(long*)(it->get_data()), it->get_query_count());
+                    fprintf(stderr, "%ld\n", *(long*)(it->get_data()));
+                }
+                while (it->next());
+            }
+            ind2->it_release(it);
+
+            //printf("%ld:", (int64_t)(ind2->size()));
+            printf("%ld:", (int64_t)(res[j]->size()));
+        }
+    }
 
     delete odb;
 
     return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
 }
 
-int main (int argc, char ** argv)
+int main (int argc, char* argv[])
 {
-    if (argc < 6)
-        usage();
+    uint64_t element_size = 8;
+    uint64_t test_size = 10000;
+    uint32_t test_num = 1;
+    uint32_t test_type = 0;
+    uint32_t index_type = 0;
+    uint32_t max_mem = 700000;
+    extern char* optarg;
 
-    uint64_t element_size;
-    uint64_t test_size;
-    uint32_t test_num;
-    uint32_t test_type;
-    uint32_t index_type;
+    int ch;
 
-    sscanf(argv[1], "%lu", &element_size);
-    sscanf(argv[2], "%lu", &test_size);
-    sscanf(argv[3], "%u", &test_num);
-    sscanf(argv[4], "%u", &test_type);
-    sscanf(argv[5], "%u", &index_type);
+    // This should standardize between the operating systems how the random number generator is seeded.
+    srand(0);
+
+#warning "TODO: Validity checks on the options"
+    while ( (ch = getopt(argc, argv, "e:t:n:T:i:hm:")) != -1)
+    {
+        switch (ch)
+        {
+        case 'e':
+            sscanf(optarg, "%lu", &element_size);
+            break;
+        case 'n':
+            sscanf(optarg, "%lu", &test_size);
+            break;
+        case 't':
+            sscanf(optarg, "%u", &test_num);
+            break;
+        case 'T':
+            sscanf(optarg, "%u", &test_type);
+            break;
+        case 'i':
+            sscanf(optarg, "%u", &index_type);
+            break;
+        case 'm':
+            sscanf(optarg, "%u", &max_mem);
+            break;
+        case 'h':
+        default:
+            usage();
+            return EXIT_FAILURE;
+        }
+    }
 
     printf("Element size: %lu\nTest Size: %lu\n", element_size, test_size);
 
@@ -250,44 +388,57 @@ int main (int argc, char ** argv)
         break;
     }
     default:
-        FAIL("Incorrect test type.");
+        if (test_type != 4)
+        {
+            FAIL("Incorrect test type.");
+        }
     }
     printf("\n");
-    
+
     printf("Index Type: ");
-    
+
     if (index_type & 1)
+    {
         printf("DROP_DUPLICATES ");
+    }
     else
+    {
         printf("NONE ");
-    
+    }
+
     switch (index_type >> 1)
     {
-        case 0:
-        {
-            printf("Red-black tree");
-            break;
-        }
-        case 1:
-        {
-            printf("Linked list");
-            break;
-        }
-        default:
-            FAIL("Incorrect index type.");
+    case 0:
+    {
+        printf("Red-black tree");
+        break;
     }
+    case 1:
+    {
+        printf("Linked list");
+        break;
+    }
+    default:
+        FAIL("Incorrect index type.");
+    }
+
+    printf("\nMax memory: %d\n", max_mem);
     printf("\n");
 
     double duration = 0, min = 100, max = -1, cur;
     for (uint64_t i = 0 ; i < test_num ; i++)
     {
-        cur = odb_test(element_size, test_size, test_type, index_type);
+        cur = odb_test(element_size, test_size, test_type, index_type, max_mem);
 
         if (cur > max)
+        {
             max = cur;
+        }
 
         if (cur < min)
+        {
             min = cur;
+        }
 
         duration += cur;
 
@@ -305,13 +456,15 @@ int main (int argc, char ** argv)
         printf("\nMax and min times dropped.\n");
     }
     else
+    {
         printf(" ");
+    }
 
     duration /= test_num;
 
     printf("Average time per run of %f.\n\nPress Enter to continue\n", duration);
 
-    fgetc(stdin);
+//     fgetc(stdin);
 
     return EXIT_SUCCESS;
 }
