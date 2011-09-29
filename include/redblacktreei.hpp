@@ -7,6 +7,8 @@
 #include "index.hpp"
 #include "iterator.hpp"
 
+#warning "TODO: Bring the bottom-up insertion code back."
+
 class RedBlackTreeI : public Index
 {
     using Index::query;

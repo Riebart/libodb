@@ -13,6 +13,9 @@ class DataStore;
 class Iterator;
 class Index;
 
+#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
+#warning "TODO: Batch insertions for index tables. At least LL."
+
 class DataObj
 {
     /// Requires ability to set the data field.
