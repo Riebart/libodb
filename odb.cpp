@@ -55,19 +55,19 @@ void * mem_checker(void * arg)
         stat_file = freopen(path, "r", stat_file);
         if (stat_file == NULL)
         {
-            FAIL("Unable to (re)open file");
+            THROW_ERROR("FOPEN_FAIL", "Unable to (re)open file");
         }
 
         if (fscanf(stat_file, "%lu %ld", &vsize, &rsize) < 2)
         {
-            FAIL("Failed retrieving rss");
+            THROW_ERROR("RSS_GET_FAIL", "Failed retrieving rss");
         }
 
 //         printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
 
         if (rsize > parent->mem_limit)
         {
-            FAIL("Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
+            THROW_ERROR("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
         }
         
 	time_t cur = time(NULL);
@@ -97,12 +97,11 @@ void * mem_checker(void * arg)
 
 }
 
-#warning "TODO: Handle these failures gracefully instead. Applies to all ODB Constructors."
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL");
     }
 
     DataStore* datastore;
@@ -121,7 +120,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -133,7 +132,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
 
     DataStore* datastore;
@@ -152,7 +151,7 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -163,7 +162,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
 
     DataStore* datastore;
@@ -182,7 +181,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -194,7 +193,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
 
     DataStore* datastore;
@@ -213,7 +212,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -224,7 +223,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
 
     DataStore* datastore;
@@ -238,7 +237,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -250,7 +249,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
 {
     if (prune == NULL)
     {
-        FAIL("Pruning function cannot be NULL.");
+        THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
 
     DataStore* datastore;
@@ -264,7 +263,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     }
     default:
     {
-        FAIL("Invalid datastore type.");
+        THROW_ERROR("INV_DS_TYPE", "Invalid datastore type.");
     }
     }
 
@@ -349,10 +348,13 @@ ODB::~ODB()
     RWLOCK_DESTROY();
 }
 
+#warning "TODO: Make sure the datastores handle failed insertions properly. See Comment."
+// The commented out code in the next two functions would handle the process of 
+// removing an item from a datastore when the insertion into the index table failed.
+// What does it mean to fail an insertion into an index group?
 void ODB::add_data(void* rawdata)
 {
     all->add_data_v(data->add_data(rawdata));
-#warning "TODO: Make sure the datastores handle this properly. This also isn't threadsafe."
 //    if ((all->add_data_v(data->add_data(rawdata))) == false)
 //        data->remove_at(data->data_count - 1);
 }
@@ -360,7 +362,6 @@ void ODB::add_data(void* rawdata)
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
     all->add_data_v(data->add_data(rawdata, nbytes));
-#warning "TODO: Make sure the datastores handle this properly. This also isn't threadsafe."
 //     if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
 //         data->remove_at(data->data_count - 1);
 }
@@ -394,24 +395,23 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
     return create_index(type, flags, new CompareCust(compare), (merge == NULL ? NULL : new MergeCust(merge)), (keygen == NULL ? NULL : new KeygenCust(keygen)), keylen);
 }
 
-#warning "TODO: Handle these failures gracefully instead."
 Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
 {
     READ_LOCK();
 
     if (compare == NULL)
     {
-        FAIL("Comparison function cannot be NULL.");
+        THROW_ERROR("NULL_CMP", "Comparison function cannot be NULL.");
     }
 
     if (keylen < -1)
     {
-        FAIL("When specifying keylen, value must be >= 0");
+        THROW_ERROR("NEG_KEYLEN", "When specifying keylen, value must be >= 0");
     }
 
     if (((keylen == -1) && (keygen != NULL)) || ((keylen != -1) && (keygen == NULL)))
     {
-        FAIL("Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
+        THROW_ERROR("INV_KEYLEN", "Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
     }
 
     bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
@@ -433,7 +433,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     }
     default:
     {
-        FAIL("Invalid index type.");
+        THROW_ERROR("INV_IND_TYPE", "Invalid index type.");
     }
     }
 
@@ -571,7 +571,7 @@ Iterator * ODB::it_last()
     return data->it_last();
 }
 
-void ODB::it_release(Iterator * it)
+void ODB::it_release(Iterator* it)
 {
     data->it_release(it);
 }

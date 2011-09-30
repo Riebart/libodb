@@ -38,7 +38,7 @@ class ODB
     friend class Index;
 
 public:
-#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
+//#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexOps;
 
     /// Enum defining the specific index implementations available.
@@ -82,7 +82,7 @@ public:
 
     Iterator* it_first();
     Iterator* it_last();
-    void it_release(Iterator *);
+    void it_release(Iterator* it);
 
     //the memory limit, in pages
     uint64_t mem_limit;

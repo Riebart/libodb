@@ -1,5 +1,7 @@
 #include "datastore.hpp"
 #include "odb.hpp"
+#include "iterator.hpp"
+#include "lock.hpp"
 #include "utility.hpp"
 
 DataStore::DataStore()
@@ -99,3 +101,22 @@ inline void DataStore::update_parent(ODB* odb)
     parent->clones.push_back(odb);
 }
 
+inline Iterator* DataStore::it_first()
+{
+    return NULL;
+}
+
+inline Iterator* DataStore::it_last()
+{
+    return NULL;
+}
+
+inline void DataStore::it_release(Iterator* it)
+{
+    if (it != NULL)
+    {
+        delete it;
+    }
+
+    READ_UNLOCK();
+}

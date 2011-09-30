@@ -2,8 +2,8 @@
 #define LINKEDLISTDS_HPP
 
 #include "datastore.hpp"
-
-class Index;
+#include "lock.hpp"
+#include "iterator.hpp"
 
 class LinkedListDS : public DataStore
 {
@@ -13,6 +13,8 @@ class LinkedListDS : public DataStore
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
+    
+    friend class LinkedListDSIterator;
 
 public:
     virtual ~LinkedListDS();
@@ -46,8 +48,11 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
+    
+    Iterator* it_first();
+    Iterator* it_last();
 
-    struct datanode * bottom;
+    struct datanode* bottom;
     uint64_t datalen;
 };
 
@@ -104,8 +109,21 @@ protected:
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
 
-    struct datanode * bottom;
+    struct datanode* bottom;
     uint32_t (*len)(void*);
+};
+
+class LinkedListDSIterator : public Iterator
+{
+    friend class LinkedListDS;
+
+protected:
+    LinkedListDSIterator();
+    DataObj* next();
+    DataObj* prev();
+    
+    LinkedListDS* dstore;
+    struct LinkedListDS::datanode* cur;
 };
 
 #endif

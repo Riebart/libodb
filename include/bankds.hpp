@@ -16,12 +16,6 @@ class BankDS : public DataStore
     ///datastores.
     friend class ODB;
 
-    /// Allows LinkedListI to create a Bankds object to manage its memory.
-    friend class LinkedListI;
-
-    /// Allows LinkedListI to create a pair of Bankds objects to manage its memory.
-    friend class RedBlackTreeI;
-
     friend class BankDSIterator;
 
 public:
@@ -43,9 +37,8 @@ protected:
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
 
-    Iterator * it_first();
-    Iterator * it_last();
-    void it_release(Iterator *);
+    Iterator* it_first();
+    Iterator* it_last();
 
     char** data;
     uint64_t posA;
@@ -70,7 +63,7 @@ class BankIDS : public BankDS
 
 protected:
     BankIDS();
-#warning "Make proper use of the parent pointers where necessary. (See comment)"
+#warning "TODO: Make proper use of the parent pointers where necessary. (See comment)"
     //(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
     //Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
     BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags = 0, uint64_t cap = 102400);
@@ -86,12 +79,13 @@ class BankDSIterator : public Iterator
     friend class BankDS;
 
 protected:
-    BankDSIterator ();
-    BankDS * dstore;
+    BankDSIterator();
+    DataObj* next();
+    DataObj* prev();
+    
+    BankDS* dstore;
     uint64_t posA;
     uint64_t posB;
-    DataObj * next();
-    DataObj * prev();
 };
 
 #endif

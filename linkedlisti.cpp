@@ -114,7 +114,6 @@ inline bool LinkedListI::add_data_v(void* rawdata)
     return true;
 }
 
-#warning "TODO: move this to use malloc/free instead of a DS for storage."
 void LinkedListI::purge()
 {
     WRITE_LOCK();
