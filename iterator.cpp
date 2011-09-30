@@ -25,13 +25,13 @@ Iterator::~Iterator()
 
 DataObj* Iterator::next()
 {
-    NOT_IMPLEMENTED("next()");
+    NOT_IMPLEMENTED("Iterator::next()");
     return NULL;
 }
 
 DataObj* Iterator::prev()
 {
-    NOT_IMPLEMENTED("prev()");
+    NOT_IMPLEMENTED("Iterator::prev()");
     return NULL;
 }
 
@@ -54,25 +54,11 @@ void* Iterator::get_data()
 
 time_t Iterator::get_time_stamp()
 {
-//     if (time_stamp)
-//         return GET_TIME_STAMP(dataobj->data);
-//     else
-//         return 0;
-
     return (time_stamp ? GET_TIME_STAMP(dataobj->data, true_datalen) : 0);
 }
 
 uint32_t Iterator::get_query_count()
 {
-//     if (query_count)
-//     {
-//         return GET_QUERY_COUNT(dataobj->data);
-//     }
-//     else
-//     {
-//         return 0;
-//     }
-//
     return (query_count ? GET_QUERY_COUNT(dataobj->data, true_datalen) : 0);
 }
 

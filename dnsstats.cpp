@@ -929,7 +929,7 @@ int main(int argc, char** argv)
     srand(0);
 
     //Parse the options.
-#warning "TODO: Validity checks in option parsing"
+//#warning "TODO: Validity checks in option parsing"
     while ( (ch = getopt(argc, argv, "ai:m:o:v")) != -1)
     {
         switch (ch)

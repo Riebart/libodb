@@ -39,17 +39,17 @@ LinkedListVDS::LinkedListVDS(DataStore* _parent, bool (*_prune)(void* rawdata), 
 
 inline void LinkedListDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen)
 {
-    //since the only read case we (currently) have is trivial, might a general lock be better suited?
-    RWLOCK_INIT();
+#warning "TODO: since the only read case we (currently) have is trivial, might a general lock be better suited?"
     this->true_datalen = _datalen;
     this->datalen = _datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);;
     bottom = NULL;
     this->parent = _parent;
     this->prune = _prune;
     data_count = 0;
+    
+    RWLOCK_INIT();
 }
 
-#warning "TODO: free memory"
 LinkedListDS::~LinkedListDS()
 {
     WRITE_LOCK();
@@ -62,6 +62,7 @@ LinkedListDS::~LinkedListDS()
         curr=curr->next;
         free(prev);
     }
+    
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
@@ -506,4 +507,49 @@ inline DataStore* LinkedListVDS::clone_indirect()
 {
     // Return an indirect version of this datastore, with this datastore marked as its parent.
     return new LinkedListIDS(this, prune, flags);
+}
+
+Iterator* LinkedListDS::it_first()
+{
+    READ_LOCK();
+    
+    LinkedListDSIterator* it = new LinkedListDSIterator();
+    it->dstore = this;
+    
+    it->cur = bottom;
+    it->dataobj->data = (void*)(&(it->cur->data));
+
+    return it;
+}
+
+Iterator* LinkedListDS::it_last()
+{
+    NOT_IMPLEMENTED("LinkedListDSIterator::prev()");
+    return NULL;
+}
+
+LinkedListDSIterator::LinkedListDSIterator()
+{
+    dstore = NULL;
+    dataobj = new DataObj();
+}
+
+DataObj* LinkedListDSIterator::next()
+{
+    if (cur->next != NULL)
+    {
+        cur = cur->next;
+        dataobj->data = (void*)(&(cur->data));
+        return dataobj;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+DataObj* LinkedListDSIterator::prev()
+{
+    NOT_IMPLEMENTED("LinkedListDSIterator::prev()");
+    return NULL;
 }

@@ -210,7 +210,7 @@ inline bool BankDS::remove_at(uint64_t index)
         // Return success
         return true;
     }
-    // If we're removing the last item, it is far simpler.
+    // If we're removing the last item, it is far easier.
     else if (index == data_count - 1)
     {
         WRITE_LOCK();
@@ -397,7 +397,10 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         }
     }
 
-#warning "TODO: Make this more efficient by replacing it with a vector and a binary search."
+//#warning "TODO: Make this more efficient? See Comment."
+// I had a note here to replace something with a vector and then use a binary
+// search... We're already using a vector, and we're not looking for anything?
+// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -529,7 +532,6 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
 
     WRITE_UNLOCK();
 
-#warning "TODO: Make this more efficient by replacing it with a vector and a binary search."
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -625,7 +627,7 @@ inline void BankDS::purge(void (*freep)(void*))
     //
     else
     {
-        ///@note: Untested and not expected to work.
+#warning "TODO: Untested and not expected to work."
         for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         {
             for (uint64_t j = 0 ; j < cap_size ; j += datalen)
@@ -699,12 +701,13 @@ inline DataStore* BankDS::clone_indirect()
     return new BankIDS(this, prune, flags, cap);
 }
 
-
-Iterator * BankDS::it_first()
+Iterator* BankDS::it_first()
 {
     READ_LOCK();
-    BankDSIterator * it = new BankDSIterator();
+    
+    BankDSIterator* it = new BankDSIterator();
     it->dstore = this;
+    
     if (list_size == 0 || (posA == 0 && posB == 0))
     {
         it->dataobj->data = NULL;
@@ -717,26 +720,18 @@ Iterator * BankDS::it_first()
     return it;
 }
 
-Iterator * BankDS::it_last()
+Iterator* BankDS::it_last()
 {
     READ_LOCK();
-    BankDSIterator * it = new BankDSIterator();
+    
+    BankDSIterator* it = new BankDSIterator();
     it->dstore = this;
 
     it->posA=posA;
     it->posB=posB;
     it->dataobj->data=*(data + posA) + posB;
+    
     return it;
-}
-
-
-void BankDS::it_release(Iterator * it)
-{
-    if (it != NULL)
-    {
-        delete it;
-    }
-    READ_UNLOCK();
 }
 
 BankDSIterator::BankDSIterator()
@@ -747,40 +742,32 @@ BankDSIterator::BankDSIterator()
     dataobj = new DataObj();
 }
 
-DataObj * BankDSIterator::next()
+DataObj* BankDSIterator::next()
 {
 #warning "TODO: Skip deleted elements (see comment)"
-    // Not difficult, but we need to change the
-    //datastructure from a stack to something else, a vector, deque or list.
-    //Then we can check the current address vs the next one in the deleted list
+// Not difficult, but we need to change the
+// datastructure from a stack to something else, a vector, deque or list.
+// Then we can check the current address vs the next one in the deleted list
     posB += dstore->datalen;
 
     //We've reached the end of the current bucket
-    if (posB >= dstore->cap_size && posA < dstore->posA)
+    if ((posB >= dstore->cap_size) && (posA < dstore->posA))
     {
         posB = 0;
         posA += sizeof(char*);
     }
-    //end of list.
-    if (posB >= dstore->posB && posA >= dstore->posA )
+    else if ((posB >= dstore->posB) && (posA >= dstore->posA))
     {
         return NULL;
     }
 
-    dataobj->data=*(dstore->data + posA) + posB;
-
-#warning "TODO: Should this be here?"
-    if(dataobj->data == NULL)
-    {
-        return NULL;
-    }
+    dataobj->data = *(dstore->data + posA) + posB;
 
     return dataobj;
 }
 
-DataObj * BankDSIterator::prev()
+DataObj* BankDSIterator::prev()
 {
-    NOT_IMPLEMENTED("prev()");
+    NOT_IMPLEMENTED("BankDSIterator::prev()");
     return NULL;
 }
-

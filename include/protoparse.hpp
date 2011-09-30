@@ -142,7 +142,7 @@ inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, void* data, uint1
 
 void print_flow(struct flow_sig* f)
 {
-    uint16_t p_offset = 0;
+    int32_t p_offset = 0;
 
 //     // Again, assume ethernet:
 //     struct ether_header eth_hdr = (f->packets->at(0))->eth_hdr;
@@ -196,11 +196,15 @@ void print_flow(struct flow_sig* f)
     }
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
 uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
 
+    if (packet_len < sizeof(struct ether_header))
+    {
+        return p_offset;
+    }
+    
     const struct ether_header* eptr = reinterpret_cast<const struct ether_header*>(packet);
     const uint8_t* eth_dhost = reinterpret_cast<const uint8_t*>(&(eptr->ether_dhost));
 
@@ -267,7 +271,6 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
 uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
@@ -278,6 +281,11 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("ip4 ");
 #endif
+        if (packet_len < p_offset + sizeof(struct ip))
+        {
+            return p_offset;
+        }
+            
         struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
         struct l3_ip4 l3_hdr;
 
@@ -299,6 +307,11 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("ip6 ");
 #endif
+        if (packet_len < p_offset + sizeof(struct ip6_hdr))
+        {
+            return p_offset;
+        }
+        
         struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
         struct l3_ip6 l3_hdr;
 
@@ -322,7 +335,6 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("arp ");
 #endif
-
         f->l4_type = L4_TYPE_NONE;
     }
     else if (f->l3_type == ETHERTYPE_REVARP)
@@ -330,7 +342,6 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("rarp ");
 #endif
-
         f->l4_type = L4_TYPE_NONE;
     }
     else
@@ -338,14 +349,12 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("3proto%u ", f->l3_type);
 #endif
-
         f->l4_type = L4_TYPE_NONE;
     }
 
     return p_offset;
 }
 
-#warning "TODO: There is no checking to ensure we don't run off the end of the packet."
 uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
@@ -356,6 +365,11 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("tcp ");
 #endif
+        if (packet_len < p_offset + sizeof(struct tcphdr))
+        {
+            return p_offset;
+        }
+        
         struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
@@ -374,6 +388,11 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("udp ");
 #endif
+        if (packet_len < p_offset + sizeof(struct udphdr))
+        {
+            return p_offset;
+        }
+        
         struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
         struct l4_udp l4_hdr;
 
@@ -392,7 +411,6 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("icmp ");
 #endif
-
         f->l7_type = L7_TYPE_NONE;
     }
     else if (f->l4_type == L4_TYPE_ICMP6)
@@ -400,7 +418,6 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("icmp6 ");
 #endif
-
         f->l7_type = L7_TYPE_NONE;
     }
     else
@@ -455,10 +472,10 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
 struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
 {
-    uint16_t p_offset = 0;
+    int32_t p_offset = 0;
 
     // Allocate the flow signature and init the header-size.
-    struct flow_sig* f = (struct flow_sig*)malloc(sizeof(struct flow_sig) - 1);
+    struct flow_sig* f = (struct flow_sig*)calloc(1, sizeof(struct flow_sig) - 1);
     f->hdr_size = 0;
 
     p_offset = l2_sig(&f, packet, p_offset, packet_len);

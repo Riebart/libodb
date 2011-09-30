@@ -13,8 +13,8 @@ class DataStore;
 class Iterator;
 class Index;
 
-#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
-#warning "TODO: Batch insertions for index tables. At least LL."
+//#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
+//#warning "TODO: Batch insertions for index tables. At least LL."
 
 class DataObj
 {
@@ -43,9 +43,11 @@ class DataObj
     /// Requires ability to create and manipulate DataObj.
     friend class LLIterator;
 
-    friend class BankDSIterator;
-
     friend class BankDS;
+    friend class BankDSIterator;
+    
+    friend class LinkedListDS;
+    friend class LinkedListDSIterator;
 
 public:
     inline void * get_data()
@@ -83,7 +85,7 @@ public:
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
     virtual int get_ident();
-#warning "TODO: Add a recursive flavour of size() (See comment)"
+//#warning "TODO: Add a recursive flavour of size() (See comment)"
     //It will have to return the number of items
     //in all contained indices though. Is there a way to stop before indices at
     //the last layer of IndexGroups?

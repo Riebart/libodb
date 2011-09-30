@@ -57,15 +57,9 @@ protected:
     virtual void set_prune(bool (*prune)(void*));
     virtual void update_parent(ODB* odb);
 
-    virtual Iterator * it_first()
-    {
-        return NULL;
-    };
-    virtual Iterator * it_last()
-    {
-        return NULL;
-    };
-    virtual void it_release(Iterator *) { };
+    virtual Iterator* it_first();
+    virtual Iterator* it_last();
+    virtual void it_release(Iterator* it);
 
     /// Get the size of the datastore.
     /// @return The number of items in this datastore.

@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <vector>
 
-#define FAIL(str...) { \
+#define PRINT_TRACE(str...) { \
     if (errno != 0) { \
         fprintf (stderr, "%s:%d: %m: ",  __FILE__, __LINE__);\
         fprintf (stderr, str);\
@@ -17,6 +17,19 @@
         fprintf (stderr, "%s:%d: ",  __FILE__, __LINE__);\
         fprintf (stderr, str);\
         fprintf (stderr, "\n");} \
+    }
+
+#define THROW_ERROR(code, str...) { \
+    PRINT_TRACE(str); \
+    throw code; \
+    }
+    
+#define NOT_IMPLEMENTED(str) { \
+    THROW_ERROR("NOT_IMP", str) \
+    }
+
+#define FAIL(str...) { \
+    PRINT_TRACE(str); \
     abort(); }
 
 #ifdef DEBUG
@@ -36,8 +49,5 @@
 #define SAFE_MALLOC(t, x, n)  { x = reinterpret_cast<t>(malloc(n)); if (!x) OOM(); } (void)0
 #define SAFE_CALLOC(t, x, n, m) { x = reinterpret_cast<t>(calloc(n, m)); if (!x) OOM(); } (void)0
 #define SAFE_REALLOC(t, x, n) { x = reinterpret_cast<t>(realloc(x, n)); if (!x) OOM(); } (void)0
-
-#define NOT_IMPLEMENTED(str...) { \
-        FAIL("Function not yet implemented: %s\n", str); }\
  
 #endif
