@@ -20,7 +20,7 @@
 #endif
 
 #ifndef IS_UPPER
-#define IS_UPPER(x) ( (('A' <= x) && (x <= 'Z')) ? true : false)
+#define IS_UPPER(x) ((('A' <= x) && (x <= 'Z')) ? true : false)
 #endif
 
 #ifndef TO_LOWER

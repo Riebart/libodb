@@ -164,7 +164,7 @@ inline bool IndexGroup::add_data_v(void* data)
             something_added = indices[0]->add_data_v(data);
         }
         else
-#pragma omp parallel for
+//#pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 something_added |= indices[i]->add_data_v(data);
@@ -186,7 +186,7 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
             indices[0]->query(condition, ds);
         }
         else
-#pragma omp parallel for
+//#pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query(condition, ds);
@@ -206,7 +206,7 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
             indices[0]->query_eq(rawdata, ds);
         }
         else
-#pragma omp parallel for
+//#pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_eq(rawdata, ds);
@@ -226,7 +226,7 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
             indices[0]->query_lt(rawdata, ds);
         }
         else
-#pragma omp parallel for
+//#pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_lt(rawdata, ds);
@@ -246,7 +246,7 @@ inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
             indices[0]->query_gt(rawdata, ds);
         }
         else
-#pragma omp parallel for
+//#pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_gt(rawdata, ds);

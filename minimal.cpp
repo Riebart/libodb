@@ -34,14 +34,9 @@ struct test_s
 
 int main (int argc, char ** argv)
 {
-//    printf("%u\n", sizeof(void*));
-//    return 0;
-
-    AppendOnlyFile out((char*)"/home/mike/Desktop/test");
-
     long v, p = 100;
 
-    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"/home/mike/Desktop/test"));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal.archive"));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)
