@@ -117,7 +117,7 @@ endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 # Make sure the compiler can find include files from our Hello library.
 include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/include/spinlock /usr/include/python2.6)
 
-add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp iterator.cpp scheduler.cpp workqueue.cpp)
+add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp iterator.cpp scheduler.cpp lfqueue.cpp)
 #add_library(pca STATIC pca.c)
 
 # Make sure the linker can find the Hello library once it is built.
@@ -158,7 +158,7 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 #install directives
 install(TARGETS odb LIBRARY DESTINATION lib)
-install(FILES include/odb.hpp include/index.hpp include/iterator.hpp include/comparator.hpp include/archive.hpp include/lock.hpp DESTINATION include)
+install(FILES include/odb.hpp include/index.hpp include/iterator.hpp include/comparator.hpp include/archive.hpp include/lock.hpp include/scheduler.hpp include/lfqueue.hpp DESTINATION include)
 
 #Package generation directives
 SET(CPACK_GENERATOR "TGZ;DEB;RPM")

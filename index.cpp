@@ -1,6 +1,8 @@
 #include "index.hpp"
 
-#include <omp.h>
+#include <stdlib.h>
+#include <stdio.h>
+//#include <omp.h>
 
 #include "odb.hpp"
 #include "datastore.hpp"
@@ -264,6 +266,11 @@ uint64_t IndexGroup::size()
 Index::Index()
 {
     // Implemented because something, somewhere, needs it when linking. Not sure where.
+    // Also now for getting the LUID.
+    char* end;
+    char buf[20];
+    sprintf(buf, "%p", this);
+    luid_val = strtoull(buf, &end, 16);
 }
 
 inline bool Index::add_data(DataObj* data)
@@ -282,6 +289,11 @@ inline bool Index::add_data(DataObj* data)
 uint64_t Index::size()
 {
     return count;
+}
+
+uint64_t Index::luid()
+{
+    return luid_val;
 }
 
 vector<Index*> Index::flatten()

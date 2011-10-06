@@ -135,6 +135,7 @@ public:
     virtual std::vector<Index*> flatten();
     virtual bool add_data(DataObj* data);
     virtual uint64_t size();
+    virtual uint64_t luid();
     virtual bool remove(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));
     virtual ODB* query(Condition* condition);
@@ -162,6 +163,7 @@ protected:
     Merger* merge;
     uint64_t count;
     bool drop_duplicates;
+    uint64_t luid_val;
 };
 
 

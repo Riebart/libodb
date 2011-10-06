@@ -10,7 +10,7 @@
 #include <sys/timeb.h>
 #include <stdio.h>
 #include <string.h>
-#include <omp.h>
+// #include <omp.h>
 #include <unistd.h>
 
 #include "odb.hpp"

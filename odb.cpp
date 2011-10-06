@@ -480,7 +480,7 @@ void ODB::remove_sweep()
             tables[0]->remove_sweep(marked[0]);
         }
         else
-#pragma omp parallel for
+// #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 tables[i]->remove_sweep(marked[0]);
@@ -507,7 +507,7 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
             tables[0]->update(old_addr, new_addr, datalen);
         }
         else
-#pragma omp parallel for
+// #pragma omp parallel for
             for (int32_t i = 0 ; i < n ; i++)
             {
                 tables[i]->update(old_addr, new_addr, datalen);
