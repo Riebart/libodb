@@ -704,10 +704,10 @@ inline DataStore* BankDS::clone_indirect()
 Iterator* BankDS::it_first()
 {
     READ_LOCK();
-    
+
     BankDSIterator* it = new BankDSIterator();
     it->dstore = this;
-    
+
     if (list_size == 0 || (posA == 0 && posB == 0))
     {
         it->dataobj->data = NULL;
@@ -723,14 +723,14 @@ Iterator* BankDS::it_first()
 Iterator* BankDS::it_last()
 {
     READ_LOCK();
-    
+
     BankDSIterator* it = new BankDSIterator();
     it->dstore = this;
 
     it->posA=posA;
     it->posB=posB;
     it->dataobj->data=*(data + posA) + posB;
-    
+
     return it;
 }
 

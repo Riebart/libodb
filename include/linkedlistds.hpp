@@ -13,7 +13,7 @@ class LinkedListDS : public DataStore
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
     friend class ODB;
-    
+
     friend class LinkedListDSIterator;
 
 public:
@@ -48,7 +48,7 @@ protected:
     virtual void populate(Index* index);
     virtual DataStore* clone();
     virtual DataStore* clone_indirect();
-    
+
     Iterator* it_first();
     Iterator* it_last();
 
@@ -121,7 +121,7 @@ protected:
     LinkedListDSIterator();
     DataObj* next();
     DataObj* prev();
-    
+
     LinkedListDS* dstore;
     struct LinkedListDS::datanode* cur;
 };

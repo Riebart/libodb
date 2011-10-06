@@ -82,7 +82,7 @@ protected:
     BankDSIterator();
     DataObj* next();
     DataObj* prev();
-    
+
     BankDS* dstore;
     uint64_t posA;
     uint64_t posB;

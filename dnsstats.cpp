@@ -54,6 +54,7 @@ struct domain_stat
     uint32_t domain_len;
     double entropy;
     uint64_t total_queries;
+    uint64_t subdomains;
 };
 
 struct interval_stat
@@ -264,6 +265,7 @@ inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
     }
 
     stats->total_queries += cur_count;
+    stats->subdomains++;
     stats->entropy += cur_count * log((double)cur_count);
 }
 
@@ -282,6 +284,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
 {
     stats->entropy = 0;
     stats->total_queries = 0;
+    stats->subdomains = 0;
 
     struct sig_encap* encap;
     struct flow_sig* sig;
@@ -295,7 +298,21 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     sig = encap->sig;
     dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
-    domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+    // Need to handle the case of the null query which is a valid query for servers, not typically for clients though.
+    if (dns->query[0] == 0)
+    {
+        domain_len = 0;
+    }
+    else
+    {
+        domain_len = (dns->query[0] + 1);
+        // We need this to handle teh case where there is only one component to the query
+        if (dns->query[dns->query[0] + 1] > 0)
+        {
+            domain_len += dns->query[dns->query[0] + 1] + 1;
+        }
+    }
+
     domain = get_domain(dns->query, domain_len);
     stats->domain = domain;
     stats->domain_len = domain_len;
@@ -315,6 +332,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
 
         if (memcmp(domain, dns->query, domain_len) != 0)
         {
+            it->prev();
             break;
         }
 
@@ -426,7 +444,6 @@ void* process_interval(void* args)
 
     if (it->get_data() != NULL)
     {
-#warning "TODO: Some off-by-one errors here."
         do
         {
             cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
@@ -442,19 +459,20 @@ void* process_interval(void* args)
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
 
-    // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
-    // By doing all of the heavy lifting before joining, we cna make maximum use of multithreading.
-    // Leaving the printing out until after joining ensures that data gets printed out in the right order.
-    if (args_t->t_index > 0)
-    {
-        pthread_join(threads[args_t->t_index - 1], NULL);
-    }
-
     FILE* out;
 
     if (outfname == NULL)
     {
         out = stdout;
+
+        // By joining to the preceeding thread, this ensures that the trees are always processed in the order they were added to the queue.
+        // By doing all of the heavy lifting before joining, we cna make maximum use of multithreading.
+        // Leaving the printing out until after joining ensures that data gets printed out in the right order.
+        // This only matters when printing to stdout.
+        if (args_t->t_index > 0)
+        {
+            pthread_join(threads[args_t->t_index - 1], NULL);
+        }
     }
     else
     {
@@ -470,35 +488,38 @@ void* process_interval(void* args)
         if (out == NULL)
         {
             LOG_MESSAGE(LOG_LEVEL_WARN, "Unable to open \"%s\" for writing, writing to stdout instead.\n", curoutfname);
+            fflush(stderr);
             out = stdout;
         }
         else
         {
             LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
+            fflush(stdout);
         }
     }
 
     fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
     fwrite(&istat, 1, sizeof(struct interval_stat), out);
 
-#warning "TODO: See previous note about off-by-one errors for why I need to offset this value."
-    uint32_t num_domains = stats.size() + 3;
+    uint32_t num_domains = stats.size();
     fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
         fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
-        fwrite(&(stats[i]->entropy), 1, sizeof(uint64_t) + sizeof(double), out);
+        fwrite(&(stats[i]->entropy), 1, sizeof(double) + 2 * sizeof(uint64_t), out);
         free(stats[i]->domain);
         free(stats[i]);
     }
 
     it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-    
+
     if (it->get_data() != NULL)
     {
+        bool no_next = false;
         do
         {
+            no_next = false;
             struct sig_encap* encap;
             struct flow_sig* sig;
             struct l7_dns* dns;
@@ -524,14 +545,21 @@ void* process_interval(void* args)
                 }
 
                 encap = (struct sig_encap*)(it->get_data());
+                sig = encap->sig;
+                dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
                 if (memcmp(domain, dns->query, domain_len) != 0)
                 {
-                    it->prev();
+                    no_next = true;
                     break;
                 }
 
                 write_out_contributors(encap, out);
+            }
+
+            if (no_next)
+            {
+                continue;
             }
         }
         while (it->next() != NULL);

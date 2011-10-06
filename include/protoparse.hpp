@@ -204,7 +204,7 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     {
         return p_offset;
     }
-    
+
     const struct ether_header* eptr = reinterpret_cast<const struct ether_header*>(packet);
     const uint8_t* eth_dhost = reinterpret_cast<const uint8_t*>(&(eptr->ether_dhost));
 
@@ -285,7 +285,7 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         {
             return p_offset;
         }
-            
+
         struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
         struct l3_ip4 l3_hdr;
 
@@ -311,7 +311,7 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         {
             return p_offset;
         }
-        
+
         struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
         struct l3_ip6 l3_hdr;
 
@@ -369,7 +369,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         {
             return p_offset;
         }
-        
+
         struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
@@ -392,7 +392,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         {
             return p_offset;
         }
-        
+
         struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
         struct l4_udp l4_hdr;
 

@@ -32,13 +32,14 @@
     <loop count="_numdomains_" prefix="Domain">
         <value type="cstr" name="Registered Domain" />
         <value type="double_l" name="Domain Entropy" />
-        <value type="uint64_l" name="Queries to Domain" />
+        <value type="uint64_l" name="Total Queries to Domain" />
+        <value type="uint64_l" name="Unique Queries to Domain" />
     </loop>
     <loop count="_inf_" prefix="Query">
         <value type="cstr" name="Query String" />
         <value type="uint32_l" name="Count" label="numcontribs" />
         <loop count="_numcontribs_" prefix="Contributor">
-        <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
             <if lhs="_l3type_" op="eq" rhs="2048">
                 <value type="cstr" name="Source IP" />
                 <value type="cstr" name="Destination IP" />

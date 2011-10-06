@@ -69,8 +69,8 @@ void * mem_checker(void * arg)
         {
             THROW_ERROR("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
         }
-        
-	time_t cur = time(NULL);
+
+        time_t cur = time(NULL);
 
         // Since time(NULL) has a resolution of one second, this will execute every second (approximately).
         if (parent->get_time() < cur)
@@ -349,7 +349,7 @@ ODB::~ODB()
 }
 
 #warning "TODO: Make sure the datastores handle failed insertions properly. See Comment."
-// The commented out code in the next two functions would handle the process of 
+// The commented out code in the next two functions would handle the process of
 // removing an item from a datastore when the insertion into the index table failed.
 // What does it mean to fail an insertion into an index group?
 void ODB::add_data(void* rawdata)

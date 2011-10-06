@@ -45,7 +45,7 @@ class DataObj
 
     friend class BankDS;
     friend class BankDSIterator;
-    
+
     friend class LinkedListDS;
     friend class LinkedListDSIterator;
 

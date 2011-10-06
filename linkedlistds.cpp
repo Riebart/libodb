@@ -46,7 +46,7 @@ inline void LinkedListDS::init(DataStore* _parent, bool (*_prune)(void* rawdata)
     this->parent = _parent;
     this->prune = _prune;
     data_count = 0;
-    
+
     RWLOCK_INIT();
 }
 
@@ -62,7 +62,7 @@ LinkedListDS::~LinkedListDS()
         curr=curr->next;
         free(prev);
     }
-    
+
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
@@ -512,10 +512,10 @@ inline DataStore* LinkedListVDS::clone_indirect()
 Iterator* LinkedListDS::it_first()
 {
     READ_LOCK();
-    
+
     LinkedListDSIterator* it = new LinkedListDSIterator();
     it->dstore = this;
-    
+
     it->cur = bottom;
     it->dataobj->data = (void*)(&(it->cur->data));
 

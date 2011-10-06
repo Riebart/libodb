@@ -23,7 +23,7 @@
     PRINT_TRACE(str); \
     throw code; \
     }
-    
+
 #define NOT_IMPLEMENTED(str) { \
     THROW_ERROR("NOT_IMP", str) \
     }
@@ -49,5 +49,5 @@
 #define SAFE_MALLOC(t, x, n)  { x = reinterpret_cast<t>(malloc(n)); if (!x) OOM(); } (void)0
 #define SAFE_CALLOC(t, x, n, m) { x = reinterpret_cast<t>(calloc(n, m)); if (!x) OOM(); } (void)0
 #define SAFE_REALLOC(t, x, n) { x = reinterpret_cast<t>(realloc(x, n)); if (!x) OOM(); } (void)0
- 
+
 #endif
