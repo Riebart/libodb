@@ -14,9 +14,12 @@
 #include <unistd.h>
 
 #include "odb.hpp"
+#include "index.hpp"
+#include "iterator.hpp"
 
-// NOTE: NOT ALLOWED! (Needed for Verify)
-#include "redblacktreei.hpp"
+// // NOTE: NOT ALLOWED! (Needed for Verify)
+// #include "redblacktreei.hpp"
+
 // NOTE: NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
 
@@ -92,7 +95,7 @@ void usage()
 double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, uint8_t index_type, uint32_t max_mem)
 {
     ODB::IndexType itype;
-    ODB::IndexOps iopts;
+    ODB::IndexFlags iopts;
 
     bool use_indirect = false;
     ODB* odb;
@@ -252,14 +255,14 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         odb->remove_sweep();
     }
 
-    if ((index_type >> 1) == 0)
-    {
-        if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
-        {
-            printf("!");
-            return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-        }
-    }
+//     if ((index_type >> 1) == 0)
+//     {
+//         if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
+//         {
+//             printf("!");
+//             return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+//         }
+//     }
 
     printf(":");
     if (test_type == 4)

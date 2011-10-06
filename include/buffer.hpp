@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "common.hpp"
+
 #ifndef MIN
 #define MIN(x,y) (x < y ? x : y)
 #endif
@@ -33,7 +35,8 @@ void fb_destroy(struct file_buffer* fb)
 
 struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
 {
-    struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
+    struct file_buffer* fb;
+    SAFE_MALLOC(struct file_buffer*, fb, sizeof(struct file_buffer));
 
     if (fb == NULL)
     {
@@ -64,7 +67,8 @@ struct file_buffer* fb_read_init(char* fname, uint32_t num_bytes)
 
 struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
 {
-    struct file_buffer* fb = (struct file_buffer*)malloc(sizeof(struct file_buffer));
+    struct file_buffer* fb;
+    SAFE_MALLOC(struct file_buffer*, fb, sizeof(struct file_buffer));
 
     if (fb == NULL)
     {

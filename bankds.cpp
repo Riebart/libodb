@@ -134,7 +134,7 @@ inline void* BankDS::get_addr()
                 list_size *= 2;
 
                 // realloc us some new space.
-                SAFE_REALLOC(char**, data, list_size * sizeof(char*));
+                SAFE_REALLOC(char**, data, data, list_size * sizeof(char*));
             }
 
             // Allocate a new bucket.

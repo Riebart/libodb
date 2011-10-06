@@ -133,7 +133,8 @@ inline void init_proto_hdr_sizes()
 
 inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, void* data, uint16_t num_bytes)
 {
-    struct flow_sig* ret = reinterpret_cast<struct flow_sig*>(realloc(f, sizeof(struct flow_sig) - 1 + f->hdr_size + num_bytes));
+    struct flow_sig* ret;
+    SAFE_REALLOC(struct flow_sig*, f, ret, sizeof(struct flow_sig) - 1 + f->hdr_size + num_bytes);
     memcpy(&(ret->hdr_start) + ret->hdr_size, data, num_bytes);
     ret->hdr_size += num_bytes;
 
@@ -475,7 +476,8 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
     int32_t p_offset = 0;
 
     // Allocate the flow signature and init the header-size.
-    struct flow_sig* f = (struct flow_sig*)calloc(1, sizeof(struct flow_sig) - 1);
+    struct flow_sig* f;
+    SAFE_CALLOC(struct flow_sig*, f, 1, (sizeof(struct flow_sig) - 1));
     f->hdr_size = 0;
 
     p_offset = l2_sig(&f, packet, p_offset, packet_len);

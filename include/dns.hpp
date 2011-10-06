@@ -1,6 +1,8 @@
 #ifndef DNS_HPP
 #define DNS_HPP
 
+#include "common.hpp"
+
 #define DNS_QUERY_MAX_LEN 16384
 
 // Reference: http://www.faqs.org/rfcs/rfc1035.html
@@ -330,7 +332,7 @@ uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len
         memcpy(str + len, p, p[0] + 1);
     }
 
-    *strp = (char*)malloc(DNS_QUERY_MAX_LEN - len);
+    SAFE_MALLOC(char*, *strp, (DNS_QUERY_MAX_LEN - len));
     if (*strp == NULL)
     {
         return 0;

@@ -38,7 +38,6 @@ public:
     };
 
     ~RedBlackTreeI();
-    int rbt_verify();
 
     static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
     static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
@@ -101,6 +100,8 @@ protected:
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
+    
+    int rbt_verify();
 
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
