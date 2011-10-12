@@ -75,6 +75,11 @@ public:
     // The work class is treated as simply a binary blob, for maximum versatility.
     void add_work(void* (*func)(void*), void* args, void* retval, void* class_val, uint32_t class_len, uint32_t flags);
     
+    // Attempt to change the number of worker threads.
+    // Returns the number of threads in the pool, which can be used to check and
+    // see if it was successful.
+    uint32_t update_num_threads(uint32_t new_num_threads);
+    
 private:
     struct workload
     {

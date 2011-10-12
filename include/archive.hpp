@@ -24,7 +24,7 @@ class AppendOnlyFile : public Archive
 {
 public:
     ~AppendOnlyFile();
-    AppendOnlyFile(char* base_filename);
+    AppendOnlyFile(char* base_filename, bool append);
     virtual bool write(void* rawdata, uint32_t datalen);
 
 private:

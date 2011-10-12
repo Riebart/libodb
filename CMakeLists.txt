@@ -12,6 +12,10 @@ set(COMPILER_C)
 set(COMPILER_CXX)
 set(SKIP_SUN_COMPILER "false")
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    add_definitions(-DSYSTEM_NAME_SUNOS)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
     message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
     find_program(COMPILER_C NAMES suncc)
@@ -27,6 +31,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false"
 	set(CMAKE_C_COMPILER "suncc")
 	set(CMAKE_CXX_COMPILER "sunCC")
 	set(COMPILER_SUITE "sun")
+	add_definitions(-DCMAKE_COMPILER_SUITE_SUN)
     endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
 else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
     message(STATUS "Skipping search for Sun Studio compiler on Solaris")
@@ -50,6 +55,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
 	set(CMAKE_C_COMPILER "gcc")
 	set(CMAKE_CXX_COMPILER "g++")
 	set(COMPILER_SUITE "gcc")
+	add_definitions(-DCMAKE_COMPILER_SUITE_GCC)
     endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
 
@@ -63,16 +69,19 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
     message(STATUS "Ensuring use of BSD-style headers on Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
+    add_definitions(-DSYSTEM_NAME_LINUX)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 set(CMAKE_FLAGS_X64 "")
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
     message(STATUS "Forcing 64-bit compilation")
     set(CMAKE_FLAGS_X64 "-m64")
+    add_definitions(-DSYSTEM_NAME_CYGWIN)
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
     list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers
+    add_definitions(-DSYSTEM_NAME_DARWIN)
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
 
 #this is probably the wrong way to do this: setting compile-time defines
@@ -115,7 +124,7 @@ endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 #add_subdirectory (Demo)
 
 # Make sure the compiler can find include files from our Hello library.
-include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/include/spinlock /usr/include/python2.6)
+include_directories (${TM-PROJECT_SOURCE_DIR}/include ${TM-PROJECT_SOURCE_DIR}/include/spinlock /usr/include/python2.6 /usr/src/linux/arch/x86/include /usr/src/linux/include)
 
 add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedlisti.cpp bankds.cpp redblacktreei.cpp archive.cpp iterator.cpp scheduler.cpp lfqueue.cpp)
 #add_library(pca STATIC pca.c)

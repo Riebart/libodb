@@ -36,7 +36,7 @@ int main (int argc, char ** argv)
 {
     long v, p = 100;
 
-    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal.archive"));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal.archive", false));
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     for (long i = 0 ; i < 100 ; i++)

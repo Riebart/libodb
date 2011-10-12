@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "lock.hpp"
+#include "scheduler.hpp"
 
 #ifndef LEN_V
 #define LEN_V
@@ -79,6 +80,10 @@ public:
     uint64_t size();
     void update_time(time_t);
     time_t get_time();
+    
+    // If there is no scheduler, it creates one with the specified number of threads
+    // If one exists, it attempts to update the number of worker threads.
+    uint32_t start_scheduler(uint32_t num_threads);
 
     Iterator* it_first();
     Iterator* it_last();
@@ -103,7 +108,7 @@ private:
     void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
     void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
-    static uint32_t num_unique;
+    static volatile uint32_t num_unique;
     int ident;
     uint32_t datalen;
     std::vector<Index*> tables;
@@ -115,6 +120,7 @@ private:
     uint32_t sleep_duration;
     Archive* archive;
     void (*freep)(void*);
+    Scheduler* scheduler;
 
     int running;
     RWLOCK_T;

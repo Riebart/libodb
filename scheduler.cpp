@@ -27,10 +27,15 @@ Scheduler::~Scheduler()
 }
 
 
-void add_work(void* (*func)(void*), void* args, void* retval, uint32_t flags)
+void Scheduler::add_work(void* (*func)(void*), void* args, void* retval, uint32_t flags)
 {
 }
 
-void add_work(void* (*func)(void*), void* args, void* retval, void* class_val, uint32_t class_len, uint32_t flags)
+void Scheduler::add_work(void* (*func)(void*), void* args, void* retval, void* class_val, uint32_t class_len, uint32_t flags)
 {
+}
+
+uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
+{
+    return num_threads;
 }

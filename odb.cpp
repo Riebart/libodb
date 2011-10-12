@@ -3,6 +3,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#if (CMAKE_COMPILER_SUITE_SUN)
+#include <atomic.h>
+#endif
+
 #include "odb.hpp"
 
 // Utility headers.
@@ -25,7 +29,7 @@
 
 using namespace std;
 
-uint32_t ODB::num_unique = 0;
+volatile uint32_t ODB::num_unique = 0;
 
 void * mem_checker(void * arg)
 {
@@ -125,7 +129,16 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
     }
 
     init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
-    num_unique++;
+    
+    
+#if (CMAKE_COMPILER_SUITE_SUN)
+    atomic_inc_32(&num_unique);
+#elif (CMAKE_COMPILER_SUITE_GCC)
+    __sync_add_and_fetch(&num_unique, 1);
+#else
+#warning "Can't find a way to atomicly increment a uint32_t."
+    int temp[-1];
+#endif
 }
 
 ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
@@ -186,7 +199,15 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-    num_unique++;
+    
+    #if (CMAKE_COMPILER_SUITE_SUN)
+    atomic_inc_32(&num_unique);
+    #elif (CMAKE_COMPILER_SUITE_GCC)
+    __sync_add_and_fetch(&num_unique, 1);
+    #else
+    #warning "Can't find a way to atomicly increment a uint32_t."
+    int temp[-1];
+    #endif
 }
 
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
@@ -242,7 +263,15 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-    num_unique++;
+    
+    #if (CMAKE_COMPILER_SUITE_SUN)
+    atomic_inc_32(&num_unique);
+    #elif (CMAKE_COMPILER_SUITE_GCC)
+    __sync_add_and_fetch(&num_unique, 1);
+    #else
+    #warning "Can't find a way to atomicly increment a uint32_t."
+    int temp[-1];
+    #endif
 }
 
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
@@ -283,6 +312,7 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
     dataobj = new DataObj(_ident);
     this->data = _data;
     this->archive = _archive;
+    scheduler = NULL;
 
     if (_freep == NULL)
     {
@@ -344,6 +374,10 @@ ODB::~ODB()
         tables.pop_back();
         delete curr;
     }
+    
+    if (scheduler != NULL)
+        delete scheduler;
+    
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
@@ -397,7 +431,7 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
 
 Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
 {
-    READ_LOCK();
+    WRITE_LOCK();
 
     if (compare == NULL)
     {
@@ -450,7 +484,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
         data->populate(new_index);
     }
 
-    READ_UNLOCK();
+    WRITE_UNLOCK();
     return new_index;
 }
 
@@ -559,6 +593,19 @@ inline void ODB::update_time(time_t n_time)
 inline time_t ODB::get_time()
 {
     return data->cur_time;
+}
+
+uint32_t ODB::start_scheduler(uint32_t num_threads)
+{
+    if (scheduler == NULL)
+    {
+        scheduler = new Scheduler(num_threads);
+        return num_threads;
+    }
+    else
+    {
+        return scheduler->update_num_threads(num_threads);
+    }
 }
 
 Iterator * ODB::it_first()
