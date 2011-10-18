@@ -5,11 +5,14 @@
 #include <stdint.h>
 
 #include "lock.hpp"
-#include "comparator.hpp"
 
 // Forward declarations.
 class ODB;
 class DataStore;
+class Scheduler;
+class Comparator;
+class Condition;
+class Merger;
 class Iterator;
 class Index;
 
@@ -77,8 +80,8 @@ public:
 
     bool add_index(IndexGroup* ig);
     IndexGroup* at(uint32_t i);
-    virtual std::vector<Index*> flatten();
-    virtual bool add_data(DataObj* data);
+    std::vector<Index*>* flatten();
+    virtual void add_data(DataObj* data);
     virtual ODB* query(bool (*condition)(void*));
     virtual ODB* query(Condition* condition);
     virtual ODB* query_eq(void* rawdata);
@@ -93,16 +96,17 @@ public:
 
 protected:
     IndexGroup();
-    IndexGroup(int ident, DataStore* parent);
+    IndexGroup(int _ident, DataStore* _parent);
 
     int ident;
     DataStore* parent;
 
-    virtual bool add_data_v(void* data);
+    virtual void add_data_v(void* data);
     virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
+    virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
 
     RWLOCK_T;
 
@@ -131,9 +135,12 @@ class Index : public IndexGroup
     ///LinkedListIDS::populate to bypass integrity checking.
     friend class LinkedListIDS;
 
+    /// Needed in order to wrap the actual work function which is a fat pointer
+    /// and won't fit into a normal function pointer.
+    friend void* add_data_v_wrapper(void* args);
+
 public:
-    virtual std::vector<Index*> flatten();
-    virtual bool add_data(DataObj* data);
+    virtual void add_data(DataObj* data);
     virtual uint64_t size();
     virtual uint64_t luid();
     virtual bool remove(DataObj* data);
@@ -149,16 +156,20 @@ public:
 
 protected:
     Index();
-    virtual bool add_data_v(void* rawdata);
+    void add_data_v(void* rawdata);
+//     void* add_data_v_wrapper(void* args);
+    virtual bool add_data_v2(void* rawdata);
     virtual void purge();
     virtual void query(Condition* condition, DataStore* ds);
     virtual void query_eq(void* rawdata, DataStore* ds);
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
+    virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
+    Scheduler* scheduler;
     Comparator* compare;
     Merger* merge;
     uint64_t count;

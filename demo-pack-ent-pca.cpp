@@ -732,7 +732,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%f\n", max_entropies.seq_entropy);
     fprintf(stderr, "%f\n", max_entropies.ack_entropy);
 
-    do_pca_analysis(entropies->get_indexes()->flatten()[0]);
+    do_pca_analysis(entropies->get_indexes()->flatten()->at(0));
 
     delete odb;
 //     delete packets;

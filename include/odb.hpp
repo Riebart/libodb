@@ -80,7 +80,7 @@ public:
     uint64_t size();
     void update_time(time_t);
     time_t get_time();
-    
+
     // If there is no scheduler, it creates one with the specified number of threads
     // If one exists, it attempts to update the number of worker threads.
     uint32_t start_scheduler(uint32_t num_threads);

@@ -32,7 +32,7 @@ protected:
         void* data;
     };
 
-    virtual bool add_data_v(void* data);
+    virtual bool add_data_v2(void* data);
     virtual void purge();
     void query(Condition* condition, DataStore* ds);
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
@@ -40,7 +40,6 @@ protected:
     virtual bool remove(void* data);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-//    DataStore* nodeds;
     struct node* first;
 };
 

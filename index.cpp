@@ -6,6 +6,7 @@
 
 #include "odb.hpp"
 #include "datastore.hpp"
+#include "comparator.hpp"
 #include "iterator.hpp"
 
 using namespace std;
@@ -65,34 +66,30 @@ IndexGroup* IndexGroup::at(uint32_t i)
     }
 }
 
-vector<Index*> IndexGroup::flatten()
+vector<Index*>* IndexGroup::flatten()
 {
-    vector<Index*> ret;
-    vector<Index*> temp;
-
-    for (uint32_t i = 0 ; i < indices.size() ; i++)
-    {
-        temp = indices[i]->flatten();
-        for (uint32_t j = 0 ; j < temp.size() ; j++)
-        {
-            ret.push_back(temp[j]);
-        }
-    }
-
+    vector<Index*>* ret = new vector<Index*>();
+    flatten(ret);
     return ret;
 }
 
-inline bool IndexGroup::add_data(DataObj* data)
+vector<Index*>* IndexGroup::flatten(vector<Index*>* list)
+{
+    for (uint32_t i = 0 ; i < indices.size() ; i++)
+    {
+        indices[i]->flatten(list);
+    }
+
+    return list;
+}
+
+inline void IndexGroup::add_data(DataObj* data)
 {
     // If it passes integrity checks, add it to the group.
     if (data->ident == ident)
     {
         // Since any indices or index groups in here have passed integrity checks already, we can fall back to add_data_v.
-        return add_data_v(data->data);
-    }
-    else
-    {
-        return false;
+        add_data_v(data->data);
     }
 }
 
@@ -153,32 +150,25 @@ inline int IndexGroup::get_ident()
     return ident;
 }
 
-inline bool IndexGroup::add_data_v(void* data)
+inline void IndexGroup::add_data_v(void* data)
 {
-    int32_t n = (int32_t)indices.size();
-    bool something_added = false;
+    uint32_t n = indices.size();
 
-    // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
-    if (n > 0)
+    if (n == 0)
     {
-        if (n == 1)
-        {
-            something_added = indices[0]->add_data_v(data);
-        }
-        else
-//#pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
-            {
-                something_added |= indices[i]->add_data_v(data);
-            }
+        return;
     }
 
-    return something_added;
+    for (uint32_t i = 0 ; i < n ; i++)
+    {
+        indices[i]->add_data_v(data);
+    }
 }
 
+#warning "I don't think any of the read-only functions here are done right."
 inline void IndexGroup::query(Condition* condition, DataStore* ds)
 {
-    int32_t n = (int32_t)indices.size();
+    uint32_t n = indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -189,7 +179,7 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
         }
         else
 //#pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query(condition, ds);
             }
@@ -198,7 +188,7 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
 
 inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 {
-    int32_t n = (int32_t)indices.size();
+    uint32_t n = indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -209,7 +199,7 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
         }
         else
 //#pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_eq(rawdata, ds);
             }
@@ -218,7 +208,7 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 
 inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 {
-    int32_t n = (int32_t)indices.size();
+    uint32_t n = indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -229,7 +219,7 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
         }
         else
 //#pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_lt(rawdata, ds);
             }
@@ -238,7 +228,7 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 
 inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
 {
-    int32_t n = (int32_t)indices.size();
+    uint32_t n = indices.size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
@@ -249,7 +239,7 @@ inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
         }
         else
 //#pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_gt(rawdata, ds);
             }
@@ -266,23 +256,19 @@ uint64_t IndexGroup::size()
 Index::Index()
 {
     // Implemented because something, somewhere, needs it when linking. Not sure where.
-    // Also now for getting the LUID.
+    // Also now for setting the LUID.
     char* end;
     char buf[20];
     sprintf(buf, "%p", this);
     luid_val = strtoull(buf, &end, 16);
 }
 
-inline bool Index::add_data(DataObj* data)
+inline void Index::add_data(DataObj* data)
 {
     if (data->ident == ident)
     {
         // If it passes integrity check, drop to add_data_v and succeed.
-        return add_data_v(data->data);
-    }
-    else
-    {
-        return false;
+        add_data_v(data->data);
     }
 }
 
@@ -291,19 +277,39 @@ uint64_t Index::size()
     return count;
 }
 
-uint64_t Index::luid()
+inline uint64_t Index::luid()
 {
     return luid_val;
 }
 
-vector<Index*> Index::flatten()
+vector<Index*>* Index::flatten(vector<Index*>* list)
 {
-    vector<Index*> ret;
-    ret.push_back(this);
-    return ret;
+    list->push_back(this);
+    return list;
 }
 
-inline bool Index::add_data_v(void*)
+void* add_data_v_wrapper(void* args)
+{
+    void** args_a = (void**)args;
+    Index* obj = (Index*)(args_a[0]);
+    void* rawdata = args_a[1];
+    return (void*)(obj->add_data_v2(rawdata));
+}
+
+inline void Index::add_data_v(void* rawdata)
+{
+    if (scheduler == NULL)
+    {
+        add_data_v2(rawdata);
+    }
+    else
+    {
+        void* args[2] = { this, rawdata };
+        scheduler->add_work(&(add_data_v_wrapper), args, NULL, Scheduler::NONE);
+    }
+}
+
+bool Index::add_data_v2(void* rawdata)
 {
     return false;
 }

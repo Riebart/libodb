@@ -26,7 +26,7 @@ LinkedListI::~LinkedListI()
     RWLOCK_DESTROY();
 }
 
-inline bool LinkedListI::add_data_v(void* rawdata)
+inline bool LinkedListI::add_data_v2(void* rawdata)
 {
     WRITE_LOCK();
 

@@ -186,7 +186,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
     return n;
 }
 
-bool RedBlackTreeI::add_data_v(void* rawdata)
+bool RedBlackTreeI::add_data_v2(void* rawdata)
 {
     WRITE_LOCK();
     bool something_added = false;

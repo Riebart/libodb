@@ -76,7 +76,7 @@ protected:
     static struct RedBlackTreeI::tree_node* single_rotation(struct tree_node* n, int dir);
     static struct RedBlackTreeI::tree_node* double_rotation(struct tree_node* n, int dir);
     static struct RedBlackTreeI::tree_node* make_node(void* rawdata);
-    virtual bool add_data_v(void* rawdata);
+    virtual bool add_data_v2(void* rawdata);
     virtual void purge();
     static struct RedBlackTreeI::tree_node* add_data_n(struct tree_node* root,
             struct tree_node* false_root,
@@ -100,7 +100,7 @@ protected:
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
-    
+
     int rbt_verify();
 
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);

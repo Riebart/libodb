@@ -235,7 +235,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
         if ((pheader->ts_sec - period_start) > PERIOD)
         {
             // Print stats
-            printf("UNIQUE %lu/%lu\n", (invalid->flatten())[0]->size(), (valid->flatten())[0]->size());
+            printf("UNIQUE %lu/%lu\n", (invalid->flatten())->at(0)->size(), (valid->flatten())->at(0)->size());
 
 //             uint64_t valid_total = 0;
 //             uint64_t invalid_total = 0;
@@ -265,7 +265,7 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
 
             Iterator* it;
 
-            it = (invalid->flatten())[0]->it_first();
+            it = (invalid->flatten())->at(0)->it_first();
             if (it->data() != NULL)
                 do
                 {
@@ -274,13 +274,13 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
                     invalid_entropy += cur_count * log((double)cur_count);
                 }
                 while (it->next());
-            (invalid->flatten())[0]->it_release(it);
+            (invalid->flatten())->at(0)->it_release(it);
 
             invalid_entropy -= invalid_total * log((double)invalid_total);
             invalid_entropy /= (invalid_total * M_LN2);
             invalid_entropy *= -1;
 
-            it = (valid->flatten())[0]->it_first();
+            it = (valid->flatten())->at(0)->it_first();
             if (it->data() != NULL)
                 do
                 {
@@ -289,14 +289,14 @@ uint32_t read_data(ODB* odb, IndexGroup* general, IndexGroup* valid, IndexGroup*
                     valid_entropy += cur_count * log((double)cur_count);
                 }
                 while (it->next());
-            (valid->flatten())[0]->it_release(it);
+            (valid->flatten())->at(0)->it_release(it);
 
             valid_entropy -= valid_total * log((double)valid_total);
             valid_entropy /= (valid_total * M_LN2);
             valid_entropy *= -1;
 
             printf("TOTAL %lu/%lu \n", invalid_total, valid_total);
-            printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())[0]->size()), (1.0*valid_total)/((valid->flatten())[0]->size()));
+            printf("RATIO %f/%f\n", (1.0*invalid_total)/((invalid->flatten())->at(0)->size()), (1.0*valid_total)/((valid->flatten())->at(0)->size()));
             printf("ENTROPY %.15f/%.15f\n", invalid_entropy, valid_entropy);
 
             // Include the timestamp that marks the END of this interval

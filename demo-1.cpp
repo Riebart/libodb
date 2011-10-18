@@ -460,8 +460,8 @@ void knn_search(ODB * odb, struct knn * a, int k)
 
 double lof_calc(ODB * odb, IndexGroup * packets)
 {
-    std::vector<Index*> indices = packets->flatten();
-    int num_indices = indices.size();
+    std::vector<Index*>* indices = packets->flatten();
+    int num_indices = indices->size();
     std::deque<void*> * candidates = new std::deque<void*>();
     double max_lof = 0;
     struct knn* max_knn = NULL;

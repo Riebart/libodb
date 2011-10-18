@@ -378,7 +378,7 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
     // We need to traverse last to first so we don't unlink any 'parents'.
     struct datanode* curr;
     void* temp;
-    for (int32_t i = marked[1]->size()-1 ; i > 0 ; i--)
+    for (uint32_t i = marked[1]->size()-1 ; i > 0 ; i--)
     {
         curr = reinterpret_cast<struct datanode*>(marked[1]->at(i));
         temp = curr->next;

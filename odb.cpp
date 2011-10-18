@@ -129,8 +129,8 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
     }
 
     init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
-    
-    
+
+
 #if (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
 #elif (CMAKE_COMPILER_SUITE_GCC)
@@ -199,15 +199,15 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-    
-    #if (CMAKE_COMPILER_SUITE_SUN)
+
+#if (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
-    #elif (CMAKE_COMPILER_SUITE_GCC)
+#elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_add_and_fetch(&num_unique, 1);
-    #else
-    #warning "Can't find a way to atomicly increment a uint32_t."
+#else
+#warning "Can't find a way to atomicly increment a uint32_t."
     int temp[-1];
-    #endif
+#endif
 }
 
 ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
@@ -263,15 +263,15 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-    
-    #if (CMAKE_COMPILER_SUITE_SUN)
+
+#if (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
-    #elif (CMAKE_COMPILER_SUITE_GCC)
+#elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_add_and_fetch(&num_unique, 1);
-    #else
-    #warning "Can't find a way to atomicly increment a uint32_t."
+#else
+#warning "Can't find a way to atomicly increment a uint32_t."
     int temp[-1];
-    #endif
+#endif
 }
 
 ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
@@ -374,10 +374,12 @@ ODB::~ODB()
         tables.pop_back();
         delete curr;
     }
-    
+
     if (scheduler != NULL)
+    {
         delete scheduler;
-    
+    }
+
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
@@ -386,6 +388,7 @@ ODB::~ODB()
 // The commented out code in the next two functions would handle the process of
 // removing an item from a datastore when the insertion into the index table failed.
 // What does it mean to fail an insertion into an index group?
+
 void ODB::add_data(void* rawdata)
 {
     all->add_data_v(data->add_data(rawdata));
@@ -472,6 +475,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     }
 
     new_index->parent = data;
+    new_index->scheduler = scheduler;
     tables.push_back(new_index);
 
     if (!do_not_add_to_all)
@@ -491,7 +495,11 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
 IndexGroup* ODB::create_group()
 {
     IndexGroup* g = new IndexGroup(ident, data);
+
+    WRITE_LOCK();
     groups.push_back(g);
+    WRITE_UNLOCK();
+
     return g;
 }
 
@@ -505,7 +513,7 @@ void ODB::remove_sweep()
     WRITE_LOCK();
     vector<void*>** marked = data->remove_sweep(archive);
 
-    int32_t n = (int32_t)tables.size();
+    uint32_t n = tables.size();
 
     if (n > 0)
     {
@@ -515,7 +523,7 @@ void ODB::remove_sweep()
         }
         else
 // #pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 tables[i]->remove_sweep(marked[0]);
             }
@@ -532,7 +540,7 @@ void ODB::remove_sweep()
 
 void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
 {
-    int32_t n = (int32_t)tables.size();
+    uint32_t n = tables.size();
 
     if (n > 0)
     {
@@ -542,7 +550,7 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
         }
         else
 // #pragma omp parallel for
-            for (int32_t i = 0 ; i < n ; i++)
+            for (uint32_t i = 0 ; i < n ; i++)
             {
                 tables[i]->update(old_addr, new_addr, datalen);
             }
@@ -550,7 +558,7 @@ void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
 
     n = data->clones.size();
 
-    for (int32_t i = 0 ; i < n ; i++)
+    for (uint32_t i = 0 ; i < n ; i++)
     {
         data->clones[i]->update_tables(old_addr, new_addr);
     }
@@ -600,6 +608,16 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
     if (scheduler == NULL)
     {
         scheduler = new Scheduler(num_threads);
+
+        WRITE_LOCK();
+
+        for (uint32_t i = 0 ; i < tables.size() ; i++)
+        {
+            tables[i]->scheduler = scheduler;
+        }
+
+        WRITE_UNLOCK();
+
         return num_threads;
     }
     else
