@@ -18,7 +18,7 @@
 #include "iterator.hpp"
 
 // // NOTE: NOT ALLOWED! (Needed for Verify)
-// #include "redblacktreei.hpp"
+#include "redblacktreei.hpp"
 
 // NOTE: NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
@@ -255,14 +255,18 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         odb->remove_sweep();
     }
 
-//     if ((index_type >> 1) == 0)
-//     {
-//         if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
-//         {
-//             printf("!");
-//             return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
-//         }
-//     }
+    if ((index_type >> 1) == 0)
+    {
+        if ((((RedBlackTreeI*)ind[0])->rbt_verify()) == 0)
+        {
+            printf("!");
+            return (end.time - start.time) + 0.001 * (end.millitm - start.millitm);
+        }
+        else
+        {
+            printf("Verification passed\n");
+        }
+    }
 
     printf(":");
     if (test_type == 4)

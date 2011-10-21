@@ -9,6 +9,8 @@
 #include "lfqueue.hpp"
 #include "redblacktreei.hpp"
 
+class Comparator;
+
 /* BEHAVIOUR DESCRIPTION
  * - Addition of new workloads is thread-safe, but blocking. Threads will block
  *      if multiple threads attempt to add workloads concurrently. This is due
@@ -36,6 +38,10 @@
 
 class Scheduler
 {
+    friend void* thread_start(void* args_v);
+    
+    friend int32_t compare_workqueue(void* aV, void* bV);
+
 public:
     /* FLAG DESCRIPTIONS
      * NONE
@@ -79,7 +85,7 @@ public:
 
     // Add a workload that is a member of some interference class identified uniquely by the work_class
     // The work-class is a 64-bit unsigned integer which is versatile without the overhead.
-    void add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_val, uint32_t flags);
+    void add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags);
 
     // Attempt to change the number of worker threads.
     // Returns the number of threads in the pool, which can be used to check and
@@ -91,15 +97,39 @@ private:
     {
         void* (*func)(void*);
         void* args;
+        void** retval;
         uint64_t id;
     };
 
+    struct thread_args
+    {
+        Scheduler* scheduler;
+        uint64_t counter;
+        volatile bool run;
+    };
+    
+    struct tree_node
+    {
+        void* link[2];
+        LFQueue<struct workload*>* queue;
+    };
+
+    LFQueue<struct workload*>* find_queue(uint64_t class_id);
+    struct workload* get_work();
+    
     // Counter that will determine the IDs of new workloads added.
-    uint64_t num_workloads;
-    int num_threads;
+    volatile uint64_t work_counter;
+    volatile uint64_t work_avail;
+    pthread_cond_t work_cond;
+    
+    uint32_t num_threads;
     pthread_t* threads;
+    struct thread_args** t_args;
     struct RedBlackTreeI::e_tree_root* root;
-    RWLOCK_T;
+
+    LFQueue<struct workload*> indep;
+
+    PTHREAD_SIMPLE_RWLOCK_T;
 };
 
 #endif

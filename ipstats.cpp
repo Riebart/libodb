@@ -195,7 +195,7 @@ void* process_interval(void* args)
 //
 //     finalize_interval(&istat);
 //
-//     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+//     RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
 //
 //     sort(stats.begin(), stats.end(), vec_sort_entropy);
 //
@@ -291,7 +291,7 @@ void* process_interval(void* args)
 //     }
 //     while (it->next() != NULL);
 //
-//     RedBlackTreeI::e_it_release(it, args_t->valid_tree_root);
+//     RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
 //
 //     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
 //     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);

@@ -85,7 +85,8 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc"
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
 
 #this is probably the wrong way to do this: setting compile-time defines
-add_definitions(-DPTHREAD_LOCK)
+add_definitions(-DENABLE_PTHREAD_LOCKS)
+add_definitions(-DPTHREAD_RW_LOCKS)
 
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")

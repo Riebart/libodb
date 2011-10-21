@@ -34,7 +34,7 @@ public:
         Merger* merge;
         bool drop_duplicates;
         uint64_t count;
-        RWLOCK_T;
+        PTHREAD_SIMPLE_RWLOCK_T;
     };
 
     ~RedBlackTreeI();
@@ -56,8 +56,14 @@ public:
     virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
     static Iterator* e_it_lookup(struct e_tree_root* root, void* rawdata, int8_t dir = 0);
 
-    static void e_it_release(Iterator* it, struct e_tree_root* root);
-
+    static void e_it_release(struct e_tree_root* root, Iterator* it);
+    
+    static void* e_pop_first(struct e_tree_root* root);
+    static void* e_pop_last(struct e_tree_root* root);
+    
+    int rbt_verify();
+    static int e_rbt_verify(struct e_tree_root* root);
+    
 protected:
     RedBlackTreeI(int ident,
                   Comparator* compare,
@@ -95,13 +101,11 @@ protected:
 
     static void free_n(struct tree_node* n, bool drop_duiplicates);
     static void e_free_n(struct tree_node* n, bool drop_duiplicates, void (*freep)(void*));
-    int rbt_verify_n(struct tree_node* root, Comparator* compare);
+    static int rbt_verify_n(struct tree_node* _root, Comparator* _compare, bool embedded);
     void query(Condition* condition, DataStore* ds);
     void query_eq(void* rawdata, DataStore* ds);
     void query_lt(void* rawdata, DataStore* ds);
     void query_gt(void* rawdata, DataStore* ds);
-
-    int rbt_verify();
 
     virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
 
@@ -131,6 +135,8 @@ protected:
 
     static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
     static Iterator* e_it_lookup(struct tree_node* root, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
+    
+    static struct tree_node* e_pop_first_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, bool drop_duplicates, void** del_node);
 };
 
 class RBTIterator : public Iterator
