@@ -2,25 +2,39 @@
 #include "comparator.hpp"
 #include "common.hpp"
 
-#define SPIN_WAIT 400
+#define SPIN_WAIT 2500
 
 #warning "Doesn't take flags into account yet."
-volatile uint32_t ctr = 0;
 
 void* thread_start(void* args_v)
 {
-    struct Scheduler::workload* work = NULL;
+    struct Scheduler::workload* work;
     struct Scheduler::thread_args* args = (struct Scheduler::thread_args*)args_v;
-
-    while (args->run)
+    
+    while (true)
     {   
-        work = args->scheduler->get_work();
+        PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
+
+        while ((args->scheduler->work_avail == 0) && (args->run))
+        {
+            pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
+        }
+
+        if (!args->run)
+        {
+            PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+            break;
+        }
         
-//         volatile uint64_t s = (uint64_t)(&args);
-//         for (int i = 0 ; i < SPIN_WAIT ; i++)
-//         {
-//             s += s * i;
-//         }
+        work = (args->scheduler->work_avail > 0 ? args->scheduler->get_work() : NULL);
+        
+        PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+
+        volatile uint64_t s = (uint64_t)(&args);
+        for (int i = 0 ; i < SPIN_WAIT ; i++)
+        {
+            s += s * i;
+        }
         
         if (work != NULL)
         {
@@ -35,11 +49,6 @@ void* thread_start(void* args_v)
         }
         
         args->counter++;
-        
-        while ((args->scheduler->work_avail == 0) && (args->run))
-        {
-            break;
-        }
     }
 
     return NULL;
@@ -122,10 +131,12 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     indep.push_back(work);
     work_avail++;
     
-    PTHREAD_SIMPLE_WRITE_UNLOCK();
+    free(work);
     
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
+    
+    PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)
@@ -158,10 +169,10 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
     queue->push_back(work);
     work_avail++;
     
-    PTHREAD_SIMPLE_WRITE_UNLOCK();
-    
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
+    
+    PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
 // This is not an asynchronous call. It will block until the requested operation
@@ -210,18 +221,13 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         // to waiting, but the ones we're killing will die after this call.
         pthread_cond_broadcast(&work_cond);
         
-        uint64_t sum = 0;
-        
         // Now we can join and kill in sequence. This process will take slightly
         // longer than the remainder of the latest-ending running workload.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
         {
             pthread_join(threads[i], NULL);
-            sum += t_args[i]->counter;
             free(t_args[i]);
         }
-        
-        printf("%lu total done\n", sum);
     }
 
     num_threads = new_num_threads;
@@ -238,27 +244,23 @@ struct Scheduler::workload* Scheduler::get_work()
 {
     struct workload* first_work = NULL;
     
-    if (work_avail > 0)
-    {
-        PTHREAD_SIMPLE_WRITE_LOCK();
-
-        void* first_queue = RedBlackTreeI::e_pop_first(root);
-        LFQueue<struct workload*>* queue = ((struct tree_node*)first_queue)->queue;
-        first_work = queue->pop();
-        RedBlackTreeI::e_add(root, queue);
-        work_avail--;
-
-        PTHREAD_SIMPLE_WRITE_UNLOCK();
-    }
-    else
-    {
-        PTHREAD_SIMPLE_WRITE_LOCK();
-        
-        void* first_queue = RedBlackTreeI::e_pop_first(root);
-        first_work = (struct workload*)first_queue;
-        
-        PTHREAD_SIMPLE_WRITE_UNLOCK();
-    }
+    void* first_queue = RedBlackTreeI::e_pop_first(root);
+    first_work = (struct workload*)first_queue;
+//     LFQueue<struct workload*>* queue = ((struct tree_node*)first_queue)->queue;
+//     first_work = queue->pop();
+//     RedBlackTreeI::e_add(root, queue);
+    work_avail--;
     
     return first_work;
+}
+
+uint64_t Scheduler::get_num_complete()
+{
+    uint64_t sum = 0;
+    for (uint32_t i = 0 ; i < num_threads ; i++)
+    {
+        sum += t_args[i]->counter;
+    }
+    
+    return sum;
 }

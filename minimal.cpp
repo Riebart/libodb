@@ -8,6 +8,7 @@
 #include "redblacktreei.hpp"
 #include "scheduler.hpp"
 
+#include <sys/timeb.h>
 #include <unistd.h>
 
 #define NUM_ITEMS 10000
@@ -106,8 +107,26 @@ int main (int argc, char ** argv)
 //         i++;
 //     }
     
-    Scheduler sched(2);
-    sleep(5);
+    Scheduler* sched = new Scheduler(1);
+    
+    struct timeb start, end;
+    
+    ftime(&start);
+    
+#define N 50000000
+    
+    for (int i = 0 ; i < N ; i++)
+    {
+        sched->add_work(NULL, NULL, NULL, 0);
+    }
+    
+    uint64_t num_done = sched->get_num_complete();
+    
+    ftime(&end);
+    
+    delete sched;
+    
+    printf("%g seconds\n%d inserted\n%lu processed\n@ %g \n", ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm), N, num_done, num_done / (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm)));
 
     return EXIT_SUCCESS;
 }

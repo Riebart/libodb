@@ -91,6 +91,8 @@ public:
     // Returns the number of threads in the pool, which can be used to check and
     // see if it was successful.
     uint32_t update_num_threads(uint32_t new_num_threads);
+    
+    uint64_t get_num_complete();
 
 private:
     struct workload
@@ -104,7 +106,7 @@ private:
     struct thread_args
     {
         Scheduler* scheduler;
-        uint64_t counter;
+        volatile uint64_t counter;
         volatile bool run;
     };
     
