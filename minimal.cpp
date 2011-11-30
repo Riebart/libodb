@@ -107,20 +107,31 @@ int main (int argc, char ** argv)
 //         i++;
 //     }
     
-    Scheduler* sched = new Scheduler(1);
+#define USE_SCHEDULER 1
+    
+    Scheduler* sched = new Scheduler(10);
     
     struct timeb start, end;
     
     ftime(&start);
     
-#define N 50000000
+#define N 5000000
+#define SPIN_WAIT 2500
     
     for (int i = 0 ; i < N ; i++)
     {
+#if USE_SCHEDULER == 1
         sched->add_work(NULL, NULL, NULL, 0);
+#else
+        volatile uint64_t sss = (uint64_t)(&i);
+        for (int iii = 0 ; iii < SPIN_WAIT ; iii++)
+        {
+            sss += sss * iii;
+        }
+#endif
     }
     
-    uint64_t num_done = sched->get_num_complete();
+    uint64_t num_done = (USE_SCHEDULER ? sched->get_num_complete() : N);
     
     ftime(&end);
     

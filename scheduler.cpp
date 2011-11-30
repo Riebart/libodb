@@ -46,6 +46,21 @@ void* thread_start(void* args_v)
             {
                 *(work->retval) = (work->func)(work->args);
             }
+            
+            // We need to add the queue that this came from, as long as it wasn't the independent
+            // queue, back into the queue management structures here. The indep queue is
+            // different because it is handled in the get_work function. The work is taken
+            // from it, and then it is relocated in the RBT based on the next piece of work
+            // in it. Every other queue must have the work taken from it, then the queue be
+            // removed from the tree, then the work processed, and then the queue added back
+            // to the tree.
+            //
+            // We add the queue back to the tree here. Might have to add it into the arguments
+            // that come in along with the workload itself.
+            if (work->queue != NULL)
+            {
+                RedBlackTreeI::e_add(args->scheduler->root, work->queue);
+            }
         }
         
         args->counter++;
@@ -54,6 +69,10 @@ void* thread_start(void* args_v)
     return NULL;
 }
 
+/// This is the comparison function that compares two work queues, and will be used
+/// to sort the queues in the RBT. It should consider the ID of the workload at the
+/// head of each queue (by using peek()), as well as the flags of the head workload
+/// and the queue itself.
 int32_t compare_workqueue(void* aV, void* bV)
 {
 //     LFQueue<struct Scheduler::workload*>* a = reinterpret_cast<LFQueue<struct Scheduler::workload*>*>(aV);
@@ -101,7 +120,6 @@ Scheduler::~Scheduler()
     RedBlackTreeI::e_destroy_tree(root, NULL);
     PTHREAD_SIMPLE_RWLOCK_DESTROY();
 }
-
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
 {
@@ -235,6 +253,22 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
     return num_threads;
 }
 
+/// QUEUE MANAGEMENT STRUCTURES
+/// There should be a Red-black tree that keeps track of all of the workqueues
+/// and sorts based on the oldest workload, and any applicable flags in applied
+/// to the queue and to the workloads in it. See the header for notes on the flags.
+/// This RBT is used when get_work is called in order to get the first piece of 
+/// that is eligible to be completed. Empty queues should always come last.
+/// 
+/// There may also be a different parallel structure that is used for find_work.
+/// This structure would be optimized for read-only operations, to quickly identify
+/// the right queue for a new workload to be added to.
+
+/// This function should be able to, given a class ID, locate an appropriate queue
+/// to add the workload into. This function should always succeed. If an existing
+/// queue cannot be found, one should be created, added to the queue management 
+/// structures, and then returned. Care should be taken that when adding work to
+/// an empty queue, that queue must be rearranged in the RBT.
 LFQueue<struct Scheduler::workload*>* Scheduler::find_queue(uint64_t class_id)
 {
     return NULL;
@@ -243,13 +277,41 @@ LFQueue<struct Scheduler::workload*>* Scheduler::find_queue(uint64_t class_id)
 struct Scheduler::workload* Scheduler::get_work()
 {
     struct workload* first_work = NULL;
-    
     void* first_queue = RedBlackTreeI::e_pop_first(root);
-    first_work = (struct workload*)first_queue;
-//     LFQueue<struct workload*>* queue = ((struct tree_node*)first_queue)->queue;
-//     first_work = queue->pop();
-//     RedBlackTreeI::e_add(root, queue);
-    work_avail--;
+    LFQueue<struct workload*>* queue = ((struct tree_node*)first_queue)->queue;
+    
+    // This is more of a sanity check than anything.
+    // This shouldn't ever fail.
+    if (queue->size() > 0)
+    {
+        first_work = queue->pop();
+        
+        // At this point, if the queue isn't the independent queue, or the workload isn't
+        // marked as READ_ONLY, the queue should be removed from the RBT, so that no
+        // conflicting workloads are processed concurrently.
+        // 
+        // If the queue is the indep queue, or the workload is marked as READ_ONLY, then
+        // the queue should be relocated in the tree to a position appropriate for the
+        // new workload at the head of the queue. This will likely involve a 'remove'
+        // and an 'add' operation, so two RBT operations consecutively. Not sure if there
+        // is a faster way of doing this.
+        if ((queue == &indep) || (first_work->flags & Scheduler::READ_ONLY))
+        {
+            RedBlackTreeI::e_add(root, queue);
+            first_work->queue = NULL;
+        }
+        else
+        {
+            first_work->queue = queue;
+        }
+        
+        work_avail--;
+    }
+    else
+    {
+        first_work = (struct workload*)first_queue;
+        work_avail--;
+    }
     
     return first_work;
 }

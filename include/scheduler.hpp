@@ -43,6 +43,11 @@ class Scheduler
     friend int32_t compare_workqueue(void* aV, void* bV);
 
 public:
+/// These flags aren't currently propagated to the containing queues when appropriate,
+/// so that needs to be implemented before the functionality of these flags can be
+/// used.
+/// 
+/// The exception is READ_ONLY which is implemented, but not tested, in get_work().
     /* FLAG DESCRIPTIONS
      * NONE
      * READ_ONLY
@@ -75,7 +80,7 @@ public:
      *   threads. In the case of multiple urgent workloads, the normal scheduling
      *   order of oldest-first applies.
      */
-    typedef enum { NONE = 0x0, BARRIER = 0x1, BACKGROUND = 0x2, HIGH_PRIORITY = 0x4, URGENT = 0x8 } WorkFlags;
+    typedef enum { NONE = 0x00, READ_ONLY = 0x01, BARRIER = 0x02, BACKGROUND = 0x04, HIGH_PRIORITY = 0x08, URGENT = 0x10 } WorkFlags;
 
     Scheduler(uint32_t num_threads);
     ~Scheduler();
@@ -101,6 +106,8 @@ private:
         void* args;
         void** retval;
         uint64_t id;
+        LFQueue<struct workload*>* queue;
+        uint16_t flags;
     };
 
     struct thread_args
