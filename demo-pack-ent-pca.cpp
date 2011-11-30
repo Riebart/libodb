@@ -267,10 +267,22 @@ int32_t compare_timestamp(void* a, void* b)
     return ((reinterpret_cast<struct entropy_stats*>(a))->timestamp) - ((reinterpret_cast<struct entropy_stats*>(b))->timestamp);
 }
 
+
+//parse the data from the input into the appropriate structs, and initialize
 void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
 {
 
-    memcpy(rec, packet+14, sizeof(struct tcpip));
+    memcpy(rec, packet+14, sizeof(struct tcphdr) + sizeof(struct ip));
+    
+    //if there are ip opts. These should basically never happen.
+    if (rec->ip_struct.ip_hl > 5)
+    {        
+        int offset = rec->ip_struct.ip_hl * 4 + 14; //The offset into layer 4?
+        
+        memcpy(&(rec->tcp_struct), packet+offset, sizeof(struct tcphdr));
+        
+        fprintf(stderr, "Packet with IP options!\n");        
+    }
 
     //I decided to convert the ip addresses to host endianness to make comparisons
     //simpler. This means that two ip addresses that are 'close' will also be
@@ -373,7 +385,7 @@ double it_calc(Index * index, int32_t offset1, int32_t offset2, int8_t data_size
 //     printf("%.15f,", entropy);
 
 //     printf("%.15f,", curG);
-
+    
 
     return entropy;
 }
@@ -439,20 +451,21 @@ void do_pca_analysis(Index * entropies)
     uint32_t size = entropies->size();
     int i=0;
     struct mat pca;
+    uint32_t * timestamps = (uint32_t*)malloc(size*sizeof(uint32_t));
     pca.rows = size;
     pca.cols = DIMENSIONS;
     pca.data = matrix(pca.rows, pca.cols);
-
-
+    
+        
     Iterator * it = entropies->it_first();
-
+        
     if (it->data() != NULL)
     {
         do
         {
             struct entropy_stats * es = reinterpret_cast<struct entropy_stats *>(it->get_data());
-
-#warning "TODO: normalize these? (by dividing by max_entropies)"
+            
+            //TODO ; normalize these? (by dividing by max_entropies)
             pca.data[i][0] = es->src_ip_entropy/max_entropies.src_ip_entropy;
             pca.data[i][1] = es->dst_ip_entropy/max_entropies.dst_ip_entropy;
             pca.data[i][2] = es->src_port_entropy/max_entropies.src_port_entropy;
@@ -462,30 +475,35 @@ void do_pca_analysis(Index * entropies)
             pca.data[i][6] = es->flags_entropy/max_entropies.flags_entropy;
             pca.data[i][7] = es->win_size_entropy/max_entropies.win_size_entropy;
             pca.data[i][8] = es->payload_len_entropy/max_entropies.payload_len_entropy;
-
+            
+            timestamps[i] = es->timestamp;
+                        
             i++;
-
+            
         }
         while (it->next() != NULL);
     }
-
+    
     entropies->it_release(it);
-
+    
     do_pca(pca);
-
+    
     int j;
     for(i=0; i<pca.rows; i++)
     {
+        printf("%d ", timestamps[i]);
         for (j=0; j<pca.cols; j++)
         {
             printf("%12.5f ", pca.data[i][j]);
         }
         printf("\n");
     }
-
-
+    
+    
     free_matrix(pca.data, pca.rows, pca.cols);
-
+    
+    free(timestamps);
+    
 }
 
 
@@ -578,7 +596,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 //             fflush(stdout);
 //             fprintf(stderr, "\n");
 
-
+            
 
             total = 0;
 
@@ -705,7 +723,7 @@ int main(int argc, char *argv[])
 //         printf("(");
         fflush(stdout);
 
-// This sweeps the ODB, and was used for testing the correctness of the sweeping algorithm.
+        //TODO: ask Mike what this does
 //         if (((i % 10) == 0) || (i == (num_files - 1)))
 //         {
 //             odb->remove_sweep();
