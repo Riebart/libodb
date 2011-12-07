@@ -97,10 +97,12 @@ else(NOT ${COMPILER_SUITE} MATCHES "sun")
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
     set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
     set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
-    set(CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG)
-    set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG)
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE_C ":")
+    set(CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG ":")
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX ":")
+    set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ";")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -xO5 -fast")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -xO5 -fast")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -xO5 -fast -library=stlport4")
 endif(NOT ${COMPILER_SUITE} MATCHES "sun")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")

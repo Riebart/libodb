@@ -1,18 +1,19 @@
 #include "scheduler.hpp"
-#include "comparator.hpp"
+//#include "comparator.hpp"
 #include "common.hpp"
+#include "lfqueue.hpp"
 
 #define SPIN_WAIT 2500
 
 #warning "Doesn't take flags into account yet."
 
-void* thread_start(void* args_v)
+void* scheduler_thread_start(void* args_v)
 {
     struct Scheduler::workload* work;
     struct Scheduler::thread_args* args = (struct Scheduler::thread_args*)args_v;
-    
+
     while (true)
-    {   
+    {
         PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
 
         while ((args->scheduler->work_avail == 0) && (args->run))
@@ -25,9 +26,9 @@ void* thread_start(void* args_v)
             PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
             break;
         }
-        
+
         work = (args->scheduler->work_avail > 0 ? args->scheduler->get_work() : NULL);
-        
+
         PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
 
         volatile uint64_t s = (uint64_t)(&args);
@@ -35,7 +36,7 @@ void* thread_start(void* args_v)
         {
             s += s * i;
         }
-        
+
         if (work != NULL)
         {
             if (work->retval == NULL)
@@ -46,7 +47,7 @@ void* thread_start(void* args_v)
             {
                 *(work->retval) = (work->func)(work->args);
             }
-            
+
             // We need to add the queue that this came from, as long as it wasn't the independent
             // queue, back into the queue management structures here. The indep queue is
             // different because it is handled in the get_work function. The work is taken
@@ -57,12 +58,13 @@ void* thread_start(void* args_v)
             //
             // We add the queue back to the tree here. Might have to add it into the arguments
             // that come in along with the workload itself.
-            if (work->queue != NULL)
+            if ((work->queue != NULL) && (work->queue->size() > 0))
             {
                 RedBlackTreeI::e_add(args->scheduler->root, work->queue);
+                work->queue->in_tree = true;
             }
         }
-        
+
         args->counter++;
     }
 
@@ -75,23 +77,54 @@ void* thread_start(void* args_v)
 /// and the queue itself.
 int32_t compare_workqueue(void* aV, void* bV)
 {
-//     LFQueue<struct Scheduler::workload*>* a = reinterpret_cast<LFQueue<struct Scheduler::workload*>*>(aV);
-//     LFQueue<struct Scheduler::workload*>* b = reinterpret_cast<LFQueue<struct Scheduler::workload*>*>(bV);
-// 
-//     return (int32_t)(a->peek()->id - b->peek()->id);
-    return 0;
+    LFQueue* a = reinterpret_cast<LFQueue*>(aV);
+    LFQueue* b = reinterpret_cast<LFQueue*>(bV);
+
+    int32_t ret;
+
+    // First compare the flags; if they are equal then we can move onto checking the head workload.
+    // Are they equally high-important?
+    ret = (b->flags & Scheduler::HIGH_PRIORITY) - (a->flags & Scheduler::HIGH_PRIORITY);
+
+    if (ret != 0) // If either is high priority, and the other is not...
+    {
+        return ret;
+    }
+    else
+    {
+        ret = (a->flags & Scheduler::BACKGROUND) - (b->flags & Scheduler::BACKGROUND);
+
+        if (ret != 0) // If either is background, and the other is not.
+        {
+            return ret;
+        }
+        else
+        {
+            // Now we're stuck comparing the IDs of the head workloads.
+            if (a->peek()->id > b->peek()->id) // If existing ID is lower than this one.
+            {
+                // Then this one one is a higher priority;
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+    }
 }
 
 Scheduler::Scheduler(uint32_t _num_threads)
 {
-    work_counter = 0;
+    work_counter = 1;
     work_avail = 0;
     this->num_threads = _num_threads;
     pthread_cond_init(&work_cond, NULL);
+    indep = new LFQueue();
 
     SAFE_MALLOC(pthread_t*, threads, num_threads * sizeof(pthread_t));
     SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
-    
+
 #warning "Use a merge function to simplify adding data to a queue."
     root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
     PTHREAD_SIMPLE_RWLOCK_INIT();
@@ -99,23 +132,23 @@ Scheduler::Scheduler(uint32_t _num_threads)
     for (uint32_t i = 0 ; i < num_threads ; i++)
     {
         SAFE_MALLOC(struct thread_args*, t_args[i], sizeof(struct thread_args));
-        
+
         t_args[i]->run = true;
         t_args[i]->scheduler = this;
         t_args[i]->counter = 0;
-        
-        pthread_create(&(threads[i]), NULL, &thread_start, t_args[i]);
+
+        pthread_create(&(threads[i]), NULL, &scheduler_thread_start, t_args[i]);
     }
 }
 
 Scheduler::~Scheduler()
-{   
+{
     // By updating the number of threads to 0, this will guarantee that all threads
     // stop gracefully and memory is freed.
     update_num_threads(0);
     free(t_args);
     free(threads);
-    
+
 #warning "Need to free the data used by the workqueues and their wokloads here."
     RedBlackTreeI::e_destroy_tree(root, NULL);
     PTHREAD_SIMPLE_RWLOCK_DESTROY();
@@ -123,8 +156,13 @@ Scheduler::~Scheduler()
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
 {
+    if ((flags & Scheduler::BACKGROUND) && (flags & Scheduler::HIGH_PRIORITY))
+    {
+        throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
+    }
+
     PTHREAD_SIMPLE_WRITE_LOCK();
-    
+
     uint64_t workload_id = work_counter;
     work_counter++;
 
@@ -145,22 +183,28 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work->args = args;
     work->retval = retval;
     work->id = workload_id;
+    work->flags = flags;
 
-    indep.push_back(work);
+    indep->push_back(work);
     work_avail++;
-    
+
     free(work);
-    
+
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
-    
+
     PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)
 {
+    if ((flags & Scheduler::BACKGROUND) && (flags & Scheduler::HIGH_PRIORITY))
+    {
+        throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
+    }
+
     PTHREAD_SIMPLE_WRITE_LOCK();
-    
+
     uint64_t workload_id = work_counter;
     work_counter++;
 
@@ -181,15 +225,23 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
     work->args = args;
     work->retval = retval;
     work->id = workload_id;
+    work->flags = flags;
 
     // Here we need to identify the interference class and add this to it.
-    LFQueue<struct workload*>* queue = find_queue(class_id);
+    LFQueue* queue = find_queue(class_id);
     queue->push_back(work);
+
+    if (!queue->in_tree)
+    {
+        RedBlackTreeI::e_add(root, queue);
+        queue->in_tree = true;
+    }
+
     work_avail++;
-    
+
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
-    
+
     PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
@@ -215,30 +267,30 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         for (uint32_t i = num_threads ; i <= new_num_threads ; i++)
         {
             SAFE_MALLOC(struct thread_args*, t_args[i], sizeof(struct thread_args));
-            
+
             t_args[i]->run = true;
             t_args[i]->scheduler = this;
             t_args[i]->counter = 0;
-            
-            pthread_create(&(threads[i]), NULL, &thread_start, t_args[i]);
+
+            pthread_create(&(threads[i]), NULL, &scheduler_thread_start, t_args[i]);
         }
     }
     else
     {
         // In order to avoid an indefinite block, the order here is important.
-        
+
         // Try to stop all of the threads, but some may be waiting for work, and
         // others may be processing a workload.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
         {
             t_args[i]->run = false;
         }
-        
+
         // In order to kill the ones that are waiting, we need to wake up all of
         // the threads so they check their run condition. Most will go right back
         // to waiting, but the ones we're killing will die after this call.
         pthread_cond_broadcast(&work_cond);
-        
+
         // Now we can join and kill in sequence. This process will take slightly
         // longer than the remainder of the latest-ending running workload.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
@@ -257,54 +309,67 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
 /// There should be a Red-black tree that keeps track of all of the workqueues
 /// and sorts based on the oldest workload, and any applicable flags in applied
 /// to the queue and to the workloads in it. See the header for notes on the flags.
-/// This RBT is used when get_work is called in order to get the first piece of 
+/// This RBT is used when get_work is called in order to get the first piece of
 /// that is eligible to be completed. Empty queues should always come last.
-/// 
+///
 /// There may also be a different parallel structure that is used for find_work.
 /// This structure would be optimized for read-only operations, to quickly identify
 /// the right queue for a new workload to be added to.
 
 /// This function should be able to, given a class ID, locate an appropriate queue
 /// to add the workload into. This function should always succeed. If an existing
-/// queue cannot be found, one should be created, added to the queue management 
+/// queue cannot be found, one should be created, added to the queue management
 /// structures, and then returned. Care should be taken that when adding work to
-/// an empty queue, that queue must be rearranged in the RBT.
-LFQueue<struct Scheduler::workload*>* Scheduler::find_queue(uint64_t class_id)
+/// an empty queue, that queue must be rearranged in the RBT. However, destroying
+/// a queue when it becomes empty is not wise either since in some cases a queue
+/// may often run dry as the producer produces work slower than consumers consume it.
+LFQueue* Scheduler::find_queue(uint64_t class_id)
 {
-    return NULL;
+    LFQueue* retval = queue_map[class_id];
+
+    if (retval == NULL)
+    {
+        fprintf(stderr, "Adding a queue to the hash map.\n");
+        retval = new LFQueue();
+        queue_map[class_id] = retval;
+    }
+
+    return retval;
 }
 
 struct Scheduler::workload* Scheduler::get_work()
 {
     struct workload* first_work = NULL;
     void* first_queue = RedBlackTreeI::e_pop_first(root);
-    LFQueue<struct workload*>* queue = ((struct tree_node*)first_queue)->queue;
-    
+    LFQueue* queue = ((struct tree_node*)first_queue)->queue;
+    queue->in_tree = false;
+
     // This is more of a sanity check than anything.
     // This shouldn't ever fail.
     if (queue->size() > 0)
     {
-        first_work = queue->pop();
-        
+        first_work = queue->pop_front();
+
         // At this point, if the queue isn't the independent queue, or the workload isn't
         // marked as READ_ONLY, the queue should be removed from the RBT, so that no
         // conflicting workloads are processed concurrently.
-        // 
+        //
         // If the queue is the indep queue, or the workload is marked as READ_ONLY, then
         // the queue should be relocated in the tree to a position appropriate for the
         // new workload at the head of the queue. This will likely involve a 'remove'
         // and an 'add' operation, so two RBT operations consecutively. Not sure if there
         // is a faster way of doing this.
-        if ((queue == &indep) || (first_work->flags & Scheduler::READ_ONLY))
+        if ((queue == indep) || (first_work->flags & Scheduler::READ_ONLY))
         {
             RedBlackTreeI::e_add(root, queue);
+            queue->in_tree = true;
             first_work->queue = NULL;
         }
         else
         {
             first_work->queue = queue;
         }
-        
+
         work_avail--;
     }
     else
@@ -312,7 +377,7 @@ struct Scheduler::workload* Scheduler::get_work()
         first_work = (struct workload*)first_queue;
         work_avail--;
     }
-    
+
     return first_work;
 }
 
@@ -323,6 +388,6 @@ uint64_t Scheduler::get_num_complete()
     {
         sum += t_args[i]->counter;
     }
-    
+
     return sum;
 }

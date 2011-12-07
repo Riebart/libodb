@@ -8,7 +8,7 @@
         fprintf (stderr, str);\
         fprintf (stderr, "\n"); \
     abort(); }
-    
+
 
 #define SIGN(a, b) ( (b) < 0 ? -fabs(a) : fabs(a) )
 
@@ -25,12 +25,12 @@ void do_pca(struct mat pca)
 {
     double ** symmat, ** symmat2, * evals, * interm;
     int i,j,k,k2;
-    
-    
+
+
     symmat = matrix(pca.cols, pca.cols);  /* Allocation of correlation (etc.) matrix */
-    
+
     covcol(pca.data, pca.rows, pca.cols, symmat);
-    
+
     /*********************************************************************
         Eigen-reduction
     **********************************************************************/
@@ -39,7 +39,7 @@ void do_pca(struct mat pca)
     evals = vector(pca.cols);     /* Storage alloc. for vector of eigenvalues */
     interm = vector(pca.cols);    /* Storage alloc. for 'intermediate' vector */
     symmat2 = matrix(pca.cols, pca.cols);  /* Duplicate of correlation (etc.) matrix */
-    
+
 
     //memcpy not possible here due to strange array usage
     for (i = 0; i < pca.cols; i++)
@@ -49,7 +49,7 @@ void do_pca(struct mat pca)
             symmat2[i][j] = symmat[i][j]; /* Needed below for col. projections */
         }
     }
-    
+
     tred2(symmat, pca.cols, evals, interm);  /* Triangular decomposition */
 
 #ifdef TESTING_PCA
@@ -60,7 +60,7 @@ void do_pca(struct mat pca)
     }
 #endif
 
-    
+
     tqli(evals, interm, pca.cols, symmat);   /* Reduction of sym. trid. matrix */
     /* evals now contains the eigenvalues,
        columns of symmat now contain the associated eigenvectors. */
@@ -71,7 +71,7 @@ void do_pca(struct mat pca)
     {
         printf("%18.5f\n", evals[j]);
     }
-    
+
     printf("\nEigenvectors:\n");
     printf("(First three; their definition in terms of original vbes.)\n");
     for (j = 0; j < pca.cols; j++)
@@ -84,7 +84,7 @@ void do_pca(struct mat pca)
     }
     printf("\n");
 #endif
-    
+
     /* Form projections of row-points on first three (k? TF) prin. components. */
     /* Store in 'data', overwriting original data. */
     for (i = 0; i < pca.rows; i++)
@@ -103,12 +103,12 @@ void do_pca(struct mat pca)
             }
         }
     }
-        
+
     free_matrix(symmat, pca.cols, pca.cols);
     free_matrix(symmat2, pca.cols, pca.cols);
     free_vector(evals, pca.cols);
     free_vector(interm, pca.cols);
-    
+
 }
 
 #ifdef TESTING_PCA
@@ -117,7 +117,7 @@ int main (int argc, char ** argv)
 {
     FILE *stream;
     int  i, j;
-//     double **symmat, **symmat2, *evals, *interm;    
+//     double **symmat, **symmat2, *evals, *interm;
     double in_value;
     char option;
     struct mat pca;
@@ -167,13 +167,13 @@ int main (int argc, char ** argv)
             fscanf(stream, "%lf", &in_value);
             pca.data[i][j] = in_value;
         }
-    }   
-    
-    
+    }
+
+
     //do it!
     do_pca(pca);
-    
-    
+
+
     printf("\nResults:\n\n");
     for (i=0; i<pca.rows; i++)
     {
@@ -183,8 +183,8 @@ int main (int argc, char ** argv)
         }
         printf("\n");
     }
-    
-    return 0;    
+
+    return 0;
 }
 
 #endif
@@ -381,11 +381,14 @@ int n;
             for (m = l; m <= n-2; m++)
             {
                 dd = fabs(d[m]) + fabs(d[m+1]);
-                if (fabs(e[m]) + dd == dd) break;
+                if (fabs(e[m]) + dd == dd)
+                {
+                    break;
+                }
             }
             if (m != l)
             {
-                if (iter++ == 30) 
+                if (iter++ == 30)
                 {
                     FAIL("No convergence in TLQI.");
                 }
@@ -444,7 +447,7 @@ int n;
     double *v;
 
     v = (double *) malloc ((unsigned) n*sizeof(double));
-    if (!v) 
+    if (!v)
     {
         FAIL("Allocation failure in vector().");
     }
@@ -464,7 +467,7 @@ int n, m;
 
     /* Allocate pointers to rows. */
     mat = (double **) malloc((unsigned) (n)*sizeof(double*));
-    if (!mat) 
+    if (!mat)
     {
         FAIL("Allocation failure 1 in matrix().");
     }
@@ -474,7 +477,7 @@ int n, m;
     for (i = 0; i < n; i++)
     {
         mat[i] = (double *) malloc((unsigned) (m)*sizeof(double));
-        if (!mat[i]) 
+        if (!mat[i])
         {
             FAIL("Allocation failure 2 in matrix().");
         }
@@ -493,7 +496,7 @@ double *v;
 int n;
 /* Free a double vector allocated by vector(). */
 {
-    
+
     free((char*) (v));
 }
 

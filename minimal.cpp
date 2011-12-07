@@ -33,7 +33,7 @@ inline int compareD(void* aV, void* bV)
 {
     struct data* a = (struct data*)aV;
     struct data* b = (struct data*)bV;
-    
+
     return a->data - b->data;
 }
 
@@ -57,7 +57,7 @@ int main (int argc, char ** argv)
 {
 //     long p = 100;
 //     struct RedBlackTreeI::e_tree_root* root = RedBlackTreeI::e_init_tree(true, compareD);
-//     
+//
 //     for (long i = 0 ; i < NUM_ITEMS ; i++)
 //     {
 //         struct data* data= (struct data*)malloc(sizeof(struct data));
@@ -65,12 +65,12 @@ int main (int argc, char ** argv)
 //         RedBlackTreeI::e_add(root, data);
 //         RedBlackTreeI::e_rbt_verify(root);
 //     }
-//     
+//
 //     printf("%lu items in tree\n", root->count);
-// 
+//
 //     long* vals = (long*)malloc(root->count * sizeof(long));
 //     uint32_t i;
-//     
+//
 //     i = 0;
 //     Iterator* it = RedBlackTreeI::e_it_first(root);
 //     do
@@ -80,7 +80,7 @@ int main (int argc, char ** argv)
 //     }
 //     while (it->next());
 //     RedBlackTreeI::e_it_release(root, it);
-    
+
 //     i = 0;
 //     it = RedBlackTreeI::e_it_first(root);
 //     do
@@ -96,7 +96,7 @@ int main (int argc, char ** argv)
 //     }
 //     while (root->count > 0);
 //     RedBlackTreeI::e_it_release(root, it);
-    
+
 //     i = 0;
 //     while (root->count > 0)
 //     {
@@ -106,18 +106,18 @@ int main (int argc, char ** argv)
 //             printf("%d : %ld %ld\n", i, vals[i], cur->data);
 //         i++;
 //     }
-    
+
 #define USE_SCHEDULER 1
-    
+
     Scheduler* sched = new Scheduler(10);
-    
+
     struct timeb start, end;
-    
+
     ftime(&start);
-    
+
 #define N 5000000
 #define SPIN_WAIT 2500
-    
+
     for (int i = 0 ; i < N ; i++)
     {
 #if USE_SCHEDULER == 1
@@ -130,13 +130,13 @@ int main (int argc, char ** argv)
         }
 #endif
     }
-    
+
     uint64_t num_done = (USE_SCHEDULER ? sched->get_num_complete() : N);
-    
+
     ftime(&end);
-    
+
     delete sched;
-    
+
     printf("%g seconds\n%d inserted\n%lu processed\n@ %g \n", ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm), N, num_done, num_done / (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm)));
 
     return EXIT_SUCCESS;

@@ -250,7 +250,7 @@ struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicat
 void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void (*freep)(void*))
 {
     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
-    
+
     if (freep != NULL)
     {
         e_free_n((struct tree_node*)(root->data), root->drop_duplicates, freep);
@@ -272,7 +272,7 @@ void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void
 bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata)
 {
     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
-    
+
     bool something_added = false;
     root->data = e_add_data_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata);
 
@@ -283,7 +283,7 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
         root->data = UNTAINT(root->data);
         something_added = true;
     }
-    
+
     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
 
     return something_added;
@@ -292,7 +292,7 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
 bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawdata, void** del_node)
 {
     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
-    
+
     root->data = e_remove_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata, del_node);
     //(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
@@ -303,7 +303,7 @@ bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawd
     }
 
     root->count -= ret;
-    
+
     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
     return ret;
 }
@@ -691,7 +691,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare, b
         {
             printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(_root), (IS_TREE(_root) ? 'L' : 'V'), (IS_RED(_root) ? 'R' : 'B'), *(long*)GET_DATA(left), (IS_TREE(left) ? 'L' : 'V'), (IS_RED(left) ? 'R' : 'B'));
         }
-        
+
         if (right)
         {
             printf("\"%ld%c%c\"->\"%ld%c%c\",", *(long*)GET_DATA(_root), (IS_TREE(_root) ? 'L' : 'V'), (IS_RED(_root) ? 'R' : 'B'), *(long*)GET_DATA(right), (IS_TREE(right) ? 'L' : 'V'), (IS_RED(right) ? 'R' : 'B'));
@@ -704,11 +704,11 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare, b
         // Verify BST property.
         if (((!embedded) &&
                 (((left != NULL) && (_compare->compare(GET_DATA(left), GET_DATA(_root)) >= 0)) ||
-                ((right != NULL) && (_compare->compare(GET_DATA(right), GET_DATA(_root)) <= 0))))
-            ||
-           ((embedded) &&
-                (((left != NULL) && (_compare->compare(left, _root) >= 0)) ||
-                ((right != NULL) && (_compare->compare(right, _root) <= 0)))))
+                 ((right != NULL) && (_compare->compare(GET_DATA(right), GET_DATA(_root)) <= 0))))
+                ||
+                ((embedded) &&
+                 (((left != NULL) && (_compare->compare(left, _root) >= 0)) ||
+                  ((right != NULL) && (_compare->compare(right, _root) <= 0)))))
         {
 #ifndef VERBOSE_RBT_VERIFY
             FAIL("BST violation");
@@ -1174,7 +1174,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
 
         return new_root;
     }
-    
+
     *del_node = NULL;
 
     return NULL;
@@ -1401,17 +1401,17 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
 void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
 {
     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
-    
+
     void* del_node;
     root->data = e_pop_first_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->drop_duplicates, &del_node);
-    
+
     if (del_node != NULL)
     {
         root->count--;
     }
-    
+
     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
-    
+
     return del_node;
 }
 
@@ -1423,43 +1423,43 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
         false_root->link[1] = root;
         false_root->link[0] = NULL;
         false_root->data = NULL;
-        
+
         // The parent/grandparent/great-grandparent pointers, a pointer to the found node and an iterator.
         // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
         struct tree_node *p, *gp;
         struct tree_node *i;
         struct tree_node *f;
-        
+
         // Initialize them.
         gp = NULL;
         p = NULL;
         i = false_root;
         f = NULL;
-        
+
         // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
         uint8_t dir = 1, prev_dir = 1;
-        
+
         // For storing the comparison value, means only one call to the compare function.
         int32_t c;
-        
+
         // Find the node we're removing.
         while (STRIP(i->link[dir]) != NULL)
         {
             // Keep track of the direction we just went, for rotation purposes.
             prev_dir = dir;
-            
+
             // Update our context.
             gp = p;
             p = i;
             i = STRIP(i->link[dir]);
-            
+
             c = -1;
             dir = 0;
-            
+
             if (IS_TREE(i))
             {
                 struct tree_node* new_sub_root = e_pop_first_n(reinterpret_cast<struct tree_node*>(i->data), sub_false_root, NULL, true, del_node);
-                
+
                 if (new_sub_root == NULL)
                 {
                     SET_VALUE(i);
@@ -1470,7 +1470,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                     i = new_sub_root;
                 }
             }
-            
+
             // Push down a red node.
             // Can't make the next node red if: 1) It is already red (for real), 2) the current node is red.
             if (!IS_RED(i) && !IS_RED(STRIP(i->link[dir])))
@@ -1488,7 +1488,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                 {
                     // Get the sibling of i
                     struct tree_node* s = STRIP(p->link[!prev_dir]);
-                    
+
                     if (s != NULL)
                     {
                         // Reverse colour flip situation when the parent, i, s (i's sibling), and all of their children are black.
@@ -1504,7 +1504,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                             // Select rotation direction based on that direction the parent is from the grandparent.
                             // We need to know how to alert the tree to the rotation we're doing.
                             uint8_t dir2 = (STRIP(gp->link[1]) == p);
-                            
+
                             if (IS_RED(STRIP(s->link[prev_dir])))
                             {
                                 SET_LINK(gp->link[dir2], double_rotation(p, prev_dir));
@@ -1513,7 +1513,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                             {
                                 SET_LINK(gp->link[dir2], single_rotation(p, prev_dir));
                             }
-                            
+
                             // Fix the colours post rotation.
                             struct tree_node* p2 = STRIP(gp->link[dir2]);
                             SET_RED(i);
@@ -1525,18 +1525,18 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                 }
             }
         }
-        
+
         *del_node = i;
-        
+
         // If we're at a leaf...
         if (STRIP(i->link[1]) == NULL)
         {
             if (i != STRIP(false_root->link[1]))
             {
                 bool is_red = IS_RED(p);
-                
+
                 p->link[0] = NULL;
-                
+
                 if (is_red)
                 {
                     SET_RED(p);
@@ -1568,20 +1568,20 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                 false_root->link[1] = right_root;
             }
         }
-        
+
         // Update the tree root and make it black.
         struct tree_node* new_root = STRIP(false_root->link[1]);
-        
+
         if (new_root != NULL)
         {
             SET_BLACK(new_root);
         }
-        
+
         return new_root;
     }
-    
+
     *del_node = NULL;
-    
+
     return NULL;
 }
 

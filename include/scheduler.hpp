@@ -5,18 +5,26 @@
 #include <pthread.h>
 #include <vector>
 
+#ifdef CMAKE_COMPILER_SUITE_GCC
+// http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
+// http://gcc.gnu.org/gcc-4.3/changes.html
+#include <tr1/unordered_map>
+#elif CMAKE_COMPILER_SUITE_SUN
+// http://www.sgi.com/tech/stl/hash_map.html
+#include <hash_map>
+#endif
+
 #include "lock.hpp"
-#include "lfqueue.hpp"
 #include "redblacktreei.hpp"
 
-class Comparator;
+class LFQueue;
 
 /* BEHAVIOUR DESCRIPTION
  * - Addition of new workloads is thread-safe, but blocking. Threads will block
  *      if multiple threads attempt to add workloads concurrently. This is due
  *      to the fact that a red-black tree is used to manage the workqueues, and
  *      a non-blocking implementation is not available. Once the workload is
- *      added to a workqueue though, the thread will continue asynchronously
+ *      added to a workqueue though, the thread will continueq asynchronously
  *      from the actual work.
  * - The scheduler essentially schedules workqueues that represent interference
  *      classes.
@@ -38,16 +46,22 @@ class Comparator;
 
 class Scheduler
 {
-    friend void* thread_start(void* args_v);
-    
+    friend void* scheduler_thread_start(void* args_v);
     friend int32_t compare_workqueue(void* aV, void* bV);
+
+    friend class LFQueue;
 
 public:
 /// These flags aren't currently propagated to the containing queues when appropriate,
 /// so that needs to be implemented before the functionality of these flags can be
 /// used.
-/// 
-/// The exception is READ_ONLY which is implemented, but not tested, in get_work().
+///
+/// Below is the list of flags that are currently implemented, and where the code is.
+///
+/// READ_ONLY           get_work
+/// HIGH_PRIORITY       compare_workqueue
+/// BACKGROUND          compare_workqueue
+
     /* FLAG DESCRIPTIONS
      * NONE
      * READ_ONLY
@@ -96,7 +110,7 @@ public:
     // Returns the number of threads in the pool, which can be used to check and
     // see if it was successful.
     uint32_t update_num_threads(uint32_t new_num_threads);
-    
+
     uint64_t get_num_complete();
 
 private:
@@ -106,8 +120,8 @@ private:
         void* args;
         void** retval;
         uint64_t id;
-        LFQueue<struct workload*>* queue;
-        uint16_t flags;
+        LFQueue* queue;
+        int16_t flags;
     };
 
     struct thread_args
@@ -116,27 +130,34 @@ private:
         volatile uint64_t counter;
         volatile bool run;
     };
-    
+
     struct tree_node
     {
         void* link[2];
-        LFQueue<struct workload*>* queue;
+        LFQueue* queue;
     };
 
-    LFQueue<struct workload*>* find_queue(uint64_t class_id);
+    LFQueue* find_queue(uint64_t class_id);
     struct workload* get_work();
-    
+
     // Counter that will determine the IDs of new workloads added.
     volatile uint64_t work_counter;
     volatile uint64_t work_avail;
     pthread_cond_t work_cond;
-    
+
     uint32_t num_threads;
     pthread_t* threads;
     struct thread_args** t_args;
+
     struct RedBlackTreeI::e_tree_root* root;
 
-    LFQueue<struct workload*> indep;
+#ifdef CMAKE_COMPILER_SUITE_GCC
+    std::tr1::unordered_map<uint64_t, LFQueue*> queue_map;
+#elif CMAKE_COMPILER_SUITE_SUN
+    std::hash_map<uint64_t, LFQueue*> queue_map;
+#endif
+
+    LFQueue* indep;
 
     PTHREAD_SIMPLE_RWLOCK_T;
 };
