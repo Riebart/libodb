@@ -23,9 +23,15 @@
 // NOTE: NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
 
+#include "cmwc.h"
+
 #define SPREAD 500
 #define NUM_TABLES 1
 #define NUM_QUERIES 1
+
+struct cmwc_state c;
+#define SRAND() cmwc_init(&c, 1234567890)
+#define RAND() cmwc_next(&c)
 
 inline int32_t str_compare(void* a, void* b)
 {
@@ -208,7 +214,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 
     for (uint64_t i = 0 ; i < test_size ; i++)
     {
-        v = (i + ((rand() % (2 * SPREAD + 1)) - SPREAD));
+        v = (i + ((RAND() % (2 * SPREAD + 1)) - SPREAD));
         //v = 117;
         //v = i;
 
@@ -221,7 +227,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
         else if (test_type == 4)
         {
-            int str_index = rand() % test_str_len;
+            int str_index = RAND() % test_str_len;
 
             strncpy(temp_str, test_str, test_str_len);
 
@@ -331,7 +337,7 @@ int main (int argc, char* argv[])
     int ch;
 
     // This should standardize between the operating systems how the random number generator is seeded.
-    srand(0);
+    SRAND();
 
 //#warning "TODO: Validity checks on the options"
     while ( (ch = getopt(argc, argv, "e:t:n:T:i:hm:")) != -1)
