@@ -45,9 +45,10 @@ void * mem_checker(void * arg)
     pid_t pid = getpid();
 
     char path[50];
+#warning "This doesn't work on Solaris."
     sprintf(path, "/proc/%d/statm", pid);
 
-    FILE * stat_file=fopen(path, "r");
+    FILE* stat_file = fopen(path, "r");
 
     struct timespec ts;
 
@@ -56,22 +57,26 @@ void * mem_checker(void * arg)
 
     while (parent->is_running())
     {
-        stat_file = freopen(path, "r", stat_file);
-        if (stat_file == NULL)
+        if (stat_file != NULL)
         {
-            THROW_ERROR("FOPEN_FAIL", "Unable to (re)open file");
-        }
+            stat_file = freopen(path, "r", stat_file);
+            
+            if (stat_file == NULL)
+            {
+                THROW_ERROR("FOPEN_FAIL", "Unable to (re)open file");
+            }
 
-        if (fscanf(stat_file, "%lu %ld", &vsize, &rsize) < 2)
-        {
-            THROW_ERROR("RSS_GET_FAIL", "Failed retrieving rss");
-        }
+            if (fscanf(stat_file, "%lu %ld", &vsize, &rsize) < 2)
+            {
+                THROW_ERROR("RSS_GET_FAIL", "Failed retrieving rss");
+            }
 
-//         printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
+//             printf("Rsize: %ld mem_limit: %lu\n", rsize, mem_limit);
 
-        if (rsize > parent->mem_limit)
-        {
-            THROW_ERROR("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
+            if (rsize > parent->mem_limit)
+            {
+                THROW_ERROR("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
+            }
         }
 
         time_t cur = time(NULL);
@@ -95,7 +100,10 @@ void * mem_checker(void * arg)
         nanosleep(&ts, NULL);
     }
 
-    fclose(stat_file);
+    if (stat_file != NULL)
+    {
+        fclose(stat_file);
+    }
 
     return NULL;
 

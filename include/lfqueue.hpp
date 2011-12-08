@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "common.hpp"
 #include "scheduler.hpp"
 
 #include <list>
@@ -29,6 +30,11 @@ public:
         in_tree = false;
         flags = Scheduler::NONE;
         last_high = 0;
+        
+        SAFE_MALLOC(struct tree_node*, tree_node, sizeof(struct tree_node));
+        tree_node->links[0] = NULL;
+        tree_node->links[1] = NULL;
+        tree_node->queue = this;
     }
 
     void push_back(struct Scheduler::workload* item)
@@ -83,10 +89,17 @@ public:
     }
 
 private:
+    struct tree_node
+    {
+        void* links[2];
+        LFQueue* queue;
+    };
+    
     std::list<struct Scheduler::workload*> base;
     bool in_tree;
     uint16_t flags;
     uint64_t last_high;
+    struct tree_node* tree_node;
 };
 
 #endif

@@ -3,9 +3,7 @@
 #include "common.hpp"
 #include "lfqueue.hpp"
 
-#define SPIN_WAIT 2500
-
-#warning "Doesn't take flags into account yet."
+#warning "Doesn't take ALL flags into account yet. Some work."
 
 void* scheduler_thread_start(void* args_v)
 {
@@ -31,12 +29,6 @@ void* scheduler_thread_start(void* args_v)
 
         PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
 
-        volatile uint64_t s = (uint64_t)(&args);
-        for (int i = 0 ; i < SPIN_WAIT ; i++)
-        {
-            s += s * i;
-        }
-
         if (work != NULL)
         {
             if (work->retval == NULL)
@@ -60,7 +52,7 @@ void* scheduler_thread_start(void* args_v)
             // that come in along with the workload itself.
             if ((work->queue != NULL) && (work->queue->size() > 0))
             {
-                RedBlackTreeI::e_add(args->scheduler->root, work->queue);
+                RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
                 work->queue->in_tree = true;
             }
         }
@@ -119,13 +111,12 @@ Scheduler::Scheduler(uint32_t _num_threads)
     work_counter = 1;
     work_avail = 0;
     this->num_threads = _num_threads;
-    pthread_cond_init(&work_cond, NULL);
+    pthread_cond_init(&work_cond, NULL);    
     indep = new LFQueue();
 
     SAFE_MALLOC(pthread_t*, threads, num_threads * sizeof(pthread_t));
     SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
-#warning "Use a merge function to simplify adding data to a queue."
     root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
     PTHREAD_SIMPLE_RWLOCK_INIT();
 
@@ -186,6 +177,13 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work->flags = flags;
 
     indep->push_back(work);
+    
+    if (!indep->in_tree)
+    {
+        RedBlackTreeI::e_add(root, indep->tree_node);
+        indep->in_tree = true;
+    }
+    
     work_avail++;
 
     free(work);
@@ -233,7 +231,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
 
     if (!queue->in_tree)
     {
-        RedBlackTreeI::e_add(root, queue);
+        RedBlackTreeI::e_add(root, queue->tree_node);
         queue->in_tree = true;
     }
 
@@ -343,6 +341,8 @@ struct Scheduler::workload* Scheduler::get_work()
     void* first_queue = RedBlackTreeI::e_pop_first(root);
     LFQueue* queue = ((struct tree_node*)first_queue)->queue;
     queue->in_tree = false;
+    queue->tree_node->links[0] = NULL;
+    queue->tree_node->links[1] = NULL;
 
     // This is more of a sanity check than anything.
     // This shouldn't ever fail.
@@ -361,7 +361,7 @@ struct Scheduler::workload* Scheduler::get_work()
         // is a faster way of doing this.
         if ((queue == indep) || (first_work->flags & Scheduler::READ_ONLY))
         {
-            RedBlackTreeI::e_add(root, queue);
+            RedBlackTreeI::e_add(root, queue->tree_node);
             queue->in_tree = true;
             first_work->queue = NULL;
         }

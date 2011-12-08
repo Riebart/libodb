@@ -274,6 +274,12 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
 
     bool something_added = false;
+    
+    // TO protect the user-dev from themselves, let's set the links in the inserted data to NULL.
+    // THis should prevent some careless, but easy to make, errors as well as force other errors to show up sooner as segfaults.
+    ((struct tree_node*)rawdata)->link[0] = NULL;
+    ((struct tree_node*)rawdata)->link[1] = NULL;
+    
     root->data = e_add_data_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata);
 
     // The information about whether a new node was added is encoded into the root.

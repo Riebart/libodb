@@ -7,8 +7,6 @@
 #include "redblacktreei.hpp"
 #include "scheduler.hpp"
 
-#define NUM_ITEMS 10000
-
 inline bool prune(void* rawdata)
 {
     return (((*(long*)rawdata) % 2) == 0);
@@ -22,13 +20,11 @@ inline bool condition(void* a)
 // The structure that describes each node in the RBT. Node that we need to include
 // the two void* pointers at the head of the RBT. These MUST be the first two
 // fields in the struct, so pack it if necessary.
-#pragma pack(1)
 struct data
 {
     void* links[2];
     long data;
 };
-#pragma pack()
 
 inline int compareD(void* aV, void* bV)
 {
@@ -41,16 +37,19 @@ inline int compareD(void* aV, void* bV)
 int main (int argc, char ** argv)
 {
     long p = 100;
+    srand(0);
     
     // Initialize the root of the red-black tree. This is essentially the RBT
     // object. The first argument indicates whether or not to drop duplicates.
     struct RedBlackTreeI::e_tree_root* root = RedBlackTreeI::e_init_tree(true, compareD);
 
     // Insert the items.
-    for (long i = 0 ; i < NUM_ITEMS ; i++)
+    for (long i = 0 ; i < 100 ; i++)
     {
         // Allocate the whole node, including the links to child nodes.
         struct data* data= (struct data*)malloc(sizeof(struct data));
+        data->links[0] = NULL;
+        data->links[1] = NULL;
         data->data = (i + ((rand() % (2 * p + 1)) - p));
         
         // Add the new node to the tree.

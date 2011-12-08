@@ -35,6 +35,7 @@ struct test_s
 int main (int argc, char ** argv)
 {
     long v, p = 100;
+    srand(0);
 
     // Create a new ODB object. The arguments are as follows:
     //  - The flag that tells it what to use as a backing storage method. This 
@@ -44,7 +45,7 @@ int main (int argc, char ** argv)
     //  - The size of the data we are going t be inserting.
     //  - How to handle files that are throw out by remove_sweep(). This can be 
     //    NULL, which means that removed items are torched and unrecoverable.
-    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal.archive", false));
+    ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal_odb.archive", false));
     
     // Create the index table that will be applied to the data inserted into the 
     // ODB object.
