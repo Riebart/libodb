@@ -47,7 +47,7 @@ int main (int argc, char ** argv)
 
     ftime(&end);
 
-    printf("= Unscheduled Performance Run =\n%g seconds\n%d processed\n@ %g /s\n",
+    printf("= Unscheduled Performance Run =\n%g seconds\n%lu processed\n@ %g /s\n",
            ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm),
            num_done,
            num_done / (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm)));
@@ -55,7 +55,7 @@ int main (int argc, char ** argv)
 // Second, the scheduled run.
     printf("\n");
 
-    num_threads = 40;
+    num_threads = 2;
     Scheduler* sched = new Scheduler(num_threads);
     num_done = 0;
     ftime(&start);
@@ -70,7 +70,7 @@ int main (int argc, char ** argv)
     }
 
     ftime(&end);
-    printf("= Scheduled Performance Run (%d threads) =\n%g seconds\n%d inserted\n%lu processed\n@ %g /s\n",
+    printf("= Scheduled Performance Run (%d threads) =\n%g seconds\n%lu inserted\n%lu processed\n@ %g /s\n",
            num_threads,
            ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm),
            num_done,
