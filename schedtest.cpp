@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sys/timeb.h>
+#include <time.h>
 #include "scheduler.hpp"
 
 void* spin_work(void* args)
@@ -17,73 +17,89 @@ void* spin_work(void* args)
     return (void*)sss;
 }
 
-int main (int argc, char ** argv)
+void test1(uint64_t N, int num_cycles, int num_consumers)
 {
-    struct timeb start, end;
-    uint64_t num_done;
-    double run_time;
-    int num_cycles;
-    int num_threads;
-
-/// TEST1
-/// This compares the performance of the scheduler to a non-scheduled single-threaded execution of a mid-size workload.
-
-    run_time = 10.0;
-    num_cycles = 2500;
-
-// First, the unscheduled run.
-
-    num_done = 0;
-    ftime(&start);
-    ftime(&end);
-
-    while (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm) < run_time)
+    struct timespec start, end;
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
+    for (uint64_t i = 0 ; i < N ; i++)
     {
         spin_work(&num_cycles);
-
-        num_done++;
-        ftime(&end);
     }
-
-    ftime(&end);
-
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
     printf("= Unscheduled Performance Run =\n%g seconds\n%lu processed\n@ %g /s\n",
-           ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm),
-           num_done,
-           num_done / (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm)));
+           (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)),
+           N,
+           N / (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
+}
 
-// Second, the scheduled run.
-    printf("\n");
-
-    num_threads = 2;
-    Scheduler* sched = new Scheduler(num_threads);
-    num_done = 0;
-    ftime(&start);
-    ftime(&end);
-
-    while (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm) < run_time)
+void test2(uint64_t N, int num_cycles, int num_consumers)
+{
+    struct timespec start, end;
+    Scheduler* sched = new Scheduler(num_consumers);
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
+    for (uint64_t i = 0 ; i < N ; i++)
     {
         sched->add_work(spin_work, &num_cycles, NULL, Scheduler::NONE);
+    }
+    
+    sched->block_until_done();    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    printf("= Simultaneous Scheduled Performance Run (%d threads) =\n%g seconds\n%lu processed\n@ %g /s\n",
+           num_consumers,
+           (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)),
+           N,
+           N / (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
+    
+    delete sched;
+}
 
-        num_done++;
-        ftime(&end);
+void test3(uint64_t N, int num_cycles, int num_consumers)
+{
+    struct timespec start, end;
+    Scheduler* sched = new Scheduler(0);
+
+    for (uint64_t i = 0 ; i < N ; i++)
+    {
+        sched->add_work(spin_work, &num_cycles, NULL, Scheduler::NONE);
     }
 
-    ftime(&end);
-    printf("= Scheduled Performance Run (%d threads) =\n%g seconds\n%lu inserted\n%lu processed\n@ %g /s\n",
-           num_threads,
-           ((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm),
-           num_done,
-           sched->get_num_complete(),
-           (sched->get_num_complete()) / (((int32_t)end.time - (int32_t)start.time) + 0.001 * ((int)end.millitm - (int)start.millitm)));
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    sched->update_num_threads(num_consumers);
+    sched->block_until_done();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    printf("= Deferred Scheduled Performance Run (%d threads) =\n%g seconds\n%lu processed\n@ %g /s\n",
+           num_consumers,
+        (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)),
+        N,
+        N / (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
 
     delete sched;
+}
 
+int main (int argc, char ** argv)
+{
+    uint64_t N = 1000000;
+    int num_cycles = 2500;
+    int num_consumers = 32;
 
-/// TEST2
-/// This ensures that it properly handles interference classes without, y'know, interfering.
+/// TEST1: Unscheduled single-threaded performance - mid-size workload
+    test1(N, num_cycles, num_consumers);
+    printf("\n");
 
+/// TEST2: Scheduled simultaneous multi-threaded performance - mid-size workload
+    test2(N, num_cycles, num_consumers);
+    printf("\n");
 
+/// TEST3: Scheduled deferred performance - mid-size workload
+    test3(N, num_cycles, num_consumers);
+    printf("\n");
 
     return EXIT_SUCCESS;
 }

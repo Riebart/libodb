@@ -153,7 +153,7 @@ add_executable (trace-proc trace-proc.cpp)
 #add_executable (py-demo py-demo.cpp)
 
 target_link_libraries(test ${LIBS})
-target_link_libraries(schedtest ${LIBS})
+target_link_libraries(schedtest ${LIBS} -lrt)
 target_link_libraries(minimal_erbt ${LIBS})
 target_link_libraries(minimal_odb ${LIBS})
 target_link_libraries(demo-flows z ft ${LIBS})

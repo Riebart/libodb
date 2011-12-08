@@ -16,6 +16,9 @@ void* scheduler_thread_start(void* args_v)
 
         while ((args->scheduler->work_avail == 0) && (args->run))
         {
+            // Before we sleep, we should wake up anything waiting on the block
+            pthread_cond_signal(&(args->scheduler->block_cond));
+            
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
             pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
@@ -58,6 +61,7 @@ void* scheduler_thread_start(void* args_v)
                 work->queue->in_tree = true;
             }
 
+            free(work);
             args->counter++;
         }
     }
@@ -114,6 +118,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
     work_avail = 0;
     this->num_threads = _num_threads;
     pthread_cond_init(&work_cond, NULL);
+    pthread_cond_init(&block_cond, NULL);
     indep = new LFQueue();
 
     SAFE_MALLOC(pthread_t*, threads, num_threads * sizeof(pthread_t));
@@ -372,6 +377,18 @@ struct Scheduler::workload* Scheduler::get_work()
     }
 
     return first_work;
+}
+
+void Scheduler::block_until_done()
+{
+    PTHREAD_SIMPLE_WRITE_LOCK();
+    
+    while (work_avail > 0)
+    {
+        pthread_cond_wait(&block_cond, &lock);
+    }
+    
+    PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
 uint64_t Scheduler::get_num_complete()

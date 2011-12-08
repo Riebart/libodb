@@ -7,10 +7,10 @@
 #include "common.hpp"
 #include "scheduler.hpp"
 
-#include <list>
+#include <deque>
 
 /// Eventually this should implement a lockfree queue, but for now it can simply
-/// wrap an STL list as much as is needed to satisfy the Scheduler. All it really
+/// wrap an STL deque as much as is needed to satisfy the Scheduler. All it really
 /// needs is push, pop, size and peek I think.
 ///
 /// It will also need to support some special flags that will be very similar to
@@ -102,7 +102,7 @@ private:
         LFQueue* queue;
     };
 
-    std::list<struct Scheduler::workload*> base;
+    std::deque<struct Scheduler::workload*> base;
     bool in_tree;
     uint16_t flags;
     uint64_t last_high;
