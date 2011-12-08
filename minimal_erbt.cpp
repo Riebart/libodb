@@ -38,7 +38,7 @@ int main (int argc, char ** argv)
 {
     long p = 100;
     srand(0);
-    
+
     // Initialize the root of the red-black tree. This is essentially the RBT
     // object. The first argument indicates whether or not to drop duplicates.
     struct RedBlackTreeI::e_tree_root* root = RedBlackTreeI::e_init_tree(true, compareD);
@@ -48,10 +48,8 @@ int main (int argc, char ** argv)
     {
         // Allocate the whole node, including the links to child nodes.
         struct data* data= (struct data*)malloc(sizeof(struct data));
-        data->links[0] = NULL;
-        data->links[1] = NULL;
         data->data = (i + ((rand() % (2 * p + 1)) - p));
-        
+
         // Add the new node to the tree.
         RedBlackTreeI::e_add(root, data);
     }
@@ -62,13 +60,13 @@ int main (int argc, char ** argv)
     Iterator* it = RedBlackTreeI::e_it_first(root);
     do
     {
-       printf("%ld\n", ((struct data*)(it->get_data()))->data);
+        printf("%ld\n", ((struct data*)(it->get_data()))->data);
     }
     while (it->next());
-    
+
     // Release the iterator.
     RedBlackTreeI::e_it_release(root, it);
-    
+
     // Destroy the tree root. This does not destroy the items in the tree, you
     // need to destroy those manually to reclaim the memory.
     RedBlackTreeI::e_destroy_tree(root);

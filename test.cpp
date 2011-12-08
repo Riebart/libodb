@@ -203,7 +203,6 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         ind[i] = odb->create_index(itype, iopts, (test_type == 4 ? str_compare : compare));
     }
 
-
     //for the VDS, if necessary
     char * test_str = (char*)("The quick brown fox jumped over the lazy dog.");
     char temp_str [500];

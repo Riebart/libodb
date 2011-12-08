@@ -103,8 +103,6 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
 // //     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
 //
 //     struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
-//     data->link[0] = NULL;
-//     data->link[1] = NULL;
 //     data->ips = NULL;
 //
 //     // Collect the layer 3, 4 and 7 information.

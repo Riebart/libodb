@@ -30,7 +30,7 @@ public:
         in_tree = false;
         flags = Scheduler::NONE;
         last_high = 0;
-        
+
         SAFE_MALLOC(struct tree_node*, tree_node, sizeof(struct tree_node));
         tree_node->links[0] = NULL;
         tree_node->links[1] = NULL;
@@ -62,25 +62,32 @@ public:
 
     struct Scheduler::workload* pop_front()
     {
-        struct Scheduler::workload* front = base.front();
-        base.pop_front();
-
-        // If we just popped a HP load, we need to see if that was the latest one.
-        // Alternatively, if we weren't HP to begin with...
-        if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
+        if (base.size() == 0)
         {
-            // If it was, we can reset to either BG or NONE, depending on the head.
-            if (base.front()->flags & Scheduler::BACKGROUND)
-            {
-                flags = Scheduler::BACKGROUND;
-            }
-            else
-            {
-                flags = Scheduler::NONE;
-            }
+            return NULL;
         }
+        else
+        {
+            struct Scheduler::workload* front = base.front();
+            base.pop_front();
 
-        return front;
+            // If we just popped a HP load, we need to see if that was the latest one.
+            // Alternatively, if we weren't HP to begin with...
+            if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
+            {
+                // If it was, we can reset to either BG or NONE, depending on the head.
+                if (base.front()->flags & Scheduler::BACKGROUND)
+                {
+                    flags = Scheduler::BACKGROUND;
+                }
+                else
+                {
+                    flags = Scheduler::NONE;
+                }
+            }
+
+            return front;
+        }
     }
 
     uint64_t size()
@@ -94,7 +101,7 @@ private:
         void* links[2];
         LFQueue* queue;
     };
-    
+
     std::list<struct Scheduler::workload*> base;
     bool in_tree;
     uint16_t flags;

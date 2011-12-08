@@ -16,6 +16,8 @@ void* scheduler_thread_start(void* args_v)
 
         while ((args->scheduler->work_avail == 0) && (args->run))
         {
+            // cond_wait releases the lock when it starts waiting, and is guaranteed
+            // to hold it when it returns.
             pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
         }
 
@@ -55,9 +57,9 @@ void* scheduler_thread_start(void* args_v)
                 RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
                 work->queue->in_tree = true;
             }
-        }
 
-        args->counter++;
+            args->counter++;
+        }
     }
 
     return NULL;
@@ -111,7 +113,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
     work_counter = 1;
     work_avail = 0;
     this->num_threads = _num_threads;
-    pthread_cond_init(&work_cond, NULL);    
+    pthread_cond_init(&work_cond, NULL);
     indep = new LFQueue();
 
     SAFE_MALLOC(pthread_t*, threads, num_threads * sizeof(pthread_t));
@@ -177,16 +179,14 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work->flags = flags;
 
     indep->push_back(work);
-    
+
     if (!indep->in_tree)
     {
         RedBlackTreeI::e_add(root, indep->tree_node);
         indep->in_tree = true;
     }
-    
-    work_avail++;
 
-    free(work);
+    work_avail++;
 
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
@@ -327,7 +327,6 @@ LFQueue* Scheduler::find_queue(uint64_t class_id)
 
     if (retval == NULL)
     {
-        fprintf(stderr, "Adding a queue to the hash map.\n");
         retval = new LFQueue();
         queue_map[class_id] = retval;
     }
@@ -339,10 +338,9 @@ struct Scheduler::workload* Scheduler::get_work()
 {
     struct workload* first_work = NULL;
     void* first_queue = RedBlackTreeI::e_pop_first(root);
+
     LFQueue* queue = ((struct tree_node*)first_queue)->queue;
     queue->in_tree = false;
-    queue->tree_node->links[0] = NULL;
-    queue->tree_node->links[1] = NULL;
 
     // This is more of a sanity check than anything.
     // This shouldn't ever fail.
@@ -370,11 +368,6 @@ struct Scheduler::workload* Scheduler::get_work()
             first_work->queue = queue;
         }
 
-        work_avail--;
-    }
-    else
-    {
-        first_work = (struct workload*)first_queue;
         work_avail--;
     }
 

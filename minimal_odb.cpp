@@ -38,20 +38,20 @@ int main (int argc, char ** argv)
     srand(0);
 
     // Create a new ODB object. The arguments are as follows:
-    //  - The flag that tells it what to use as a backing storage method. This 
+    //  - The flag that tells it what to use as a backing storage method. This
     //    case uses a BankDS as a backing store.
-    //  - The pruning function to be used when remove_sweep() is called on the 
+    //  - The pruning function to be used when remove_sweep() is called on the
     //    ODB object.
     //  - The size of the data we are going t be inserting.
-    //  - How to handle files that are throw out by remove_sweep(). This can be 
+    //  - How to handle files that are throw out by remove_sweep(). This can be
     //    NULL, which means that removed items are torched and unrecoverable.
     ODB odb(ODB::BANK_DS, prune, sizeof(long), new AppendOnlyFile((char*)"minimal_odb.archive", false));
-    
-    // Create the index table that will be applied to the data inserted into the 
+
+    // Create the index table that will be applied to the data inserted into the
     // ODB object.
     //  - The flag indicates that it is a Red Black Tree index table.
     //  - The flag indicates that the index table will not drop duplicates
-    //  - The comparison function that determines the sorting order applied to 
+    //  - The comparison function that determines the sorting order applied to
     //    the index table.
     Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
@@ -62,15 +62,15 @@ int main (int argc, char ** argv)
         odb.add_data(&v);
     }
 
-    // Prune out some items in the ODB according to the pruning function that 
+    // Prune out some items in the ODB according to the pruning function that
     // was specified upon creation
     odb.remove_sweep();
 
-    // This demonstrates how to use iterators, and iterating through an index 
+    // This demonstrates how to use iterators, and iterating through an index
     // table.
     v = 0;
-    
-    // This will ask for an iterator into the index table pointed to by 'ind', 
+
+    // This will ask for an iterator into the index table pointed to by 'ind',
     // and this iterator will, when it is returned, will point to the item that
     // is closest to the value specified by 'v', but larger than it if no exact
     // match is available. Specifying a value of 0 as the second argument

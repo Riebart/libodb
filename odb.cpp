@@ -60,7 +60,7 @@ void * mem_checker(void * arg)
         if (stat_file != NULL)
         {
             stat_file = freopen(path, "r", stat_file);
-            
+
             if (stat_file == NULL)
             {
                 THROW_ERROR("FOPEN_FAIL", "Unable to (re)open file");
@@ -321,6 +321,7 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
     this->data = _data;
     this->archive = _archive;
     scheduler = NULL;
+    sleep_duration = _sleep_duration;
 
     if (_freep == NULL)
     {
@@ -337,7 +338,7 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
 
     mem_limit = 700000;
 
-    if (sleep_duration > 0)
+    if (_sleep_duration > 0)
     {
         running = 1;
 
