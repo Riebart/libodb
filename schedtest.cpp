@@ -39,7 +39,7 @@ void test1(uint64_t N, int num_cycles, int num_consumers)
 void test2(uint64_t N, int num_cycles, int num_consumers)
 {
     struct timespec start, end;
-    Scheduler* sched = new Scheduler(num_consumers);
+    Scheduler* sched = new Scheduler(num_consumers - 1);
     clock_gettime(CLOCK_MONOTONIC, &start);
     
     for (uint64_t i = 0 ; i < N ; i++)
@@ -47,11 +47,17 @@ void test2(uint64_t N, int num_cycles, int num_consumers)
         sched->add_work(spin_work, &num_cycles, NULL, Scheduler::NONE);
     }
     
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    printf("= Simultaneous Scheduled Performance Run (%d threads) =\n%g seconds of insertion\n",
+           num_consumers,
+           (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
+    
+    sched->update_num_threads(num_consumers);
     sched->block_until_done();    
     clock_gettime(CLOCK_MONOTONIC, &end);
     
-    printf("= Simultaneous Scheduled Performance Run (%d threads) =\n%g seconds\n%lu processed\n@ %g /s\n",
-           num_consumers,
+    printf("%g seconds total\n%lu processed\n@ %g /s\n",
            (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)),
            N,
            N / (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
@@ -75,7 +81,7 @@ void test3(uint64_t N, int num_cycles, int num_consumers)
     clock_gettime(CLOCK_MONOTONIC, &end);
     
     printf("= Deferred Scheduled Performance Run (%d threads) =\n%g seconds\n%lu processed\n@ %g /s\n",
-           num_consumers,
+        num_consumers,
         (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)),
         N,
         N / (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec)));
@@ -85,20 +91,20 @@ void test3(uint64_t N, int num_cycles, int num_consumers)
 
 int main (int argc, char ** argv)
 {
-    uint64_t N = 1000000;
-    int num_cycles = 2500;
-    int num_consumers = 32;
+    uint64_t N = 100000000;
+    int num_cycles = 0;
+    int num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance - mid-size workload
     test1(N, num_cycles, num_consumers);
     printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance - mid-size workload
-    test2(N, num_cycles, num_consumers);
+    test2(N/3, num_cycles, num_consumers);
     printf("\n");
 
 /// TEST3: Scheduled deferred performance - mid-size workload
-    test3(N, num_cycles, num_consumers);
+    test3(N/3, num_cycles, num_consumers);
     printf("\n");
 
     return EXIT_SUCCESS;
