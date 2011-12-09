@@ -91,8 +91,9 @@ void test3(uint64_t N, int num_cycles, int num_consumers)
 
 int main (int argc, char ** argv)
 {
-    uint64_t N = 100000000;
-    int num_cycles = 0;
+#define RUN_TIME 1000000000
+    int num_cycles = 1000;
+    uint64_t N = RUN_TIME / num_cycles;
     int num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance - mid-size workload
@@ -102,10 +103,12 @@ int main (int argc, char ** argv)
 /// TEST2: Scheduled simultaneous multi-threaded performance - mid-size workload
     test2(N/3, num_cycles, num_consumers);
     printf("\n");
-
+    
 /// TEST3: Scheduled deferred performance - mid-size workload
     test3(N/3, num_cycles, num_consumers);
     printf("\n");
+    
+/// TEST4: Test the scheduler's ability to handle multple interference classes.
 
     return EXIT_SUCCESS;
 }

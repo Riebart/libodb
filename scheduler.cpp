@@ -267,7 +267,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         threads = new_threads;
         t_args = new_t_args;
 
-        for (uint32_t i = num_threads ; i <= new_num_threads ; i++)
+        for (uint32_t i = num_threads ; i < new_num_threads ; i++)
         {
             SAFE_MALLOC(struct thread_args*, t_args[i], sizeof(struct thread_args));
 
