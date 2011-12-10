@@ -1,5 +1,4 @@
 #include "scheduler.hpp"
-//#include "comparator.hpp"
 #include "common.hpp"
 #include "lfqueue.hpp"
 
@@ -14,7 +13,7 @@ void* scheduler_thread_start(void* args_v)
     {
         PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
 
-        while ((args->scheduler->work_avail == 0) && (args->run))
+        while ((args->scheduler->root->count == 0) && (args->scheduler->work_avail == 0) && (args->run))
         {
             // Before we sleep, we should wake up anything waiting on the block
             pthread_cond_signal(&(args->scheduler->block_cond));
@@ -30,7 +29,7 @@ void* scheduler_thread_start(void* args_v)
             break;
         }
 
-        work = (args->scheduler->work_avail > 0 ? args->scheduler->get_work() : NULL);
+        work = (((args->scheduler->root->count > 0) && (args->scheduler->work_avail > 0)) ? args->scheduler->get_work() : NULL);
 
         PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
 
@@ -55,10 +54,19 @@ void* scheduler_thread_start(void* args_v)
             //
             // We add the queue back to the tree here. Might have to add it into the arguments
             // that come in along with the workload itself.
-            if ((work->queue != NULL) && (work->queue->size() > 0))
+            if (work->queue != NULL)
             {
-                RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
-                work->queue->in_tree = true;
+                if (work->queue->size() > 0)
+                {
+                    PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
+                    RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
+                    work->queue->in_tree = true;
+                    PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+                }
+                else
+                {
+                    work->queue->in_tree = false;
+                }
             }
 
             free(work);
@@ -267,7 +275,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         threads = new_threads;
         t_args = new_t_args;
 
-        for (uint32_t i = num_threads ; i < new_num_threads ; i++)
+        for (uint32_t i = num_threads ; i <= new_num_threads ; i++)
         {
             SAFE_MALLOC(struct thread_args*, t_args[i], sizeof(struct thread_args));
 
@@ -345,7 +353,6 @@ struct Scheduler::workload* Scheduler::get_work()
     void* first_queue = RedBlackTreeI::e_pop_first(root);
 
     LFQueue* queue = ((struct tree_node*)first_queue)->queue;
-    queue->in_tree = false;
 
     // This is more of a sanity check than anything.
     // This shouldn't ever fail.
@@ -362,7 +369,7 @@ struct Scheduler::workload* Scheduler::get_work()
         // new workload at the head of the queue. This will likely involve a 'remove'
         // and an 'add' operation, so two RBT operations consecutively. Not sure if there
         // is a faster way of doing this.
-        if ((queue == indep) || (first_work->flags & Scheduler::READ_ONLY))
+        if ((queue->size() > 0) && ((queue == indep) || (first_work->flags & Scheduler::READ_ONLY)))
         {
             RedBlackTreeI::e_add(root, queue->tree_node);
             queue->in_tree = true;

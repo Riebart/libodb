@@ -196,7 +196,7 @@ double lof_calc(ODB * odb, IndexGroup * packets)
 
     struct knn * cur_knn = (struct knn *)malloc(sizeof(struct knn));
 #warning "TODO: determine appropriate struct"
-    ODB * odb2 = new ODB(ODB::BANK_DS, null_prune, sizeof(struct knn));
+    ODB * odb2 = new ODB(ODB::BANK_DS, sizeof(struct knn), null_prune);
     //For now, index by the pointer to data
 
     Index * knn_index = odb2->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_flow_stats_p, NULL);
@@ -520,7 +520,7 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::BANK_DS, null_prune, sizeof(struct flow_stats));
+    odb = new ODB(ODB::BANK_DS, sizeof(struct flow_stats), null_prune);
 
     IndexGroup* flows = odb->create_group();
 

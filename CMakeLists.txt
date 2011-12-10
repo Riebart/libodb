@@ -91,7 +91,7 @@ add_definitions(-DPTHREAD_RW_LOCKS)
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O2")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
 else(NOT ${COMPILER_SUITE} MATCHES "sun")
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.

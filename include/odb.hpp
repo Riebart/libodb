@@ -57,9 +57,10 @@ public:
 
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
+    // Flag options: DataStore::TIME_STAMP, DataStore::QUERY_COUNT
+    ODB(FixedDatastoreType dt, uint32_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
 
     ~ODB();
 
@@ -85,6 +86,7 @@ public:
     // If there is no scheduler, it creates one with the specified number of threads
     // If one exists, it attempts to update the number of worker threads.
     uint32_t start_scheduler(uint32_t num_threads);
+    void block_until_done();
 
     Iterator* it_first();
     Iterator* it_last();
@@ -101,9 +103,9 @@ public:
 
 
 private:
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
     ODB(DataStore* dt, int ident, uint32_t datalen);
 
     void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);

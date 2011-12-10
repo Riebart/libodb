@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb;
 
-    odb = new ODB(ODB::BANK_DS, prune, sizeof(struct dnsrec));
+    odb = new ODB(ODB::BANK_DS, sizeof(struct dnsrec), prune);
 
     IndexGroup* valid = odb->create_group();
     IndexGroup* invalid = odb->create_group();

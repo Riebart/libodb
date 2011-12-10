@@ -1,4 +1,5 @@
 #include "index.hpp"
+#include "common.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -291,9 +292,11 @@ vector<Index*>* Index::flatten(vector<Index*>* list)
 void* add_data_v_wrapper(void* args)
 {
     void** args_a = (void**)args;
-    Index* obj = (Index*)(args_a[0]);
-    void* rawdata = args_a[1];
-    return (void*)(obj->add_data_v2(rawdata));
+    void* rawdata = args_a[0];
+    Index* obj = (Index*)(args_a[1]);
+    void* ret = (void*)(obj->add_data_v2(rawdata));
+    free(args);
+    return ret;
 }
 
 inline void Index::add_data_v(void* rawdata)
@@ -304,8 +307,11 @@ inline void Index::add_data_v(void* rawdata)
     }
     else
     {
-        void* args[2] = { this, rawdata };
-        scheduler->add_work(&(add_data_v_wrapper), args, NULL, Scheduler::NONE);
+        void** args;
+        SAFE_MALLOC(void**, args, sizeof(void*) + sizeof(Index*));
+        args[0] = rawdata;
+        args[1] = this;
+        scheduler->add_work(add_data_v_wrapper, args, NULL, luid_val, Scheduler::NONE);
     }
 }
 

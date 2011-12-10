@@ -103,6 +103,11 @@ private:
     };
 
     std::deque<struct Scheduler::workload*> base;
+    
+    // "in_tree" contains whether or not a queue has been pushed from the scheduler's
+    // tree due to being empty. A queue that is temporarily out of the scheduler's
+    // tree due to an in-progress workload will not have this value changed unless
+    // the queue is empty when it is due to re-insertion into the tree.
     bool in_tree;
     uint16_t flags;
     uint64_t last_high;

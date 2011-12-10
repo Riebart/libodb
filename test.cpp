@@ -114,7 +114,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::BANK_DS, prune_2, element_size);
+            odb = new ODB(ODB::BANK_DS, element_size, prune_2);
             break;
         }
         case 1:
@@ -138,7 +138,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         {
         case 0:
         {
-            odb = new ODB(ODB::LINKED_LIST_DS, prune_2, element_size);
+            odb = new ODB(ODB::LINKED_LIST_DS, element_size, prune_2);
             break;
         }
         case 1:

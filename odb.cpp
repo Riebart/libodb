@@ -25,7 +25,6 @@
 #include "linkedlistds.hpp"
 
 #define SLEEP_DURATION 60
-#define DEFAULT_FLAGS DataStore::TIME_STAMP | DataStore::QUERY_COUNT
 
 using namespace std;
 
@@ -106,12 +105,11 @@ void * mem_checker(void * arg)
     }
 
     return NULL;
-
 }
 
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
+ODB::ODB(FixedDatastoreType dt, uint32_t _datalen, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL");
     }
@@ -122,12 +120,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
     {
     case BANK_DS:
     {
-        datastore = new BankDS(NULL, prune, _datalen, DEFAULT_FLAGS);
+        datastore = new BankDS(NULL, prune, _datalen, _flags);
         break;
     }
     case LINKED_LIST_DS:
     {
-        datastore = new LinkedListDS(NULL, prune, _datalen, DEFAULT_FLAGS);
+        datastore = new LinkedListDS(NULL, prune, _datalen, _flags);
         break;
     }
     default:
@@ -137,7 +135,6 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
     }
 
     init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
-
 
 #if (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
@@ -149,9 +146,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint32_t _datalen,
 #endif
 }
 
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
@@ -162,12 +159,12 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32
     {
     case BANK_DS:
     {
-        datastore = new BankDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new BankDS(NULL, prune, datalen, _flags);
         break;
     }
     case LINKED_LIST_DS:
     {
-        datastore = new LinkedListDS(NULL, prune, datalen, DEFAULT_FLAGS);
+        datastore = new LinkedListDS(NULL, prune, datalen, _flags);
         break;
     }
     default:
@@ -179,9 +176,9 @@ ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32
     init(datastore, _ident, _datalen, _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
@@ -192,12 +189,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     {
     case BANK_I_DS:
     {
-        datastore = new BankIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new BankIDS(NULL, prune, _flags);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        datastore = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new LinkedListIDS(NULL, prune, _flags);
         break;
     }
     default:
@@ -218,9 +215,9 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 #endif
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
@@ -231,12 +228,12 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     {
     case BANK_I_DS:
     {
-        datastore = new BankIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new BankIDS(NULL, prune, _flags);
         break;
     }
     case LINKED_LIST_I_DS:
     {
-        datastore = new LinkedListIDS(NULL, prune, DEFAULT_FLAGS);
+        datastore = new LinkedListIDS(NULL, prune, _flags);
         break;
     }
     default:
@@ -248,9 +245,9 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
@@ -261,7 +258,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     {
     case LINKED_LIST_V_DS:
     {
-        datastore = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
+        datastore = new LinkedListVDS(NULL, prune, len, _flags);
         break;
     }
     default:
@@ -282,9 +279,9 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 #endif
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
-    if (prune == NULL)
+    if ((prune == NULL) && (_sleep_duration > 0))
     {
         THROW_ERROR("NULL_PRUNE", "Pruning function cannot be NULL.");
     }
@@ -295,7 +292,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     {
     case LINKED_LIST_V_DS:
     {
-        datastore = new LinkedListVDS(NULL, prune, len, DEFAULT_FLAGS);
+        datastore = new LinkedListVDS(NULL, prune, len, _flags);
         break;
     }
     default:
@@ -519,32 +516,35 @@ IndexGroup* ODB::get_indexes()
 
 void ODB::remove_sweep()
 {
-    WRITE_LOCK();
-    vector<void*>** marked = data->remove_sweep(archive);
-
-    uint32_t n = tables.size();
-
-    if (n > 0)
+    if (data->prune != NULL)
     {
-        if (n == 1)
+        WRITE_LOCK();
+        vector<void*>** marked = data->remove_sweep(archive);
+
+        uint32_t n = tables.size();
+
+        if (n > 0)
         {
-            tables[0]->remove_sweep(marked[0]);
-        }
-        else
-// #pragma omp parallel for
-            for (uint32_t i = 0 ; i < n ; i++)
+            if (n == 1)
             {
-                tables[i]->remove_sweep(marked[0]);
+                tables[0]->remove_sweep(marked[0]);
             }
+            else
+// #pragma omp parallel for
+                for (uint32_t i = 0 ; i < n ; i++)
+                {
+                    tables[i]->remove_sweep(marked[0]);
+                }
 
-        if (marked[2] != NULL)
-        {
-            update_tables(marked[2], marked[3]);
+            if (marked[2] != NULL)
+            {
+                update_tables(marked[2], marked[3]);
+            }
         }
-    }
 
-    data->remove_cleanup(marked);
-    WRITE_UNLOCK();
+        data->remove_cleanup(marked);
+        WRITE_UNLOCK();
+    }
 }
 
 void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
@@ -633,6 +633,11 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
     {
         return scheduler->update_num_threads(num_threads);
     }
+}
+
+void ODB::block_until_done()
+{
+    scheduler->block_until_done();
 }
 
 Iterator * ODB::it_first()

@@ -655,8 +655,8 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb, * entropies;
 
-    odb = new ODB(ODB::BANK_DS, prune, sizeof(struct tcpip));
-    entropies = new ODB(ODB::BANK_DS, null_prune, sizeof(struct entropy_stats));
+    odb = new ODB(ODB::BANK_DS, sizeof(struct tcpip), prune);
+    entropies = new ODB(ODB::BANK_DS, sizeof(struct entropy_stats), null_prune);
 
     Index * entropy_ts_index;
 
@@ -676,6 +676,8 @@ int main(int argc, char *argv[])
     INDEX_MACRO(flags_index, compare_flags, merge_flags);
     INDEX_MACRO(win_size_index, compare_win_size, merge_win_size);
     INDEX_MACRO(payload_len_index, compare_payload_len, merge_payload_len);
+
+    odb->start_scheduler(2);
 
     entropy_ts_index = entropies->create_index(ODB::LINKED_LIST, ODB::NONE, compare_timestamp);
 
