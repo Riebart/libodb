@@ -84,9 +84,16 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc"
     add_definitions(-DSYSTEM_NAME_DARWIN)
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
 
-#this is probably the wrong way to do this: setting compile-time defines
-add_definitions(-DENABLE_PTHREAD_LOCKS)
-add_definitions(-DPTHREAD_RW_LOCKS)
+set(LIBS ${LIBS} odb pthread)
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    find_library(TCMALLOC_LIB tcmalloc_minimal)
+    if(${TCMALLOC_LIB} MATCHES "tcmalloc")
+        message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
+#        list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
+#        list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+    endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
@@ -109,16 +116,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
 
-set(LIBS ${LIBS} odb pthread)
-
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-    find_library(TCMALLOC_LIB tcmalloc_minimal)
-    if(${TCMALLOC_LIB} MATCHES "tcmalloc")
-	message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
-#	list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
-#	list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
-    endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+#this is probably the wrong way to do this: setting compile-time defines
+add_definitions(-DENABLE_PTHREAD_LOCKS)
+add_definitions(-DPTHREAD_RW_LOCKS)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through

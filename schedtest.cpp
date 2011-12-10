@@ -151,7 +151,7 @@ void test4()
     fflush(stdout);
     
     clock_gettime(CLOCK_MONOTONIC, &start);
-    for (int i = 0 ; i < N ; i++)
+    for (uint64_t i = 0 ; i < N ; i++)
     {
         uint64_t* v = (uint64_t*)malloc(sizeof(uint64_t));
         *v = cmwc_next(&cmwc) + ((uint64_t)(cmwc_next(&cmwc)) << 32);
@@ -191,10 +191,10 @@ int main (int argc, char ** argv)
 //     printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-    N = 100000;
+    N = 1;
     num_cycles = 0;
     num_indices = 2;
-    num_consumers = 3;
+    num_consumers = 1;
     test4();
     printf("\n");
 

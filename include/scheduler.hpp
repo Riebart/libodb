@@ -46,7 +46,7 @@ class LFQueue;
 
 class Scheduler
 {
-    friend void* scheduler_thread_start(void* args_v);
+    friend void* scheduler_worker_thread(void* args_v);
     friend int32_t compare_workqueue(void* aV, void* bV);
 
     friend class LFQueue;
@@ -149,6 +149,7 @@ private:
     pthread_cond_t block_cond;
 
     uint32_t num_threads;
+    volatile uint32_t num_threads_parked;
     pthread_t* threads;
     struct thread_args** t_args;
 

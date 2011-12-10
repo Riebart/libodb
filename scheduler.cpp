@@ -4,23 +4,25 @@
 
 #warning "Doesn't take ALL flags into account yet. Some work."
 
-void* scheduler_thread_start(void* args_v)
+void* scheduler_worker_thread(void* args_v)
 {
     struct Scheduler::workload* work;
     struct Scheduler::thread_args* args = (struct Scheduler::thread_args*)args_v;
-
+    
     while (true)
     {
         PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
 
-        while ((args->scheduler->root->count == 0) && (args->scheduler->work_avail == 0) && (args->run))
+        while ((args->scheduler->root->count == 0) && (args->run))
         {
             // Before we sleep, we should wake up anything waiting on the block
             pthread_cond_signal(&(args->scheduler->block_cond));
             
+            args->scheduler->num_threads_parked++;
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
             pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
+            args->scheduler->num_threads_parked--;
         }
 
         if (!args->run)
@@ -29,7 +31,7 @@ void* scheduler_thread_start(void* args_v)
             break;
         }
 
-        work = (((args->scheduler->root->count > 0) && (args->scheduler->work_avail > 0)) ? args->scheduler->get_work() : NULL);
+        work = ((args->scheduler->root->count > 0) ? args->scheduler->get_work() : NULL);
 
         PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
 
@@ -83,8 +85,8 @@ void* scheduler_thread_start(void* args_v)
 /// and the queue itself.
 int32_t compare_workqueue(void* aV, void* bV)
 {
-    LFQueue* a = reinterpret_cast<LFQueue*>(aV);
-    LFQueue* b = reinterpret_cast<LFQueue*>(bV);
+    LFQueue* a = (reinterpret_cast<struct Scheduler::tree_node*>(aV))->queue;
+    LFQueue* b = (reinterpret_cast<struct Scheduler::tree_node*>(bV))->queue;
 
     int32_t ret;
 
@@ -125,6 +127,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
     work_counter = 1;
     work_avail = 0;
     this->num_threads = _num_threads;
+    num_threads_parked = 0;
     pthread_cond_init(&work_cond, NULL);
     pthread_cond_init(&block_cond, NULL);
     indep = new LFQueue();
@@ -143,7 +146,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
         t_args[i]->scheduler = this;
         t_args[i]->counter = 0;
 
-        pthread_create(&(threads[i]), NULL, &scheduler_thread_start, t_args[i]);
+        pthread_create(&(threads[i]), NULL, scheduler_worker_thread, t_args[i]);
     }
 }
 
@@ -283,7 +286,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
             t_args[i]->scheduler = this;
             t_args[i]->counter = 0;
 
-            pthread_create(&(threads[i]), NULL, &scheduler_thread_start, t_args[i]);
+            pthread_create(&(threads[i]), NULL, scheduler_worker_thread, t_args[i]);
         }
     }
     else
@@ -390,7 +393,7 @@ void Scheduler::block_until_done()
 {
     PTHREAD_SIMPLE_WRITE_LOCK();
     
-    while (work_avail > 0)
+    while ((work_avail > 0) && (num_threads_parked < num_threads))
     {
         pthread_cond_wait(&block_cond, &lock);
     }

@@ -19,7 +19,7 @@
 
 class LFQueue
 {
-    friend void* scheduler_thread_start(void* args_v);
+    friend void* scheduler_worker_thread(void* args_v);
     friend int32_t compare_workqueue(void* aV, void* bV);
 
     friend class Scheduler;
