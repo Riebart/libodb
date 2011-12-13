@@ -402,9 +402,16 @@ void Scheduler::block_until_done()
 {
     PTHREAD_SIMPLE_WRITE_LOCK();
     
-    while ((true) && (root->count > 0) && (num_threads_parked < num_threads))
+    while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
     {
         pthread_cond_wait(&block_cond, &lock);
+//         printf("!!! %lu %lu %u\n", work_avail, root->count, num_threads_parked);
+        PTHREAD_SIMPLE_WRITE_UNLOCK();
+        
+        if (pthread_mutex_trylock(&lock) == 0)
+        {
+            break;
+        }
     }
     
     PTHREAD_SIMPLE_WRITE_UNLOCK();

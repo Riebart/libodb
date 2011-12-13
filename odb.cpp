@@ -361,6 +361,12 @@ ODB::~ODB()
     }
 
     WRITE_LOCK();
+    
+    if (scheduler != NULL)
+    {
+        delete scheduler;
+    }
+    
     delete all;
     delete data;
     delete dataobj;
@@ -379,11 +385,6 @@ ODB::~ODB()
         curr = tables.back();
         tables.pop_back();
         delete curr;
-    }
-
-    if (scheduler != NULL)
-    {
-        delete scheduler;
     }
 
     WRITE_UNLOCK();

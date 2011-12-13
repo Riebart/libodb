@@ -149,7 +149,6 @@ void test4()
     odb.start_scheduler(num_consumers);
     clock_gettime(CLOCK_MONOTONIC, &end);
     
-    proc_time += TIME_DIFF();
     printf("done (%g s)\nInserting items... ", TIME_DIFF());
     fflush(stdout);
     
@@ -174,7 +173,8 @@ void test4()
     printf("done (%g s)\n", TIME_DIFF());
     fflush(stdout);
     
-    printf("Processing rate (%lu x %d @ %d): %g\n", N, num_indices, num_cycles, (N * num_indices) / proc_time);
+    printf("Processing rate (%lu x %d @ %d): %g /s\nDestroying... ", N, num_indices, num_cycles, (N * num_indices) / proc_time);
+    fflush(stdout);
 }
 
 int main (int argc, char ** argv)
@@ -183,27 +183,27 @@ int main (int argc, char ** argv)
     // A mid-size workload is about 1000 cycles and corresponds to about 200k/s on a Core2Duo 2.5GHz T9300.
     num_cycles = 1000;
     N = RUN_TIME / num_cycles;
-    num_consumers = 3;
+    num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance
-//     test1();
-//     printf("\n");
+    test1();
+    printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance
-//     test2();
-//     printf("\n");
+    test2();
+    printf("\n");
     
 /// TEST3: Scheduled deferred performance
-//     test3();
-//     printf("\n");
+    test3();
+    printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-    N = 3;
-    num_cycles = 100000000;
+    N = 10000000;
+    num_cycles = 0;
     num_indices = 1;
     num_consumers = 2;
     test4();
-    printf("\n");
+    printf("done\n");
 
     return EXIT_SUCCESS;
 }
