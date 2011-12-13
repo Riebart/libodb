@@ -16,9 +16,9 @@ void* scheduler_worker_thread(void* args_v)
         while ((args->scheduler->root->count == 0) && (args->run))
         {
             // Before we sleep, we should wake up anything waiting on the block
+            args->scheduler->num_threads_parked++;
             pthread_cond_signal(&(args->scheduler->block_cond));
             
-            args->scheduler->num_threads_parked++;
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
             pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
@@ -108,15 +108,22 @@ int32_t compare_workqueue(void* aV, void* bV)
         }
         else
         {
+            uint64_t aid = a->peek()->id;
+            uint64_t bid = b->peek()->id;
+            
             // Now we're stuck comparing the IDs of the head workloads.
-            if (a->peek()->id > b->peek()->id) // If existing ID is lower than this one.
+            if (aid > bid) // If existing ID is lower than this one.
             {
                 // Then this one one is a higher priority;
                 return 1;
             }
-            else
+            else if (aid < bid)
             {
                 return -1;
+            }
+            else
+            {
+                return 0;
             }
         }
     }
@@ -195,7 +202,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work->flags = flags;
 
     indep->push_back(work);
-
+    
     if (!indep->in_tree)
     {
         RedBlackTreeI::e_add(root, indep->tree_node);
@@ -389,11 +396,13 @@ struct Scheduler::workload* Scheduler::get_work()
     return first_work;
 }
 
+// Be careful about using this: This will wake up if all queues are momentarily exhausted, even though more work is in the pipe.
+// Do not assume that just because this function returned that no work is being processed.
 void Scheduler::block_until_done()
 {
     PTHREAD_SIMPLE_WRITE_LOCK();
     
-    while ((work_avail > 0) && (num_threads_parked < num_threads))
+    while ((true) && (root->count > 0) && (num_threads_parked < num_threads))
     {
         pthread_cond_wait(&block_cond, &lock);
     }

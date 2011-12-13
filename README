@@ -3,5 +3,3 @@ This is the repo for Travis and Mike's project.
 To build:
 cmake .
 make
-
-Fixed a bug in the scheduler that was causing it to prematurely wake up from the conditional wait due to a spurious value in work_avail. The conditional now only checks to see if there is a queue in the tree, which is a necessary and sufficient condition anyway.

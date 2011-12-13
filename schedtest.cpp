@@ -126,6 +126,8 @@ void test4()
     struct timespec start, end;
     struct cmwc_state cmwc;
     
+    double proc_time = 0;
+    
     cmwc_init(&cmwc);
     
     ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
@@ -147,6 +149,7 @@ void test4()
     odb.start_scheduler(num_consumers);
     clock_gettime(CLOCK_MONOTONIC, &end);
     
+    proc_time += TIME_DIFF();
     printf("done (%g s)\nInserting items... ", TIME_DIFF());
     fflush(stdout);
     
@@ -159,6 +162,7 @@ void test4()
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
     
+    proc_time += TIME_DIFF();
     printf("done (%g s)\nBlocking... ", TIME_DIFF());
     fflush(stdout);
     
@@ -166,8 +170,11 @@ void test4()
     odb.block_until_done();
     clock_gettime(CLOCK_MONOTONIC, &end);
     
+    proc_time += TIME_DIFF();
     printf("done (%g s)\n", TIME_DIFF());
     fflush(stdout);
+    
+    printf("Processing rate (%lu x %d @ %d): %g\n", N, num_indices, num_cycles, (N * num_indices) / proc_time);
 }
 
 int main (int argc, char ** argv)
@@ -191,10 +198,10 @@ int main (int argc, char ** argv)
 //     printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-    N = 1;
-    num_cycles = 0;
-    num_indices = 2;
-    num_consumers = 1;
+    N = 3;
+    num_cycles = 100000000;
+    num_indices = 1;
+    num_consumers = 2;
     test4();
     printf("\n");
 

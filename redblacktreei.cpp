@@ -408,7 +408,8 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
 
             // At the moment no duplicates are allowed.
             // Currently this also handles the general stopping case.
-            c = compare->compare(rawdata, i);
+            c = (ret ? 0 : compare->compare(rawdata, i));
+            
             if (c == 0)
             {
                 // If we haven't added the node...
