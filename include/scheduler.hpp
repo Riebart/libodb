@@ -17,14 +17,21 @@
 #include "lock.hpp"
 #include "redblacktreei.hpp"
 
+#define SCHED_MLOCK() pthread_mutex_lock(&mlock)
+#define SCHED_MLOCK_P(x) pthread_mutex_lock(&(x->mlock))
+#define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
+#define SCHED_MUNLOCK_P(x) pthread_mutex_unlock(&(x->mlock))
+#define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
+#define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
+#define SCHED_MLOCK_T pthread_mutex_t mlock
 
-#define SCHED_LOCK() PTHREAD_SIMPLE_WRITE_LOCK()
-#define SCHED_LOCK_P(p) PTHREAD_SIMPLE_WRITE_LOCK_P(p)
-#define SCHED_UNLOCK() PTHREAD_SIMPLE_WRITE_UNLOCK()
-#define SCHED_UNLOCK_P(p) PTHREAD_SIMPLE_WRITE_UNLOCK_P(p)
-#define SCHED_LOCK_T PTHREAD_SIMPLE_RWLOCK_T
-#define SCHED_LOCK_INIT() PTHREAD_SIMPLE_RWLOCK_INIT()
-#define SCHED_LOCK_DESTROY() PTHREAD_SIMPLE_RWLOCK_DESTROY()
+#define SCHED_LOCK() PTHREAD_SPIN_LOCK()
+#define SCHED_LOCK_P(p) PTHREAD_SPIN_LOCK_P(p)
+#define SCHED_UNLOCK() PTHREAD_SPIN_UNLOCK()
+#define SCHED_UNLOCK_P(p) PTHREAD_SPIN_UNLOCK_P(p)
+#define SCHED_LOCK_T PTHREAD_SPIN_LOCK_T
+#define SCHED_LOCK_INIT() PTHREAD_SPIN_LOCK_INIT()
+#define SCHED_LOCK_DESTROY() PTHREAD_SPIN_LOCK_DESTROY()
 
 // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
 // #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
@@ -182,6 +189,7 @@ private:
     LFQueue* indep;
 
     SCHED_LOCK_T;
+    SCHED_MLOCK_T;
 };
 
 #endif

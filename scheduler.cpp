@@ -17,9 +17,9 @@ void* scheduler_worker_thread(void* args_v)
             break;
         }
 
-        SCHED_LOCK_P(args->scheduler);
+        SCHED_MLOCK_P(args->scheduler);
 
-        while ((args->scheduler->root->count == 0) && (args->run))
+        while ((args->scheduler->root->count == 0) && (args->scheduler->work_avail == 0) &&  (args->run))
         {
             // Before we sleep, we should wake up anything waiting on the block
             args->scheduler->num_threads_parked++;
@@ -27,19 +27,18 @@ void* scheduler_worker_thread(void* args_v)
 
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
-            pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
+            pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->mlock));
             args->scheduler->num_threads_parked--;
         }
 
+        SCHED_MUNLOCK_P(args->scheduler);
+
         if (!args->run)
         {
-            SCHED_UNLOCK_P(args->scheduler);
             break;
         }
 
         work = ((args->scheduler->root->count > 0) ? args->scheduler->get_work() : NULL);
-
-        SCHED_UNLOCK_P(args->scheduler);
 
         if (work != NULL)
         {
@@ -150,6 +149,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
 
     root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
     SCHED_LOCK_INIT();
+    SCHED_MLOCK_INIT();
 
     for (uint32_t i = 0 ; i < num_threads ; i++)
     {
@@ -174,6 +174,7 @@ Scheduler::~Scheduler()
 #warning "Need to free the data used by the workqueues and their wokloads here."
     RedBlackTreeI::e_destroy_tree(root, NULL);
     SCHED_LOCK_DESTROY();
+    SCHED_MLOCK_DESTROY();
 }
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
@@ -344,6 +345,8 @@ LFQueue* Scheduler::find_queue(uint64_t class_id)
 
 struct Scheduler::workload* Scheduler::get_work()
 {
+    SCHED_LOCK();
+
     struct workload* first_work = NULL;
     void* first_queue = RedBlackTreeI::e_pop_first(root);
 
@@ -378,6 +381,8 @@ struct Scheduler::workload* Scheduler::get_work()
         work_avail--;
     }
 
+    SCHED_UNLOCK();
+
     return first_work;
 }
 
@@ -387,20 +392,20 @@ void Scheduler::block_until_done()
 {
 #define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
 
-    SCHED_LOCK();
+    SCHED_MLOCK();
 
     while (___LOOP_COND)
     {
-        pthread_cond_wait(&block_cond, &lock);
+        pthread_cond_wait(&block_cond, &mlock);
 
         // If we still pass the looping condition, we can skip the trylock.
         if (!(___LOOP_COND))
         {
             // Unlock.
-            SCHED_UNLOCK();
+//             SCHED_MUNLOCK();
 
-            // Try to lock again
-            if (pthread_mutex_trylock(&lock) == 0)
+            // Try to spinlock to see if anything is contending for spinlock access
+            if (pthread_spin_trylock(&lock) == 0)
             {
                 // If we succeed, then unlock and return;
                 SCHED_UNLOCK();
@@ -408,11 +413,13 @@ void Scheduler::block_until_done()
             }
             else
             {
-                // If we fail, we need to reacquire the lock so we can go back to waiting.
-                SCHED_LOCK();
+                // If we fail, we need to reacquire the mlock so we can go back to waiting.
+//                 SCHED_MLOCK();
             }
         }
     }
+
+    SCHED_MUNLOCK();
 }
 
 uint64_t Scheduler::get_num_complete()

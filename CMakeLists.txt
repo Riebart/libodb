@@ -119,7 +119,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
 #this is probably the wrong way to do this: setting compile-time defines
 add_definitions(-DENABLE_PTHREAD_LOCKS)
 add_definitions(-DENABLE_GOOGLE_LOCKS)
-add_definitions(-DPTHREAD_RW_LOCKS)
+add_definitions(-DPTHREAD_SPIN_LOCKS)
 
 # Recurse into the "Hello" and "Demo" subdirectories.  This does not actually
 # cause another cmake executable to run.  The same process will walk through

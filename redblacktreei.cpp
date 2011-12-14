@@ -143,9 +143,9 @@ int RedBlackTreeI::e_rbt_verify(struct e_tree_root* root)
 #ifdef VERBOSE_RBT_VERIFY
     printf("TreePlot[{");
 #endif
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+    READ_LOCK_P(root);
     int ret = rbt_verify_n((struct tree_node*)(root->data), root->compare, true);
-    PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+    READ_UNLOCK_P(root);
 #ifdef VERBOSE_RBT_VERIFY
     printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
@@ -242,14 +242,14 @@ struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicat
     root->drop_duplicates = drop_duplicates;
     root->count = 0;
 
-    PTHREAD_SIMPLE_RWLOCK_INIT_P(root);
+    RWLOCK_INIT_P(root);
 
     return root;
 }
 
 void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void (*freep)(void*))
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    WRITE_LOCK_P(root);
 
     if (freep != NULL)
     {
@@ -264,14 +264,14 @@ void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void
 
     free(root->false_root);
     free(root->sub_false_root);
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
-    PTHREAD_SIMPLE_RWLOCK_DESTROY_P(root);
+    WRITE_UNLOCK_P(root);
+    RWLOCK_DESTROY_P(root);
     free(root);
 }
 
 bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    WRITE_LOCK_P(root);
 
     bool something_added = false;
 
@@ -290,14 +290,14 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
         something_added = true;
     }
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    WRITE_UNLOCK_P(root);
 
     return something_added;
 }
 
 bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawdata, void** del_node)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    WRITE_LOCK_P(root);
 
     root->data = e_remove_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata, del_node);
     //(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
@@ -310,7 +310,7 @@ bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawd
 
     root->count -= ret;
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    WRITE_UNLOCK_P(root);
     return ret;
 }
 
@@ -1316,7 +1316,7 @@ inline Iterator* RedBlackTreeI::it_first()
 
 Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+    READ_LOCK_P(root);
     return e_it_first((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
@@ -1407,7 +1407,7 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
 
 void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    WRITE_LOCK_P(root);
 
     void* del_node;
     root->data = e_pop_first_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->drop_duplicates, &del_node);
@@ -1417,7 +1417,7 @@ void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
         root->count--;
     }
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    WRITE_UNLOCK_P(root);
 
     return del_node;
 }
@@ -1600,7 +1600,7 @@ inline Iterator* RedBlackTreeI::it_last()
 
 Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+    READ_LOCK_P(root);
     return e_it_last((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
@@ -1703,7 +1703,7 @@ inline Iterator* RedBlackTreeI::it_lookup(void* rawdata, int8_t dir)
 
 Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::e_tree_root* root, void* rawdata, int8_t dir)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+    READ_LOCK_P(root);
     return e_it_lookup((struct tree_node*)(root->data), root->drop_duplicates, root->compare, rawdata, dir);
 }
 
@@ -1947,7 +1947,7 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
 void RedBlackTreeI::e_it_release(struct RedBlackTreeI::e_tree_root* root, Iterator* it)
 {
     delete it;
-    PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+    READ_UNLOCK_P(root);
 }
 
 RBTIterator::RBTIterator()

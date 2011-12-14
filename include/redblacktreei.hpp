@@ -34,7 +34,7 @@ public:
         Merger* merge;
         bool drop_duplicates;
         uint64_t count;
-        PTHREAD_SIMPLE_RWLOCK_T;
+        LOCK_T;
     };
 
     ~RedBlackTreeI();

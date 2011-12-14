@@ -145,26 +145,26 @@ void test4()
 {
     struct timespec start, end;
     struct cmwc_state cmwc;
-    
+
     double proc_time = 0;
-    
+
     cmwc_init(&cmwc, 123456789);
-    
+
     ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
-    
+
     printf("= ODB Uncheduled Performance Run =\nCreating index tables... ");
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     for (int i = 0 ; i < num_indices ; i++)
     {
         odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_test4);
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("done (%g s)\nInserting items... ", TIME_DIFF());
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     for (uint64_t i = 0 ; i < N ; i++)
     {
@@ -173,11 +173,11 @@ void test4()
         odb.add_data(v);
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     proc_time += TIME_DIFF();
     printf("done (%g s)\n", TIME_DIFF());
     fflush(stdout);
-    
+
     printf("Processing rate (%lu x %d @ %d): %g /s (%lu spins)\nDestroying... ",
            N,
            num_indices,
@@ -250,43 +250,43 @@ void test5()
 int main (int argc, char ** argv)
 {
     // A mid-size workload is about 1000 cycles and corresponds to about 200k/s on a Core2Duo 2.5GHz T9300.
-    num_cycles = 100;
+    num_cycles = 1000;
     N = RUN_TIME / num_cycles;
     num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance
-//     num_spin_waits = 0;
-//     test1();
-//     printf("\n");
+    num_spin_waits = 0;
+    test1();
+    printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance
-//     num_spin_waits = 0;
-//     test2();
-//     printf("\n");
-    
-/// TEST3: Scheduled deferred performance
-//     num_spin_waits = 0;
-//     test3();
-//     printf("\n");
+    num_spin_waits = 0;
+    test2();
+    printf("\n");
 
-/// TEST4: Get a base line performance of TEST5 without scheduling.    
-    num_cycles = 1000;
-    num_indices = 1 * num_consumers;
+/// TEST3: Scheduled deferred performance
+    num_spin_waits = 0;
+    test3();
+    printf("\n");
+
+/// TEST4: Get a base line performance of TEST5 without scheduling.
+    num_cycles = 0;
+    num_indices = 2 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
-    N = 120000 * (2.0 / num_indices);
+    N = 12000000 * (2.0 / num_indices);
     num_spin_waits = 0;
     test4();
     printf("done\n\n");
-    
+
 /// TEST5: Test the code paths linking the ODB objects with the scheduler.
-    num_cycles = 1000;
-    num_indices = 1 * num_consumers;
+    num_cycles = 0;
+    num_indices = 2 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
-    N = 120000 * (2.0 / num_indices);
+    N = 12000000 * (2.0 / num_indices);
     num_spin_waits = 0;
     test5();
     printf("done\n\n");

@@ -14,22 +14,24 @@ defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SP
 #define PTHREAD_RW_WRITE_LOCK_P(x) pthread_rwlock_wrlock(&(x->rwlock))
 #define PTHREAD_RW_WRITE_UNLOCK() pthread_rwlock_unlock(&rwlock)
 #define PTHREAD_RW_WRITE_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
-#define PTHREAD_RW_LOCK()
-#define PTHREAD_RW_LOCK_P(x)
-#define PTHREAD_RW_UNLOCK()
-#define PTHREAD_RW_UNLOCK_P(x)
+
+// PTHREAD_RW_*LOCK*() makes no sense, don't use it.
+#define PTHREAD_RW_LOCK() int[-1];
+#define PTHREAD_RW_LOCK_P(x) int[-1];
+#define PTHREAD_RW_UNLOCK() int[-1];
+#define PTHREAD_RW_UNLOCK_P(x) int[-1];
 
 #define PTHREAD_RW_RWLOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
 #define PTHREAD_RW_RWLOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
-#define PTHREAD_RW_LOCK_INIT()
-#define PTHREAD_RW_LOCK_INIT_P(x)
+#define PTHREAD_RW_LOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
+#define PTHREAD_RW_LOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
 
 #define PTHREAD_RW_RWLOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
 #define PTHREAD_RW_RWLOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
-#define PTHREAD_RW_LOCK_DESTROY()
-#define PTHREAD_RW_LOCK_DESTROY_P(x)
+#define PTHREAD_RW_LOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
+#define PTHREAD_RW_LOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
 
-#define PTHREAD_RW_LOCK_T
+#define PTHREAD_RW_LOCK_T pthread_rwlock_t rwlock
 #define PTHREAD_RW_RWLOCK_T pthread_rwlock_t rwlock
 
 /* PTHREAD_SIMPLE */
@@ -99,8 +101,10 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_WRITE_LOCK_P(x) (x->lock).Lock()
 #define GOOGLE_SPIN_WRITE_UNLOCK() lock.Unlock()
 #define GOOGLE_SPIN_WRITE_UNLOCK_P(x) (x->lock).Unlock()
-#define GOOGLE_SPIN_LOCK()
-#define GOOGLE_SPIN_UNLOCK()
+#define GOOGLE_SPIN_LOCK() lock.Lock()
+#define GOOGLE_SPIN_LOCK_P(p) (x->lock).Lock()
+#define GOOGLE_SPIN_UNLOCK() lock.Unlock()
+#define GOOGLE_SPIN_UNLOCK_P(p) (x->lock).Unlock()
 
 #define GOOGLE_SPIN_RWLOCK_INIT()
 #define GOOGLE_SPIN_RWLOCK_INIT_P(x)
@@ -112,7 +116,7 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_LOCK_DESTROY()
 #define GOOGLE_SPIN_LOCK_DESTROY_P(x)
 
-#define GOOGLE_SPIN_LOCK_T
+#define GOOGLE_SPIN_LOCK_T SpinLock lock;
 #define GOOGLE_SPIN_RWLOCK_T SpinLock lock;
 #endif
 
@@ -142,7 +146,10 @@ defined(GOOGLE_SPIN_LOCKS)
 
 #define LOCK_T PTHREAD_RW_LOCK_T
 #define RWLOCK_T PTHREAD_RW_RWLOCK_T
+
+//==============================================================================
 #elif defined(PTHREAD_SIMPLE_LOCKS)
+
 #define READ_LOCK() PTHREAD_SIMPLE_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_SIMPLE_READ_LOCK_P(x)
 #define READ_UNLOCK() PTHREAD_SIMPLE_READ_UNLOCK()
@@ -168,7 +175,10 @@ defined(GOOGLE_SPIN_LOCKS)
 
 #define LOCK_T PTHREAD_SIMPLE_LOCK_T
 #define RWLOCK_T PTHREAD_SIMPLE_RWLOCK_T
+
+//==============================================================================
 #elif defined(PTHREAD_SPIN_LOCKS)
+
 #define READ_LOCK() PTHREAD_SPIN_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_SPIN_READ_LOCK_P(x)
 #define READ_UNLOCK() PTHREAD_SPIN_READ_UNLOCK()
@@ -194,7 +204,10 @@ defined(GOOGLE_SPIN_LOCKS)
 
 #define LOCK_T PTHREAD_SPIN_LOCK_T
 #define RWLOCK_T PTHREAD_SPIN_RWLOCK_T
+
+//==============================================================================
 #elif defined(GOOGLE_SPIN_LOCKS)
+
 #define READ_LOCK() GOOGLE_SPIN_READ_LOCK()
 #define READ_LOCK_P(x) GOOGLE_SPIN_READ_LOCK_P(x)
 #define READ_UNLOCK() GOOGLE_SPIN_READ_UNLOCK()
@@ -220,7 +233,10 @@ defined(GOOGLE_SPIN_LOCKS)
 
 #define LOCK_T GOOGLE_SPIN_LOCK_T
 #define RWLOCK_T GOOGLE_SPIN_RWLOCK_T
+
+//==============================================================================
 #else
+
 #define READ_LOCK()
 #define READ_LOCK_P(x)
 #define READ_UNLOCK()
