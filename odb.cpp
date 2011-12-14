@@ -396,7 +396,7 @@ ODB::~ODB()
 // removing an item from a datastore when the insertion into the index table failed.
 // What does it mean to fail an insertion into an index group?
 
-struct odb_sched_args
+struct sched_args
 {
     void* rawdata;
     ODB* odb;
@@ -404,8 +404,9 @@ struct odb_sched_args
 
 void* odb_sched_workload(void* argsV)
 {
-    struct odb_sched_args* args = (struct odb_sched_args*)argsV;
+    struct sched_args* args = (struct sched_args*)argsV;
     args->odb->all->add_data_v(args->rawdata);
+    free(args);
 }
 
 #warning "Look into why the comments are commented out in add_data."
@@ -417,8 +418,8 @@ void ODB::add_data(void* rawdata)
     }
     else
     {
-        struct odb_sched_args* args;
-        SAFE_MALLOC(struct odb_sched_args*, args, sizeof(struct odb_sched_args));
+        struct sched_args* args;
+        SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
         args->rawdata = data->add_data(rawdata);
         args->odb = this;
         scheduler->add_work(odb_sched_workload, args, NULL, Scheduler::NONE);
@@ -506,8 +507,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     }
 
     new_index->parent = data;
-//     new_index->scheduler = scheduler;
-    new_index->scheduler = NULL;
+    new_index->scheduler = scheduler;
     tables.push_back(new_index);
 
     if (!do_not_add_to_all)
@@ -533,6 +533,7 @@ bool ODB::delete_index(Index* index)
 IndexGroup* ODB::create_group()
 {
     IndexGroup* g = new IndexGroup(ident, data);
+    g->scheduler = scheduler;
 
     WRITE_LOCK();
     groups.push_back(g);
@@ -654,8 +655,12 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
 
         for (uint32_t i = 0 ; i < tables.size() ; i++)
         {
-//             tables[i]->scheduler = scheduler;
-            tables[i]->scheduler = NULL;
+            tables[i]->scheduler = scheduler;
+        }
+
+        for (uint32_t i = 0 ; i < groups.size() ; i++)
+        {
+            groups[i]->scheduler = scheduler;
         }
 
         WRITE_UNLOCK();

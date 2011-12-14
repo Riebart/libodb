@@ -397,7 +397,7 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         }
     }
 
-//#warning "TODO: Make this more efficient? See Comment."
+#warning "TODO: Make this more efficient? See Comment."
 // I had a note here to replace something with a vector and then use a binary
 // search... We're already using a vector, and we're not looking for anything?
 // This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)

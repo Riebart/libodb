@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
-//#warning "TODO: Do something like the comparators for the free() function we're passing around."
+#warning "TODO: Do something like the comparators for the free() function we're passing around."
 class Condition
 {
 public:

@@ -40,9 +40,10 @@ class ODB
 
     /// Allows the scheduled workload from ODB to access the private members.
     friend void* odb_sched_workload(void* argsV);
+    friend void* ig_sched_workload(void* argsV);
 
 public:
-//#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
+#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexFlags;
 
     /// Enum defining the specific index implementations available.

@@ -255,38 +255,38 @@ int main (int argc, char ** argv)
     num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance
-    num_spin_waits = 0;
-    test1();
-    printf("\n");
+//     num_spin_waits = 0;
+//     test1();
+//     printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance
-    num_spin_waits = 0;
-    test2();
-    printf("\n");
+//     num_spin_waits = 0;
+//     test2();
+//     printf("\n");
 
 /// TEST3: Scheduled deferred performance
-    num_spin_waits = 0;
-    test3();
-    printf("\n");
+//     num_spin_waits = 0;
+//     test3();
+//     printf("\n");
 
 /// TEST4: Get a base line performance of TEST5 without scheduling.
-    num_cycles = 0;
-    num_indices = 2 * num_consumers;
-    // A total count of 20-million uses about 1.5Gb of memory.
-    // Modulating it so that we are as close to 20-million as possible, across
-    // all index tables will maintain memory usage.
-    N = 12000000 * (2.0 / num_indices);
-    num_spin_waits = 0;
-    test4();
-    printf("done\n\n");
+//     num_cycles = 1;
+//     num_indices = 25 * num_consumers;
+//     // A total count of 20-million uses about 1.5Gb of memory.
+//     // Modulating it so that we are as close to 20-million as possible, across
+//     // all index tables will maintain memory usage.
+//     N = 120000 * (2.0 / num_indices);
+//     num_spin_waits = 0;
+//     test4();
+//     printf("done\n\n");
 
 /// TEST5: Test the code paths linking the ODB objects with the scheduler.
-    num_cycles = 0;
-    num_indices = 2 * num_consumers;
+    num_cycles = 1;
+    num_indices = 25 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
-    N = 12000000 * (2.0 / num_indices);
+    N = 1200000 * (2.0 / num_indices);
     num_spin_waits = 0;
     test5();
     printf("done\n\n");

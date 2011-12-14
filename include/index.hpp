@@ -16,8 +16,8 @@ class Merger;
 class Iterator;
 class Index;
 
-//#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
-//#warning "TODO: Batch insertions for index tables. At least LL."
+#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
+#warning "TODO: Batch insertions for index tables. At least LL."
 
 class DataObj
 {
@@ -77,6 +77,7 @@ class IndexGroup
 
     /// Allow the ODB scheduled workload to access the add_data_v function.
     friend void* odb_sched_workload(void* argsV);
+    friend void* ig_sched_workload(void* argsV);
 
 public:
     virtual ~IndexGroup();
@@ -92,7 +93,7 @@ public:
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
     virtual int get_ident();
-//#warning "TODO: Add a recursive flavour of size() (See comment)"
+#warning "TODO: Add a recursive flavour of size() (See comment)"
     //It will have to return the number of items
     //in all contained indices though. Is there a way to stop before indices at
     //the last layer of IndexGroups?
@@ -104,6 +105,8 @@ protected:
 
     int ident;
     DataStore* parent;
+
+    Scheduler* scheduler;
 
     virtual void add_data_v(void* data);
     virtual void query(Condition* condition, DataStore* ds);
@@ -173,7 +176,6 @@ protected:
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-    Scheduler* scheduler;
     Comparator* compare;
     Merger* merge;
     uint64_t count;

@@ -697,7 +697,7 @@ int main(int argc, char** argv)
     // This should standardize between the operating systems how the random number generator is seeded.
     srand(0);
 
-//#warning "TODO: Validity checks in option parsing"
+#warning "TODO: Validity checks in option parsing"
     while ( (ch = getopt(argc, argv, "ai:m:o:v")) != -1)
     {
         switch (ch)

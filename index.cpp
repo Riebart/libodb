@@ -39,6 +39,7 @@ IndexGroup::IndexGroup(int _ident, DataStore* _parent)
 {
     this->ident = _ident;
     this->parent = _parent;
+    scheduler = NULL;
 }
 
 bool IndexGroup::add_index(IndexGroup* ig)
@@ -115,13 +116,37 @@ vector<Index*>* IndexGroup::flatten(vector<Index*>* list)
     return list;
 }
 
+struct sched_args
+{
+    void* rawdata;
+    IndexGroup* ig;
+};
+
+void* ig_sched_workload(void* argsV)
+{
+    struct sched_args* args = (struct sched_args*)argsV;
+    args->ig->add_data_v(args->rawdata);
+    free(args);
+}
+
 inline void IndexGroup::add_data(DataObj* data)
 {
     // If it passes integrity checks, add it to the group.
     if (data->ident == ident)
     {
         // Since any indices or index groups in here have passed integrity checks already, we can fall back to add_data_v.
-        add_data_v(data->data);
+        if (scheduler == NULL)
+        {
+            add_data_v(data->data);
+        }
+        else
+        {
+            struct sched_args* args;
+            SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
+            args->rawdata = data->data;
+            args->ig = this;
+            scheduler->add_work(ig_sched_workload, args, NULL, Scheduler::NONE);
+        }
     }
 }
 
@@ -294,6 +319,7 @@ Index::Index()
     char buf[20];
     sprintf(buf, "%p", this);
     luid_val = strtoull(buf, &end, 16);
+    scheduler = NULL;
 }
 
 inline void Index::add_data(DataObj* data)
@@ -333,18 +359,18 @@ void* add_data_v_wrapper(void* args)
 
 inline void Index::add_data_v(void* rawdata)
 {
-    if (scheduler == NULL)
-    {
-        add_data_v2(rawdata);
-    }
-    else
-    {
-        void** args;
-        SAFE_MALLOC(void**, args, sizeof(void*) + sizeof(Index*));
-        args[0] = rawdata;
-        args[1] = this;
-        scheduler->add_work(add_data_v_wrapper, args, NULL, luid_val, Scheduler::NONE);
-    }
+//     if (scheduler == NULL)
+//     {
+    add_data_v2(rawdata);
+//     }
+//     else
+//     {
+//         void** args;
+//         SAFE_MALLOC(void**, args, sizeof(void*) + sizeof(Index*));
+//         args[0] = rawdata;
+//         args[1] = this;
+//         scheduler->add_work(add_data_v_wrapper, args, NULL, luid_val, Scheduler::NONE);
+//     }
 }
 
 bool Index::add_data_v2(void* rawdata)

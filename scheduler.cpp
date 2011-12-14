@@ -390,31 +390,21 @@ struct Scheduler::workload* Scheduler::get_work()
 // Do not assume that just because this function returned that no work is being processed.
 void Scheduler::block_until_done()
 {
-#define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
-
     SCHED_MLOCK();
 
-    while (___LOOP_COND)
+    while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
     {
         pthread_cond_wait(&block_cond, &mlock);
 
         // If we still pass the looping condition, we can skip the trylock.
-        if (!(___LOOP_COND))
+        if (!((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)))
         {
-            // Unlock.
-//             SCHED_MUNLOCK();
-
             // Try to spinlock to see if anything is contending for spinlock access
             if (pthread_spin_trylock(&lock) == 0)
             {
                 // If we succeed, then unlock and return;
                 SCHED_UNLOCK();
                 break;
-            }
-            else
-            {
-                // If we fail, we need to reacquire the mlock so we can go back to waiting.
-//                 SCHED_MLOCK();
             }
         }
     }
