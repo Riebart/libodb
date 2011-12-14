@@ -10,8 +10,9 @@
 #define TIME_DIFF2(star, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 #define TIME_DIFF() TIME_DIFF2(start, end)
 
-// A run time of 1000000000 (1 billion) corresponds to approximately ten seconds of processing on a C2D T9300 2.50GHz
-#define RUN_TIME 1000000000
+// A run time of 1000000000 (1 billion) corresponds to approximately five seconds of processing on a C2D T9300 2.50GHz
+#define RUN_TIME 2000000000
+
 uint64_t N;
 int num_cycles;
 int num_indices;
@@ -147,7 +148,7 @@ void test4()
 
     ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
 
-    printf("Creating index tables... ");
+    printf("= ODB Scheduled Performance Run (%d threads) =\nCreating index tables... ", num_consumers);
     fflush(stdout);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -198,7 +199,6 @@ void test4()
 
 int main (int argc, char ** argv)
 {
-#define RUN_TIME 1000000000
     // A mid-size workload is about 1000 cycles and corresponds to about 200k/s on a Core2Duo 2.5GHz T9300.
     num_cycles = 1000;
     N = RUN_TIME / num_cycles;
@@ -220,10 +220,13 @@ int main (int argc, char ** argv)
     printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-    N = 1000000;
-    num_cycles = 25;
-    num_indices = 2;
-    num_consumers = 2;
+
+    num_cycles = 0;
+    num_indices = 10 * num_consumers;
+    // A total count of 20-million uses about 1.5Gb of memory.
+    // Modulating it so that we are as close to 20-million as possible, across
+    // all index tables will maintain memory usage.
+    N = 12000000 * (2.0 / num_indices);
     num_spin_waits = 0;
     test4();
     printf("done\n");
