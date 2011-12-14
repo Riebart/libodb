@@ -10,6 +10,7 @@
 #define TIME_DIFF2(star, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 #define TIME_DIFF() TIME_DIFF2(start, end)
 
+// A run time of 1000000000 (1 billion) corresponds to approximately ten seconds of processing on a C2D T9300 2.50GHz
 #define RUN_TIME 1000000000
 uint64_t N;
 int num_cycles;
@@ -25,7 +26,7 @@ inline void* spin_work(int num_cycles)
     {
         sss += sss * iii;
     }
-    
+
 #if (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_64_nv(&num_spin_waits);
 #elif (CMAKE_COMPILER_SUITE_GCC)
@@ -48,29 +49,29 @@ int32_t compare_test4(void* aV, void* bV)
 {
     uint64_t a = *(uint64_t*)aV;
     uint64_t b = *(uint64_t*)bV;
-    
+
     spin_work(num_cycles);
-    
+
     return (a < b ? -1 : (a == b ? 0 : 1));
 }
 
 void test1()
 {
     struct timespec start, end;
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
-    
+
     for (uint64_t i = 0 ; i < N ; i++)
     {
         spin_work(num_cycles);
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("= Unscheduled Performance Run =\n%g seconds\n%lu processed\n@ %g /s (%lu spins)\n",
            TIME_DIFF(),
            N,
-           N / TIME_DIFF(), 
+           N / TIME_DIFF(),
            num_spin_waits * num_cycles);
 }
 
@@ -79,28 +80,28 @@ void test2()
     struct timespec start, end;
     Scheduler* sched = new Scheduler(num_consumers - 1);
     clock_gettime(CLOCK_MONOTONIC, &start);
-    
+
     for (uint64_t i = 0 ; i < N ; i++)
     {
         sched->add_work(spin_work_v, &num_cycles, NULL, Scheduler::NONE);
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("= Simultaneous Scheduled Performance Run (%d threads) =\n%g seconds of insertion\n",
            num_consumers,
            TIME_DIFF());
-    
+
     sched->update_num_threads(num_consumers);
-    sched->block_until_done();    
+    sched->block_until_done();
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("%g seconds total\n%lu processed\n@ %g /s (%lu spins)\n",
            TIME_DIFF(),
            N,
-           N / TIME_DIFF(), 
+           N / TIME_DIFF(),
            num_spin_waits * num_cycles);
-    
+
     delete sched;
 }
 
@@ -114,23 +115,23 @@ void test3()
     {
         sched->add_work(spin_work_v, &num_cycles, NULL, Scheduler::NONE);
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
-    printf("= Deferred Scheduled Performance Run (%d threads) =\n%g seconds of insertion\n", 
-        num_consumers,
-        TIME_DIFF());
+
+    printf("= Deferred Scheduled Performance Run (%d threads) =\n%g seconds of insertion\n",
+           num_consumers,
+           TIME_DIFF());
 
     clock_gettime(CLOCK_MONOTONIC, &start);
     sched->update_num_threads(num_consumers);
     sched->block_until_done();
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("%g seconds of processing\n%lu processed\n@ %g /s (%lu spins)\n",
-        TIME_DIFF(),
-        N,
-        N / TIME_DIFF(), 
-        num_spin_waits * num_cycles);
+           TIME_DIFF(),
+           N,
+           N / TIME_DIFF(),
+           num_spin_waits * num_cycles);
 
     delete sched;
 }
@@ -139,33 +140,33 @@ void test4()
 {
     struct timespec start, end;
     struct cmwc_state cmwc;
-    
+
     double proc_time = 0;
-    
+
     cmwc_init(&cmwc, 123456789);
-    
+
     ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
-    
+
     printf("Creating index tables... ");
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     for (int i = 0 ; i < num_indices ; i++)
     {
         odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_test4);
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("done (%g s)\nStarting scheduler... ", TIME_DIFF());
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     odb.start_scheduler(num_consumers);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("done (%g s)\nInserting items... ", TIME_DIFF());
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     for (uint64_t i = 0 ; i < N ; i++)
     {
@@ -174,23 +175,23 @@ void test4()
         odb.add_data(v);
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     proc_time += TIME_DIFF();
     printf("done (%g s)\nBlocking... ", TIME_DIFF());
     fflush(stdout);
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     odb.block_until_done();
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     proc_time += TIME_DIFF();
     printf("done (%g s)\n", TIME_DIFF());
     fflush(stdout);
-    
-    printf("Processing rate (%lu x %d @ %d): %g /s (%lu spins)\nDestroying... ", 
-           N, 
-           num_indices, 
-           num_cycles, (N * num_indices) / proc_time, 
+
+    printf("Processing rate (%lu x %d @ %d): %g /s (%lu spins)\nDestroying... ",
+           N,
+           num_indices,
+           num_cycles, (N * num_indices) / proc_time,
            num_spin_waits * num_cycles);
     fflush(stdout);
 }
@@ -212,7 +213,7 @@ int main (int argc, char ** argv)
     num_spin_waits = 0;
     test2();
     printf("\n");
-//     
+//
 /// TEST3: Scheduled deferred performance
     num_spin_waits = 0;
     test3();

@@ -110,7 +110,7 @@ public:
     // Returns the number of threads in the pool, which can be used to check and
     // see if it was successful.
     uint32_t update_num_threads(uint32_t new_num_threads);
-    
+
     void block_until_done();
 
     uint64_t get_num_complete();
@@ -150,7 +150,7 @@ private:
 
     uint32_t num_threads;
     volatile uint32_t num_threads_parked;
-    
+
     pthread_t* threads;
     struct thread_args** t_args;
 

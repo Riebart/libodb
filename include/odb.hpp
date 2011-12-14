@@ -68,7 +68,7 @@ public:
     Index* create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
     Index* create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
     bool delete_index(Index* index);
-    
+
     IndexGroup* create_group();
     IndexGroup* get_indexes();
 

@@ -8,7 +8,7 @@ void* scheduler_worker_thread(void* args_v)
 {
     struct Scheduler::workload* work;
     struct Scheduler::thread_args* args = (struct Scheduler::thread_args*)args_v;
-    
+
     while (true)
     {
         // Break out if we're told to stop before we re-acquire the lock.
@@ -16,7 +16,7 @@ void* scheduler_worker_thread(void* args_v)
         {
             break;
         }
-        
+
         PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
 
         while ((args->scheduler->root->count == 0) && (args->run))
@@ -24,7 +24,7 @@ void* scheduler_worker_thread(void* args_v)
             // Before we sleep, we should wake up anything waiting on the block
             args->scheduler->num_threads_parked++;
             pthread_cond_signal(&(args->scheduler->block_cond));
-            
+
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
             pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->lock));
@@ -116,7 +116,7 @@ int32_t compare_workqueue(void* aV, void* bV)
         {
             uint64_t aid = a->peek()->id;
             uint64_t bid = b->peek()->id;
-            
+
             // Now we're stuck comparing the IDs of the head workloads.
             if (aid > bid) // If existing ID is lower than this one.
             {
@@ -197,7 +197,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work->flags = flags;
 
     indep->push_back(work);
-    
+
     if (!indep->in_tree)
     {
         RedBlackTreeI::e_add(root, indep->tree_node);
@@ -385,20 +385,20 @@ struct Scheduler::workload* Scheduler::get_work()
 // Do not assume that just because this function returned that no work is being processed.
 void Scheduler::block_until_done()
 {
-    #define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
-    
+#define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
+
     PTHREAD_SIMPLE_WRITE_LOCK();
-    
+
     while (___LOOP_COND)
     {
         pthread_cond_wait(&block_cond, &lock);
-        
+
         // If we still pass the looping condition, we can skip the trylock.
         if (!(___LOOP_COND))
         {
             // Unlock.
             PTHREAD_SIMPLE_WRITE_UNLOCK();
-            
+
             // Try to lock again
             if (pthread_mutex_trylock(&lock) == 0)
             {

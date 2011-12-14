@@ -361,12 +361,12 @@ ODB::~ODB()
     }
 
     WRITE_LOCK();
-    
+
     if (scheduler != NULL)
     {
         delete scheduler;
     }
-    
+
     delete all;
     delete data;
     delete dataobj;

@@ -82,7 +82,7 @@ bool IndexGroup::delete_index(IndexGroup* ig)
             }
         }
     }
-    
+
     return false;
 }
 
