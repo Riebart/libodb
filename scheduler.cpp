@@ -17,7 +17,7 @@ void* scheduler_worker_thread(void* args_v)
             break;
         }
 
-        PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
+        SCHED_LOCK_P(args->scheduler);
 
         while ((args->scheduler->root->count == 0) && (args->run))
         {
@@ -33,13 +33,13 @@ void* scheduler_worker_thread(void* args_v)
 
         if (!args->run)
         {
-            PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+            SCHED_UNLOCK_P(args->scheduler);
             break;
         }
 
         work = ((args->scheduler->root->count > 0) ? args->scheduler->get_work() : NULL);
 
-        PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+        SCHED_UNLOCK_P(args->scheduler);
 
         if (work != NULL)
         {
@@ -66,10 +66,10 @@ void* scheduler_worker_thread(void* args_v)
             {
                 if (work->queue->size() > 0)
                 {
-                    PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
+                    SCHED_LOCK_P(args->scheduler);
                     RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
                     work->queue->in_tree = true;
-                    PTHREAD_SIMPLE_WRITE_UNLOCK_P(args->scheduler);
+                    SCHED_UNLOCK_P(args->scheduler);
                 }
                 else
                 {
@@ -149,7 +149,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
     SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
     root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
-    PTHREAD_SIMPLE_RWLOCK_INIT();
+    SCHED_LOCK_INIT();
 
     for (uint32_t i = 0 ; i < num_threads ; i++)
     {
@@ -173,7 +173,7 @@ Scheduler::~Scheduler()
 
 #warning "Need to free the data used by the workqueues and their wokloads here."
     RedBlackTreeI::e_destroy_tree(root, NULL);
-    PTHREAD_SIMPLE_RWLOCK_DESTROY();
+    SCHED_LOCK_DESTROY();
 }
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
@@ -183,7 +183,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
         throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
     }
 
-    PTHREAD_SIMPLE_WRITE_LOCK();
+    SCHED_LOCK();
 
     uint64_t workload_id = work_counter;
     work_counter++;
@@ -209,7 +209,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK();
+    SCHED_UNLOCK();
 }
 
 void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)
@@ -219,7 +219,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
         throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
     }
 
-    PTHREAD_SIMPLE_WRITE_LOCK();
+    SCHED_LOCK();
 
     uint64_t workload_id = work_counter;
     work_counter++;
@@ -247,7 +247,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
     // Now we need to notify at least one thread that there is work available.
     pthread_cond_signal(&work_cond);
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK();
+    SCHED_UNLOCK();
 }
 
 // This is not an asynchronous call. It will block until the requested operation
@@ -387,7 +387,7 @@ void Scheduler::block_until_done()
 {
 #define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
 
-    PTHREAD_SIMPLE_WRITE_LOCK();
+    SCHED_LOCK();
 
     while (___LOOP_COND)
     {
@@ -397,19 +397,19 @@ void Scheduler::block_until_done()
         if (!(___LOOP_COND))
         {
             // Unlock.
-            PTHREAD_SIMPLE_WRITE_UNLOCK();
+            SCHED_UNLOCK();
 
             // Try to lock again
             if (pthread_mutex_trylock(&lock) == 0)
             {
                 // If we succeed, then unlock and return;
-                PTHREAD_SIMPLE_WRITE_UNLOCK();
+                SCHED_UNLOCK();
                 break;
             }
             else
             {
                 // If we fail, we need to reacquire the lock so we can go back to waiting.
-                PTHREAD_SIMPLE_WRITE_LOCK();
+                SCHED_LOCK();
             }
         }
     }

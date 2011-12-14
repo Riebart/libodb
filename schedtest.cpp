@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if (CMAKE_COMPILER_SUITE_SUN)
+#include <atomic.h>
+#endif
+
 #include <time.h>
 
 #include "odb.hpp"
@@ -141,6 +145,51 @@ void test4()
 {
     struct timespec start, end;
     struct cmwc_state cmwc;
+    
+    double proc_time = 0;
+    
+    cmwc_init(&cmwc, 123456789);
+    
+    ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
+    
+    printf("= ODB Uncheduled Performance Run =\nCreating index tables... ");
+    fflush(stdout);
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    for (int i = 0 ; i < num_indices ; i++)
+    {
+        odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_test4);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    printf("done (%g s)\nInserting items... ", TIME_DIFF());
+    fflush(stdout);
+    
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    for (uint64_t i = 0 ; i < N ; i++)
+    {
+        uint64_t* v = (uint64_t*)malloc(sizeof(uint64_t));
+        *v = cmwc_next(&cmwc) + ((uint64_t)(cmwc_next(&cmwc)) << 32);
+        odb.add_data(v);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    proc_time += TIME_DIFF();
+    printf("done (%g s)\n", TIME_DIFF());
+    fflush(stdout);
+    
+    printf("Processing rate (%lu x %d @ %d): %g /s (%lu spins)\nDestroying... ",
+           N,
+           num_indices,
+           num_cycles, (N * num_indices) / proc_time,
+           num_spin_waits * num_cycles);
+    fflush(stdout);
+}
+
+void test5()
+{
+    struct timespec start, end;
+    struct cmwc_state cmwc;
 
     double proc_time = 0;
 
@@ -162,7 +211,7 @@ void test4()
     fflush(stdout);
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    odb.start_scheduler(num_consumers);
+    odb.start_scheduler(num_consumers - 1);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     printf("done (%g s)\nInserting items... ", TIME_DIFF());
@@ -177,6 +226,7 @@ void test4()
     }
     clock_gettime(CLOCK_MONOTONIC, &end);
 
+    odb.start_scheduler(num_consumers);
     proc_time += TIME_DIFF();
     printf("done (%g s)\nBlocking... ", TIME_DIFF());
     fflush(stdout);
@@ -205,31 +255,41 @@ int main (int argc, char ** argv)
     num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance
-    num_spin_waits = 0;
-    test1();
-    printf("\n");
+//     num_spin_waits = 0;
+//     test1();
+//     printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance
-    num_spin_waits = 0;
-    test2();
-    printf("\n");
-//
+//     num_spin_waits = 0;
+//     test2();
+//     printf("\n");
+    
 /// TEST3: Scheduled deferred performance
-    num_spin_waits = 0;
-    test3();
-    printf("\n");
+//     num_spin_waits = 0;
+//     test3();
+//     printf("\n");
 
-/// TEST4: Test the code paths linking the ODB objects with the scheduler.
-
-    num_cycles = 0;
+/// TEST4: Get a base line performance of TEST5 without scheduling.    
+    num_cycles = 1000;
     num_indices = 10 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
-    N = 12000000 * (2.0 / num_indices);
+    N = 120000 * (2.0 / num_indices);
     num_spin_waits = 0;
     test4();
-    printf("done\n");
+    printf("done\n\n");
+    
+/// TEST5: Test the code paths linking the ODB objects with the scheduler.
+    num_cycles = 1000;
+    num_indices = num_consumers;
+    // A total count of 20-million uses about 1.5Gb of memory.
+    // Modulating it so that we are as close to 20-million as possible, across
+    // all index tables will maintain memory usage.
+    N = 120000 * (2.0 / num_indices);
+    num_spin_waits = 0;
+    test5();
+    printf("done\n\n");
 
     return EXIT_SUCCESS;
 }
