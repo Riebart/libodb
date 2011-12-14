@@ -150,6 +150,7 @@ private:
 
     uint32_t num_threads;
     volatile uint32_t num_threads_parked;
+    
     pthread_t* threads;
     struct thread_args** t_args;
 

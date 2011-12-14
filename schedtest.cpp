@@ -192,18 +192,18 @@ int main (int argc, char ** argv)
 /// TEST2: Scheduled simultaneous multi-threaded performance
     test2();
     printf("\n");
-    
+//     
 /// TEST3: Scheduled deferred performance
     test3();
     printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-    N = 10000000;
-    num_cycles = 0;
-    num_indices = 1;
-    num_consumers = 2;
-    test4();
-    printf("done\n");
+//     N = 1000000;
+//     num_cycles = 0;
+//     num_indices = 2;
+//     num_consumers = 2;
+//     test4();
+//     printf("done\n");
 
     return EXIT_SUCCESS;
 }

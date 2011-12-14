@@ -11,6 +11,12 @@ void* scheduler_worker_thread(void* args_v)
     
     while (true)
     {
+        // Break out if we're told to stop before we re-acquire the lock.
+        if (!args->run)
+        {
+            break;
+        }
+        
         PTHREAD_SIMPLE_WRITE_LOCK_P(args->scheduler);
 
         while ((args->scheduler->root->count == 0) && (args->run))
@@ -285,7 +291,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         threads = new_threads;
         t_args = new_t_args;
 
-        for (uint32_t i = num_threads ; i <= new_num_threads ; i++)
+        for (uint32_t i = num_threads ; i < new_num_threads ; i++)
         {
             SAFE_MALLOC(struct thread_args*, t_args[i], sizeof(struct thread_args));
 
@@ -316,6 +322,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         // longer than the remainder of the latest-ending running workload.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
         {
+            pthread_cond_broadcast(&work_cond);
             pthread_join(threads[i], NULL);
             free(t_args[i]);
         }
@@ -400,21 +407,34 @@ struct Scheduler::workload* Scheduler::get_work()
 // Do not assume that just because this function returned that no work is being processed.
 void Scheduler::block_until_done()
 {
+    #define ___LOOP_COND (work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)
+    
     PTHREAD_SIMPLE_WRITE_LOCK();
     
-    while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
+    while (___LOOP_COND)
     {
         pthread_cond_wait(&block_cond, &lock);
-//         printf("!!! %lu %lu %u\n", work_avail, root->count, num_threads_parked);
-        PTHREAD_SIMPLE_WRITE_UNLOCK();
         
-        if (pthread_mutex_trylock(&lock) == 0)
+        // If we still pass the looping condition, we can skip the trylock.
+        if (!(___LOOP_COND))
         {
-            break;
+            // Unlock.
+            PTHREAD_SIMPLE_WRITE_UNLOCK();
+            
+            // Try to lock again
+            if (pthread_mutex_trylock(&lock) == 0)
+            {
+                // If we succeed, then unlock and return;
+                PTHREAD_SIMPLE_WRITE_UNLOCK();
+                break;
+            }
+            else
+            {
+                // If we fail, we need to reacquire the lock so we can go back to waiting.
+                PTHREAD_SIMPLE_WRITE_LOCK();
+            }
         }
     }
-    
-    PTHREAD_SIMPLE_WRITE_UNLOCK();
 }
 
 uint64_t Scheduler::get_num_complete()
