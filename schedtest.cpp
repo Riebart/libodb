@@ -142,7 +142,7 @@ void test4()
     
     double proc_time = 0;
     
-    cmwc_init(&cmwc);
+    cmwc_init(&cmwc, 123456789);
     
     ODB odb(ODB::BANK_DS, sizeof(uint64_t), NULL);
     
