@@ -100,7 +100,8 @@ using namespace std;
 
 RedBlackTreeI::RedBlackTreeI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
-    RWLOCK_INIT();
+//     RWLOCK_INIT();
+    PTHREAD_SPIN_LOCK_INIT();
     this->ident = _ident;
     root = NULL;
     this->compare = _compare;
@@ -121,7 +122,8 @@ RedBlackTreeI::~RedBlackTreeI()
     // Free the false root we malloced in the constructor.
     free(false_root);
     free(sub_false_root);
-    RWLOCK_DESTROY();
+//     RWLOCK_DESTROY();
+    PTHREAD_SPIN_LOCK_DESTROY();
 }
 
 int RedBlackTreeI::rbt_verify()
@@ -129,9 +131,11 @@ int RedBlackTreeI::rbt_verify()
 #ifdef VERBOSE_RBT_VERIFY
     printf("TreePlot[{");
 #endif
-    READ_LOCK();
+//     READ_LOCK();
+    PTHREAD_SPIN_LOCK();
     int ret = rbt_verify_n(root, compare, false);
-    READ_UNLOCK();
+//     READ_UNLOCK();
+    PTHREAD_SPIN_UNLOCK();
 #ifdef VERBOSE_RBT_VERIFY
     printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
@@ -143,9 +147,11 @@ int RedBlackTreeI::e_rbt_verify(struct e_tree_root* root)
 #ifdef VERBOSE_RBT_VERIFY
     printf("TreePlot[{");
 #endif
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+//     PTHREAD_SIMPLE_READ_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
     int ret = rbt_verify_n((struct tree_node*)(root->data), root->compare, true);
-    PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+    PTHREAD_SPIN_UNLOCK_P(root);
 #ifdef VERBOSE_RBT_VERIFY
     printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
@@ -202,7 +208,8 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::make_node(void* rawdata)
 
 bool RedBlackTreeI::add_data_v2(void* rawdata)
 {
-    WRITE_LOCK();
+//     WRITE_LOCK();
+    PTHREAD_SPIN_LOCK();
     bool something_added = false;
     root = add_data_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
@@ -213,7 +220,8 @@ bool RedBlackTreeI::add_data_v2(void* rawdata)
         root = UNTAINT(root);
         something_added = true;
     }
-    WRITE_UNLOCK();
+//     WRITE_UNLOCK();
+    PTHREAD_SPIN_UNLOCK();
 
     return something_added;
 }
@@ -242,14 +250,16 @@ struct RedBlackTreeI::e_tree_root* RedBlackTreeI::e_init_tree(bool drop_duplicat
     root->drop_duplicates = drop_duplicates;
     root->count = 0;
 
-    PTHREAD_SIMPLE_RWLOCK_INIT_P(root);
+//     PTHREAD_SIMPLE_RWLOCK_INIT_P(root);
+    PTHREAD_SPIN_LOCK_INIT_P(root);
 
     return root;
 }
 
 void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void (*freep)(void*))
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
 
     if (freep != NULL)
     {
@@ -264,14 +274,17 @@ void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void
 
     free(root->false_root);
     free(root->sub_false_root);
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
-    PTHREAD_SIMPLE_RWLOCK_DESTROY_P(root);
+//     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    PTHREAD_SPIN_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_RWLOCK_DESTROY_P(root);
+    PTHREAD_SPIN_LOCK_DESTROY_P(root);
     free(root);
 }
 
 bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
 
     bool something_added = false;
 
@@ -290,14 +303,16 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
         something_added = true;
     }
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    PTHREAD_SPIN_UNLOCK_P(root);
 
     return something_added;
 }
 
 bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawdata, void** del_node)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
 
     root->data = e_remove_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata, del_node);
     //(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
@@ -310,19 +325,22 @@ bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawd
 
     root->count -= ret;
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    PTHREAD_SPIN_UNLOCK_P(root);
     return ret;
 }
 
 void RedBlackTreeI::purge()
 {
-    WRITE_LOCK();
+//     WRITE_LOCK();
+    PTHREAD_SPIN_LOCK();
 
     free_n(root, drop_duplicates);
     count = 0;
     root = NULL;
 
-    WRITE_UNLOCK();
+//     WRITE_UNLOCK();
+    PTHREAD_SPIN_UNLOCK();
 }
 
 struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
@@ -830,7 +848,8 @@ void RedBlackTreeI::query_gt(void* rawdata, DataStore* ds)
 
 inline bool RedBlackTreeI::remove(void* rawdata)
 {
-    WRITE_LOCK();
+//     WRITE_LOCK();
+    PTHREAD_SPIN_LOCK();
     root = remove_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
     uint8_t ret = TAINTED(root);
@@ -840,7 +859,8 @@ inline bool RedBlackTreeI::remove(void* rawdata)
     }
 
     count -= ret;
-    WRITE_UNLOCK();
+//     WRITE_UNLOCK();
+    PTHREAD_SPIN_UNLOCK();
     return ret;
 }
 
@@ -1197,7 +1217,8 @@ inline void RedBlackTreeI::remove_sweep(vector<void*>* marked)
 
 inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
 {
-    WRITE_LOCK();
+//     WRITE_LOCK();
+    PTHREAD_SPIN_LOCK();
 
     struct tree_node* curr;
     int32_t c;
@@ -1242,7 +1263,8 @@ inline void RedBlackTreeI::update(vector<void*>* old_addr, vector<void*>* new_ad
         }
     }
 
-    WRITE_UNLOCK();
+//     WRITE_UNLOCK();
+    PTHREAD_SPIN_UNLOCK();
 }
 
 void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
@@ -1310,13 +1332,15 @@ void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void 
 
 inline Iterator* RedBlackTreeI::it_first()
 {
-    READ_LOCK();
+//     READ_LOCK();
+    PTHREAD_SPIN_LOCK();
     return it_first(parent, root, ident, drop_duplicates);
 }
 
 Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+//     PTHREAD_SIMPLE_READ_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
     return e_it_first((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
@@ -1407,7 +1431,8 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
 
 void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
 
     void* del_node;
     root->data = e_pop_first_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->drop_duplicates, &del_node);
@@ -1417,7 +1442,8 @@ void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
         root->count--;
     }
 
-    PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_WRITE_UNLOCK_P(root);
+    PTHREAD_SPIN_UNLOCK_P(root);
 
     return del_node;
 }
@@ -1594,13 +1620,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
 
 inline Iterator* RedBlackTreeI::it_last()
 {
-    READ_LOCK();
+//     READ_LOCK();
+    PTHREAD_SPIN_LOCK();
     return it_last(parent, root, ident, drop_duplicates);
 }
 
 Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::e_tree_root* root)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+//     PTHREAD_SIMPLE_READ_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
     return e_it_last((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
@@ -1697,13 +1725,15 @@ void* RedBlackTreeI::e_pop_last(struct RedBlackTreeI::e_tree_root* root)
 
 inline Iterator* RedBlackTreeI::it_lookup(void* rawdata, int8_t dir)
 {
-    READ_LOCK();
+//     READ_LOCK();
+    PTHREAD_SPIN_LOCK();
     return it_lookup(parent, root, ident, drop_duplicates, compare, rawdata, dir);
 }
 
 Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::e_tree_root* root, void* rawdata, int8_t dir)
 {
-    PTHREAD_SIMPLE_READ_LOCK_P(root);
+//     PTHREAD_SIMPLE_READ_LOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
     return e_it_lookup((struct tree_node*)(root->data), root->drop_duplicates, root->compare, rawdata, dir);
 }
 
@@ -1947,7 +1977,8 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
 void RedBlackTreeI::e_it_release(struct RedBlackTreeI::e_tree_root* root, Iterator* it)
 {
     delete it;
-    PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+//     PTHREAD_SIMPLE_READ_UNLOCK_P(root);
+    PTHREAD_SPIN_LOCK_P(root);
 }
 
 RBTIterator::RBTIterator()

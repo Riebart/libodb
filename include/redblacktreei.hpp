@@ -34,10 +34,12 @@ public:
         Merger* merge;
         bool drop_duplicates;
         uint64_t count;
-        PTHREAD_SIMPLE_RWLOCK_T;
+//         PTHREAD_SIMPLE_RWLOCK_T;
+        PTHREAD_SPIN_LOCK_T;
     };
 
     ~RedBlackTreeI();
+    PTHREAD_SPIN_LOCK_T;
 
     static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
     static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
