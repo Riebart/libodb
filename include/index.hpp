@@ -74,6 +74,9 @@ class IndexGroup
     ///skip the overhead of verifying data integrity since that is guaranteed
     ///in that usage scenario.
     friend class ODB;
+    
+    /// Allow the ODB scheduled workload to access the add_data_v function.
+    friend void* odb_sched_workload(void* argsV);
 
 public:
     virtual ~IndexGroup();

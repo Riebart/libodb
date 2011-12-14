@@ -396,9 +396,33 @@ ODB::~ODB()
 // removing an item from a datastore when the insertion into the index table failed.
 // What does it mean to fail an insertion into an index group?
 
+struct odb_sched_args
+{
+    void* rawdata;
+    ODB* odb;
+};
+
+void* odb_sched_workload(void* argsV)
+{
+    struct odb_sched_args* args = (struct odb_sched_args*)argsV;
+    args->odb->all->add_data_v(args->rawdata);
+}
+
+#warning "Look into why the comments are commented out in add_data."
 void ODB::add_data(void* rawdata)
 {
-    all->add_data_v(data->add_data(rawdata));
+    if (scheduler == NULL)
+    {
+        all->add_data_v(data->add_data(rawdata));
+    }
+    else
+    {
+        struct odb_sched_args* args;
+        SAFE_MALLOC(struct odb_sched_args*, args, sizeof(struct odb_sched_args));
+        args->rawdata = data->add_data(rawdata);
+        args->odb = this;
+        scheduler->add_work(odb_sched_workload, args, NULL, Scheduler::NONE);
+    }
 //    if ((all->add_data_v(data->add_data(rawdata))) == false)
 //        data->remove_at(data->data_count - 1);
 }
@@ -482,7 +506,8 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     }
 
     new_index->parent = data;
-    new_index->scheduler = scheduler;
+//     new_index->scheduler = scheduler;
+    new_index->scheduler = NULL;
     tables.push_back(new_index);
 
     if (!do_not_add_to_all)
@@ -629,7 +654,8 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
 
         for (uint32_t i = 0 ; i < tables.size() ; i++)
         {
-            tables[i]->scheduler = scheduler;
+//             tables[i]->scheduler = scheduler;
+            tables[i]->scheduler = NULL;
         }
 
         WRITE_UNLOCK();

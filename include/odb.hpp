@@ -37,6 +37,9 @@ class ODB
     /// Allow Index objects to create a new specifically identified ODB
     ///instance.
     friend class Index;
+    
+    /// Allows the scheduled workload from ODB to access the private members.
+    friend void* odb_sched_workload(void* argsV);
 
 public:
 //#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."

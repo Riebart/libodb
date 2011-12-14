@@ -250,7 +250,7 @@ void test5()
 int main (int argc, char ** argv)
 {
     // A mid-size workload is about 1000 cycles and corresponds to about 200k/s on a Core2Duo 2.5GHz T9300.
-    num_cycles = 1000;
+    num_cycles = 100;
     N = RUN_TIME / num_cycles;
     num_consumers = 2;
 
@@ -271,7 +271,7 @@ int main (int argc, char ** argv)
 
 /// TEST4: Get a base line performance of TEST5 without scheduling.    
     num_cycles = 1000;
-    num_indices = 10 * num_consumers;
+    num_indices = 1 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
@@ -282,7 +282,7 @@ int main (int argc, char ** argv)
     
 /// TEST5: Test the code paths linking the ODB objects with the scheduler.
     num_cycles = 1000;
-    num_indices = num_consumers;
+    num_indices = 1 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
