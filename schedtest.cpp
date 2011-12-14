@@ -16,6 +16,8 @@ int num_cycles;
 int num_indices;
 int num_consumers;
 
+volatile uint64_t num_spin_waits;
+
 inline void* spin_work(int num_cycles)
 {
     volatile uint64_t sss = (uint64_t)(&num_cycles);
@@ -23,6 +25,15 @@ inline void* spin_work(int num_cycles)
     {
         sss += sss * iii;
     }
+    
+#if (CMAKE_COMPILER_SUITE_SUN)
+    atomic_inc_64_nv(&num_spin_waits);
+#elif (CMAKE_COMPILER_SUITE_GCC)
+    __sync_fetch_and_add(&num_spin_waits, 1);
+#else
+#warning "Can't find a way to atomicly increment a uint64_t."
+    int temp[-1];
+#endif
 
     return (void*)sss;
 }
@@ -56,10 +67,11 @@ void test1()
     
     clock_gettime(CLOCK_MONOTONIC, &end);
     
-    printf("= Unscheduled Performance Run =\n%g seconds\n%lu processed\n@ %g /s\n",
+    printf("= Unscheduled Performance Run =\n%g seconds\n%lu processed\n@ %g /s (%lu spins)\n",
            TIME_DIFF(),
            N,
-           N / TIME_DIFF());
+           N / TIME_DIFF(), 
+           num_spin_waits * num_cycles);
 }
 
 void test2()
@@ -83,10 +95,11 @@ void test2()
     sched->block_until_done();    
     clock_gettime(CLOCK_MONOTONIC, &end);
     
-    printf("%g seconds total\n%lu processed\n@ %g /s\n",
+    printf("%g seconds total\n%lu processed\n@ %g /s (%lu spins)\n",
            TIME_DIFF(),
            N,
-           N / TIME_DIFF());
+           N / TIME_DIFF(), 
+           num_spin_waits * num_cycles);
     
     delete sched;
 }
@@ -113,10 +126,11 @@ void test3()
     sched->block_until_done();
     clock_gettime(CLOCK_MONOTONIC, &end);
     
-    printf("%g seconds of processing\n%lu processed\n@ %g /s\n",
+    printf("%g seconds of processing\n%lu processed\n@ %g /s (%lu spins)\n",
         TIME_DIFF(),
         N,
-        N / TIME_DIFF());
+        N / TIME_DIFF(), 
+        num_spin_waits * num_cycles);
 
     delete sched;
 }
@@ -173,7 +187,11 @@ void test4()
     printf("done (%g s)\n", TIME_DIFF());
     fflush(stdout);
     
-    printf("Processing rate (%lu x %d @ %d): %g /s\nDestroying... ", N, num_indices, num_cycles, (N * num_indices) / proc_time);
+    printf("Processing rate (%lu x %d @ %d): %g /s (%lu spins)\nDestroying... ", 
+           N, 
+           num_indices, 
+           num_cycles, (N * num_indices) / proc_time, 
+           num_spin_waits * num_cycles);
     fflush(stdout);
 }
 
@@ -186,24 +204,28 @@ int main (int argc, char ** argv)
     num_consumers = 2;
 
 /// TEST1: Unscheduled single-threaded performance
+    num_spin_waits = 0;
     test1();
     printf("\n");
 
 /// TEST2: Scheduled simultaneous multi-threaded performance
+    num_spin_waits = 0;
     test2();
     printf("\n");
 //     
 /// TEST3: Scheduled deferred performance
+    num_spin_waits = 0;
     test3();
     printf("\n");
 
 /// TEST4: Test the code paths linking the ODB objects with the scheduler.
-//     N = 1000000;
-//     num_cycles = 0;
-//     num_indices = 2;
-//     num_consumers = 2;
-//     test4();
-//     printf("done\n");
+    N = 1000000;
+    num_cycles = 25;
+    num_indices = 2;
+    num_consumers = 2;
+    num_spin_waits = 0;
+    test4();
+    printf("done\n");
 
     return EXIT_SUCCESS;
 }
