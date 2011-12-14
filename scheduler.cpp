@@ -2,7 +2,7 @@
 #include "common.hpp"
 #include "lfqueue.hpp"
 
-#warning "Doesn't take ALL flags into account yet. Some work."
+#warning "Doesn't take ALL flags into account yet. Some work. See header file."
 
 void* scheduler_worker_thread(void* args_v)
 {
@@ -188,17 +188,6 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     uint64_t workload_id = work_counter;
     work_counter++;
 
-// #if (CMAKE_COMPILER_SUITE_SUN)
-//     workload_id = --atomic_inc_64_nv(&work_counter);
-//     atomic_inc_64(&work_avail);
-// #elif (CMAKE_COMPILER_SUITE_GCC)
-//     workload_id = __sync_fetch_and_add(&work_counter, 1);
-//     __sync_fetch_and_add(&work_avail, 1);
-// #else
-// #warning "Can't find a way to atomicly increment a uint64_t."
-//     int temp[-1];
-// #endif
-
     struct workload* work;
     SAFE_MALLOC(struct workload*, work, sizeof(struct workload));
     work->func = func;
@@ -234,17 +223,6 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
 
     uint64_t workload_id = work_counter;
     work_counter++;
-
-// #if (CMAKE_COMPILER_SUITE_SUN)
-//     workload_id = --atomic_inc_64_nv(&work_counter);
-//     atomic_inc_64_nv(&work_avail);
-// #elif (CMAKE_COMPILER_SUITE_GCC)
-//     workload_id = __sync_fetch_and_add(&work_counter, 1);
-//     __sync_fetch_and_add(&work_avail, 1);
-// #else
-// #warning "Can't find a way to atomicly increment a uint64_t."
-//     int temp[-1];
-// #endif
 
     struct workload* work;
     SAFE_MALLOC(struct workload*, work, sizeof(struct workload));

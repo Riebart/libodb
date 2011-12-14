@@ -67,7 +67,8 @@ public:
     /// @warning Merging of nodes implies dropping duplicates post merge.
     Index* create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
     Index* create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
-#warning "Added a delete_index function."
+    bool delete_index(Index* index);
+    
     IndexGroup* create_group();
     IndexGroup* get_indexes();
 

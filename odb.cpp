@@ -499,6 +499,12 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     return new_index;
 }
 
+#warning "delete_index is untested."
+bool ODB::delete_index(Index* index)
+{
+    return all->delete_index(index);
+}
+
 IndexGroup* ODB::create_group()
 {
     IndexGroup* g = new IndexGroup(ident, data);

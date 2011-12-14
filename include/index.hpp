@@ -79,6 +79,7 @@ public:
     virtual ~IndexGroup();
 
     bool add_index(IndexGroup* ig);
+    bool delete_index(IndexGroup* ig);
     IndexGroup* at(uint32_t i);
     std::vector<Index*>* flatten();
     virtual void add_data(DataObj* data);

@@ -55,6 +55,37 @@ bool IndexGroup::add_index(IndexGroup* ig)
     }
 }
 
+bool IndexGroup::delete_index(IndexGroup* ig)
+{
+    if (ident == ig->ident)
+    {
+        for (uint32_t i = 0 ; i < indices.size() ; i++)
+        {
+            // If we've got our match, then return true.
+            if (indices[i] == ig)
+            {
+                delete indices[i];
+                indices.erase(indices.begin() + i);
+                return true;
+            }
+            // Otherwise recursively check for it.
+            else
+            {
+                // Thus dynamic cast should try to cast to an Index.
+                // If we actually have an IndexGroup, this should bail and return NULL.
+                // Checking for that NULL, we can then test the IndexGroup for ig.
+                // If we find it, return true, otherwise carry on.
+                if ((dynamic_cast<Index*>(indices[i]) == NULL) && (indices[i]->delete_index(ig)))
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
 IndexGroup* IndexGroup::at(uint32_t i)
 {
     if (i < indices.size())
@@ -153,6 +184,7 @@ inline int IndexGroup::get_ident()
 
 inline void IndexGroup::add_data_v(void* data)
 {
+    // Do it the silly way in order to preserve speed when compiled with zero optimizations.
     uint32_t n = indices.size();
 
     if (n == 0)
