@@ -118,6 +118,9 @@ inline void write_out_query(struct flow_sig* sig, FILE* out)
 
 inline void write_out_sig(struct flow_sig* sig, FILE* out)
 {
+    // Write out layer 3 type as IPv4.
+    fwrite(&(sig->l3_type), 1, sizeof(sig->l3_type), out);
+    
     if (sig->l3_type == L3_TYPE_IP4)
     {
         struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
@@ -148,9 +151,12 @@ void write_out_contributors(struct sig_encap* encap, FILE* out)
 
     if (ips == NULL)
     {
+        // Write out full query.
         write_out_query(encap->sig, out);
         num_addrs = 1;
+        // Write out the number of IPs that made the queries.
         fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        // Wite out each address that made the query.
         write_out_sig(encap->sig, out);
     }
     else
@@ -318,6 +324,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     stats->domain_len = domain_len;
 
     process_query(stats, encap);
+    istat->total_unique_queries++;
 
     while (true)
     {
@@ -496,16 +503,27 @@ void* process_interval(void* args)
         }
     }
 
+    // Write out a 32-bit Unix timestampe, and the following number of non-DNS packets of UDP port 53.
     fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
+    
+    // Write out the contents of an Interval stat struct including
+    //  - Double = Total query entropy.
+    //  - uint64_t = total number of DNS queries
+    //  - uint64-t = total number of unique DNS queries
     fwrite(&istat, 1, sizeof(struct interval_stat), out);
 
     uint32_t num_domains = stats.size();
+    
+    // Write out the number of unique domains encountered.
     fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
     for (uint32_t i = 0 ; i < stats.size() ; i++)
     {
+        // Write out the registered comain, without the TLD.
         fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        // Entropy + total queries + total unique
         fwrite(&(stats[i]->entropy), 1, sizeof(double) + 2 * sizeof(uint64_t), out);
+        
         free(stats[i]->domain);
         free(stats[i]);
     }

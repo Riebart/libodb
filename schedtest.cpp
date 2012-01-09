@@ -270,19 +270,19 @@ int main (int argc, char ** argv)
 //     printf("\n");
 
 /// TEST4: Get a base line performance of TEST5 without scheduling.
-//     num_cycles = 1;
-//     num_indices = 25 * num_consumers;
-//     // A total count of 20-million uses about 1.5Gb of memory.
-//     // Modulating it so that we are as close to 20-million as possible, across
-//     // all index tables will maintain memory usage.
-//     N = 120000 * (2.0 / num_indices);
-//     num_spin_waits = 0;
-//     test4();
-//     printf("done\n\n");
+    num_cycles = 100;
+    num_indices = 10 * num_consumers;
+    // A total count of 20-million uses about 1.5Gb of memory.
+    // Modulating it so that we are as close to 20-million as possible, across
+    // all index tables will maintain memory usage.
+    N = 1200000 * (2.0 / num_indices);
+    num_spin_waits = 0;
+    test4();
+    printf("done\n\n");
 
 /// TEST5: Test the code paths linking the ODB objects with the scheduler.
-    num_cycles = 1;
-    num_indices = 25 * num_consumers;
+    num_cycles = 100;
+    num_indices = 10 * num_consumers;
     // A total count of 20-million uses about 1.5Gb of memory.
     // Modulating it so that we are as close to 20-million as possible, across
     // all index tables will maintain memory usage.
