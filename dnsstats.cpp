@@ -207,10 +207,11 @@ int32_t compare_dns(void* aV, void* bV)
     struct flow_sig* bF = (reinterpret_cast<struct sig_encap*>(bV))->sig;
 
     // At this point, we know that we're looking at the layer 7 and that it'll be of the DNS type.
-    uint16_t offset = l3_hdr_size[aF->l3_type] + l4_hdr_size[aF->l4_type];
+    uint16_t offsetA = l3_hdr_size[aF->l3_type] + l4_hdr_size[aF->l4_type];
+    uint16_t offsetB = l3_hdr_size[bF->l3_type] + l4_hdr_size[bF->l4_type];
 
-    struct l7_dns* a = (struct l7_dns*)(&(aF->hdr_start) + offset);
-    struct l7_dns* b = (struct l7_dns*)(&(bF->hdr_start) + offset);
+    struct l7_dns* a = (struct l7_dns*)(&(aF->hdr_start) + offsetA);
+    struct l7_dns* b = (struct l7_dns*)(&(bF->hdr_start) + offsetB);
 
     return strcmp(a->query, b->query);
 }
@@ -244,6 +245,32 @@ void* merge_sig_encap(void* aV, void* bV)
     b->ips->push_back(a->sig);
 
     return bV;
+}
+
+inline uint32_t get_domain_len(char* query)
+{
+    uint32_t domain_len = 0;
+    
+    // 7 is chosen so that we no longer count co.uk as a top registered domain. We should really be using the pubsuf list though.
+    while (domain_len < 7)
+    {
+        // At each step, add in the length of the current token, plus the separator.
+        // First make sure we're not eating up the last token.
+        // This also inherently handles NULL queries properly.
+        if (query[domain_len + query[domain_len]] == 0)
+        {
+            break;
+        }
+        
+        domain_len += query[domain_len] + 1;
+    }
+    
+    if (domain_len == 0)
+    {
+        domain_len = 1;
+    }
+    
+    return domain_len;
 }
 
 // For the full list: http://publicsuffix.org
@@ -303,21 +330,8 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     encap = (struct sig_encap*)(it->get_data());
     sig = encap->sig;
     dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-    // Need to handle the case of the null query which is a valid query for servers, not typically for clients though.
-    if (dns->query[0] == 0)
-    {
-        domain_len = 0;
-    }
-    else
-    {
-        domain_len = (dns->query[0] + 1);
-        // We need this to handle teh case where there is only one component to the query
-        if (dns->query[dns->query[0] + 1] > 0)
-        {
-            domain_len += dns->query[dns->query[0] + 1] + 1;
-        }
-    }
+    
+    domain_len = get_domain_len(dns->query);
 
     domain = get_domain(dns->query, domain_len);
     stats->domain = domain;
@@ -382,19 +396,23 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
     if (data->sig->l7_type == L7_TYPE_DNS)
     {
         struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
-
-        // If it was not added due to being a duplicate
-        if (!RedBlackTreeI::e_add(valid_tree_root, data))
+        
+        // First check and see if there are any responses. If there are, discard this since we don't care about responses for now.
+        if (!a->answered)
         {
-            // Free the query and the encapculating struct, but keep the
-            // signature alive since it is still live in the vector of the
-            // representative in the tree.
-            free(a->query);
-            free(data);
-        }
-        else
-        {
-            // If it was successfully added...
+            // If it was not added due to being a duplicate
+            if (!RedBlackTreeI::e_add(valid_tree_root, data))
+            {
+                // Free the query and the encapculating struct, but keep the
+                // signature alive since it is still live in the vector of the
+                // representative in the tree.
+                free(a->query);
+                free(data);
+            }
+            else
+            {
+                // If it was successfully added...
+            }
         }
     }
     // What to do with non-DNS ?
@@ -445,22 +463,25 @@ void* process_interval(void* args)
     struct domain_stat* cur_stat;
     Iterator* it;
 
-    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-
-    if (it->get_data() != NULL)
+    if (args_t->valid_tree_root->count > 0)
     {
-        do
+        it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+        
+        while (true)
         {
             cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
             process_domain(it, cur_stat, &istat);
             stats.push_back(cur_stat);
+            
+            if (it->next() == NULL)
+            {
+                break;
+            }
         }
-        while (it->next() != NULL);
+        
+        finalize_interval(&istat);
+        RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
     }
-
-    finalize_interval(&istat);
-
-    RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
 
     sort(stats.begin(), stats.end(), vec_sort_entropy);
 
@@ -517,10 +538,14 @@ void* process_interval(void* args)
     // Write out the number of unique domains encountered.
     fwrite(&num_domains, 1, sizeof(uint32_t), out);
 
-    for (uint32_t i = 0 ; i < stats.size() ; i++)
+    for (uint32_t i = 0 ; i < num_domains; i++)
     {
         // Write out the registered comain, without the TLD.
-        fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        if (stats[i]->domain[0] != 0)
+            fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        else
+            fwrite(stats[i]->domain, 1, stats[i]->domain_len, out);
+        
         // Entropy + total queries + total unique
         fwrite(&(stats[i]->entropy), 1, sizeof(double) + 2 * sizeof(uint64_t), out);
         
@@ -528,14 +553,13 @@ void* process_interval(void* args)
         free(stats[i]);
     }
 
-    it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-
-    if (it->get_data() != NULL)
+    // If the tree isn't empty...
+    if (args_t->valid_tree_root->count > 0)
     {
-        bool no_next = false;
-        do
+        it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
+        
+        while (true)
         {
-            no_next = false;
             struct sig_encap* encap;
             struct flow_sig* sig;
             struct l7_dns* dns;
@@ -548,12 +572,13 @@ void* process_interval(void* args)
             sig = encap->sig;
             dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
-            domain_len = (dns->query[0] + 1) + dns->query[dns->query[0] + 1] + 1;
+            domain_len = get_domain_len(dns->query);
+            
             domain = get_domain(dns->query, domain_len);
 
             write_out_contributors(encap, out);
 
-            while (true)
+            while (memcmp(domain, dns->query, domain_len) == 0)
             {
                 if (it->next() == NULL)
                 {
@@ -564,24 +589,19 @@ void* process_interval(void* args)
                 sig = encap->sig;
                 dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
 
-                if (memcmp(domain, dns->query, domain_len) != 0)
-                {
-                    no_next = true;
-                    break;
-                }
-
                 write_out_contributors(encap, out);
             }
-
-            if (no_next)
+            
+            if (it->get_data() == NULL)
             {
-                continue;
+                break;
             }
+            
+            free(domain);
         }
-        while (it->next() != NULL);
+        
+        RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
     }
-
-    RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
 
     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
@@ -640,6 +660,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         init_thread_args(args_p, args_t);
 
         int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
+        pthread_join(t, NULL);
 //        sleep(1000);
 
         // e is zero on success: http://pubs.opengroup.org/onlinepubs/007908799/xsh/pthread_create.html

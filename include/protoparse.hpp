@@ -108,7 +108,7 @@ struct l7_dns
     uint16_t query_len;
     char* query;
     uint16_t flags;
-//    bool answered;
+    bool answered;
     uint8_t next;
 };
 
@@ -445,6 +445,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         l7_hdr.flags = ntohs(hdr->flags);
 
         l7_hdr.query_len = dns_get_query_string(packet + p_offset, &(l7_hdr.query), packet_len);
+        l7_hdr.answered = (hdr->num_answers > 0);
 
         f = append_to_flow_sig(f, &l7_hdr, sizeof(struct l7_dns) - 1);
         *fp = f;
