@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-
 <!--
      Value types:
         bool, uint8, int8, uint16_l, int16_l, uint32_l, int32_l, uint64_l, int64_l
@@ -22,74 +21,75 @@
            > These are used as separators, and without them you'll get either crashes or unexpected results.
            > Also currently doesn't handle negative numeric values.
 -->
-
 <fmt2xml name="DNS Statistics">
-    <value type="uint32_l" name="Unix Timestamp (Interval Start)" />
-    <value type="double_l" name="Valid DNS Query Entropy" />
-    <value type="double_l" name="Valid DNS Query Length-Weighted Entropy" />
-    <value type="uint64_l" name="Bytes in DNS Queries" />
-    <value type="uint64_l" name="Number of DNS Queries" />
-    <value type="uint64_l" name="Number of Unique DNS Queries" label="numuniquequeries" />
-    <value type="uint32_l" name="Number of Unique Domains" label="numuniquedomains" />
-    <value type="double_l" name="Non-DNS on UDP 53 Payload Entropy" />
-    <value type="double_l" name="Non-DNS on UDP 53 Payload Length-Weighted Entropy" />
-    <value type="uint64_l" name="Bytes in Non-DNS on UDP 53" />
-    <value type="uint64_l" name="Number of non-DNS packets over UDP 53" />
-    <value type="uint64_l" name="Number of Unique non-DNS payloads over UDP 53" label="numuniquenon" />
-    <loop count="_numuniquedomains_" prefix="Domain">
-        <value type="cstr" name="Registered Domain" />
-        <value type="double_l" name="Domain Entropy" />
-        <value type="double_l" name="Domain Length-Weighted Entropy" />
-        <value type="uint64_l" name="Total Queries to Domain" />
-        <value type="uint64_l" name="Number of Bytes in Queries to Domain" />
-        <value type="uint64_l" name="Unique Queries to Domain" />
+  <value type="uint32_l" name="Unix Timestamp at Interval Start"/>
+  <value type="double_l" name="Valid DNS Query Entropy"/>
+  <value type="double_l" name="Valid DNS Query Length-Weighted Entropy"/>
+  <value type="uint64_l" name="Bytes in DNS Queries"/>
+  <value type="uint64_l" name="Number of DNS Queries"/>
+  <value type="uint64_l" name="Number of Unique DNS Queries" label="numuniquequeries"/>
+  <value type="uint32_l" name="Number of Unique Domains" label="numuniquedomains"/>
+  <value type="double_l" name="Non-DNS on UDP 53 Payload Entropy"/>
+  <value type="double_l" name="Non-DNS on UDP 53 Payload Length-Weighted Entropy"/>
+  <value type="uint64_l" name="Bytes in Non-DNS on UDP 53"/>
+  <value type="uint64_l" name="Number of non-DNS packets over UDP 53"/>
+  <value type="uint64_l" name="Number of Unique non-DNS payloads over UDP 53" label="numuniquenon"/>
+  <loop count="_numuniquedomains_" prefix="Domain">
+    <value type="cstr" name="Registered Domain"/>
+    <value type="double_l" name="Domain Entropy"/>
+    <value type="double_l" name="Domain Length-Weighted Entropy"/>
+    <value type="uint64_l" name="Total Queries to Domain"/>
+    <value type="uint64_l" name="Number of Bytes in Queries to Domain"/>
+    <value type="uint64_l" name="Unique Queries to Domain"/>
+  </loop>
+  <loop count="_numuniquequeries_" prefix="Query">
+    <value type="cstr" name="Query String"/>
+    <!--
+    The following field contains information about what flags were thrown during 
+    verification of the DNS packet.
+    - 1 : The packet contains some slack at the end.
+    - 2 : The DNS query strings contained some forward-pointing pointers. This 
+        can be indicative that the packet contains some gaps with arbitrary data 
+        inserted. 
+    -->
+    <value type="uint16_l" name="Verification Flags" label="vflags"/>
+    <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
+      <print string="Packet contains slack bytes at the end"/>
+      <value type="pre2str_l" name="Slack Bytes"/>
+    </if>
+    <if lhs="_vflags_ &amp; 2" op="eq" rhs="2">
+      <print string="Packet contains forward pointers."/>
+    </if>
+    <value type="uint32_l" name="Count" label="numcontribs"/>
+    <loop count="_numcontribs_" prefix="Contributor">
+      <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+      <if lhs="_l3type_" op="eq" rhs="2048">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <if lhs="_l3type_" op="eq" rhs="34525">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <value type="uint16_l" name="Source Port"/>
+      <value type="uint16_l" name="Destination Port"/>
     </loop>
-    <loop count="_numuniquequeries_" prefix="Query">
-        <value type="cstr" name="Query String" />
-        <!--
-            This field contains information about what flags were thrown during verification of the DNS packet.
-                - 1 : The packet contains some slack at the end.
-                - 2 : The DNS query strings contained some forward-pointing pointers.
-                  This can be indicative that the packet contains some gaps with arbitrary data inserted. 
-            -->
-        <value type="uint16_l" name="Verification Flags" label="vflags" />
-            <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
-                <print string="Packet contains slack bytes at the end" />
-                <value type="pre2str_l" name="Slack Bytes" />
-            </if>
-            <if lhs="_vflags_ &amp; 2" op="eq" rhs="2">
-                <print string="Packet contains forward pointers." />
-            </if>
-        <value type="uint32_l" name="Count" label="numcontribs" />
-        <loop count="_numcontribs_" prefix="Contributor">
-            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
-            <if lhs="_l3type_" op="eq" rhs="2048">
-                <value type="cstr" name="Source IP" />
-                <value type="cstr" name="Destination IP" />
-            </if>
-            <if lhs="_l3type_" op="eq" rhs="34525">
-                <value type="cstr" name="Source IP" />
-                <value type="cstr" name="Destination IP" />
-            </if>
-            <value type="uint16_l" name="Source Port" />
-            <value type="uint16_l" name="Destination Port" />
-        </loop>
+  </loop>
+  <loop count="_numuniquenon_" prefix="Payload">
+    <value type="pre2str_l" name="Payload"/>
+    <value type="uint32_l" name="Count" label="numcontribs"/>
+    <loop count="_numcontribs_" prefix="Contributor">
+      <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+      <if lhs="_l3type_" op="eq" rhs="2048">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <if lhs="_l3type_" op="eq" rhs="34525">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <value type="uint16_l" name="Source Port"/>
+      <value type="uint16_l" name="Destination Port"/>
     </loop>
-    <loop count="_numuniquenon_" prefix="Payload">
-        <value type="pre2str_l" name="Payload" />
-        <value type="uint32_l" name="Count" label="numcontribs" />
-        <loop count="_numcontribs_" prefix="Contributor">
-            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
-            <if lhs="_l3type_" op="eq" rhs="2048">
-                <value type="cstr" name="Source IP" />
-                <value type="cstr" name="Destination IP" />
-            </if>
-            <if lhs="_l3type_" op="eq" rhs="34525">
-                <value type="cstr" name="Source IP" />
-                <value type="cstr" name="Destination IP" />
-            </if>
-            <value type="uint16_l" name="Source Port" />
-            <value type="uint16_l" name="Destination Port" />
-        </loop>
-    </loop> 
+  </loop>
 </fmt2xml>
