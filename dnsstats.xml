@@ -46,6 +46,12 @@
     </loop>
     <loop count="_numuniquequeries_" prefix="Query">
         <value type="cstr" name="Query String" />
+        <!--
+            This field contains information about what flags were thrown during verification of the DNS packet.
+                - 1 : The packet contains some slack at the end.
+                - 2 : The DNS query strings contained some forward-pointing pointers.
+                  This can be indicative that the packet contains some gaps with arbitrary data inserted. 
+            -->
         <value type="uint16_l" name="Verification Flags" label="vflags" />
         <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
             <value type="pre2str_l" name="Slack Bytes" />
