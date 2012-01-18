@@ -1,3 +1,14 @@
+# MPL2.0 HEADER START
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# MPL2.0 HEADER END
+#
+# Copyright 2010-2012 Michael Himbeault and Travis Friesen
+#
+
 cmake_minimum_required(VERSION 2.6)
 
 # The name of our project is "TM-PROJECT".  CMakeLists files in this project can
@@ -98,7 +109,7 @@ endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O3")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
 else(NOT ${COMPILER_SUITE} MATCHES "sun")
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
@@ -138,7 +149,7 @@ add_library(odb SHARED datastore.cpp index.cpp odb.cpp linkedlistds.cpp linkedli
 # Add executable called "helloDemo" that is built from the source files
 # "demo.cxx" and "demo_b.cxx".  The extensions are automatically found.
 #add_executable (helloDemo demo.cxx demo_b.cxx)
-add_executable (test test.cpp)
+add_executable (test-ind_ds test-ind_ds.cpp)
 add_executable (schedtest schedtest.cpp)
 add_executable (minimal_erbt minimal_erbt.cpp)
 add_executable (minimal_odb minimal_odb.cpp)
@@ -152,7 +163,7 @@ add_executable (trace-proc trace-proc.cpp)
 #add_executable (pca_test pca.c)
 #add_executable (py-demo py-demo.cpp)
 
-target_link_libraries(test ${LIBS})
+target_link_libraries(test-ind_ds ${LIBS})
 target_link_libraries(schedtest ${LIBS} -lrt)
 target_link_libraries(minimal_erbt ${LIBS})
 target_link_libraries(minimal_odb ${LIBS})

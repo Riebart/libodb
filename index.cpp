@@ -1,9 +1,20 @@
+/* MPL2.0 HEADER START
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * MPL2.0 HEADER END
+ *
+ * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ *
+ */
+
 #include "index.hpp"
 #include "common.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
-//#include <omp.h>
 
 #include "odb.hpp"
 #include "datastore.hpp"
@@ -131,6 +142,7 @@ void* ig_sched_workload(void* argsV)
     return NULL;
 }
 
+#warning "Current threading is based on insertion, not per table. Changing that is done here."
 inline void IndexGroup::add_data(DataObj* data)
 {
     // If it passes integrity checks, add it to the group.
@@ -238,7 +250,6 @@ inline void IndexGroup::query(Condition* condition, DataStore* ds)
             indices[0]->query(condition, ds);
         }
         else
-//#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query(condition, ds);
@@ -258,7 +269,6 @@ inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
             indices[0]->query_eq(rawdata, ds);
         }
         else
-//#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_eq(rawdata, ds);
@@ -278,7 +288,6 @@ inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
             indices[0]->query_lt(rawdata, ds);
         }
         else
-//#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_lt(rawdata, ds);
@@ -298,7 +307,6 @@ inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
             indices[0]->query_gt(rawdata, ds);
         }
         else
-//#pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
             {
                 indices[i]->query_gt(rawdata, ds);

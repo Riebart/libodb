@@ -1,3 +1,15 @@
+/* MPL2.0 HEADER START
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * MPL2.0 HEADER END
+ *
+ * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ *
+ */
+
 #include <string.h>
 #include <vector>
 #include <time.h>
@@ -412,6 +424,7 @@ void* odb_sched_workload(void* argsV)
 }
 
 #warning "Look into why the comments are commented out in add_data."
+#warning "Current threading is based on insertion, not per table. Changing that is done here."
 void ODB::add_data(void* rawdata)
 {
     if (scheduler == NULL)
@@ -432,7 +445,18 @@ void ODB::add_data(void* rawdata)
 
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
-    all->add_data_v(data->add_data(rawdata, nbytes));
+    if (scheduler == NULL)
+    {
+        all->add_data_v(data->add_data(rawdata, nbytes));
+    }
+    else
+    {
+        struct sched_args* args;
+        SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
+        args->rawdata = data->add_data(rawdata, nbytes);
+        args->odb = this;
+        scheduler->add_work(odb_sched_workload, args, NULL, Scheduler::NONE);
+    }
 //     if ((all->add_data_v(data->add_data(rawdata, nbytes))) == false)
 //         data->remove_at(data->data_count - 1);
 }
@@ -565,7 +589,6 @@ void ODB::remove_sweep()
                 tables[0]->remove_sweep(marked[0]);
             }
             else
-// #pragma omp parallel for
                 for (uint32_t i = 0 ; i < n ; i++)
                 {
                     tables[i]->remove_sweep(marked[0]);

@@ -1,3 +1,15 @@
+/* MPL2.0 HEADER START
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * MPL2.0 HEADER END
+ *
+ * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ *
+ */
+
 /// File for testing framework
 /// This file is used for testing the database framework. Here you will find
 ///methods and examples that use the framework and test it to make sure it
@@ -10,17 +22,13 @@
 #include <sys/timeb.h>
 #include <stdio.h>
 #include <string.h>
-// #include <omp.h>
 #include <unistd.h>
 
 #include "odb.hpp"
 #include "index.hpp"
 #include "iterator.hpp"
 
-// // NOTE: NOT ALLOWED! (Needed for Verify)
 #include "redblacktreei.hpp"
-
-// NOTE: NOT ALLOWED! (Needed for FAIL)
 #include "common.hpp"
 
 #include "cmwc.h"
@@ -78,15 +86,27 @@ int compare(void* a, void* b)
 /// Usage function that prints out the proper usage.
 void usage()
 {
-    printf(" Usage test -[ntTiehm]\n"
-           "\t-h\tPrint this help message\n"
-           "\t-n\tNumber of elements (default=10000)\n"
-           "\t-t\tNumber of tests (default=1)\n"
-           "\t-T\tTest type (default=0)\n"
-           "\t-i\tIndex types (default=0)\n"
-           "\t-e\tElement size, in bytes (default=8)\n"
-           "\t-m\tMemory limit, in pages (default=1000000, ie, a lot)\n\n"
-           "Where: test type (T) {0=BANK_DS, 1=LINKED_LIST_DS, 2=BANK_I_DS, 3=LINKED_LIST_I_DS}\nWhere: index type (i) {1-bit:" "on=DROP_DUPLICATES, off=NONE, 2-bit: on=LINKED_LIST, off=RED_BLACK_TREE}\n");
+    printf("\
+Usage test -[ntTiehm]\n\
+\t-h\tPrint this help message\n\
+\t-n\tNumber of elements (default=10000)\n\
+\t-t\tNumber of tests (default=1)\n\
+\t-T\tTest type (default=0)\n\
+\t-i\tIndex types (default=0)\n\
+\t-e\tElement size, in bytes (default=8)\n\
+\t-m\tMemory limit, in pages (default=1000000, ie, a lot)\n\n\
+Where: \n\
+    test type (T): 0 = BANK_DS, \n\
+                   1 = LINKED_LIST_DS, \n\
+                   2 = BANK_I_DS, \n\
+                   3 = LINKED_LIST_I_DS\n\
+                   4 = LINKED_LIST_V_DS\n\
+\n\
+    index type (i): 1-bit: on = DROP_DUPLICATES, \n\
+                           off = NONE, \n\
+                    2-bit: on = LINKED_LIST, \n\
+                           off = RED_BLACK_TREE\n\
+    ");
 }
 
 /// Function for testing the database.
@@ -204,10 +224,10 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
     }
 
     //for the VDS, if necessary
-    char * test_str = (char*)("The quick brown fox jumped over the lazy dog.");
+    char* test_str = (char*)("The quick brown fox jumped over the lazy dog.");
     char temp_str [500];
     int test_str_len = strlen(test_str);
-
+    strncpy(temp_str, test_str, test_str_len);
 
     ftime(&start);
 
@@ -226,14 +246,27 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
         }
         else if (test_type == 4)
         {
-            int str_index = RAND() % test_str_len;
+            uint32_t str_index = RAND();
+            str_index %= test_str_len;
+            str_index++;
 
-            strncpy(temp_str, test_str, test_str_len);
+//             strncpy(temp_str, test_str, test_str_len);
 
             //NULL terminate the string
+            char tmp = temp_str[str_index];
+            temp_str[0] = 'A' + (26 * (test_size - i)) / test_size;
             temp_str[str_index] = 0;
+            
+//             // Create a random string, to reduce the number of collisions.
+//             for (int i = 0 ; i < str_index ; i++)
+//             {
+//                 uint8_t r = (((uint8_t)RAND()) % 26);
+//                 temp_str[i] = 'A' + r;
+//             }
 
             dn = odb->add_data(temp_str, str_index+1, false);
+            
+            temp_str[str_index] = tmp;
         }
         else
         {
