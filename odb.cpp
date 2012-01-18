@@ -407,6 +407,8 @@ void* odb_sched_workload(void* argsV)
     struct sched_args* args = (struct sched_args*)argsV;
     args->odb->all->add_data_v(args->rawdata);
     free(args);
+
+    return NULL;
 }
 
 #warning "Look into why the comments are commented out in add_data."

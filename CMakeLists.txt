@@ -10,7 +10,7 @@ message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
 #set(CMAKE_LINKER "/bin/ld")
 set(COMPILER_C)
 set(COMPILER_CXX)
-set(SKIP_SUN_COMPILER "true")
+set(SKIP_SUN_COMPILER "false")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)

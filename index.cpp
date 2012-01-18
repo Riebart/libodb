@@ -127,6 +127,8 @@ void* ig_sched_workload(void* argsV)
     struct sched_args* args = (struct sched_args*)argsV;
     args->ig->add_data_v(args->rawdata);
     free(args);
+
+    return NULL;
 }
 
 inline void IndexGroup::add_data(DataObj* data)
