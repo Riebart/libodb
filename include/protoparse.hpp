@@ -105,9 +105,10 @@ struct l4_udp
 
 struct l7_dns
 {
-    uint16_t query_len;
     char* query;
+    uint16_t query_len;
     uint16_t flags;
+    uint16_t vflags; // Contains flags that indicate things of note that were discovered when parsing the packet.
     bool answered;
     uint8_t next;
 };
@@ -131,7 +132,7 @@ inline void init_proto_hdr_sizes()
     l7_hdr_size[L7_TYPE_DNS] = sizeof(struct l7_dns) - 1;
 }
 
-inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, void* data, uint16_t num_bytes)
+inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, const void* data, uint16_t num_bytes)
 {
     struct flow_sig* ret;
     SAFE_REALLOC(struct flow_sig*, f, ret, sizeof(struct flow_sig) - 1 + f->hdr_size + num_bytes);
@@ -436,8 +437,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
+    struct dns_verify_result* dns_result = dns_verify_packet(packet + p_offset, packet_len);
 
-    if (((p_offset + sizeof(struct dns_header)) < packet_len) && (dns_verify_packet(packet + p_offset, packet_len)))
+    if (((p_offset + sizeof(struct dns_header)) < packet_len) && (dns_result != NULL))
     {
         const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(packet + p_offset);
 
@@ -446,9 +448,19 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         l7_hdr.query_len = dns_get_query_string(packet + p_offset, &(l7_hdr.query), packet_len);
         l7_hdr.answered = (hdr->num_answers > 0);
+        l7_hdr.vflags = dns_result->flags;
+
+        p_offset += dns_result->len;
+
+        if (p_offset < packet_len)
+        {
+            l7_hdr.vflags |= DNS_VERIFY_FLAG_SLACK_SPACE;
+        }
 
         f = append_to_flow_sig(f, &l7_hdr, sizeof(struct l7_dns) - 1);
         *fp = f;
+
+        free(dns_result);
 
 #ifdef DEBUG
         printf("valid_dns ");
@@ -458,8 +470,6 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
 
         f->l7_type = L7_TYPE_DNS;
-
-        p_offset = packet_len;
     }
     else
     {
@@ -472,7 +482,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
+struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, bool keep_extra)
 {
     int32_t p_offset = 0;
 
@@ -496,6 +506,15 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len)
     if (f->l7_type != L7_TYPE_NONE)
     {
         p_offset = l7_sig(&f, packet, p_offset, packet_len);
+    }
+
+    // If we're told to keep the extra parts of the packet, then we stick the
+    // portions fo the packet we couldn't parse onto the end of the headers
+    if (keep_extra && (packet_len > p_offset))
+    {
+        // Copy from p_offset to the end of the packet to the end of the
+        // flow_sig header structures.
+        f = append_to_flow_sig(f, packet + p_offset, packet_len - p_offset);
     }
 
 #ifdef DEBUG

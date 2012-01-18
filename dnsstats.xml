@@ -4,6 +4,7 @@
      Value types:
         bool, uint8, int8, uint16_l, int16_l, uint32_l, int32_l, uint64_l, int64_l
         bool, uint8, int8, uint16_b, int16_b, uint32_b, int32_b, uint64_b, int64_b
+         > A bool is actually 8 bits, but only values of 0 or 1 are accepted, and its value is printed as "True" or "False"
         prestr  = A string whose length is indicated by the first byte of the field.
         pre2str_l/pre2str_b = Same as prestr, but the length is 2 bytes (l/b indicates endianness of that field).
         cstr = C-style string that is null-terminated.
@@ -22,21 +23,33 @@
            > Also currently doesn't handle negative numeric values.
 -->
 
-<fmt2xml name="demo-driver Output Description">
-    <value type="uint32_l" name="Unix Timestamp" />
+<fmt2xml name="DNS Statistics">
+    <value type="uint32_l" name="Unix Timestamp (Interval Start)" />
+    <value type="double_l" name="Valid DNS Query Entropy" />
+    <value type="double_l" name="Valid DNS Query Length-Weighted Entropy" />
+    <value type="uint64_l" name="Bytes in DNS Queries" />
+    <value type="uint64_l" name="Number of DNS Queries" />
+    <value type="uint64_l" name="Number of Unique DNS Queries" label="numuniquequeries" />
+    <value type="uint32_l" name="Number of Unique Domains" label="numuniquedomains" />
+    <value type="double_l" name="Non-DNS on UDP 53 Payload Entropy" />
+    <value type="double_l" name="Non-DNS on UDP 53 Payload Length-Weighted Entropy" />
+    <value type="uint64_l" name="Bytes in Non-DNS on UDP 53" />
     <value type="uint64_l" name="Number of non-DNS packets over UDP 53" />
-    <value type="double_l" name="Query Entropy" />
-    <value type="uint64_l" name="Total Number of DNS Queries" />
-    <value type="uint64_l" name="Total Number of Unique DNS Queries" label="numqueries" />
-    <value type="uint32_l" name="Number of Unique Domains" label="numdomains" />
-    <loop count="_numdomains_" prefix="Domain">
+    <value type="uint64_l" name="Number of Unique non-DNS payloads over UDP 53" label="numuniquenon" />
+    <loop count="_numuniquedomains_" prefix="Domain">
         <value type="cstr" name="Registered Domain" />
         <value type="double_l" name="Domain Entropy" />
+        <value type="double_l" name="Domain Length-Weighted Entropy" />
         <value type="uint64_l" name="Total Queries to Domain" />
+        <value type="uint64_l" name="Number of Bytes in Queries to Domain" />
         <value type="uint64_l" name="Unique Queries to Domain" />
     </loop>
-    <loop count="_inf_" prefix="Query">
+    <loop count="_numuniquequeries_" prefix="Query">
         <value type="cstr" name="Query String" />
+        <value type="uint16_l" name="Verification Flags" label="vflags" />
+        <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
+            <value type="pre2str_l" name="Slack Bytes" />
+        </if>
         <value type="uint32_l" name="Count" label="numcontribs" />
         <loop count="_numcontribs_" prefix="Contributor">
             <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
@@ -48,6 +61,25 @@
                 <value type="cstr" name="Source IP" />
                 <value type="cstr" name="Destination IP" />
             </if>
+            <value type="uint16_l" name="Source Port" />
+            <value type="uint16_l" name="Destination Port" />
         </loop>
     </loop>
+    <loop count="_numuniquenon_" prefix="Payload">
+        <value type="pre2str_l" name="Payload" />
+        <value type="uint32_l" name="Count" label="numcontribs" />
+        <loop count="_numcontribs_" prefix="Contributor">
+            <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+            <if lhs="_l3type_" op="eq" rhs="2048">
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
+            </if>
+            <if lhs="_l3type_" op="eq" rhs="34525">
+                <value type="cstr" name="Source IP" />
+                <value type="cstr" name="Destination IP" />
+            </if>
+            <value type="uint16_l" name="Source Port" />
+            <value type="uint16_l" name="Destination Port" />
+        </loop>
+    </loop> 
 </fmt2xml>

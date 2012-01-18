@@ -34,7 +34,6 @@ bool verbose = false;
 
 // We need some 32-bit structs for the file format, since the time stamps in the file are 32-bit.
 // But the timeval struct on 64-bit machines uses 64-bit timestamps.
-// Fuck.
 struct timeval32
 {
     uint32_t tv_sec;         /* timestamp seconds */
@@ -50,18 +49,21 @@ struct pcap_pkthdr32
 
 struct domain_stat
 {
-    char* domain;
     uint32_t domain_len;
+    char* domain;
     double entropy;
+    double weighted_entropy;
     uint64_t total_queries;
+    uint64_t total_query_length;
     uint64_t subdomains;
 };
 
 struct interval_stat
 {
     double entropy;
+    double weighted_entropy;
+    uint64_t total_query_length;
     uint64_t total_queries;
-    uint64_t total_unique_queries;
 };
 
 // This struct gets handed off to the packet handler.
@@ -114,13 +116,37 @@ inline void write_out_query(struct flow_sig* sig, FILE* out)
     struct l7_dns* dns;
     dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
     fprintf(out, "%s%c", dns->query, '\0');
+
+    fwrite(&(dns->vflags), 1, sizeof(uint16_t), out);
+
+    // Now we write out the contents of any slack space that may have been added
+    // to the end of the DNS packet.
+    uint16_t pre_hdr_size = l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type] + l7_hdr_size[sig->l7_type];
+    uint16_t slack_size = sig->hdr_size - pre_hdr_size;
+
+    if (slack_size > 0)
+    {
+        fwrite(&slack_size, 1, sizeof(uint16_t), out);
+        fwrite(&(sig->hdr_start) + pre_hdr_size, 1, slack_size, out);
+    }
+}
+
+inline void write_out_payload(struct flow_sig* sig, FILE* out)
+{
+    // First write out the length of the payload
+    uint16_t pre_hdr_size = l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type];
+    uint16_t payload_len = sig->hdr_size - pre_hdr_size;
+    fwrite(&(payload_len), 1, sizeof(uint16_t), out);
+
+    // Now write out the payload.
+    fwrite(&(sig->hdr_start) + pre_hdr_size, 1, payload_len, out);
 }
 
 inline void write_out_sig(struct flow_sig* sig, FILE* out)
 {
     // Write out layer 3 type as IPv4.
     fwrite(&(sig->l3_type), 1, sizeof(sig->l3_type), out);
-    
+
     if (sig->l3_type == L3_TYPE_IP4)
     {
         struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(sig->hdr_start));
@@ -142,9 +168,14 @@ inline void write_out_sig(struct flow_sig* sig, FILE* out)
                 d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15], 0
                );
     }
+
+    // Write out the ports. The non-53 port will be of interest, but isn't guaranteed to be the source port.
+    struct l4_udp* l4 = reinterpret_cast<struct l4_udp*>(&(sig->hdr_start) + l3_hdr_size[sig->l3_type]);
+    fwrite(&(l4->sport), 1, sizeof(uint16_t), out);
+    fwrite(&(l4->dport), 1, sizeof(uint16_t), out);
 }
 
-void write_out_contributors(struct sig_encap* encap, FILE* out)
+void write_out_contributors_valid(struct sig_encap* encap, FILE* out)
 {
     vector<struct flow_sig*>* ips = encap->ips;
     uint32_t num_addrs;
@@ -162,6 +193,36 @@ void write_out_contributors(struct sig_encap* encap, FILE* out)
     else
     {
         write_out_query(ips->at(0), out);
+        num_addrs = ips->size();
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        for (uint32_t i = 0 ; i < ips->size() ; i++)
+        {
+            write_out_sig(ips->at(i), out);
+        }
+    }
+}
+
+void write_out_contributors_invalid(struct sig_encap* encap, FILE* out)
+{
+    vector<struct flow_sig*>* ips = encap->ips;
+    uint32_t num_addrs;
+
+    if (ips == NULL)
+    {
+        // Write out full payload
+        write_out_payload(encap->sig, out);
+
+        num_addrs = 1;
+        // Write out the number of IPs that made the queries.
+        fwrite(&num_addrs, 1, sizeof(uint32_t), out);
+        // Wite out each address that made the query.
+        write_out_sig(encap->sig, out);
+    }
+    else
+    {
+        // Write out the full payload
+        write_out_payload(ips->at(0), out);
+
         num_addrs = ips->size();
         fwrite(&num_addrs, 1, sizeof(uint32_t), out);
         for (uint32_t i = 0 ; i < ips->size() ; i++)
@@ -250,7 +311,7 @@ void* merge_sig_encap(void* aV, void* bV)
 inline uint32_t get_domain_len(char* query)
 {
     uint32_t domain_len = 0;
-    
+
     // 7 is chosen so that we no longer count co.uk as a top registered domain. We should really be using the pubsuf list though.
     while (domain_len < 7)
     {
@@ -261,15 +322,15 @@ inline uint32_t get_domain_len(char* query)
         {
             break;
         }
-        
+
         domain_len += query[domain_len] + 1;
     }
-    
+
     if (domain_len == 0)
     {
         domain_len = 1;
     }
-    
+
     return domain_len;
 }
 
@@ -287,36 +348,32 @@ inline char* get_domain(char* q, uint32_t len)
 
 inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
 {
-    uint32_t cur_count;
-    if (encap->ips == NULL)
-    {
-        cur_count = 1;
-    }
-    else
-    {
-        cur_count = encap->ips->size();
-    }
+    uint32_t cur_count = (encap->ips == NULL ? 1 : encap->ips->size());
 
     stats->total_queries += cur_count;
     stats->subdomains++;
     stats->entropy += cur_count * log((double)cur_count);
+
+    struct l7_dns* dns = (struct l7_dns*)(&(encap->sig->hdr_start) + l3_hdr_size[encap->sig->l3_type] + l4_hdr_size[encap->sig->l4_type]);
+    uint32_t query_len = dns->query_len;
+
+    stats->weighted_entropy += query_len * cur_count * log((double)cur_count);
+    stats->total_query_length += cur_count * query_len;
 }
 
 inline void finalize_interval(struct interval_stat* istat)
 {
     istat->entropy -= istat->total_queries * log((double)(istat->total_queries));
     istat->entropy /= (istat->total_queries * M_LN2);
-
-    if (istat->entropy != 0)
-    {
-        istat->entropy *= -1;
-    }
+    istat->entropy *= -1;
 }
 
 void process_domain(Iterator* it, struct domain_stat* stats, struct interval_stat* istat)
 {
     stats->entropy = 0;
+    stats->weighted_entropy = 0;
     stats->total_queries = 0;
+    stats->total_query_length = 0;
     stats->subdomains = 0;
 
     struct sig_encap* encap;
@@ -330,7 +387,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     encap = (struct sig_encap*)(it->get_data());
     sig = encap->sig;
     dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-    
+
     domain_len = get_domain_len(dns->query);
 
     domain = get_domain(dns->query, domain_len);
@@ -338,7 +395,6 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
     stats->domain_len = domain_len;
 
     process_query(stats, encap);
-    istat->total_unique_queries++;
 
     while (true)
     {
@@ -358,21 +414,21 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
         }
 
         process_query(stats, encap);
-        istat->total_unique_queries++;
     }
 
     // Finalize the entropy computation for the domain, and put together this domain's
     // contribution to the interval.
     istat->entropy += stats->total_queries * log((double)stats->total_queries);
     istat->total_queries += stats->total_queries;
+    istat->total_query_length += stats->total_query_length;
 
     stats->entropy -= stats->total_queries * log((double)(stats->total_queries));
     stats->entropy /= (stats->total_queries * M_LN2);
+    stats->entropy *= -1;
 
-    if (stats->entropy != 0)
-    {
-        stats->entropy *= -1;
-    }
+    stats->weighted_entropy -= stats->total_query_length * log((double)(stats->total_queries));
+    stats->weighted_entropy /= (stats->total_queries * M_LN2);
+    stats->weighted_entropy *= -1;
 }
 
 // =============================================================================
@@ -383,20 +439,20 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {
     struct RedBlackTreeI::e_tree_root* valid_tree_root = args_p->valid_tree_root;
-//     struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
+    struct RedBlackTreeI::e_tree_root* invalid_tree_root = args_p->invalid_tree_root;
 
     struct sig_encap* data = (struct sig_encap*)malloc(sizeof(struct sig_encap));
     data->ips = NULL;
 
     // Collect the layer 3, 4 and 7 information.
-    data->sig = sig_from_packet(packet, pheader->caplen);
+    data->sig = sig_from_packet(packet, pheader->caplen, true);
 
     // Check if the layer 7 information is DNS
     // If the layer 7 information is DNS, then we have already 'checked' it. Otherwise it would not pass the following condition.
     if (data->sig->l7_type == L7_TYPE_DNS)
     {
         struct l7_dns* a = (struct l7_dns*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type] + l4_hdr_size[data->sig->l4_type]);
-        
+
         // First check and see if there are any responses. If there are, discard this since we don't care about responses for now.
         if (!a->answered)
         {
@@ -414,6 +470,10 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
                 // If it was successfully added...
             }
         }
+        else
+        {
+            free_sig_encap(data);
+        }
     }
     // What to do with non-DNS ?
     else
@@ -423,23 +483,23 @@ void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, c
         {
             struct l4_udp* udp = (struct l4_udp*)(&(data->sig->hdr_start) + l3_hdr_size[data->sig->l3_type]);
 
-            // If either port is 53 (DNS), and it doesn't make it into the tree...
+            // If either port is 53 (DNS)
             if ((udp->sport == 53) || (udp->dport == 53))
             {
                 args_p->num_invalid_udp53++;
-                free_sig_encap(data);
 
-//                 if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
-//                 {
-//                     free(data);
-//                 }
-//                 else
-//                 {
-//                     // If it was successfully added...
-//                 }
+                if (!(RedBlackTreeI::e_add(invalid_tree_root, data)))
+                {
+                    free(data);
+                }
+                else
+                {
+                    // If it was successfully added...
+                }
             }
             else
             {
+                free_sig_encap(data);
             }
         }
         else
@@ -458,7 +518,6 @@ void* process_interval(void* args)
     struct interval_stat istat;
     istat.entropy = 0;
     istat.total_queries = 0;
-    istat.total_unique_queries = 0;
 
     struct domain_stat* cur_stat;
     Iterator* it;
@@ -466,24 +525,59 @@ void* process_interval(void* args)
     if (args_t->valid_tree_root->count > 0)
     {
         it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-        
-        while (true)
+
+        do
         {
             cur_stat = (struct domain_stat*)malloc(sizeof(struct domain_stat));
             process_domain(it, cur_stat, &istat);
             stats.push_back(cur_stat);
-            
-            if (it->next() == NULL)
-            {
-                break;
-            }
         }
-        
+        while (it->next() != NULL);
+
         finalize_interval(&istat);
         RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
     }
 
-    sort(stats.begin(), stats.end(), vec_sort_entropy);
+    double invalid_entropy = 0;
+    double invalid_weighted_entropy = 0;
+    uint64_t invalid_total_len = 0;
+
+    // Calculate the entropy of the invalid DNS payloads.
+    if (args_t->invalid_tree_root->count > 0)
+    {
+        it = RedBlackTreeI::e_it_first(args_t->invalid_tree_root);
+
+        struct sig_encap* s;
+        uint32_t count;
+
+        do
+        {
+            s = (struct sig_encap*)(it->get_data());
+            count = (s->ips == NULL ? 1 : s->ips->size());
+
+            double ent_scale = count * log((double)count);
+            uint32_t len = s->sig->hdr_size - l3_hdr_size[s->sig->l3_type] - l4_hdr_size[s->sig->l4_type];
+            invalid_total_len += count * len;
+
+            invalid_entropy += ent_scale;
+            invalid_weighted_entropy += ent_scale * len;
+        }
+        while (it->next() != NULL);
+
+        invalid_entropy -= args_t->num_invalid_udp53 * log((double)(args_t->num_invalid_udp53));
+        invalid_entropy /= (args_t->num_invalid_udp53 * M_LN2);
+        invalid_entropy *= -1;
+
+        invalid_weighted_entropy -= invalid_total_len * log((double)(args_t->num_invalid_udp53));
+        invalid_weighted_entropy /= (args_t->num_invalid_udp53 * M_LN2);
+        invalid_weighted_entropy *= -1;
+
+        RedBlackTreeI::e_it_release(args_t->invalid_tree_root, it);
+    }
+
+    // Stable sort preserves the alphabetical ordering of the domains with equal entropy.
+    // Makes manually reading through the output far more human-friendly.
+    stable_sort(stats.begin(), stats.end(), vec_sort_entropy);
 
     FILE* out;
 
@@ -500,6 +594,8 @@ void* process_interval(void* args)
             pthread_join(threads[args_t->t_index - 1], NULL);
         }
     }
+    // If we're writing to files, we can just spawn a new thread per interval
+    // without the joining used for stdout.
     else
     {
         char* curoutfname = (char*)calloc(1, outfname_len + 1 + 10 + 1);
@@ -522,33 +618,59 @@ void* process_interval(void* args)
             LOG_MESSAGE(LOG_LEVEL_INFO, "Succesfully opened \"%s\" for writing.\n", curoutfname);
             fflush(stdout);
         }
+
+        free(curoutfname);
     }
 
-    // Write out a 32-bit Unix timestampe, and the following number of non-DNS packets of UDP port 53.
-    fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t) + sizeof(uint64_t), out);
-    
+    // Write out a 32-bit Unix timestamp
+    fwrite(&(args_t->ts_sec), 1, sizeof(uint32_t), out);
+
     // Write out the contents of an Interval stat struct including
-    //  - Double = Total query entropy.
+    //  - Double = Total valid query entropy.
+    //  - Double = Total valid query length-weighted entropy.
+    //  - uint64_t = number if byts in DNS queries
     //  - uint64_t = total number of DNS queries
-    //  - uint64-t = total number of unique DNS queries
     fwrite(&istat, 1, sizeof(struct interval_stat), out);
 
+    //  Write out uint64-t = total number of unique DNS queries
+    fwrite(&(args_t->valid_tree_root->count), 1, sizeof(uint64_t), out);
+
     uint32_t num_domains = stats.size();
-    
+
     // Write out the number of unique domains encountered.
     fwrite(&num_domains, 1, sizeof(uint32_t), out);
+
+    // Write out the invalid payload entropy.
+    fwrite(&invalid_entropy, 1, sizeof(double), out);
+
+    // Write out the length-weighted invalid payload entropy.
+    fwrite(&invalid_weighted_entropy, 1, sizeof(double), out);
+
+    // Write out the number of bytes total transferred over non-DNS UDP 53
+    fwrite(&invalid_total_len, 1, sizeof(uint64_t), out);
+
+    // Number of non-DNS packets of UDP port 53.
+    fwrite(&(args_t->num_invalid_udp53), 1, sizeof(uint64_t), out);
+
+    // NUmber of unique non-DNS payloads on UDP port 53
+    fwrite(&(args_t->invalid_tree_root->count), 1, sizeof(args_t->invalid_tree_root->count), out);
 
     for (uint32_t i = 0 ; i < num_domains; i++)
     {
         // Write out the registered comain, without the TLD.
+        // Have to handle a null query differently.
         if (stats[i]->domain[0] != 0)
+        {
             fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
+        }
         else
+        {
             fwrite(stats[i]->domain, 1, stats[i]->domain_len, out);
-        
+        }
+
         // Entropy + total queries + total unique
-        fwrite(&(stats[i]->entropy), 1, sizeof(double) + 2 * sizeof(uint64_t), out);
-        
+        fwrite(&(stats[i]->entropy), 1, 2 * sizeof(double) + 3 * sizeof(uint64_t), out);
+
         free(stats[i]->domain);
         free(stats[i]);
     }
@@ -557,53 +679,35 @@ void* process_interval(void* args)
     if (args_t->valid_tree_root->count > 0)
     {
         it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-        
-        while (true)
+
+        do
         {
             struct sig_encap* encap;
-            struct flow_sig* sig;
-            struct l7_dns* dns;
-
-            // Identify the domain that the query belongs to.
-            uint32_t domain_len = 0;
-            char* domain = NULL;
-
             encap = (struct sig_encap*)(it->get_data());
-            sig = encap->sig;
-            dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-            domain_len = get_domain_len(dns->query);
-            
-            domain = get_domain(dns->query, domain_len);
-
-            write_out_contributors(encap, out);
-
-            while (memcmp(domain, dns->query, domain_len) == 0)
-            {
-                if (it->next() == NULL)
-                {
-                    break;
-                }
-
-                encap = (struct sig_encap*)(it->get_data());
-                sig = encap->sig;
-                dns = (struct l7_dns*)(&(sig->hdr_start) + l3_hdr_size[sig->l3_type] + l4_hdr_size[sig->l4_type]);
-
-                write_out_contributors(encap, out);
-            }
-            
-            if (it->get_data() == NULL)
-            {
-                break;
-            }
-            
-            free(domain);
+            write_out_contributors_valid(encap, out);
         }
-        
+        while (it->next() != NULL);
+
         RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
     }
 
     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
+
+    if (args_t->invalid_tree_root->count > 0)
+    {
+        it = RedBlackTreeI::e_it_first(args_t->invalid_tree_root);
+
+        do
+        {
+            struct sig_encap* encap;
+            encap = (struct sig_encap*)(it->get_data());
+            write_out_contributors_invalid(encap, out);
+        }
+        while(it->next() != NULL);
+
+        RedBlackTreeI::e_it_release(args_t->invalid_tree_root, it);
+    }
+
     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
     free(args_t);
@@ -660,8 +764,7 @@ void packet_driver(struct ph_args* args_p, const struct pcap_pkthdr* pheader, co
         init_thread_args(args_p, args_t);
 
         int32_t e = pthread_create(&t, NULL, &process_interval, reinterpret_cast<void*>(args_t));
-        pthread_join(t, NULL);
-//        sleep(1000);
+        pthread_detach(t);
 
         // e is zero on success: http://pubs.opengroup.org/onlinepubs/007908799/xsh/pthread_create.html
         if (e == 0)

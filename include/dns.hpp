@@ -6,16 +6,19 @@
 #define DNS_QUERY_MAX_LEN 16384
 
 // Reference: http://www.faqs.org/rfcs/rfc1035.html
-#define DNS_FLAG_RESPONSE 	0x8000
-#define DNS_FLAG_OPCODE 	0x7800
-#define DNS_FLAG_AUTHORITATIVE 	0x0400
-#define DNS_FLAG_TRUNCATED 	0x0200
-#define DNS_FLAG_RECURSE 	0x0100
-#define DNS_FLAG_CAN_RECURSE 	0x0080
-#define DNS_FLAG_Z 		0x0040 // flags & DNS_FLAG_Z == 0 must be true always for valid DNS packets.
-#define DNS_FLAG_ISAUTH		0x0020 // This applies only to DNSSEC: Specifies whether or not the response is authenticated
-#define DNS_FLAG_AUTHOK		0x0010 // This applies only to DNSSEC: Specifies whether or not unauthenticated reponses are allowed.
-#define DNS_FLAG_REPLYCODE	0x000F
+#define DNS_FLAG_RESPONSE       0x8000
+#define DNS_FLAG_OPCODE         0x7800
+#define DNS_FLAG_AUTHORITATIVE  0x0400
+#define DNS_FLAG_TRUNCATED      0x0200
+#define DNS_FLAG_RECURSE        0x0100
+#define DNS_FLAG_CAN_RECURSE    0x0080
+#define DNS_FLAG_Z              0x0040 // flags & DNS_FLAG_Z == 0 must be true always for valid DNS packets.
+#define DNS_FLAG_ISAUTH         0x0020 // This applies only to DNSSEC: Specifies whether or not the response is authenticated
+#define DNS_FLAG_AUTHOK         0x0010 // This applies only to DNSSEC: Specifies whether or not unauthenticated reponses are allowed.
+#define DNS_FLAG_REPLYCODE      0x000F
+
+#define DNS_VERIFY_FLAG_SLACK_SPACE         0x0001
+#define DNS_VERIFY_FLAG_FORWARD_POINTER     0x0002
 
 #ifndef ABS
 #define ABS(x) (((x) < 0) ? (-1) * (x) : (x))
@@ -28,6 +31,18 @@
 #ifndef TO_LOWER
 #define TO_LOWER(x) (x + ('a' - 'A'))
 #endif
+
+struct pre2str
+{
+    uint16_t len;
+    uint8_t data;
+};
+
+struct dns_verify_result
+{
+    uint16_t len;
+    uint16_t flags;
+};
 
 struct dns_header
 {
@@ -61,7 +76,7 @@ inline void ntoh_dns_hdr(const struct dns_header* hdr_c)
 //
 // For this reason, if the top two bits of any spacer are on, then the rest
 // of that spacer, and the following byte (total 14 bits) mark the offset from
-// the end of the layer 3 header to the first byte of the query. That is, a
+// the end of the layer 4/UDP header to the first byte of the query. That is, a
 // value of 0 marks the start of the ident field (that is 0 = first byte of
 // dns data). This is a name pointer, and if it exists, marks the end of that
 // name field in which it appears.
@@ -90,6 +105,7 @@ struct __dns_query_it
     int32_t incl_len;
     uint32_t total_len;
     uint32_t packet_len;
+    uint16_t flags; // Contains flags about suspicious, and likely malicious, behaviour.
     bool ptd; // Contains whether or not we've already encountered a pointer. Don't allow nested pointers.
 };
 
@@ -124,6 +140,7 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
     {
         // If we already encountered a pointer, and we're encountering another
         // one, then this packet is broken.
+        // Alternatively, it may not be broken, but may be malicious.
         if (q->ptd)
         {
             return NULL;
@@ -144,8 +161,15 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         }
 
         // Move the cursor to the new start of the token.
-        q->pos = ((q->q[q->pos] & 0x3F) * 256) + q->q[q->pos + 1];
+        uint16_t ptr_val = ((q->q[q->pos] & 0x3F) * 256) + q->q[q->pos + 1];
 
+        // If the pointer takes us forward, then mark the appropriate flag
+        if (ptr_val > q->pos)
+        {
+            q->flags &= DNS_VERIFY_FLAG_FORWARD_POINTER;
+        }
+
+        q->pos = ptr_val;
         q->ptd = true;
     }
 
@@ -174,9 +198,10 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
     return q->q + q->pos;
 }
 
-int16_t __query_str_len(const uint8_t* p, uint32_t pos, uint32_t packet_len)
+uint32_t __query_str_len(const uint8_t* p, uint32_t pos, uint32_t packet_len)
 {
-    struct __dns_query_it q = { p, pos, 0, 0, packet_len, false };
+    int16_t ret;
+    struct __dns_query_it q = { p, pos, 0, 0, packet_len, 0, false };
 
     while (true)
     {
@@ -184,19 +209,24 @@ int16_t __query_str_len(const uint8_t* p, uint32_t pos, uint32_t packet_len)
 
         if (p == NULL)
         {
-            return -1;
+            ret = -1;
+            break;
         }
         else if (p[0] == 0)
         {
-            return ABS(q.incl_len);
+            ret = ABS(q.incl_len);
+            break;
         }
     }
 
-    return -1;
+    return (q.flags << 16) + (uint16_t)ret;
 }
 
-bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
+struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
 {
+    struct dns_verify_result* result;
+    SAFE_CALLOC(struct dns_verify_result*, result, 1, sizeof(struct dns_verify_result));
+
     const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(dns_data);
 
     // First check the flags.
@@ -207,7 +237,11 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     }
 
     // Now check the query strings in all of the questions.
+#define SPLIT_LEN_FLAGS(x) { len = (int16_t)(x & 0xFFFF); query_str_flags = (uint16_t)(x >> 16); }
+    uint32_t mux;
     int16_t len;
+    uint16_t query_str_flags;
+
     uint32_t q_offset = sizeof(struct dns_header);
     uint32_t n;
     uint32_t total_n = 0;
@@ -217,11 +251,14 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
-        len = __query_str_len(dns_data, q_offset, packet_len);
+        mux = __query_str_len(dns_data, q_offset, packet_len);
+        SPLIT_LEN_FLAGS(mux);
+        result->flags |= query_str_flags;
 
         if (len < 0)
         {
-            return false;
+            free(result);
+            return NULL;
         }
         else
         {
@@ -234,11 +271,14 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
-        len = __query_str_len(dns_data, q_offset, packet_len);
+        mux = __query_str_len(dns_data, q_offset, packet_len);
+        SPLIT_LEN_FLAGS(mux);
+        result->flags |= query_str_flags;
 
         if (len < 0)
         {
-            return false;
+            free(result);
+            return NULL;
         }
         else
         {
@@ -252,11 +292,14 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
-        len = __query_str_len(dns_data, q_offset, packet_len);
+        mux = __query_str_len(dns_data, q_offset, packet_len);
+        SPLIT_LEN_FLAGS(mux);
+        result->flags |= query_str_flags;
 
         if (len < 0)
         {
-            return false;
+            free(result);
+            return NULL;
         }
         else
         {
@@ -270,11 +313,14 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
     total_n += n;
     for (uint16_t i = 0 ; i < n ; i++)
     {
-        len = __query_str_len(dns_data, q_offset, packet_len);
+        mux = __query_str_len(dns_data, q_offset, packet_len);
+        SPLIT_LEN_FLAGS(mux);
+        result->flags |= query_str_flags;
 
         if (len < 0)
         {
-            return false;
+            free(result);
+            return NULL;
         }
         else
         {
@@ -283,13 +329,16 @@ bool dns_verify_packet(const uint8_t* dns_data, uint32_t packet_len)
         }
     }
 
+    result->len = q_offset;
+
     if (total_n == 0)
     {
-        return false;
+        free(result);
+        return NULL;
     }
     else
     {
-        return true;
+        return result;
     }
 }
 
