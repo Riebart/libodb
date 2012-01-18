@@ -53,9 +53,13 @@
                   This can be indicative that the packet contains some gaps with arbitrary data inserted. 
             -->
         <value type="uint16_l" name="Verification Flags" label="vflags" />
-        <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
-            <value type="pre2str_l" name="Slack Bytes" />
-        </if>
+            <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
+                <print string="Packet contains slack bytes at the end" />
+                <value type="pre2str_l" name="Slack Bytes" />
+            </if>
+            <if lhs="_vflags_ &amp; 2" op="eq" rhs="2">
+                <print string="Packet contains forward pointers." />
+            </if>
         <value type="uint32_l" name="Count" label="numcontribs" />
         <loop count="_numcontribs_" prefix="Contributor">
             <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
