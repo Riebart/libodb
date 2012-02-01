@@ -10,14 +10,21 @@
  *
  */
 
-This is the repo for the libodb project.
+#ifndef SKIPLISTI_HPP
+#define SKIPLISTI_HPP
 
-To build:
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
-cmake .
-make
+class SkipListI : public Index
+{
+public:
+    SkipListI(int (*)(void*, void*), void* (*)(void*, void*), bool);
+    virtual void add(void*);
 
-To check your build:
+private:
 
-make check
+};
 
+#endif

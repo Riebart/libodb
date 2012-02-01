@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+
+<!--
+
+MPL2.0 HEADER START
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+MPL2.0 HEADER END
+
+Copyright 2010-2012 Michael Himbeault and Travis Friesen
+
+-->
+ 
+<!--
+     Value types:
+        bool, uint8, int8, uint16_l, int16_l, uint32_l, int32_l, uint64_l, int64_l
+        bool, uint8, int8, uint16_b, int16_b, uint32_b, int32_b, uint64_b, int64_b
+         > A bool is actually 8 bits, but only values of 0 or 1 are accepted, and its value is printed as "True" or "False"
+        prestr  = A string whose length is indicated by the first byte of the field.
+        pre2str_l/pre2str_b = Same as prestr, but the length is 2 bytes (l/b indicates endianness of that field).
+        cstr = C-style string that is null-terminated.
+            ** The "_l" or "_b" indicates whether it is stored in little or big endian in the file.
+            
+     Notes:
+       - Currently is probably not Unicode friendly.
+       - label names cannot contain underscores. Use camel casing to separate words instead.
+       - type and name are not optional values. The application will not gracefully handle those.
+       - Every value has precisely one handler. The default handler simply mates the name with the value.
+           > It is possible to define a new handler by defining a handler immediately after the value. If you do, Each command in the handler represents one line of output on the 'right' side.
+           > To use the value of the "value" you are handling, use the special variable "_value_" in your statements (if, print, etc...)
+       - When using a label in a condition or other control statement, pre and post fix the label name with underscores.
+       - Strings that are used as lhs/rhs/count values must have spaces between the 'items' (operators, labels, numeric values, etc...).
+           > These are used as separators, and without them you'll get either crashes or unexpected results.
+           > Also currently doesn't handle negative numeric values.
+-->
+<fmt2xml name="DNS Statistics">
+  <value type="uint32_l" name="Unix Timestamp at Interval Start"/>
+  <value type="double_l" name="Valid DNS Query Entropy"/>
+  <value type="double_l" name="Valid DNS Query Length-Weighted Entropy"/>
+  <value type="uint64_l" name="Bytes in DNS Queries"/>
+  <value type="uint64_l" name="Number of DNS Queries"/>
+  <value type="uint64_l" name="Number of Unique DNS Queries" label="numuniquequeries"/>
+  <value type="uint32_l" name="Number of Unique Domains" label="numuniquedomains"/>
+  <value type="double_l" name="Non-DNS on UDP 53 Payload Entropy"/>
+  <value type="double_l" name="Non-DNS on UDP 53 Payload Length-Weighted Entropy"/>
+  <value type="uint64_l" name="Bytes in Non-DNS on UDP 53"/>
+  <value type="uint64_l" name="Number of non-DNS packets over UDP 53"/>
+  <value type="uint64_l" name="Number of Unique non-DNS payloads over UDP 53" label="numuniquenon"/>
+  <loop count="_numuniquedomains_" prefix="Domain">
+    <value type="cstr" name="Registered Domain"/>
+    <value type="double_l" name="Domain Entropy"/>
+    <value type="double_l" name="Domain Length-Weighted Entropy"/>
+    <value type="uint64_l" name="Total Queries to Domain"/>
+    <value type="uint64_l" name="Number of Bytes in Queries to Domain"/>
+    <value type="uint64_l" name="Unique Queries to Domain"/>
+  </loop>
+  <loop count="_numuniquequeries_" prefix="Query">
+    <value type="cstr" name="Query String"/>
+    <!--
+    The following field contains information about what flags were thrown during 
+    verification of the DNS packet.
+    - 1 : The packet contains some slack at the end.
+    - 2 : The DNS query strings contained some forward-pointing pointers. This 
+        can be indicative that the packet contains some gaps with arbitrary data 
+        inserted. 
+    -->
+    <value type="uint16_l" name="Verification Flags" label="vflags"/>
+    <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
+      <print string="Packet contains slack bytes at the end"/>
+      <value type="pre2str_l" name="Slack Bytes"/>
+    </if>
+    <if lhs="_vflags_ &amp; 2" op="eq" rhs="2">
+      <print string="Packet contains forward pointers."/>
+    </if>
+    <value type="uint32_l" name="Count" label="numcontribs"/>
+    <loop count="_numcontribs_" prefix="Contributor">
+      <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+      <if lhs="_l3type_" op="eq" rhs="2048">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <if lhs="_l3type_" op="eq" rhs="34525">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <value type="uint16_l" name="Source Port"/>
+      <value type="uint16_l" name="Destination Port"/>
+    </loop>
+  </loop>
+  <loop count="_numuniquenon_" prefix="Payload">
+    <value type="pre2str_l" name="Payload"/>
+    <value type="uint32_l" name="Count" label="numcontribs"/>
+    <loop count="_numcontribs_" prefix="Contributor">
+      <value type="uint16_l" name="Layer 3 Type" label="l3type"/>
+      <if lhs="_l3type_" op="eq" rhs="2048">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <if lhs="_l3type_" op="eq" rhs="34525">
+        <value type="cstr" name="Source IP"/>
+        <value type="cstr" name="Destination IP"/>
+      </if>
+      <value type="uint16_l" name="Source Port"/>
+      <value type="uint16_l" name="Destination Port"/>
+    </loop>
+  </loop>
+</fmt2xml>

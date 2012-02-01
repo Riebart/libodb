@@ -10,14 +10,4 @@
  *
  */
 
-This is the repo for the libodb project.
-
-To build:
-
-cmake .
-make
-
-To check your build:
-
-make check
-
+#include "lfqueue.hpp"
