@@ -13,6 +13,8 @@
 
 # Arg1: Number of items for each test.
 
+test="./test-ind_ds"
+
 if [ $# -eq 0 ]; then
     N="100000"
     proto_hash11="43031308a1919ec69606810188462336ceab795a057a987a2ea3112898ff5c2c"
@@ -38,7 +40,7 @@ if [ "$out" != "false" ]; then
     echo "Writing output to: $subdir"
 fi
 
-echo "Command in use: ./test-ind_ds -e 8 -n $N -t 10 -T ?? -i ??"
+echo "Command in use: $test -e 8 -n $N -t 10 -T ?? -i ??"
 echo -n "Batch 1 "
 for (( j=0 ; j<=1 ; j++ ))
 do
@@ -47,10 +49,11 @@ do
         echo -n "."
         i2=$[ 2 * $i ]
         
+        curout="/dev/null"
         if [ "$out" != "false" ]; then
-            out="$subdir/$j.$i2"
+            curout="$subdir/$j.$i2"
         fi
-        res=$(./test-ind_ds -e 8 -n $N -t 10 -T $j -i $i2 2>&1 1>/dev/null | tee $out | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+        res=$($test -e 8 -n $N -t 10 -T $j -i $i2 2>&1 1>/dev/null | tee $curout | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
         
         if [ "$proto_hash11" != "" ]; then
             if [ "$res" != "$proto_hash11" ]; then
@@ -68,10 +71,11 @@ do
     echo -n "."
     j2=$[ j * 2 ]
     
+        curout="/dev/null"
     if [ "$out" != "false" ]; then
-        out="$subdir/4.$j2"
+        curout="$subdir/4.$j2"
     fi
-    res=$(./test-ind_ds -e 8 -n $N -t 10 -T 4 -i $j2 2>&1 1>/dev/null | tee $out | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+    res=$($test -e 8 -n $N -t 10 -T 4 -i $j2 2>&1 1>/dev/null | tee $curout | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
     
     if [ "$proto_hash12" != "" ]; then
         if [ "$res" != "$proto_hash12" ]; then
@@ -94,10 +98,11 @@ do
         echo -n "."
         i2=$[ 2 * $i + 1 ]
         
+        curout="/dev/null"
         if [ "$out" != "false" ]; then
-            out="$subdir/$j.$i2"
+            curout="$subdir/$j.$i2"
         fi
-        res=$(./test-ind_ds -e 8 -n $N -t 10 -T $j -i $i2 2>&1 1>/dev/null | tee $out | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+        res=$($test -e 8 -n $N -t 10 -T $j -i $i2 2>&1 1>/dev/null | tee $curout | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
         
         if [ "$proto_hash21" != "" ]; then
             if [ "$res" != "$proto_hash21" ]; then
@@ -115,10 +120,11 @@ do
     echo -n "."
     j2=$[ 2 * $j + 1 ]
     
+    curout="/dev/null"
     if [ "$out" != "false" ]; then
-        out="$subdir/4.$j2"
+        curout="$subdir/4.$j2"
     fi
-    res=$(./test-ind_ds -e 8 -n $N -t 10 -T 4 -i $j2 2>&1 1>/dev/null | tee $out | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
+    res=$($test -e 8 -n $N -t 10 -T 4 -i $j2 2>&1 1>/dev/null | tee $curout | sha256sum | sed 's/^\([0-9,a-f]*\).*$/\1/')
     
     if [ "$proto_hash22" != "" ]; then
         if [ "$res" != "$proto_hash22" ]; then
