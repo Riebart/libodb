@@ -136,9 +136,10 @@ add_definitions(-DPTHREAD_SIMPLE_LOCKS)
 
 # Create some directories. Build fails if the directories don't already exist.
 #   This is because a compiler won't write a file to a directory if the directory doesn't exit.
-file(MAKE_DIRECTORY "${LIBODB_BINARY_DIR}")
+# file(MAKE_DIRECTORY "${LIBODB_BINARY_DIR}")
 
 add_subdirectory(${LIBODB_SOURCE_DIR})
+add_subdirectory(${LIBODB_BINARY_DIR})
 
 set(CMAKE_CTEST_COMMAND "ctest")
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
