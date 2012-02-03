@@ -17,6 +17,7 @@
 #include "index.hpp"
 #include "archive.hpp"
 #include "iterator.hpp"
+#include "cmwc.h"
 
 inline bool prune(void* rawdata)
 {
@@ -47,7 +48,9 @@ struct test_s
 int main (int argc, char ** argv)
 {
     long v, p = 100;
-    srand(0);
+
+    struct cmwc_state cmwc;
+    cmwc_init(&cmwc, 1234567890);
 
     // Create a new ODB object. The arguments are as follows:
     //  - The flag that tells it what to use as a backing storage method. This
@@ -70,7 +73,7 @@ int main (int argc, char ** argv)
     // Add the data to the ODB object and its index table.
     for (long i = 0 ; i < 100 ; i++)
     {
-        v = (i + ((rand() % (2 * p + 1)) - p));
+        v = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
         odb.add_data(&v);
     }
 

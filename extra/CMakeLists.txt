@@ -1,8 +1,8 @@
 set(LIBS ${LIBS} odb pthread)
 
-include_directories("../src/include")
+include_directories("../src/include" "../extralib/include")
 
-add_executable (traceflow traceflow.cpp ../src/collator.cpp)
+add_executable (traceflow traceflow.cpp ../extralib/collator.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
@@ -31,4 +31,14 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 
 #add_executable (pca_test pca.c)
 #add_executable (py-demo py-demo.cpp)
+
+
+add_dependencies(extra traceflow)
+add_dependencies(extra demo-flows)
+add_dependencies(extra demo-dns)
+add_dependencies(extra demo-1)
+add_dependencies(extra dnsstats)
+add_dependencies(extra ipstats)
+add_dependencies(extra dpep)
+add_dependencies(extra trace-proc)
 

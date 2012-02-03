@@ -1,4 +1,4 @@
-include_directories("include")
+include_directories("include" "../extralib/include")
 
 add_library(odb SHARED 
             datastore.cpp 

@@ -1,0 +1,34 @@
+There are multiple classes of testing applications in this folder:
+
+minimal:
+    These applications demonstrate the minimal amount of code necessary to make
+    use of some functionality. These are not meant to exercise code
+    functionality, but rather to ensure that the simplest use cases do not
+    suffer API changes. 
+
+    There are no tests for the more complicated API as it is expected that the
+    simple API is in use far more than the advanced API and thus should be
+    guarded more carefully.
+
+comp:
+    These applications are capable of performing a comprehensive suite of tests
+    and/or benchmarks that give a relatively high confidence that the
+    underlying code is operating correctly.
+
+    These tests are not meant to guarantee the correctness of code, as it is
+    conceivable that these tests will succeed even though bugs exist in some
+    corner-case functionality.
+
+    Tests in this category to used to compare performance across platforms,
+    hardware and other options.
+
+unit:
+    These are unit tests for the specified classes. Each source code file that
+    defines a unit test will be accompanied by a data file that includes the
+    information necessary to induce a state before testing.
+
+    It is recommended that all unit tests be run as successful completion of
+    all of these tests should guarantee a working system. Conversely, the
+    failure of even a single unit test should be taken to indicate that the
+    system, as compiled, is non-functional and should not be used.
+

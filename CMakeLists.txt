@@ -17,16 +17,13 @@ enable_testing()
 # refer to the root source directory of the project as ${LIBODB_SOURCE_DIR} and
 # to the root binary directory of the project as ${LIBODB_BINARY_DIR}.)
 project(LIBODB)
-set(LIBODB_SOURCE_DIR "src")
-set(LIBODB_BINARY_DIR "bin")
-set(LIBODB_TEST_DIR "test")
 
 message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
 
 #set(CMAKE_LINKER "/bin/ld")
 set(COMPILER_C)
 set(COMPILER_CXX)
-set(SKIP_SUN_COMPILER "false")
+set(SKIP_SUN_COMPILER "true")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
@@ -138,12 +135,16 @@ add_definitions(-DPTHREAD_SIMPLE_LOCKS)
 #   This is because a compiler won't write a file to a directory if the directory doesn't exit.
 # file(MAKE_DIRECTORY "${LIBODB_BINARY_DIR}")
 
-add_subdirectory(${LIBODB_SOURCE_DIR})
-add_subdirectory(${LIBODB_BINARY_DIR})
+add_subdirectory("src")
 
-set(CMAKE_CTEST_COMMAND "ctest")
+add_custom_target(extra COMMAND "")
+add_subdirectory("extra" EXCLUDE_FROM_ALL)
+
+set(CMAKE_CTEST_COMMAND ctest "-V")
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-add_subdirectory(${LIBODB_TEST_DIR} EXCLUDE_FROM_ALL)
+add_subdirectory("test" EXCLUDE_FROM_ALL)
+
+add_custom_target(doc COMMAND "doxygen doc/libodb-doc.cfg")
 
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 

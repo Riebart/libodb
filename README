@@ -12,12 +12,34 @@
 
 This is the repo for the libodb project.
 
-To build:
+The libodb source code is in the 'src' directory.
+Testing code such as unit tests and glue scripts are in the 'test' directory.
+Sample and demo application code is in the 'extra' folder.
+Additional libraries that may be of use are in the 'extralib' folder.
 
-cmake .
-make
+To perform an out-of-source build (which prevents CMake from contaminating the source tree with intermediate files) of libodb:
+
+    mkdir build
+    cd build
+    cmake ..
+    make
+
+While in the build directory...
+
+To build the supplementary items:
+
+    make extra
+    make extralib
 
 To check your build:
 
-make check
+    make check
+    make check-extra
+    make check-extralib
+
+To build the documentation:
+
+    make doc
+    make doc-extra
+    make doc-extralib
 

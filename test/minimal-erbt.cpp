@@ -18,6 +18,7 @@
 #include "iterator.hpp"
 #include "redblacktreei.hpp"
 #include "scheduler.hpp"
+#include "cmwc.h"
 
 inline bool prune(void* rawdata)
 {
@@ -49,7 +50,9 @@ inline int compareD(void* aV, void* bV)
 int main (int argc, char ** argv)
 {
     long p = 100;
-    srand(0);
+
+    struct cmwc_state cmwc;
+    cmwc_init(&cmwc, 1234567890);
 
     // Initialize the root of the red-black tree. This is essentially the RBT
     // object. The first argument indicates whether or not to drop duplicates.
@@ -60,7 +63,7 @@ int main (int argc, char ** argv)
     {
         // Allocate the whole node, including the links to child nodes.
         struct data* data= (struct data*)malloc(sizeof(struct data));
-        data->data = (i + ((rand() % (2 * p + 1)) - p));
+        data->data = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
 
         // Add the new node to the tree.
         RedBlackTreeI::e_add(root, data);
