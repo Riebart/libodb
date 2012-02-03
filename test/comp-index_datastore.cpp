@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -256,7 +256,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
             char tmp = temp_str[str_index];
             temp_str[0] = 'A' + (26 * (test_size - i)) / test_size;
             temp_str[str_index] = 0;
-            
+
 //             // Create a random string, to reduce the number of collisions.
 //             for (int i = 0 ; i < str_index ; i++)
 //             {
@@ -265,7 +265,7 @@ double odb_test(uint64_t element_size, uint64_t test_size, uint8_t test_type, ui
 //             }
 
             dn = odb->add_data(temp_str, str_index+1, false);
-            
+
             temp_str[str_index] = tmp;
         }
         else

@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -102,7 +102,7 @@ private:
     /// Contextual information provided to allow state-based handling of the output
     /// of different collators when using handler functions.
     void* context;
-    
+
     bool automated_output;
 
     /// Used to keep strack of where in the stream the next expected data should start.
@@ -119,17 +119,17 @@ private:
     /// @return Whether or not it was successful in adding the item to the front.
     /// @param [in] row The row to add.
     bool try_add_front(struct row* row);
-    
+
     /// A function that grabs the contents of the head of the list and pops it off
     /// if it isn't NULL.
     struct row* get_data_p();
-    
+
     /// A function that will keep only the last N bytes of a row.
     /// @return The newly truncated row.
     /// @param [in] row The row to truncate
     /// @param [in] new_length The number of bytes to keep from the end of a row.
     struct row* truncate_row_end(struct row* row, uint32_t new_length);
-    
+
     /// A function that will keep only the first N bytes of a row.
     /// @return The newly truncated row.
     /// @param [in] row The row to truncate
