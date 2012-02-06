@@ -1,4 +1,9 @@
-There are multiple classes of testing applications in this folder:
+As a general rule, try to keep the testing for a single class or application to
+a single binary. When that binary is run without arguments, it outputs all of the
+arguments that cause a test to be run (if it runs multiple tests). If it only 
+runs a single test, then no arguments should run that test.
+
+There are multiple types of testing applications in this folder:
 
 minimal:
     These applications demonstrate the minimal amount of code necessary to make

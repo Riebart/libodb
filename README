@@ -36,6 +36,12 @@ To check your build:
     make check
     make check-extra
     make check-extralib
+    
+To build (but not run) the test programs:
+
+    make checks
+    make checks-extra
+    make checks-extralib
 
 To build the documentation:
 

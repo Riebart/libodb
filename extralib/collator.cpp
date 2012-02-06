@@ -7,11 +7,24 @@ DataCollator::~DataCollator()
 {
     std::list<struct row*>::iterator it = rows.begin();
     std::list<struct row*>::iterator end = rows.end();
+    
+    if (fd != NULL)
+    {
+        fflush(fd);
+    }
+    else if (handler != NULL)
+    {
+        handler(context, 0, NULL);
+    }
 
     while (it != end)
     {
-        free(*it);
-        rows.erase(it);
+        if ((*it) != NULL)
+        {
+            free(*it);
+        }
+        
+        it = rows.erase(it);
     }
 }
 
@@ -28,7 +41,7 @@ DataCollator::DataCollator(FILE* _fd)
 {
     DataCollator();
 
-    this->fd = fd;
+    this->fd = _fd;
     automated_output = true;
 }
 
@@ -41,8 +54,14 @@ DataCollator::DataCollator(void (*_handler)(void* context, uint32_t length, void
     automated_output = true;
 }
 
-void DataCollator::add_data(uint32_t offset, uint32_t length, void* data)
+void DataCollator::add_data(int32_t offset, uint32_t length, void* data)
 {
+    // Just bail if we're not actually adding anything.
+    if (length == 0)
+    {
+        return;
+    }
+    
     struct row* row = (struct row*)malloc(sizeof(struct row) + length - 1);
 
     if (row == NULL)
@@ -58,27 +77,47 @@ void DataCollator::add_data(uint32_t offset, uint32_t length, void* data)
     // have an automated system configured.
     if (try_add_front(row))
     {
-        struct row* cur = get_data_p();
-
-        while (cur != NULL)
+        if (automated_output)
         {
-            if (fd != NULL)
-            {
-                fwrite(&(cur->data), cur->length, 1, fd);
-            }
-            else if (handler != NULL)
-            {
-                handler(context, cur->length, &(cur->data));
-            }
+            struct row* cur = get_data_p();
 
-            free(cur);
-            cur = get_data_p();
+            while (cur != NULL)
+            {
+                if (fd != NULL)
+                {
+                    fwrite(&(cur->data), cur->length, 1, fd);
+                }
+                if (handler != NULL)
+                {
+                    handler(context, cur->length, &(cur->data));
+                }
+
+                free(cur);
+                cur = get_data_p();
+            }
         }
     }
     else
     {
         add_back(row);
     }
+}
+
+bool DataCollator::check_overlap(int32_t a, uint32_t aL, int32_t b, uint32_t bL)
+{
+    // First, ensure that A starts before B
+    if (a > b)
+    {
+        int32_t t1 = a;
+        a = b;
+        b = t1;
+        
+        uint32_t t2 = aL;
+        aL = bL;
+        bL = t2;
+    }
+    
+    return ((a+aL) > b);
 }
 
 struct DataCollator::row* DataCollator::get_data_p()
@@ -91,32 +130,23 @@ struct DataCollator::row* DataCollator::get_data_p()
 
         if (ret != NULL)
         {
-            rows.erase(rows.begin());
+            rows.pop_front();
+            start_offset += ret->length;
         }
     }
 
     return ret;
 }
 
-void* DataCollator::get_data(uint32_t* length)
+struct DataCollator::row* DataCollator::get_data()
 {
-    void* ret = NULL;
+    struct row* ret = NULL;
 
     // If we're got a NULL head, or either of the automatic output options
     // are configured, return NULL.
     if (!automated_output)
     {
-        struct row* r = get_data_p();
-
-        if (r != NULL)
-        {
-            *length = r->length;
-            ret = &(r->data);
-        }
-        else
-        {
-            ret = NULL;
-        }
+        ret = get_data_p();
     }
 
     return ret;
@@ -154,7 +184,7 @@ struct DataCollator::row* DataCollator::truncate_row_start(struct DataCollator::
     return r2;
 }
 
-bool DataCollator::try_add_front(struct row* row)
+bool DataCollator::try_add_front(struct DataCollator::row* row)
 {
     // The cases here are:
     //  - The list is empty
@@ -191,30 +221,41 @@ bool DataCollator::try_add_front(struct row* row)
     {
         it2 = it;
         ++it;
-
-        // Now erase the first sentinel NULL if we don't need it anymore.
-        if (start_offset == row->offset)
+        
+        // Now check to see if we actually are inserting here. This happens if
+        // thew new row starts before the first non-NULL row. Also check for
+        // overlap.
+        if ((*it)->offset > row->offset)
         {
-            rows.erase(it2);
+            // Now erase the first sentinel NULL if we don't need it anymore.
+            if (start_offset == row->offset)
+            {
+                rows.erase(it2);
+            }
+
+            // Insert right before the first non-NULL row.
+            rows.insert(it, row);
+
+            // If the first non-NULL row starts later then the current one ends,
+            // we need to put a sentinel between them.
+            if ((*it)->offset > (row->offset + row->length))
+            {
+                rows.insert(it, NULL);
+            }
+
+            ret = true;
         }
-
-        // Insert right before the first non-NULL row.
-        rows.insert(it, row);
-
-        // If the first non-NULL row starts later then the current one ends,
-        // we need to put a sentinel between them.
-        if ((*it)->offset > (row->offset + row->length))
+        // Check for overlap.
+        else if (check_overlap((*it)->offset, (*it)->length, row->offset, row->length))
         {
-            rows.insert(it, NULL);
+            throw -2;
         }
-
-        ret = true;
     }
 
     return ret;
 }
 
-void DataCollator::add_back(struct row* row)
+void DataCollator::add_back(struct DataCollator::row* row)
 {
     std::list<struct row*>::reverse_iterator it = rows.rbegin();
     std::list<struct row*>::reverse_iterator end = rows.rend();
@@ -222,45 +263,81 @@ void DataCollator::add_back(struct row* row)
 
     // We can initialize this to whatever we like because we are guaranteed to
     // reach a non-NULL value before we hit a NULL location.
-    uint32_t last_offset = (uint32_t)(-1);
+    int32_t last_offset = 0;
 
     while (it != end)
     {
         // We only insert if we've found a possible spot to insert.
         if ((*it) == NULL)
         {
-            // If our current end is before the start of the last non-NULL we
-            // enocuntered, and we've got an opening, we insert here.
-            if ((row->offset + row->length) <= last_offset)
+            // Move ahead so that prev and it surround a NULL. We're going to see
+            // if we can insert at the bordered NULL.
+            ++it;
+            
+            // If we start at or after the lower row, and end at or before the
+            // upper one, we can insert.
+            if (((row->offset + row->length) <= (*prev)->offset) &&
+                 (row->offset >= ((*it)->offset + (*it)->length)))
             {
-                std::list<struct row*>::reverse_iterator next = ++it;
-
-                // Check for overlap of the next non-NULL.
-                // Since we already handled the 'front' insertion case, we don't
-                // need to worry about running into a case of next == end;
-                if (((*next)->offset + (*next)->length) > row->offset)
+                // 'close' as in 'close call' not as in 'close the door'
+                bool close_start = (row->offset == ((*it)->offset + (*it)->length));
+                bool close_end = ((row->offset + row->length) == (*prev)->offset);
+                
+                if (close_start)
                 {
-                    throw -2;
+                    // Insert immedaitely after the lower bound.
+                    rows.insert(it.base(), row);
+                    
+                    if (close_end)
+                    {
+                        rows.erase(it.base());
+                    }
                 }
-                // If we start right after the next row, remove the NULL.
-                else if (((*next)->offset + (*next)->length) == row->offset)
+                else if (close_end)
                 {
-                    rows.erase(it.base());
+                    rows.insert(prev.base(), row);
+                }
+                else
+                {
+                    std::list<struct row*>::iterator i = it.base();
+                    i = rows.insert(i, row);
+                    rows.insert(i, NULL);
                 }
 
-                // If we leave space between this and the previous one, insert
-                // a NULL.
-                if ((row->offset + row->length) < last_offset)
-                {
-                    rows.insert(prev.base(), NULL);
-                }
-
-                rows.insert(prev.base(), row);
                 break;
             }
+            // Check to see if we the previous interval.
+            else if (check_overlap(row->offset, row->length, (*it)->offset, (*it)->length))
+            {
+                throw -2;
+            }
+            
         }
         else
         {
+            // Handle the case of where we're at the end of the list separately.
+            if (prev == end)
+            {
+                // The only time we'll insert here is if we come after the end
+                int32_t cur_offset = (*it)->offset + (*it)->length;
+                
+                if (cur_offset <= row->offset)
+                {
+                    if (cur_offset < row->offset)
+                    {
+                        rows.push_back(NULL);
+                    }
+                    
+                    rows.push_back(row);
+                    break;
+                }
+                // Check for overlap.
+                else if (check_overlap((*it)->offset, (*it)->length, row->offset, row->length))
+                {
+                    throw -2;
+                }
+            }
+            
             // last_offset holds the *start* of the row we might preced, which
             // is pointed to by 'prev'
             last_offset = (*it)->offset;

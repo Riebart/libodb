@@ -28,6 +28,19 @@
 class DataCollator
 {
 public:
+    /// Struct that defines what a row of data looks like.
+#pragma pack(1)
+    struct row
+    {
+        /// Offset into the stream at which this data blocb begins
+        int32_t offset;
+        /// Number of bytes in this data row
+        uint32_t length;
+        /// Head of the memory allocated for the data row.
+        char data;
+    };
+#pragma pack()
+    
     /// Destructor that ensures that the list and all rows are cleaned up.
     /// Since we can assume that none of this data is in use outside of this object, we can just
     /// throw away the allocations and free up the memory.
@@ -70,26 +83,16 @@ public:
     /// elements.
     ///
     /// Throws a "-1" if it is unable to allocate memory for some reason.
-    void add_data(uint32_t offset, uint32_t length, void* data);
+    void add_data(int32_t offset, uint32_t length, void* data);
 
     /// Used to manually retrieve any data ready for output.
     /// @return NULL if either of the automatic output methods are configured, otherwise it returns
     /// the contents of the node at the head of the list of rows. It may return NULL indicating that
     /// no data is ready for output. This function does not free the row, leaving it up to the user
     /// to free the memory.
-    void* get_data(uint32_t* length);
+    struct row* get_data();
 
 private:
-    /// Struct that defines what a row of data looks like.
-    struct row
-    {
-        /// Offset into the stream at which this data blocb begins
-        uint32_t offset;
-        /// Number of bytes in this data row
-        uint32_t length;
-        /// Head of the memory allocated for the data row.
-        char data;
-    };
 
     /// If not NULL, ready data gets written out to this file descriptor.
     FILE* fd;
@@ -106,7 +109,7 @@ private:
     bool automated_output;
 
     /// Used to keep strack of where in the stream the next expected data should start.
-    uint32_t start_offset;
+    int32_t start_offset;
 
     /// Keeps track of the list of rows allowing for space to exist between rows, representing missing data.
     std::list<struct row*> rows;
@@ -135,6 +138,14 @@ private:
     /// @param [in] row The row to truncate
     /// @param [in] new_length The number of bytes to keep from the start of a row.
     struct row* truncate_row_start(struct row* row, uint32_t new_length);
+    
+    /// A function that determines whether two intervals overlap.
+    /// @return Whether or not the two intervals specified overlap.
+    /// @param [in] a The start point of interval A.
+    /// @param [in] aL The length of interval A.
+    /// @param [in] b The start point of interval B.
+    /// @param [in] bL The length of interval B.
+    bool check_overlap(int32_t a, uint32_t aL, int32_t b, uint32_t bL);
 };
 
 #endif
