@@ -1,8 +1,19 @@
+# MPL2.0 HEADER START
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# MPL2.0 HEADER END
+#
+# Copyright 2010-2012 Michael Himbeault and Travis Friesen
+#
+
 set(LIBS ${LIBS} odb pthread)
 
 include_directories("../src/include" "../extralib/include")
 
-add_executable (traceflow traceflow.cpp ../extralib/collator.cpp)
+add_executable (traceflow traceflow.cpp)
 add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)

@@ -13,8 +13,10 @@
 #ifndef PROTOPARSE_HPP
 #define PROTOPARSE_HPP
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #if defined(linux)
 #include <net/ethernet.h>
@@ -27,8 +29,6 @@
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-
-#include <vector>
 
 #include "dns.hpp"
 
@@ -134,6 +134,47 @@ struct flow_sig
     uint8_t hdr_start;
 };
 #pragma pack()
+
+/// Compute the IPv4 TCP checksum for a packet. It handles skipping the checksum
+/// field in the packet itself, as well as the pseudo header and any padding at
+/// the end due to an odd number of packets.
+/// @return The checksum of the packet, as it should appear in the packet if it
+/// has suffered no damage in transmission.
+/// @param [in] src The source IPv4 address for use in the psuedo-header.
+/// @param [in] dst The destination IPv4 address for use in the psuedo-header.
+/// @param [in] packet The bytes of the packet, starting at the start of the TCP header.
+/// @param [in] packet_len The number of bytes in the packet, starting at the 
+/// end of the IP header. This is also the "TCP Length" field in the pseudo-header.
+inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, uint8_t* p, uint32_t packet_len)
+{
+    uint32_t sum = 6; // The IP protocol number for TCP.
+    sum += packet_len;
+    
+    for (int i = 0; i < (packet_len - (packet_len % 2)) ; i += 2)
+    {
+        sum += p[i] * 256 + p[i+1];
+    }
+
+    if ((packet_len % 2) == 1)
+    {
+        sum += p[packet_len - 1] * 256;
+    }
+    
+    sum -= p[16] * 256 + p[17];
+    p = (uint8_t*)(&src);
+    sum += p[1] * 256 + p[0];
+    sum += p[3] * 256 + p[2];
+    p = (uint8_t*)(&dst);
+    sum += p[1] * 256 + p[0];
+    sum += p[3] * 256 + p[2];
+    
+    while ((sum >> 16) > 0)
+    {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+    
+    return (uint16_t)(~sum);
+}
 
 inline void init_proto_hdr_sizes()
 {
