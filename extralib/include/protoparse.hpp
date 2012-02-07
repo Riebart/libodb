@@ -59,6 +59,11 @@ uint8_t l7_hdr_size[256];
 #define L7_TYPE_ATTEMPT 1 // This indicates that we can't tell immediate what the layer 7 data is, but should attempt to parse it anyway.
 #define L7_TYPE_DNS 2
 
+#define PARSE_LAYER_2 2
+#define PARSE_LAYER_3 3
+#define PARSE_LAYER_4 4
+#define PARSE_LAYER_7 7
+
 // Reference: http://en.wikipedia.org/wiki/Multicast_address
 // Reference: http://www.synapse.de/ban/HTML/P_LAYER2/Eng/P_lay279.html
 uint8_t stpD_dhost[6] = { 0x01, 0x80, 0xC2, 0x00, 0x00, 0x00 };
@@ -105,6 +110,9 @@ struct l4_tcp
 {
     uint16_t sport;
     uint16_t dport;
+    uint32_t seq_num;
+    uint32_t ack_num;
+    uint16_t flags;
     uint8_t next;
 };
 
@@ -143,13 +151,13 @@ struct flow_sig
 /// @param [in] src The source IPv4 address for use in the psuedo-header.
 /// @param [in] dst The destination IPv4 address for use in the psuedo-header.
 /// @param [in] packet The bytes of the packet, starting at the start of the TCP header.
-/// @param [in] packet_len The number of bytes in the packet, starting at the 
+/// @param [in] packet_len The number of bytes in the packet, starting at the
 /// end of the IP header. This is also the "TCP Length" field in the pseudo-header.
-inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, uint8_t* p, uint32_t packet_len)
+inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, const unsigned char* p, uint32_t packet_len)
 {
     uint32_t sum = 6; // The IP protocol number for TCP.
     sum += packet_len;
-    
+
     for (int i = 0; i < (packet_len - (packet_len % 2)) ; i += 2)
     {
         sum += p[i] * 256 + p[i+1];
@@ -159,7 +167,7 @@ inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, uint8_t* p, uint32_t p
     {
         sum += p[packet_len - 1] * 256;
     }
-    
+
     sum -= p[16] * 256 + p[17];
     p = (uint8_t*)(&src);
     sum += p[1] * 256 + p[0];
@@ -167,13 +175,18 @@ inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, uint8_t* p, uint32_t p
     p = (uint8_t*)(&dst);
     sum += p[1] * 256 + p[0];
     sum += p[3] * 256 + p[2];
-    
+
     while ((sum >> 16) > 0)
     {
         sum = (sum & 0xFFFF) + (sum >> 16);
     }
-    
+
     return (uint16_t)(~sum);
+}
+
+inline uint16_t tcp6_checksum(uint64_t src[2], uint64_t dst[2], const unsigned char* p, uint32_t packet_len)
+{
+    return 0;
 }
 
 inline void init_proto_hdr_sizes()
@@ -430,6 +443,21 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         l4_hdr.sport = ntohs(tcp_hdr->th_sport);
         l4_hdr.dport = ntohs(tcp_hdr->th_dport);
+        l4_hdr.seq_num = ntohl(tcp_hdr->th_seq);
+        l4_hdr.ack_num = ntohl(tcp_hdr->th_ack);
+        l4_hdr.flags = tcp_hdr->th_flags;
+
+        uint16_t cksum = tcp_hdr->th_sum;
+        if ((*fp)->l3_type == L3_TYPE_IP4)
+        {
+            struct l3_ip4* ip4 = (struct l3_ip4*)(&((*fp)->hdr_start));
+            l4_hdr.flags |= (cksum == tcp4_checksum(ip4->src, ip4->dst, packet, packet_len)) << 8;
+        }
+        else if ((*fp)->l3_type == L3_TYPE_IP6)
+        {
+            struct l3_ip6* ip6 = (struct l3_ip6*)(&((*fp)->hdr_start));
+            l4_hdr.flags |= (cksum == tcp6_checksum(ip6->src, ip6->dst, packet, packet_len)) << 8;
+        }
 
         f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_tcp) - 1);
         *fp = f;
@@ -535,7 +563,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, bool keep_extra)
+struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, bool keep_extra, uint8_t layers = 7)
 {
     int32_t p_offset = 0;
 
@@ -544,19 +572,22 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, boo
     SAFE_CALLOC(struct flow_sig*, f, 1, (sizeof(struct flow_sig) - 1));
     f->hdr_size = 0;
 
-    p_offset = l2_sig(&f, packet, p_offset, packet_len);
+    if (layers >= 2)
+    {
+        p_offset = l2_sig(&f, packet, p_offset, packet_len);
+    }
 
-    if (f->l3_type != L3_TYPE_NONE)
+    if ((layers >= 3) && (f->l3_type != L3_TYPE_NONE))
     {
         p_offset = l3_sig(&f, packet, p_offset, packet_len);
     }
 
-    if (f->l4_type != L4_TYPE_NONE)
+    if ((layers >= 4) && (f->l4_type != L4_TYPE_NONE))
     {
         p_offset = l4_sig(&f, packet, p_offset, packet_len);
     }
 
-    if (f->l7_type != L7_TYPE_NONE)
+    if ((layers >= 7) && (f->l7_type != L7_TYPE_NONE))
     {
         p_offset = l7_sig(&f, packet, p_offset, packet_len);
     }

@@ -446,7 +446,7 @@ void process_domain(Iterator* it, struct domain_stat* stats, struct interval_sta
 // =============================================================================
 // The functions in this section mark those that are used by the driving functions
 // below this section. So their contents can be tailored to suit your application
-// bit their names and signatures must stay as they are.
+// but their names and signatures must stay as they are.
 // =============================================================================
 void process_packet(struct ph_args* args_p, const struct pcap_pkthdr* pheader, const uint8_t* packet)
 {

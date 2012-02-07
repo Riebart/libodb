@@ -17,6 +17,14 @@
 #include <stdio.h>
 #include <list>
 
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
+#ifndef MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#endif
+
 /// Implementation of a data-collation method that ensures data is always obtained sequentially
 ///
 /// It uses a linked list to keep track of data pieces and ensures that they are always output
@@ -40,7 +48,7 @@ public:
         char data;
     };
 #pragma pack()
-    
+
     /// Destructor that ensures that the list and all rows are cleaned up.
     /// Since we can assume that none of this data is in use outside of this object, we can just
     /// throw away the allocations and free up the memory.
@@ -92,6 +100,10 @@ public:
     /// to free the memory.
     struct row* get_data();
 
+    /// Get the number of rows, not necessarily consecutive, in the list.
+    /// @return The total number of rows currently tracked.
+    uint32_t size();
+
 private:
 
     /// If not NULL, ready data gets written out to this file descriptor.
@@ -138,14 +150,6 @@ private:
     /// @param [in] row The row to truncate
     /// @param [in] new_length The number of bytes to keep from the start of a row.
     struct row* truncate_row_start(struct row* row, uint32_t new_length);
-    
-    /// A function that determines whether two intervals overlap.
-    /// @return Whether or not the two intervals specified overlap.
-    /// @param [in] a The start point of interval A.
-    /// @param [in] aL The length of interval A.
-    /// @param [in] b The start point of interval B.
-    /// @param [in] bL The length of interval B.
-    bool check_overlap(int32_t a, uint32_t aL, int32_t b, uint32_t bL);
 };
 
 #include <stdlib.h>
@@ -155,7 +159,7 @@ DataCollator::~DataCollator()
 {
     std::list<struct row*>::iterator it = rows.begin();
     std::list<struct row*>::iterator end = rows.end();
-    
+
     if (fd != NULL)
     {
         fflush(fd);
@@ -205,7 +209,7 @@ void DataCollator::add_data(int32_t offset, uint32_t length, void* data)
     {
         return;
     }
-    
+
     struct row* row = (struct row*)malloc(sizeof(struct row) + length - 1);
 
     if (row == NULL)
@@ -247,23 +251,6 @@ void DataCollator::add_data(int32_t offset, uint32_t length, void* data)
     }
 }
 
-bool DataCollator::check_overlap(int32_t a, uint32_t aL, int32_t b, uint32_t bL)
-{
-    // First, ensure that A starts before B
-    if (a > b)
-    {
-        int32_t t1 = a;
-        a = b;
-        b = t1;
-        
-        uint32_t t2 = aL;
-        aL = bL;
-        bL = t2;
-    }
-    
-    return ((a+aL) > b);
-}
-
 struct DataCollator::row* DataCollator::get_data_p()
 {
     struct row* ret = NULL;
@@ -296,9 +283,10 @@ struct DataCollator::row* DataCollator::truncate_row_end(struct DataCollator::ro
         throw -1;
     }
 
-    r2->offset = start_offset;
-    r2->length = row->length - (start_offset - row->offset);
-    memcpy(&(r2->data), &(row->data) + (start_offset - row->offset), r2->length);
+    r2->offset += row->length - new_length;
+    r2->length = new_length;
+    memcpy(&(r2->data), &(row->data) + row->length - new_length, r2->length);
+    free(row);
 
     return r2;
 }
@@ -312,9 +300,10 @@ struct DataCollator::row* DataCollator::truncate_row_start(struct DataCollator::
         throw -1;
     }
 
-    r2->offset = start_offset;
-    r2->length = row->length - (start_offset - row->offset);
+    r2->offset = row->offset;
+    r2->length = new_length;
     memcpy(&(r2->data), &(row->data), r2->length);
+    free(row);
 
     return r2;
 }
@@ -332,7 +321,7 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
 
     if (start_offset > row->offset)
     {
-        throw -2;
+        row = truncate_row_end(row, row->length - (start_offset - row->offset));
     }
 
     if (rows.size() == 0)
@@ -343,22 +332,14 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
     else
     {
         struct row* f = rows.front();
-        
-        if (f->offset >= row->offset)
+
+        // Now check to see if we actually are inserting here. This happens if
+        // thew new row starts before the first non-NULL row. Also check for
+        // overlap.
+        if (f->offset > row->offset)
         {
-            // Now check to see if we actually are inserting here. This happens if
-            // thew new row starts before the first non-NULL row. Also check for
-            // overlap.
-            if (f->offset > row->offset)
-            {
-                rows.push_front(row);
-                ret = true;
-            }
-            // Check for overlap.
-            else if (check_overlap(f->offset, f->length, row->offset, row->length))
-            {
-                throw -2;
-            }
+            rows.push_front(row);
+            ret = true;
         }
     }
 
@@ -375,38 +356,104 @@ void DataCollator::add_back(struct DataCollator::row* row)
     {
         // Handle the case of where we're at the end of the list separately.
         if (prev == end)
-        {           
+        {
+            // If this one is wholly at the end, just push it onto the end.
             if (((*it)->offset + (*it)->length) <= row->offset)
             {
                 rows.push_back(row);
                 break;
             }
-            // Check for overlap.
-            else if (check_overlap((*it)->offset, (*it)->length, row->offset, row->length))
+            // If this one hangs off the end of but extends further in, then
+            // push the part that hangs off the end and continue on into the middle
+            // with the rest.
+            else if (((*it)->offset + (*it)->length) < (row->offset + row->length))
             {
-                throw -2;
+                struct row* r = (struct row*)malloc(sizeof(struct row) - 1 + row->length - (((*it)->offset + (*it)->length) - row->offset));
+                r->length = row->length - (((*it)->offset + (*it)->length) - row->offset);
+                r->offset = (*it)->offset + (*it)->length;
+                row->length -= r->length;
+                memcpy(&(r->data), &(row->data) + row->length, r->length);
+                rows.push_back(r);
+
+                struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+
+                if (tmp == NULL)
+                {
+                    throw -1;
+                }
+
+                row = tmp;
             }
         }
         else
         {
             // If we start at or after the lower row, and end at or before the
             // upper one, we can insert.
-            if (((row->offset + row->length) <= (*prev)->offset) &&
-                (row->offset >= ((*it)->offset + (*it)->length)))
+            if (row->offset >= ((*it)->offset + (*it)->length))//)
             {
                 rows.insert(it.base(), row);
                 break;
             }
-            // Check to see if we the previous interval.
-            else if (check_overlap(row->offset, row->length, (*it)->offset, (*it)->length))
+            // Check to see if we overlap the previous interval.
+            else if ((row->offset + row->length) > (*it)->offset)
             {
-                throw -2;
+                // FIrst, see if we need to add a new row in between it and prev
+                // to hold the end of row. That is, if row ends after it. Because
+                // of this section of code, we can guarantee that it won't end
+                // after the start of prev so we don't need to check that anymore.
+                if ((row->offset + row->length) > ((*it)->offset + (*it)->length))
+                {
+                    struct row* r = (struct row*)malloc(sizeof(struct row) - 1 + row->length - (((*it)->offset + (*it)->length) - row->offset));
+                    r->length = row->length - (((*it)->offset + (*it)->length) - row->offset);
+                    r->offset = (*it)->offset + (*it)->length;
+                    row->length -= r->length;
+                    memcpy(&(r->data), &(row->data) + row->length, r->length);
+                    rows.insert(it.base(), r);
+                    ++it;
+
+                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+
+                    if (tmp == NULL)
+                    {
+                        throw -1;
+                    }
+
+                    row = tmp;
+                }
+
+                int32_t src_start = MAX((*it)->offset - row->offset, 0);
+                int32_t dst_start = MAX(row->offset - (*it)->offset, 0);
+                uint32_t len = row->length - src_start;
+                row->length = src_start;
+                memcpy(&((*it)->data) + dst_start, &(row->data) + row->length, len);
+
+                if (row->length == 0)
+                {
+                    free(row);
+                    break;
+                }
+                else
+                {
+                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+
+                    if (tmp == NULL)
+                    {
+                        throw -1;
+                    }
+
+                    row = tmp;
+                }
             }
         }
 
         prev = it;
         ++it;
     }
+}
+
+uint32_t DataCollator::size()
+{
+    return rows.size();
 }
 
 #endif

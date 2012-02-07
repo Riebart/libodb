@@ -90,7 +90,7 @@ TEST_BEGIN(0)
     N = RUN_TIME / num_cycles;
     num_consumers = 2;
     num_spin_waits = 0;
-    
+
     struct timespec start, end;
 
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -116,7 +116,7 @@ TEST_BEGIN(1)
     N = RUN_TIME / num_cycles;
     num_consumers = 2;
     num_spin_waits = 0;
-    
+
     struct timespec start, end;
     Scheduler* sched = new Scheduler(num_consumers - 1);
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -152,7 +152,7 @@ TEST_BEGIN(2)
     N = RUN_TIME / num_cycles;
     num_consumers = 2;
     num_spin_waits = 0;
-    
+
     struct timespec start, end;
     Scheduler* sched = new Scheduler(0);
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -195,7 +195,7 @@ TEST_BEGIN(3)
     // all index tables will maintain memory usage.
     N = 1200000 * (2.0 / num_indices);
     num_spin_waits = 0;
-    
+
     struct timespec start, end;
     struct cmwc_state cmwc;
 
@@ -237,7 +237,7 @@ TEST_BEGIN(3)
            num_cycles, (N * num_indices) / proc_time,
            num_spin_waits * num_cycles);
     fflush(stdout);
-    
+
     printf("done\n\n");
 }
 
@@ -253,7 +253,7 @@ TEST_BEGIN(4)
     // all index tables will maintain memory usage.
     N = 1200000 * (2.0 / num_indices);
     num_spin_waits = 0;
-    
+
     struct timespec start, end;
     struct cmwc_state cmwc;
 
@@ -311,7 +311,7 @@ TEST_BEGIN(4)
            num_cycles, (N * num_indices) / proc_time,
            num_spin_waits * num_cycles);
     fflush(stdout);
-    
+
     printf("done\n\n");
 }
 

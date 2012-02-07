@@ -49,6 +49,8 @@ mkdir -p "$subdir"
 
 $com $args >"$subdir/stdout" 2>"$subdir/stderr"
 
+err_code=$?
+
 success="true"
 
 hash1=$(cat "$subdir/stdout" | sha256sum | cut -f1 -d' ')
@@ -69,6 +71,11 @@ if [ "$hash2_proto" == "" ] || [ "$hash2_proto" == "$hash2" ]; then
 else
     success="false"
     echo "Verification of stderr failed." >&2
+fi
+
+if [ "$err_code" != "0" ]; then
+    success="false"
+    echo "Command returned a failure code of $err_code."
 fi
 
 if [ $success == "true" ]; then
