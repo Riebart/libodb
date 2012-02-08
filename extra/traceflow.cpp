@@ -10,117 +10,243 @@
  *
  */
 
+#include "tcp.hpp"
 #include "redblacktreei.hpp"
-#include "collator.hpp"
-#include "protoparse.hpp"
 
-class TCPCollector
+struct RedBlackTreeI::e_tree_root* flows4;
+struct RedBlackTreeI::e_tree_root* flows6;
+
+#pragma pack(1)
+struct tree_node4
 {
-public:
-    /// Argument-less constructor which creates a collator that uses manual output
-    TCPCollector();
-
-    /// Construct a collator that will use a handler with context for output
-    /// @param [in] handler The function pointer to call when data is ready for
-    /// output.
-    /// @param [in] context The binary blob pointer to the context to pass to
-    /// the handler that indicates any state information necessary.
-    TCPCollector(void (*handler)(void* context, uint32_t length, void* data), void* context);
-
-    /// Construct a collator that will use a file descriptor for output.
-    /// @param [in] fd The file descriptor to write the output to.
-    TCPCollector(FILE* fd);
-
-    /// Add a packet to this collector. The packet is assumed to start at the
-    /// beginning of the TCP header. All prior information is unnecessary for
-    /// our task.
-    /// @retval 0 Packet wasn't added to the stream for some reason.
-    /// @retval 1 Packet was added to the stream.
-    /// @retval 2 Packet indicates end of stream.
-    /// @param [in] packet The bytes of the packet, starting at the start of the
-    /// TCP header.
-    /// @param [in] packet_len The number of bytes in the TCP header and data
-    /// portions.
-    int add_packet(uint8_t* packet, uint32_t packet_len);
-
-private:
-    /// Initializer for member variables.
-    void init();
-
-    /// The data collator used to re-order the payloads.
-    DataCollator* data;
-
-    /// The initial sequence number, used to determine offsets into the stream.
-    uint64_t isn;
-    uint32_t wrap_offset;
-    uint64_t pos;
+    void* links[2];
+    TCP4Flow* flow;
+    struct flow_sig* f;
+    uint32_t hash[3];
 };
 
-void TCPCollector::init()
+struct tree_node6
 {
-    isn = 0;
-    wrap_offset = 0;
-    pos = 0;
+    void* links[2];
+    TCP4Flow* flow;
+    struct flow_sig* f;
+    uint32_t hash[9];
+};
+#pragma pack()
+
+int32_t compare4(void* aV, void* bV)
+{
+    struct tree_node4* a = (struct tree_node4*)aV;
+    struct tree_node4* b = (struct tree_node4*)bV;
+
+    int32_t ret = 0;
+
+    ret = memcmp(a->hash, b->hash, 3 * sizeof(uint32_t));
+
+    return ret;
 }
 
-TCPCollector::TCPCollector()
+void* merge4(void* aV, void* bV)
 {
-    init();
-    data = new DataCollator();
-}
+    struct tree_node4* a = (struct tree_node4*)aV;
+    struct tree_node4* b = (struct tree_node4*)bV;
 
-TCPCollector::TCPCollector(void (*handler)(void* context, uint32_t length, void* data), void* context)
-{
-    init();
-    data = new DataCollator(handler, context);
-}
-
-TCPCollector::TCPCollector(FILE* fd)
-{
-    init();
-    data = new DataCollator(fd);
-}
-
-int TCPCollector::add_packet(uint8_t* packet, uint32_t packet_len)
-{
-    struct tcphdr* tcp_hdr = (struct tcphdr*)packet;
-
-    // If this is the first packet.
-    if ((tcp_hdr->th_flags & TH_SYN) > 0)
+    try
     {
-        isn = ntohl(tcp_hdr->th_seq);
+        b->flow->add_packet(a->f);
+        free(a->f);
+        a->f = NULL;
+    }
+    catch (int e)
+    {
+        switch (e)
+        {
+        case 1:
+        case 2:
+            free(a->f);
+            a->f = (struct flow_sig*)(b);
+            break;
+
+        default:
+            throw e;
+            break;
+        }
     }
 
-    // Now check to see if the sequence numbers have wrapped.
-    // We do this by checking to see if we are below the last possible ACK-able
-    // byte. This difference is the maximum TCP window size of 65536<<14 == 1<<30.
-    if (tcp_hdr->th_seq < (isn - 1073725440))
+    return bV;
+}
+
+int32_t compare6(void* aV, void* bV)
+{
+    struct tree_node6* a = (struct tree_node6*)aV;
+    struct tree_node6* b = (struct tree_node6*)bV;
+
+    int32_t ret = 0;
+
+    ret = memcmp(a->hash, b->hash, 9 * sizeof(uint32_t));
+
+    return ret;
+}
+
+void* merge6(void* aV, void* bV)
+{
+    struct tree_node6* a = (struct tree_node6*)aV;
+    struct tree_node6* b = (struct tree_node6*)bV;
+
+    try
     {
-        wrap_offset += (wrap_offset == 0 ? 4294967296 - isn : 4294967296);
+        b->flow->add_packet(a->f);
+        free(a->f);
+        a->f = NULL;
+    }
+    catch (int e)
+    {
+        switch (e)
+        {
+        case 1:
+        case 2:
+            free(a->f);
+            a->f = (struct flow_sig*)(b);
+            break;
+
+        default:
+            throw e;
+            break;
+        }
     }
 
-    data->add_data(tcp_hdr->th_seq + wrap_offset - isn, packet_len - 4 * tcp_hdr->th_off, packet + 4 * tcp_hdr->th_off);
-
-    // If this is the last packet.
-    if ((tcp_hdr->th_flags & TH_FIN) > 0)
-    {
-        return 2;
-    }
-
-    return false;
+    return bV;
 }
 
 // ==============================================================================
 // ==============================================================================
 
-class TCPOrganizer
+#include <pcap.h>
+
+struct tree_node4* proto4;
+// struct tree_node6* proto6;
+
+void proto_setup4(struct tree_node4* p, struct flow_sig* f)
 {
-};
+    if (!p->flow->replace_sig(f))
+    {
+        throw 0;
+    }
+
+    p->f = f;
+    p->flow->get_hash((uint32_t*)(&(p->hash)));
+}
+
+// void proto_setup4(struct tree_node6* p, struct flow_sig* f)
+// {
+//     if (!p->flow->replace_sig(f))
+//     {
+//         throw 0;
+//     }
+//
+//     p->f = f;
+//     p->flow->get_hash((uint32_t*)(&(p->hash)));
+// }
+
+uint64_t ctr = 0;
+char fname[64];
+
+void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
+{
+    struct flow_sig* f = sig_from_packet(packet, pkt_hdr->caplen, true, 4);
+
+    if (f->l4_type == L4_TYPE_TCP)
+    {
+        if (f->l3_type == L3_TYPE_IP4)
+        {
+            proto_setup4(proto4, f);
+            bool added = RedBlackTreeI::e_add(flows4, proto4);
+
+            // If it gets added, make sure to free the flow since it isn't needed
+            // and set it to NULL as a sentinel for later. Reallocate our prototype.
+            if (added)
+            {
+                fprintf(stderr, "!");
+                free(proto4->f);
+                proto4->f = NULL;
+                proto4 = (struct tree_node4*)malloc(sizeof(struct tree_node4));
+                if (proto4 == NULL)
+                {
+                    throw -1;
+                }
+                proto4->flow = new TCP4Flow();
+                sprintf(fname, "tcpsess.%lu", ctr);
+                proto4->flow->set_output(fopen(fname, "wb"));
+                ctr++;
+            }
+            // If we didn't add it, it is because we collided and the payload got inserted
+            // into an existing flow. We should check and see if the proto's flow_sig
+            // is coming back non-NULL. If it is, we need to blow it away because
+            // it finished.
+            else
+            {
+                if (proto4->f != NULL)
+                {
+                    fprintf(stderr, "?");
+                    struct tree_node4* del;
+                    bool removed = RedBlackTreeI::e_remove(flows4, proto4->f, (void**)(&del));
+                    delete del->flow;
+                    free(del);
+
+                    if (!removed)
+                    {
+                        throw -2;
+                    }
+                }
+            }
+        }
+        else if (f->l3_type == L3_TYPE_IP6)
+        {
+//             proto_setup6(proto6, f);
+//             bool added = RedBlackTreeI::e_add(flows6, proto6);
+//
+//             if (added)
+//             {
+//                 proto6 = (struct tree_node6*)malloc(sizeof(struct tree_node6));
+//                 if (proto6 == NULL)
+//                 {
+//                     throw -1;
+//                 }
+//                 proto6->flow = new TCP6Flow();
+//             }
+        }
+    }
+}
 
 // ==============================================================================
 // ==============================================================================
 
 int main(int argc, char** argv)
 {
+    init_proto_hdr_sizes();
 
+    proto4 = (struct tree_node4*)malloc(sizeof(struct tree_node4));
+    if (proto4 == NULL)
+    {
+        throw -1;
+    }
+    proto4->flow = new TCP4Flow();
+    sprintf(fname, "tcpsess.%lu", ctr);
+    proto4->flow->set_output(fopen(fname, "wb"));
+    ctr++;
+
+//     proto6 = (struct tree_node6*)malloc(sizeof(struct tree_node6));
+//     if (proto6 == NULL)
+//     {
+//         throw -1;
+//     }
+//     proto6->flow = new TCP6Flow();
+
+    flows4 = RedBlackTreeI::e_init_tree(true, compare4, merge4);
+    flows6 = RedBlackTreeI::e_init_tree(true, compare6, merge6);
+
+    char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_t* fp = pcap_open_offline("http3.pcap", errbuf);
+    pcap_loop(fp, 0, packet_callback, NULL);
+    return 0;
 }

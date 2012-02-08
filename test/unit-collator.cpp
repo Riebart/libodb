@@ -27,7 +27,7 @@ struct hc
     int i;
 };
 
-void handler(void* context, uint32_t length, void* data)
+void handler(void* context, uint64_t length, void* data)
 {
     struct hc* ctxt = (struct hc*)context;
     while (len(g_i) == 0)

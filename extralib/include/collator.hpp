@@ -41,9 +41,9 @@ public:
     struct row
     {
         /// Offset into the stream at which this data blocb begins
-        int32_t offset;
+        int64_t offset;
         /// Number of bytes in this data row
-        uint32_t length;
+        uint64_t length;
         /// Head of the memory allocated for the data row.
         char data;
     };
@@ -77,7 +77,7 @@ public:
     ///
     /// Useful for when more flexibility is needed, but automatic output is still required or
     /// desired.
-    DataCollator(void (*_handler)(void* context, uint32_t length, void* data), void* _context);
+    DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context);
 
     /// This funcdtion makes use of a copy-on-add policy so that data can be added form volatile
     /// locations without additional cost at the application level.
@@ -91,7 +91,7 @@ public:
     /// elements.
     ///
     /// Throws a "-1" if it is unable to allocate memory for some reason.
-    void add_data(int32_t offset, uint32_t length, void* data);
+    void add_data(int64_t offset, uint64_t length, void* data);
 
     /// Used to manually retrieve any data ready for output.
     /// @return NULL if either of the automatic output methods are configured, otherwise it returns
@@ -100,9 +100,21 @@ public:
     /// to free the memory.
     struct row* get_data();
 
+    /// An alternative way of getting data that ensures that data after a certain
+    /// point isn't pulled from the stream. Useful for pulling, for example, from
+    /// a TCP stream up to the latest known ACKed byte.
+    /// @return NULL if either of the automatic output methods are configured, otherwise it returns
+    /// the contents of the node at the head of the list of rows. It may return NULL indicating that
+    /// no data is ready for output. This function does not free the row, leaving it up to the user
+    /// to free the memory.
+    /// @param [in] offset Any bytes strictly after the specified offset will not be returned. This
+    /// means that any rows that straddle the specified boundary will not be returned at all, instead
+    /// of being returned in part.
+    struct row* get_data(int64_t offset);
+
     /// Get the number of rows, not necessarily consecutive, in the list.
     /// @return The total number of rows currently tracked.
-    uint32_t size();
+    uint64_t size();
 
 private:
 
@@ -112,16 +124,17 @@ private:
     /// If not NULL, ready data gets passed to this handler function.
     /// The context argument to the handler function allows for differentiation between
     /// different collators.
-    void (*handler)(void* context, uint32_t length, void* data);
+    void (*handler)(void* context, uint64_t length, void* data);
 
     /// Contextual information provided to allow state-based handling of the output
     /// of different collators when using handler functions.
     void* context;
 
+    /// Holds a quick way to determine whether or not automated output is configured.
     bool automated_output;
 
     /// Used to keep strack of where in the stream the next expected data should start.
-    int32_t start_offset;
+    int64_t start_offset;
 
     /// Keeps track of the list of rows allowing for space to exist between rows, representing missing data.
     std::list<struct row*> rows;
@@ -137,19 +150,36 @@ private:
 
     /// A function that grabs the contents of the head of the list and pops it off
     /// if it isn't NULL.
+    /// @return NULL if either of the automatic output methods are configured, otherwise it returns
+    /// the contents of the node at the head of the list of rows. It may return NULL indicating that
+    /// no data is ready for output. This function does not free the row, leaving it up to the user
+    /// to free the memory.
     struct row* get_data_p();
+
+    /// An alternative way of getting data that ensures that data after a certain
+    /// point isn't pulled from the stream. Useful for pulling, for example, from
+    /// a TCP stream up to the latest known ACKed byte. If a row is returned, it
+    /// is popped off of the list.
+    /// @return NULL if either of the automatic output methods are configured, otherwise it returns
+    /// the contents of the node at the head of the list of rows. It may return NULL indicating that
+    /// no data is ready for output. This function does not free the row, leaving it up to the user
+    /// to free the memory.
+    /// @param [in] offset Any bytes strictly after the specified offset will not be returned. This
+    /// means that any rows that straddle the specified boundary will not be returned at all, instead
+    /// of being returned in part.
+    struct row* get_data_p(int64_t offset);
 
     /// A function that will keep only the last N bytes of a row.
     /// @return The newly truncated row.
     /// @param [in] row The row to truncate
     /// @param [in] new_length The number of bytes to keep from the end of a row.
-    struct row* truncate_row_end(struct row* row, uint32_t new_length);
+    struct row* truncate_row_end(struct row* row, uint64_t new_length);
 
     /// A function that will keep only the first N bytes of a row.
     /// @return The newly truncated row.
     /// @param [in] row The row to truncate
     /// @param [in] new_length The number of bytes to keep from the start of a row.
-    struct row* truncate_row_start(struct row* row, uint32_t new_length);
+    struct row* truncate_row_start(struct row* row, uint64_t new_length);
 };
 
 #include <stdlib.h>
@@ -193,7 +223,7 @@ DataCollator::DataCollator(FILE* _fd)
     automated_output = true;
 }
 
-DataCollator::DataCollator(void (*_handler)(void* context, uint32_t length, void* data), void* _context)
+DataCollator::DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
 {
     DataCollator();
 
@@ -202,7 +232,7 @@ DataCollator::DataCollator(void (*_handler)(void* context, uint32_t length, void
     automated_output = true;
 }
 
-void DataCollator::add_data(int32_t offset, uint32_t length, void* data)
+void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
 {
     // Just bail if we're not actually adding anything.
     if (length == 0)
@@ -269,12 +299,40 @@ struct DataCollator::row* DataCollator::get_data_p()
     return ret;
 }
 
+
+struct DataCollator::row* DataCollator::get_data_p(int64_t offset)
+{
+    struct row* ret = NULL;
+
+    if (rows.size() > 0)
+    {
+        ret = rows.front();
+
+        if (((ret->offset + ret->length) <= offset) && (ret->offset == start_offset))
+        {
+            rows.pop_front();
+            start_offset += ret->length;
+        }
+        else
+        {
+            ret = NULL;
+        }
+    }
+
+    return ret;
+}
+
 struct DataCollator::row* DataCollator::get_data()
 {
     return (automated_output ? NULL : get_data_p());
 }
 
-struct DataCollator::row* DataCollator::truncate_row_end(struct DataCollator::row* row, uint32_t new_length)
+struct DataCollator::row* DataCollator::get_data(int64_t offset)
+{
+    return (automated_output ? NULL : get_data_p(offset));
+}
+
+struct DataCollator::row* DataCollator::truncate_row_end(struct DataCollator::row* row, uint64_t new_length)
 {
     struct row* r2 = (struct row*)malloc(sizeof(struct row) + new_length - 1);
 
@@ -291,7 +349,7 @@ struct DataCollator::row* DataCollator::truncate_row_end(struct DataCollator::ro
     return r2;
 }
 
-struct DataCollator::row* DataCollator::truncate_row_start(struct DataCollator::row* row, uint32_t new_length)
+struct DataCollator::row* DataCollator::truncate_row_start(struct DataCollator::row* row, uint64_t new_length)
 {
     struct row* r2 = (struct row*)malloc(sizeof(struct row) + new_length - 1);
 
@@ -421,9 +479,9 @@ void DataCollator::add_back(struct DataCollator::row* row)
                     row = tmp;
                 }
 
-                int32_t src_start = MAX((*it)->offset - row->offset, 0);
-                int32_t dst_start = MAX(row->offset - (*it)->offset, 0);
-                uint32_t len = row->length - src_start;
+                int64_t src_start = MAX((*it)->offset - row->offset, 0);
+                int64_t dst_start = MAX(row->offset - (*it)->offset, 0);
+                uint64_t len = row->length - src_start;
                 row->length = src_start;
                 memcpy(&((*it)->data) + dst_start, &(row->data) + row->length, len);
 
@@ -451,7 +509,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
     }
 }
 
-uint32_t DataCollator::size()
+uint64_t DataCollator::size()
 {
     return rows.size();
 }

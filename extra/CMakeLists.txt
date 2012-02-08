@@ -29,7 +29,7 @@ target_link_libraries(dpep ${LIBS})
 # target_link_libraries(pca_test m)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
-    target_link_libraries(traceflow ${LIBS} nsl socket)
+    target_link_libraries(traceflow ${LIBS} nsl socket pcap)
     target_link_libraries(trace-proc ${LIBS} nsl)
     target_link_libraries(dnsstats ${LIBS} pcap socket nsl) # http://www.opensolaris.org/jive/thread.jspa?threadID=24384&tstart=0#94409
     target_link_libraries(ipstats ${LIBS} pcap socket nsl)

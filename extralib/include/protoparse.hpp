@@ -110,8 +110,8 @@ struct l4_tcp
 {
     uint16_t sport;
     uint16_t dport;
-    uint32_t seq_num;
-    uint32_t ack_num;
+    uint32_t seq;
+    uint32_t ack;
     uint16_t flags;
     uint8_t next;
 };
@@ -158,7 +158,7 @@ inline uint16_t tcp4_checksum(uint32_t src, uint32_t dst, const unsigned char* p
     uint32_t sum = 6; // The IP protocol number for TCP.
     sum += packet_len;
 
-    for (int i = 0; i < (packet_len - (packet_len % 2)) ; i += 2)
+    for (uint32_t i = 0; i < (packet_len - (packet_len % 2)) ; i += 2)
     {
         sum += p[i] * 256 + p[i+1];
     }
@@ -208,14 +208,14 @@ inline struct flow_sig* append_to_flow_sig(struct flow_sig* f, const void* data,
     return ret;
 }
 
-void print_flow(struct flow_sig* f)
+void print_flow(struct flow_sig* f, FILE* fp = stdout)
 {
     int32_t p_offset = 0;
 
 //     // Again, assume ethernet:
 //     struct ether_header eth_hdr = (f->packets->at(0))->eth_hdr;
 //
-//     printf("%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X : ",
+//     fprintf(fp, "%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X : ",
 // 	    eth_hdr.ether_shost[0], eth_hdr.ether_shost[1], eth_hdr.ether_shost[2], eth_hdr.ether_shost[3], eth_hdr.ether_shost[4], eth_hdr.ether_shost[5],
 // 	    eth_hdr.ether_dhost[0], eth_hdr.ether_dhost[1], eth_hdr.ether_dhost[2], eth_hdr.ether_dhost[3], eth_hdr.ether_dhost[4], eth_hdr.ether_dhost[5]
 //     );
@@ -224,10 +224,10 @@ void print_flow(struct flow_sig* f)
     {
         struct l3_ip4* l3 = reinterpret_cast<struct l3_ip4*>(&(f->hdr_start) + p_offset);
 
-        printf("%d.%d.%d.%d -> %d.%d.%d.%d : ",
-               ((uint8_t*)(&(l3->src)))[0], ((uint8_t*)(&(l3->src)))[1], ((uint8_t*)(&(l3->src)))[2], ((uint8_t*)(&(l3->src)))[3],
-               ((uint8_t*)(&(l3->dst)))[0], ((uint8_t*)(&(l3->dst)))[1], ((uint8_t*)(&(l3->dst)))[2], ((uint8_t*)(&(l3->dst)))[3]
-              );
+        fprintf(fp, "%d.%d.%d.%d -> %d.%d.%d.%d : ",
+                ((uint8_t*)(&(l3->src)))[0], ((uint8_t*)(&(l3->src)))[1], ((uint8_t*)(&(l3->src)))[2], ((uint8_t*)(&(l3->src)))[3],
+                ((uint8_t*)(&(l3->dst)))[0], ((uint8_t*)(&(l3->dst)))[1], ((uint8_t*)(&(l3->dst)))[2], ((uint8_t*)(&(l3->dst)))[3]
+               );
 
         p_offset += sizeof(struct l3_ip4) - 1;
     }
@@ -238,10 +238,10 @@ void print_flow(struct flow_sig* f)
         uint8_t* s = reinterpret_cast<uint8_t*>(&(l3->src));
         uint8_t* d = reinterpret_cast<uint8_t*>(&(l3->dst));
 
-        printf("%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x -> %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x : ",
-               s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10], s[11], s[12], s[13], s[14], s[15],
-               d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]
-              );
+        fprintf(fp, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x -> %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x : ",
+                s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9], s[10], s[11], s[12], s[13], s[14], s[15],
+                d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]
+               );
 
         p_offset += sizeof(struct l3_ip6) - 1;
     }
@@ -250,7 +250,40 @@ void print_flow(struct flow_sig* f)
     {
         struct l4_tcp* l4 = reinterpret_cast<struct l4_tcp*>(&(f->hdr_start) + p_offset);
 
-        printf("%u -> %u : ", l4->sport, l4->dport);
+        fprintf(fp, "%u -> %u ", l4->sport, l4->dport);
+
+        if ((l4->flags & TH_FIN) > 0)
+        {
+            fprintf(fp, "FIN ");
+        }
+        if ((l4->flags & TH_SYN) > 0)
+        {
+            fprintf(fp, "SYN ");
+        }
+        if ((l4->flags & TH_RST) > 0)
+        {
+            fprintf(fp, "RST ");
+        }
+        if ((l4->flags & TH_PUSH) > 0)
+        {
+            fprintf(fp, "PSH ");
+        }
+        if ((l4->flags & TH_ACK) > 0)
+        {
+            fprintf(fp, "ACK ");
+        }
+        if ((l4->flags & TH_URG) > 0)
+        {
+            fprintf(fp, "URG ");
+        }
+        if ((l4->flags & TH_ECE) > 0)
+        {
+            fprintf(fp, "ECE ");
+        }
+        if ((l4->flags & TH_CWR) > 0)
+        {
+            fprintf(fp, "CWR ");
+        }
 
         p_offset += sizeof(struct l4_tcp) - 1;
     }
@@ -258,7 +291,7 @@ void print_flow(struct flow_sig* f)
     {
         struct l4_udp* l4 = reinterpret_cast<struct l4_udp*>(&(f->hdr_start) + p_offset);
 
-        printf("%u -> %u : ", l4->sport, l4->dport);
+        fprintf(fp, "%u -> %u : ", l4->sport, l4->dport);
 
         p_offset += sizeof(struct l4_udp) - 1;
     }
@@ -339,7 +372,7 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
-uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
+uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len, uint32_t* total_len)
 {
     struct flow_sig* f = *fp;
 
@@ -362,6 +395,13 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         // Since the IPv4 header specifies the number of 32-bit words in the header, multiply by 4.
         l3_hdr.hdr_len = 4 * ip4_hdr->ip_hl;
+        *total_len = ntohs(ip4_hdr->ip_len) - l3_hdr.hdr_len;
+
+        // Catch the case when the length header is broken.
+        if (*total_len > (packet_len - p_offset - l3_hdr.hdr_len))
+        {
+            throw -2;
+        }
 
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
         *fp = f;
@@ -390,6 +430,13 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         tmp_addr = reinterpret_cast<uint64_t*>(&(ip_hdr->ip6_dst));
         l3_hdr.dst[0] = tmp_addr[0];
         l3_hdr.dst[1] = tmp_addr[1];
+
+        *total_len = ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_plen;
+
+        if (*total_len > (packet_len - p_offset - sizeof(struct ip6_hdr)))
+        {
+            throw -2;
+        }
 
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip6) - 1);
         *fp = f;
@@ -443,20 +490,20 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         l4_hdr.sport = ntohs(tcp_hdr->th_sport);
         l4_hdr.dport = ntohs(tcp_hdr->th_dport);
-        l4_hdr.seq_num = ntohl(tcp_hdr->th_seq);
-        l4_hdr.ack_num = ntohl(tcp_hdr->th_ack);
+        l4_hdr.seq = ntohl(tcp_hdr->th_seq);
+        l4_hdr.ack = ntohl(tcp_hdr->th_ack);
         l4_hdr.flags = tcp_hdr->th_flags;
 
         uint16_t cksum = tcp_hdr->th_sum;
         if ((*fp)->l3_type == L3_TYPE_IP4)
         {
             struct l3_ip4* ip4 = (struct l3_ip4*)(&((*fp)->hdr_start));
-            l4_hdr.flags |= (cksum == tcp4_checksum(ip4->src, ip4->dst, packet, packet_len)) << 8;
+            l4_hdr.flags |= (cksum == tcp4_checksum(ip4->src, ip4->dst, packet, packet_len)) << 9;
         }
         else if ((*fp)->l3_type == L3_TYPE_IP6)
         {
             struct l3_ip6* ip6 = (struct l3_ip6*)(&((*fp)->hdr_start));
-            l4_hdr.flags |= (cksum == tcp6_checksum(ip6->src, ip6->dst, packet, packet_len)) << 8;
+            l4_hdr.flags |= (cksum == tcp6_checksum(ip6->src, ip6->dst, packet, packet_len)) << 9;
         }
 
         f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_tcp) - 1);
@@ -571,6 +618,7 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, boo
     struct flow_sig* f;
     SAFE_CALLOC(struct flow_sig*, f, 1, (sizeof(struct flow_sig) - 1));
     f->hdr_size = 0;
+    uint32_t padding = 0;
 
     if (layers >= 2)
     {
@@ -579,7 +627,9 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, boo
 
     if ((layers >= 3) && (f->l3_type != L3_TYPE_NONE))
     {
-        p_offset = l3_sig(&f, packet, p_offset, packet_len);
+        p_offset = l3_sig(&f, packet, p_offset, packet_len, &padding);
+        padding = packet_len - p_offset - padding;
+        packet_len -= padding;
     }
 
     if ((layers >= 4) && (f->l4_type != L4_TYPE_NONE))
