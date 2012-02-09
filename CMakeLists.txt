@@ -24,6 +24,7 @@ message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
 set(COMPILER_C)
 set(COMPILER_CXX)
 set(SKIP_SUN_COMPILER "false")
+set(FORCE_64_BIT "true")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
@@ -86,11 +87,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 set(CMAKE_FLAGS_X64 "")
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND ${FORCE_64_BIT} MATCHES "true")
     message(STATUS "Forcing 64-bit compilation")
     set(CMAKE_FLAGS_X64 "-m64")
     add_definitions(-DSYSTEM_NAME_CYGWIN)
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
+endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND ${FORCE_64_BIT} MATCHES "true")
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
     list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers

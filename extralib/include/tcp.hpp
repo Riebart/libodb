@@ -280,7 +280,7 @@ int TCP4Flow::add_packet(struct flow_sig* f)
     // byte. This difference is the maximum TCP window size of 65536<<14 == 1<<30.
     if ((tcp->seq < isn[dir]) && (isn[dir] >= 1073725440LL) && (tcp->seq < (isn[dir] - 1073725440LL)))
     {
-        wrap_offset += (wrap_offset == 0 ? 4294967296 - isn[dir] : 4294967296);
+        wrap_offset += (wrap_offset == 0 ? 4294967296LL - isn[dir] : 4294967296LL);
     }
 
     // If the ACK flag is set, then we are acking some data going the other way.

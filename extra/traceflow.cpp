@@ -175,7 +175,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     throw -1;
                 }
                 proto4->flow = new TCP4Flow();
-                sprintf(fname, "tcpsess.%lu", ctr);
+                sprintf(fname, "tcpsess.%llu", ctr);
                 proto4->flow->set_output(fopen(fname, "wb"));
                 ctr++;
             }
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
         throw -1;
     }
     proto4->flow = new TCP4Flow();
-    sprintf(fname, "tcpsess.%lu", ctr);
+    sprintf(fname, "tcpsess.%llu", ctr);
     proto4->flow->set_output(fopen(fname, "wb"));
     ctr++;
 
