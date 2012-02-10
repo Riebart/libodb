@@ -30,6 +30,24 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
+#undef TH_FIN
+#undef TH_SYN
+#undef TH_RST
+#undef TH_PSH
+#undef TH_ACK
+#undef TH_URG
+#undef TH_ECE
+#undef TH_CWR
+
+#define TH_FIN 0x01
+#define TH_SYN 0x02
+#define TH_RST 0x04
+#define TH_PSH 0x08
+#define TH_ACK 0x10
+#define TH_URG 0x20
+#define TH_ECE 0x40
+#define TH_CWR 0x80
+
 #include "dns.hpp"
 
 using namespace std;
@@ -264,7 +282,7 @@ void print_flow(struct flow_sig* f, FILE* fp = stdout)
         {
             fprintf(fp, "RST ");
         }
-        if ((l4->flags & TH_PUSH) > 0)
+        if ((l4->flags & TH_PSH) > 0)
         {
             fprintf(fp, "PSH ");
         }
@@ -431,7 +449,7 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         l3_hdr.dst[0] = tmp_addr[0];
         l3_hdr.dst[1] = tmp_addr[1];
 
-        *total_len = ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_plen;
+        *total_len = ntohs(ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_plen);
 
         if (*total_len > (packet_len - p_offset - sizeof(struct ip6_hdr)))
         {

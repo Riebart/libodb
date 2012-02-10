@@ -30,7 +30,7 @@ target_link_libraries(minimal-erbt ${LIBS})
 target_link_libraries(minimal-odb ${LIBS})
 
 target_link_libraries(comp-index_datastore ${LIBS})
-target_link_libraries(comp-scheduler ${LIBS})
+target_link_libraries(comp-scheduler ${LIBS} rt)
 
 target_link_libraries(unit-collator ${LIBS})
 target_link_libraries(unit-protoparse ${LIBS})

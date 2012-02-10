@@ -395,7 +395,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
 
     if (rst_had)
     {
-        throw -2;
+        throw 2;
     }
     else if (fin_acked[0] && fin_acked[1])
     {

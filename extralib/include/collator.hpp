@@ -136,6 +136,10 @@ private:
     /// Used to keep strack of where in the stream the next expected data should start.
     int64_t start_offset;
 
+    /// Holds the number of rows inserted into the list so that we aren't calling the
+    /// O(n) .size() method of the STL list.
+    uint64_t count;
+
     /// Keeps track of the list of rows allowing for space to exist between rows, representing missing data.
     std::list<struct row*> rows;
 
@@ -203,6 +207,7 @@ DataCollator::~DataCollator()
     {
         free(*it);
         it = rows.erase(it);
+        count--;
     }
 }
 
@@ -285,13 +290,14 @@ struct DataCollator::row* DataCollator::get_data_p()
 {
     struct row* ret = NULL;
 
-    if (rows.size() > 0)
+    if (count > 0)
     {
         ret = rows.front();
 
         if (ret->offset == start_offset)
         {
             rows.pop_front();
+            count--;
             start_offset += ret->length;
         }
     }
@@ -304,13 +310,14 @@ struct DataCollator::row* DataCollator::get_data_p(int64_t offset)
 {
     struct row* ret = NULL;
 
-    if (rows.size() > 0)
+    if (count > 0)
     {
         ret = rows.front();
 
         if (((ret->offset + ret->length) <= offset) && (ret->offset == start_offset))
         {
             rows.pop_front();
+            count--;
             start_offset += ret->length;
         }
         else
@@ -382,9 +389,10 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
         row = truncate_row_end(row, row->length - (start_offset - row->offset));
     }
 
-    if (rows.size() == 0)
+    if (count == 0)
     {
         rows.push_front(row);
+        count++;
         ret = true;
     }
     else
@@ -397,6 +405,7 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
         if (f->offset > row->offset)
         {
             rows.push_front(row);
+            count++;
             ret = true;
         }
     }
@@ -419,6 +428,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
             if (((*it)->offset + (*it)->length) <= row->offset)
             {
                 rows.push_back(row);
+                count++;
                 break;
             }
             // If this one hangs off the end of but extends further in, then
@@ -432,6 +442,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
                 row->length -= r->length;
                 memcpy(&(r->data), &(row->data) + row->length, r->length);
                 rows.push_back(r);
+                count++;
 
                 struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
 
@@ -450,6 +461,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
             if (row->offset >= ((*it)->offset + (*it)->length))//)
             {
                 rows.insert(it.base(), row);
+                count++;
                 break;
             }
             // Check to see if we overlap the previous interval.
@@ -467,6 +479,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
                     row->length -= r->length;
                     memcpy(&(r->data), &(row->data) + row->length, r->length);
                     rows.insert(it.base(), r);
+                    count++;
                     ++it;
 
                     struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
@@ -511,7 +524,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
 
 uint64_t DataCollator::size()
 {
-    return rows.size();
+    return count;
 }
 
 #endif
