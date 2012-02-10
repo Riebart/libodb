@@ -26,42 +26,17 @@
 
 class TCPFlow
 {
-};
-
-class TCP4Flow : public TCPFlow
-{
 public:
     /// Destructor that does the mandatory cleanup such as closing files and whatnot.
-    ~TCP4Flow();
+    ~TCPFlow();
 
     /// Argumentless constructor that sets flags in such a way that insertions
     /// don't work until a call to replace_sig is made.
-    TCP4Flow();
+    TCPFlow();
 
     /// Constructor that builds the notion of a flow.
     /// @param [in] f The flow that becomes the prototype for the TCP connection.
-    TCP4Flow(struct flow_sig* f);
-
-    /// Add a packet from its flow description to the TCP stream.
-    /// @retval <0 Bytes were seen flowing in the direction of the higher address
-    /// to the lower address.
-    /// @retval >0 Bytes were seen flowing in the direction of the lower address
-    /// to the higher address
-    /// @throws 1 If the flow has ended and a FIN has been seen.
-    /// @throws -2 If this is called when no signature has been set up for this object.
-    /// @throws 2 If the parser encounters an RST flag. Every packet that passed
-    /// to this flow after an RST is encountered causes this to be thrown.
-    /// @param [in] f The packet's flow signature, including the extra data added
-    /// to the end of the signature, to add to the stream.
-    int add_packet(struct flow_sig* f);
-
-    /// Checks a packet's flow signature against this TCP flow to see if it is
-    /// eligible to be added to it.
-    /// @return Whether or not the specified flow signature matches this flow.
-    /// @throws -2 If this is called when no signature has been set up for this object.
-    /// @param [in] f The packet, including extra bytes at the end of the signature,
-    /// to check against this flow.
-    bool check_packet(struct flow_sig* f);
+    TCPFlow(struct flow_sig* f);
 
     /// Update this flow to represent one with the given signature. This fails if
     /// anything has been added to this flow.
@@ -69,13 +44,6 @@ public:
     /// in the flow, this operation will fail.
     /// @param [in] f The new flow signature to be represented by this object.
     bool replace_sig(struct flow_sig* f);
-
-    /// Write out the hash for this flow (based on the addresses and ports) to
-    /// the specified location.
-    /// @return Whether or not this succeds. If there is no signature set, this
-    /// will fail.
-    /// @param [in,out] dest The location to write the hash to.
-    bool get_hash(uint32_t* dest);
 
     /// Set the output method to a handler-type. If this or its sister isn't called
     /// output is multiplexed to stdout in a way liable to garble everything into
@@ -91,10 +59,29 @@ public:
     /// @param [in] _fp The file descriptor to write to when output is ready.
     void set_output(FILE* _fp);
 
-private:
+protected:
     /// Initialize the state of the flow tracking with the given flow signature
-    /// @param [in] f The flow signature to match.
-    void init(struct flow_sig* f);
+    /// @param [in] f The flow signature to match, it assumes the appropriate IP
+    /// type for the type of flow that is trying to init from it.
+    virtual void init(struct flow_sig* f);
+
+    /// Takes in a flow signature and a direction, obtained from the protocol
+    /// aware flavours and adds performs the logic. Once the direction is known
+    /// the rest is agnostic of the layer 3 protocol.
+    /// @retval <0 Bytes were seen flowing in the direction of the higher address
+    /// to the lower address.
+    /// @retval >0 Bytes were seen flowing in the direction of the lower address
+    /// to the higher address
+    /// @throws 1 If the flow has ended and a FIN has been seen.
+    /// @throws -2 If this is called when no signature has been set up for this object.
+    /// @throws 2 If the parser encounters an RST flag. Every packet that passed
+    /// to this flow after an RST is encountered causes this to be thrown.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
+    /// @param [in] tcp The TCP struct obtained after the layer 3 header information.
+    /// @param [in] dir The direction of the flow, as obtained by the L3 protocol
+    /// aware flavours.
+    int add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir);
 
     /// File descriptor to write to. neither of the set_output methods are called
     /// this stays at it initialized value of stdout.
@@ -108,9 +95,6 @@ private:
 
     /// Keeps track of whether or not we've set a signature for this object.
     bool has_sig;
-
-    /// The ordered IP addresses that represent the IP portion of the flow.
-    uint32_t addrs[2];
 
     /// The ordered ports that represent the TCP portion of the flow.
     uint16_t ports[2];
@@ -148,12 +132,89 @@ private:
     /// packet that is given to us after we've seen an RST. We assume that this
     /// flow will be blown away and a fresh one started when an RST is encountered.
     bool rst_had;
-
-    /// Keeps track of which direction the initial flow
-    int dir;
 };
 
-TCP4Flow::~TCP4Flow()
+class TCP4Flow : public TCPFlow
+{
+public:
+    /// Add a packet from its flow description to the TCP stream.
+    /// @retval <0 Bytes were seen flowing in the direction of the higher address
+    /// to the lower address.
+    /// @retval >0 Bytes were seen flowing in the direction of the lower address
+    /// to the higher address
+    /// @throws 1 If the flow has ended and a FIN has been seen.
+    /// @throws -2 If this is called when no signature has been set up for this object.
+    /// @throws 2 If the parser encounters an RST flag. Every packet that passed
+    /// to this flow after an RST is encountered causes this to be thrown.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
+    int add_packet(struct flow_sig* f);
+
+    /// Checks a packet's flow signature against this TCP flow to see if it is
+    /// eligible to be added to it.
+    /// @return Whether or not the specified flow signature matches this flow.
+    /// @throws -2 If this is called when no signature has been set up for this object.
+    /// @param [in] f The packet, including extra bytes at the end of the signature,
+    /// to check against this flow.
+    bool check_packet(struct flow_sig* f);
+
+    /// Write out the hash for this flow (based on the addresses and ports) to
+    /// the specified location.
+    /// @return Whether or not this succeds. If there is no signature set, this
+    /// will fail.
+    /// @param [in,out] dest The location to write the hash to.
+    bool get_hash(uint32_t* dest);
+
+protected:
+    virtual void init(struct flow_sig* f);
+
+    /// The ordered IP addresses that represent the IP portion of the flow.
+    uint32_t addrs[2];
+};
+
+class TCP6Flow : public TCPFlow
+{
+public:
+    /// Add a packet from its flow description to the TCP stream.
+    /// @retval <0 Bytes were seen flowing in the direction of the higher address
+    /// to the lower address.
+    /// @retval >0 Bytes were seen flowing in the direction of the lower address
+    /// to the higher address
+    /// @throws 1 If the flow has ended and a FIN has been seen.
+    /// @throws -2 If this is called when no signature has been set up for this object.
+    /// @throws 2 If the parser encounters an RST flag. Every packet that passed
+    /// to this flow after an RST is encountered causes this to be thrown.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
+    int add_packet(struct flow_sig* f);
+
+    /// Checks a packet's flow signature against this TCP flow to see if it is
+    /// eligible to be added to it.
+    /// @return Whether or not the specified flow signature matches this flow.
+    /// @throws -2 If this is called when no signature has been set up for this object.
+    /// @param [in] f The packet, including extra bytes at the end of the signature,
+    /// to check against this flow.
+    bool check_packet(struct flow_sig* f);
+
+    /// Write out the hash for this flow (based on the addresses and ports) to
+    /// the specified location.
+    /// @return Whether or not this succeds. If there is no signature set, this
+    /// will fail.
+    /// @param [in,out] dest The location to write the hash to.
+    bool get_hash(uint32_t* dest);
+
+protected:
+    virtual void init(struct flow_sig* f);
+
+    /// The ordered IP addresses that represent the IP portion of the flow.
+    uint64_t addrs[8];
+};
+
+// =============================================================================
+// =============================================================================
+// =============================================================================
+
+TCPFlow::~TCPFlow()
 {
     if (fp != stdout)
     {
@@ -166,13 +227,17 @@ TCP4Flow::~TCP4Flow()
     }
 }
 
-TCP4Flow::TCP4Flow()
+TCPFlow::TCPFlow()
 {
     has_sig = false;
 
     context = NULL;
     handler = NULL;
     fp = stdout;
+}
+
+void TCPFlow::init(struct flow_sig* f)
+{
 }
 
 void TCP4Flow::init(struct flow_sig* f)
@@ -204,7 +269,40 @@ void TCP4Flow::init(struct flow_sig* f)
     isn[dir] = tcp->seq + ((tcp->flags & TH_SYN) > 0);
 }
 
-TCP4Flow::TCP4Flow(struct flow_sig* f)
+void TCP6Flow::init(struct flow_sig* f)
+{
+    has_sig = true;
+    wrap_offset = 0;
+    isn[0] = 0;
+    isn[1] = 0;
+    ack[0] = 0;
+    ack[1] = 0;
+    last_out[0] = 0;
+    last_out[1] = 0;
+    fin_had[0] = 0;
+    fin_had[1] = 0;
+    rst_had = 0;
+    fin_acked[0] = 0;
+    fin_acked[1] = 0;
+
+    struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
+    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+    int dir = ((ip->src[0] < ip->dst[0]) || (ip->src[1] < ip->dst[1]));
+
+    for (int i = 0 ; i < 4 ; i++)
+    {
+        addrs[4*dir+i] = ((uint32_t*)(&(ip->src)))[i];
+        addrs[i] = ((uint32_t*)(&(ip->dst)))[i];
+    }
+
+    ports[dir] = tcp->sport;
+    ports[1-dir] = tcp->dport;
+    syn_had[dir] = true;
+    syn_had[1-dir] = false;
+    isn[dir] = tcp->seq + ((tcp->flags & TH_SYN) > 0);
+}
+
+TCPFlow::TCPFlow(struct flow_sig* f)
 {
     init(f);
 
@@ -229,8 +327,36 @@ bool TCP4Flow::check_packet(struct flow_sig* f)
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
     int dir = (ip->src < ip->dst);
 
-    if (((addrs[dir] != ip->src) || (addrs[1-dir] != ip->dst)) ||
-            ((ports[dir] != tcp->sport) || (ports[1-dir] != tcp->dport)))
+    if ((addrs[dir] != ip->src) || (addrs[1-dir] != ip->dst) ||
+            (ports[dir] != tcp->sport) || (ports[1-dir] != tcp->dport))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool TCP6Flow::check_packet(struct flow_sig* f)
+{
+    if (!has_sig)
+    {
+        throw 0;
+    }
+
+    if ((f->l3_type != L3_TYPE_IP6) || (f->l4_type != L4_TYPE_TCP))
+    {
+        return false;
+    }
+
+    struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
+    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+    int dir = ((ip->src[0] < ip->dst[0]) || (ip->src[1] < ip->dst[1]));
+
+    uint64_t* addrs64 = (uint64_t*)(addrs);
+
+    if ((addrs64[2*dir] != ip->src[0]) || (addrs64[2*dir+1] != ip->src[1]) ||
+            (addrs64[2*(1-dir)] != ip->dst[0]) || (addrs64[2*(1-dir)+1] != ip->dst[1]) ||
+            (ports[dir] != tcp->sport) || (ports[1-dir] != tcp->dport))
     {
         return false;
     }
@@ -240,14 +366,26 @@ bool TCP4Flow::check_packet(struct flow_sig* f)
 
 int TCP4Flow::add_packet(struct flow_sig* f)
 {
+    struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
+    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+    int dir = (ip->src < ip->dst);
+    return TCPFlow::add_packet(f, tcp, dir);
+}
+
+int TCP6Flow::add_packet(struct flow_sig* f)
+{
+    struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
+    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+    int dir = (ip->src < ip->dst);
+    return TCPFlow::add_packet(f, tcp, dir);
+}
+
+int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
+{
     if (!has_sig)
     {
         throw 0;
     }
-
-    // See if this is a low-to-high or high-to-low flow.
-    struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
-    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
     // If we see an RST just bail on everything.
     if ((tcp->flags & TH_RST) > 0)
@@ -263,8 +401,6 @@ int TCP4Flow::add_packet(struct flow_sig* f)
     {
         throw 1;
     }
-
-    int dir = (ip->src < ip->dst);
 
     // Reset the sequence numbering if we detect
     if (((tcp->flags & TH_SYN) > 0) || (!syn_had[dir]))
@@ -315,6 +451,11 @@ int TCP4Flow::add_packet(struct flow_sig* f)
         if (fin_had[1-dir])
         {
             fin_acked[1-dir] = true;
+
+            if (fin_acked[dir])
+            {
+                throw 1;
+            }
         }
     }
 
@@ -330,7 +471,7 @@ int TCP4Flow::add_packet(struct flow_sig* f)
     return (2 * dir - 1) * (f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]));
 }
 
-bool TCP4Flow::replace_sig(struct flow_sig* f)
+bool TCPFlow::replace_sig(struct flow_sig* f)
 {
     // Check to see if anything has happened.
     if ((data[0].size() == 0) && (data[1].size() == 0))
@@ -358,15 +499,35 @@ bool TCP4Flow::get_hash(uint32_t* dest)
     return true;
 }
 
-void TCP4Flow::set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
+bool TCP6Flow::get_hash(uint32_t* dest)
+{
+    if (!has_sig)
+    {
+        return false;
+    }
+
+    dest[0] = addrs[0];
+    dest[1] = addrs[1];
+    dest[2] = addrs[2];
+    dest[3] = addrs[3];
+    dest[4] = addrs[4];
+    dest[5] = addrs[5];
+    dest[6] = addrs[6];
+    dest[7] = addrs[7];
+    dest[8] = ports[0] + 65536 * ports[1];
+
+    return true;
+}
+
+void TCPFlow::set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
 {
     handler = _handler;
     context = _context;
 }
 
-void TCP4Flow::set_output(FILE* _fp)
+void TCPFlow::set_output(FILE* _fp)
 {
-    this->fp = _fp;
+    fp = _fp;
 }
 
 #endif

@@ -123,8 +123,43 @@ void* merge6(void* aV, void* bV)
 
 #include <pcap.h>
 
+uint64_t ctr = 0;
 struct tree_node4* proto4;
 // struct tree_node6* proto6;
+
+void output_handler(void* context, uint64_t length, void* data)
+{
+    uint64_t id = *(uint64_t*)context;
+
+    if (data != NULL)
+    {
+        printf("1\n%llu\n%llu\n", id, length);
+        fwrite(data, length, 1, stdout);
+    }
+    else
+    {
+        printf("2\n%llu\n", id);
+    }
+}
+
+void proto_init4(struct tree_node4** p)
+{
+    *p = (struct tree_node4*)malloc(sizeof(struct tree_node4));
+    struct tree_node4* proto4 = *p;
+
+    uint64_t* ctrP = (uint64_t*)malloc(sizeof(uint64_t));
+
+    if ((ctrP == NULL) || (proto4 == NULL))
+    {
+        throw -1;
+    }
+
+    proto4->flow = new TCP4Flow();
+
+    *ctrP = ctr;
+    proto4->flow->set_output(output_handler, ctrP);
+    ctr++;
+}
 
 void proto_setup4(struct tree_node4* p, struct flow_sig* f)
 {
@@ -137,6 +172,25 @@ void proto_setup4(struct tree_node4* p, struct flow_sig* f)
     p->flow->get_hash((uint32_t*)(&(p->hash)));
 }
 
+// void proto_init6(struct tree_node6** p)
+// {
+//     *p = (struct tree_node6*)malloc(sizeof(struct tree_node6));
+//     struct tree_node6* proto6 = *p;
+//
+//     uint64_t* ctrP = (uint64_t*)malloc(sizeof(uint64_t));
+//
+//     if ((ctrP == NULL) || (proto6 == NULL))
+//     {
+//         throw -1;
+//     }
+//
+//     proto6->flow = new TCP6Flow();
+//
+//     *ctrP = ctr;
+//     proto6->flow->set_output(output_handler, ctrP);
+//     ctr++;
+// }
+
 // void proto_setup4(struct tree_node6* p, struct flow_sig* f)
 // {
 //     if (!p->flow->replace_sig(f))
@@ -147,9 +201,6 @@ void proto_setup4(struct tree_node4* p, struct flow_sig* f)
 //     p->f = f;
 //     p->flow->get_hash((uint32_t*)(&(p->hash)));
 // }
-
-uint64_t ctr = 0;
-char fname[64];
 
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
@@ -166,18 +217,16 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             // and set it to NULL as a sentinel for later. Reallocate our prototype.
             if (added)
             {
-                fprintf(stderr, "!");
+                struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
+                struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+
+                printf("0\n%llu\n%u\n%u\n%u\n%u\n", ctr - 1,
+                       ip->src, tcp->sport,
+                       ip->dst, tcp->dport);
+
                 free(proto4->f);
                 proto4->f = NULL;
-                proto4 = (struct tree_node4*)malloc(sizeof(struct tree_node4));
-                if (proto4 == NULL)
-                {
-                    throw -1;
-                }
-                proto4->flow = new TCP4Flow();
-                sprintf(fname, "tcpsess.%llu", ctr);
-                proto4->flow->set_output(fopen(fname, "wb"));
-                ctr++;
+                proto_init4(&proto4);
             }
             // If we didn't add it, it is because we collided and the payload got inserted
             // into an existing flow. We should check and see if the proto's flow_sig
@@ -187,8 +236,8 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             {
                 if (proto4->f != NULL)
                 {
-                    fprintf(stderr, "?");
                     struct tree_node4* del;
+
                     bool removed = RedBlackTreeI::e_remove(flows4, proto4->f, (void**)(&del));
                     delete del->flow;
                     free(del);
@@ -225,28 +274,14 @@ int main(int argc, char** argv)
 {
     init_proto_hdr_sizes();
 
-    proto4 = (struct tree_node4*)malloc(sizeof(struct tree_node4));
-    if (proto4 == NULL)
-    {
-        throw -1;
-    }
-    proto4->flow = new TCP4Flow();
-    sprintf(fname, "tcpsess.%llu", ctr);
-    proto4->flow->set_output(fopen(fname, "wb"));
-    ctr++;
-
-//     proto6 = (struct tree_node6*)malloc(sizeof(struct tree_node6));
-//     if (proto6 == NULL)
-//     {
-//         throw -1;
-//     }
-//     proto6->flow = new TCP6Flow();
+    proto_init4(&proto4);
+//     proto_init6(&proto6);
 
     flows4 = RedBlackTreeI::e_init_tree(true, compare4, merge4);
     flows6 = RedBlackTreeI::e_init_tree(true, compare6, merge6);
 
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_t* fp = pcap_open_offline("http3.pcap", errbuf);
+    pcap_t* fp = pcap_open_offline(argv[1], errbuf);
     pcap_loop(fp, 0, packet_callback, NULL);
     return 0;
 }

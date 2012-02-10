@@ -94,6 +94,7 @@ add_test(unit-collator.11 test-output "" "" "./unit-collator" "11")
 add_test(unit-collator.12 test-output "" "" "./unit-collator" "12")
 add_test(unit-collator.13 test-output "" "" "./unit-collator" "13")
 add_test(unit-collator.14 test-output "" "" "./unit-collator" "14")
+add_test(unit-collator.15 test-output "" "" "./unit-collator" "15")
 
 add_test(unit-protoparse.tcp_cksum unit-protoparse 0)
 

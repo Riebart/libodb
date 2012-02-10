@@ -148,6 +148,7 @@ TEST_OPT("Overlap test, back only")
 TEST_OPT("Overlap test, front and back")
 TEST_OPT("Overlap test, superset")
 TEST_OPT("Overlap test, subset")
+TEST_OPT("Overlap test, hanging off both ends, and overlapping everything")
 TEST_OPT_END()
 
 TEST_CASES_BEGIN()
@@ -401,6 +402,19 @@ TEST_BEGIN(14)
     data->add_data(0, 128, c);
     data->add_data(256, 128, c);
     data->add_data(64, 32, c);
+
+    delete data;
+    return EXIT_SUCCESS;
+}
+
+TEST_BEGIN(15)
+{
+    DataCollator* data = new DataCollator();
+    char c[256];
+
+    data->add_data(0, 128, c);
+    data->add_data(256, 128, c);
+    data->add_data(-32, 512, c);
 
     delete data;
     return EXIT_SUCCESS;

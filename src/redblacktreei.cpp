@@ -309,6 +309,11 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
 
 bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawdata, void** del_node)
 {
+    if (del_node == NULL)
+    {
+        return false;
+    }
+
     WRITE_LOCK_P(root);
 
     root->data = e_remove_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata, del_node);
@@ -896,7 +901,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
             p = i;
             i = STRIP(i->link[dir]);
 
-            c = compare->compare(rawdata, GET_DATA(i));
+            c = (ret == 1 ? 1 : compare->compare(rawdata, GET_DATA(i)));
             dir = (c > 0);
 
             // If our desired node is here...
@@ -943,6 +948,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                     SET_LINK(p->link[prev_dir], single_rotation(i, dir));
                     // gp = p; Included for the sake of completion. gp is never used until we re-start the loop and nothing depends on it, so we don't need to set it here.
                     p = STRIP(p->link[prev_dir]);
+                    prev_dir = dir;
                 }
                 // Otherwise if the current node and both children are black...
                 else
@@ -990,7 +996,11 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
         // Replace and remove the tree node if found.
         if (f != NULL)
         {
+            // Preserve the data of the last node we found in the node we are
+            // deleting. This is essentially a swap.
             f->data = i->data;
+
+            // Preserve tree-related information.
             if (IS_TREE(i))
             {
                 SET_TREE(f);
@@ -1000,7 +1010,15 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root,
                 SET_VALUE(f);
             }
 
-            SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[STRIP(i->link[0]) == NULL]);
+            // Set the link of the parent which points to the last node we found,
+            // not the one we found to delete, to be the child of the node we found
+            // to delete that points 'away' from from the node we found to delete.
+            //
+            // Since i is the element in the tree that is immediately smaller than
+            // the one we found to delete, we need to save the child of i that
+            // points 'down' to the child that points 'up' in the parent of i.
+//             SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[STRIP(i->link[0]) == NULL]);
+            SET_LINK(p->link[prev_dir], i->link[1]);
             free(i);
         }
 
@@ -1039,16 +1057,17 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
         // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
         struct tree_node *p, *gp;
         struct tree_node *i;
-        struct tree_node *f;
+        struct tree_node *f, *fp;
 
         // Initialize them.
         gp = NULL;
         p = NULL;
         i = false_root;
         f = NULL;
+        fp = NULL;
 
         // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
-        uint8_t dir = 1, prev_dir = 1;
+        uint8_t dir = 1, prev_dir = 1, f_dir = 1;
 
         // For storing the comparison value, means only one call to the compare function.
         int32_t c;
@@ -1064,7 +1083,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
             p = i;
             i = STRIP(i->link[dir]);
 
-            c = compare->compare(rawdata, i);
+            c = (ret == 1 ? 1 : compare->compare(rawdata, i));
             dir = (c > 0);
 
             // If our desired node is here...
@@ -1095,6 +1114,8 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
                     if (rawdata == i)
                     {
                         f = i;
+                        fp = p;
+                        f_dir = prev_dir;
                         ret = 1;
                     }
                 }
@@ -1107,10 +1128,21 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
                 // If the child of i opposite of where we are going is red...
                 if (IS_RED(STRIP(i->link[!dir])))
                 {
+                    // Now we need to fix up fp and f
+                    // If we're rotating on f, then fp will become the child of i
+                    // in the direction opposite the rotation direction.
+                    if ((fp != NULL) && (i == f))
+                    {
+                        fp = STRIP(f->link[1-dir]);
+                        f_dir = dir;
+                    }
+
                     // Push our next node down one position to avoid a black parent with two red children.
                     SET_LINK(p->link[prev_dir], single_rotation(i, dir));
+
                     // gp = p; Included for the sake of completion. gp is never used until we re-start the loop and nothing depends on it, so we don't need to set it here.
                     p = STRIP(p->link[prev_dir]);
+                    prev_dir = dir;
                 }
                 // Otherwise if the current node and both children are black...
                 else
@@ -1136,10 +1168,38 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
 
                             if (IS_RED(STRIP(s->link[prev_dir])))
                             {
+                                if (fp != NULL)
+                                {
+                                    if ((p == fp) && (prev_dir != f_dir))
+                                    {
+                                        fp = STRIP(f->link[f_dir]);
+                                        f_dir = prev_dir;
+                                    }
+                                    else if (p == f)
+                                    {
+                                        fp = STRIP(STRIP(f->link[1-prev_dir])->link[prev_dir]);
+                                        f_dir = prev_dir;
+                                    }
+                                }
+
                                 SET_LINK(gp->link[dir2], double_rotation(p, prev_dir));
                             }
                             else
                             {
+                                if (fp != NULL)
+                                {
+                                    if ((p == fp) && (prev_dir != f_dir))
+                                    {
+                                        fp = gp;
+                                        f_dir = dir2;
+                                    }
+                                    else if (p == f)
+                                    {
+                                        fp = STRIP(p->link[1-prev_dir]);
+                                        f_dir = prev_dir;
+                                    }
+                                }
+
                                 SET_LINK(gp->link[dir2], single_rotation(p, prev_dir));
                             }
 
@@ -1158,23 +1218,39 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_remove_n(struct tree_node* roo
         // Replace and remove the tree node if found.
         if (f != NULL)
         {
-            struct tree_node* tmp = f;
-            f = i;
-            i = tmp;
+            // Track the found, and deleted node, into the output value.
+            // del_node is assured to be non-NULL by the function that calls this.
+            *del_node = f;
 
-            f->link[0] = i->link[0];
-            f->link[1] = i->link[1];
+            // Copy over the colour of f to i, since i is going to take the place
+            // of f.
+            if (IS_RED(f))
+            {
+                SET_RED(i);
+            }
+            else
+            {
+                SET_BLACK(i);
+            }
 
-//             f->data = i->data;
-//             if (IS_TREE(i))
-//                 SET_TREE(f);
-//             else
-//                 SET_VALUE(f);
+            // First, point the found-node's parent's child pointer that points
+            // to the found node to point to the node we ended at.
+//             SET_LINK(fp->link[STRIP(fp->link[1]) == f], i);
+            SET_LINK(fp->link[f_dir], i);
 
-            SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[STRIP(i->link[0]) == NULL]);
+            // Set the link of the parent which points to the last node we found,
+            // not the one we found to delete, to be the child of the node we found
+            // to delete that points 'away' from from the node we found to delete.
+            //
+            // Since i is the element in the tree that is immediately smaller than
+            // the one we found to delete, we need to save the child of i that
+            // points 'down' to the child that points 'up' in the parent of i.
+//             SET_LINK(p->link[STRIP(p->link[1]) == i], i->link[1]);
+            SET_LINK(p->link[prev_dir], i->link[1]);
 
-//             free(i);
-            *del_node = i;
+            // Now ensure that i inherits all of the found-node's children links
+            SET_LINK(i->link[0], f->link[0]);
+            SET_LINK(i->link[1], f->link[1]);
         }
 
         // Update the tree root and make it black.
