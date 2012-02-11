@@ -218,6 +218,7 @@ DataCollator::DataCollator()
     fd = NULL;
     start_offset = 0;
     automated_output = false;
+    count = 0;
 }
 
 DataCollator::DataCollator(FILE* _fd)
@@ -386,6 +387,14 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
 
     if (start_offset > row->offset)
     {
+        if (start_offset >= (int64_t)((row->offset + row->length)))
+        {
+            // If we're here, then there is nothing to add, so just throw away
+            // the row and return false;
+            free(row);
+            return false;
+        }
+
         row = truncate_row_end(row, row->length - (start_offset - row->offset));
     }
 
