@@ -30,6 +30,35 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
+// If we're on Linux, I've given up trying to work through features.h which seems
+// to require -U_GNU_SOURCE, but that undef also breaks <algorithm> for some stupid
+// reason. I'll just define things here.
+#ifdef SYSTEM_NAME_LINUX
+// Borrowed this, sans flag defines, from the Solaris tcp.h file. Stupid Linux.
+struct tcphdr_bsd
+{
+    struct tcphdr {
+        uint16_t        th_sport;       /* source port */
+        uint16_t        th_dport;       /* destination port */
+        tcp_seq         th_seq;         /* sequence number */
+        tcp_seq         th_ack;         /* acknowledgement number */
+#ifdef _BIT_FIELDS_LTOH
+        uint_t  th_x2:4,                /* (unused) */
+                th_off:4;               /* data offset */
+#else
+        uint_t  th_off:4,               /* data offset */
+                th_x2:4;                /* (unused) */
+#endif
+        uchar_t th_flags;
+        uint16_t        th_win;         /* window */
+        uint16_t        th_sum;         /* checksum */
+        uint16_t        th_urp;         /* urgent pointer */
+};
+typedef struct tcphdr_bsd tcphdr_t;
+#else
+typedef struct tcphdr tcphdr_t;
+#endif
+
 #undef TH_FIN
 #undef TH_SYN
 #undef TH_RST
@@ -498,12 +527,12 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("tcp ");
 #endif
-        if (packet_len < p_offset + sizeof(struct tcphdr))
+        if (packet_len < p_offset + sizeof(tcphdr_t))
         {
             return p_offset;
         }
 
-        struct tcphdr* tcp_hdr = (struct tcphdr*)(packet + p_offset);
+        tcphdr_t* tcp_hdr = (tcphdr_t*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
         l4_hdr.sport = ntohs(tcp_hdr->th_sport);

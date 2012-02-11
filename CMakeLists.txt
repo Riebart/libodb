@@ -84,7 +84,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
 # Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
     message(STATUS "Ensuring use of BSD-style headers on Linux")
-    add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
+    # _GNU_SOURCE is required in some situations, so I've removed that un-define
+    # even though if ti is defined that will prevent __FAVOR_BSD from getting
+    # set in features.h which enables the BSD-style TCP header. I'm handling
+    # that by branching on SYSTEM_NAME_LINUX in protoparse.hpp and defining a
+    # tcphdr_t type to either be the BSD-style header, or a newly defined
+    # struct that mirror the BSD-style struct.
+    add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_SVID_SOURCE)
     add_definitions(-DSYSTEM_NAME_LINUX)
 endif()
 
@@ -97,6 +103,7 @@ endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
     list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers
+else()
     add_definitions(-DSYSTEM_NAME_DARWIN)
 endif()
 
@@ -193,6 +200,8 @@ if(${CCCC_BINARY} MATCHES "cccc")
 else()
     message(STATUS "No cccc was found in your path. Get it at http://cccc.sourceforge.net/")
 endif()
+
+add_custom_target(everything COMMAND make checks extra doc check)
 
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
