@@ -18,7 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#if defined(linux)
+#ifdef SYSTEM_NAME_LINUX
 #include <net/ethernet.h>
 #else
 #include <sys/ethernet.h>
@@ -37,26 +37,35 @@
 // Borrowed this, sans flag defines, from the Solaris tcp.h file. Stupid Linux.
 struct tcphdr_bsd
 {
-    struct tcphdr {
-        uint16_t        th_sport;       /* source port */
-        uint16_t        th_dport;       /* destination port */
-        tcp_seq         th_seq;         /* sequence number */
-        tcp_seq         th_ack;         /* acknowledgement number */
+    uint16_t th_sport;  /* source port */
+    uint16_t th_dport;  /* destination port */
+    uint32_t th_seq;    /* sequence number */
+    uint32_t th_ack;    /* acknowledgement number */
 #ifdef _BIT_FIELDS_LTOH
-        uint_t  th_x2:4,                /* (unused) */
-                th_off:4;               /* data offset */
+    uint8_t  th_x2:4,   /* (unused) */
+          th_off:4;  /* data offset */
 #else
-        uint_t  th_off:4,               /* data offset */
-                th_x2:4;                /* (unused) */
+    uint8_t  th_off:4,  /* data offset */
+          th_x2:4;   /* (unused) */
 #endif
-        uchar_t th_flags;
-        uint16_t        th_win;         /* window */
-        uint16_t        th_sum;         /* checksum */
-        uint16_t        th_urp;         /* urgent pointer */
+    uint8_t  th_flags;  /* flags, not includign the NS flag */
+    uint16_t th_win;    /* window */
+    uint16_t th_sum;    /* checksum */
+    uint16_t th_urp;    /* urgent pointer */
 };
+
+struct udphdr_bsd {
+    uint16_t uh_sport;  /* source port */
+    uint16_t uh_dport;  /* destination port */
+    uint16_t uh_ulen;   /* udp length */
+    uint16_t uh_sum;    /* udp checksum */
+};
+
 typedef struct tcphdr_bsd tcphdr_t;
+typedef struct udphdr_bsd udphdr_t;
 #else
 typedef struct tcphdr tcphdr_t;
+typedef struct udphdr udphdr_t;
 #endif
 
 #undef TH_FIN
@@ -565,12 +574,12 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("udp ");
 #endif
-        if (packet_len < p_offset + sizeof(struct udphdr))
+        if (packet_len < p_offset + sizeof(udphdr_t))
         {
             return p_offset;
         }
 
-        struct udphdr* udp_hdr = (struct udphdr*)(packet + p_offset);
+        udphdr_t* udp_hdr = (udphdr_t*)(packet + p_offset);
         struct l4_udp l4_hdr;
 
         l4_hdr.sport = ntohs(udp_hdr->uh_sport);

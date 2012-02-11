@@ -20,7 +20,7 @@
 #define TEST_OPT(desc) printf("    %d: " desc "\n", ____unit_test_test_arg_count++);
 #define TEST_OPT_END() return 1; }
 
-#define TEST_CASES_BEGIN() int32_t test_arg; sscanf(argv[1], "%d", &test_arg); switch(test_arg) { case -1:
+#define TEST_CASES_BEGIN() int32_t test_arg; sscanf(argv[1], "%d", &test_arg); switch(test_arg) { case -1: return 1;
 #define TEST_BEGIN(n)  break; case n:
 #define TEST_CASES_END() break; default: return 1; break; } return 0; }
 
