@@ -100,6 +100,5 @@ add_test(unit-protoparse.tcp_cksum unit-protoparse 0)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test")
-file(COPY test-output DESTINATION "${CMAKE_BINARY_DIR}/test/")
-
+file(MAKE_DIRECTORY ${LIBODB_BINARY_DIR}/test)
+file(COPY test-output DESTINATION ${LIBODB_BINARY_DIR}/test/)

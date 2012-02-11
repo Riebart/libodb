@@ -9,7 +9,9 @@
 # Copyright 2010-2012 Michael Himbeault and Travis Friesen
 #
 
-cmake_minimum_required(VERSION 2.6)
+# FILE doesn't have COPY operation before 2.8 I think. Mightbe 2.7, but 2.6 is
+# definitely missing it.
+cmake_minimum_required(VERSION 2.8)
 
 enable_testing()
 
@@ -28,7 +30,7 @@ set(FORCE_64_BIT "true")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
     message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
@@ -41,16 +43,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false"
 	set(COMPILER_C "none")
 	set(COMPILER_CXX "none")
 	message(STATUS "Sun Studio failed")
-    else(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+    else()
 	set(CMAKE_C_COMPILER "suncc")
 	set(CMAKE_CXX_COMPILER "sunCC")
 	set(COMPILER_SUITE "sun")
 	add_definitions(-DCMAKE_COMPILER_SUITE_SUN)
-    endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
-else(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+    endif()
+else()
     message(STATUS "Skipping search for Sun Studio compiler on Solaris")
     set(COMPILER_SUITE "none")
-endif(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
     message(STATUS "Attempting to set compiler to GCC")
@@ -65,18 +67,18 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
 	set(COMPILER_C "none")
 	set(COMPILER_CXX "none")
 	message(STATUS "GCC failed")
-    else(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
+    else()
 	set(CMAKE_C_COMPILER "gcc")
 	set(CMAKE_CXX_COMPILER "g++")
 	set(COMPILER_SUITE "gcc")
 	add_definitions(-DCMAKE_COMPILER_SUITE_GCC)
-    endif(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
+    endif()
+endif()
 
 if(${COMPILER_SUITE} MATCHES "none")
     message(FATAL_ERROR "Unable to find a compiler collection (Sun Studio or GCC)")
     return()
-endif(${COMPILER_SUITE} MATCHES "none")
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
@@ -84,19 +86,19 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     message(STATUS "Ensuring use of BSD-style headers on Linux")
     add_definitions(-D_BSD_SOURCE -U_POSIX_SOURCE -U_POSIX_C_SOURCE -U_XOPEN_SOURCE -U_GNU_SOURCE -U_SVID_SOURCE)
     add_definitions(-DSYSTEM_NAME_LINUX)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+endif()
 
 set(CMAKE_FLAGS_X64 "")
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND ${FORCE_64_BIT} MATCHES "true")
     message(STATUS "Forcing 64-bit compilation")
     set(CMAKE_FLAGS_X64 "-m64")
     add_definitions(-DSYSTEM_NAME_CYGWIN)
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND ${FORCE_64_BIT} MATCHES "true")
+endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
     list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers
     add_definitions(-DSYSTEM_NAME_DARWIN)
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
+endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     find_library(TCMALLOC_LIB tcmalloc_minimal)
@@ -104,15 +106,15 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
         message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
          list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
          list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
-    endif(${TCMALLOC_LIB} MATCHES "tcmalloc")
-endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+    endif()
+endif()
 
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O3")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
-else(NOT ${COMPILER_SUITE} MATCHES "sun")
+else()
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
     set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
     set(CMAKE_SHARED_LIBRARY_CXX_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
@@ -122,7 +124,7 @@ else(NOT ${COMPILER_SUITE} MATCHES "sun")
     set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ";")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -xO5 -fast")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -xO5 -fast -library=stlport4")
-endif(NOT ${COMPILER_SUITE} MATCHES "sun")
+endif()
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
@@ -147,7 +149,50 @@ add_custom_target(checks)
 add_dependencies(check checks)
 add_subdirectory("test" EXCLUDE_FROM_ALL)
 
-add_custom_target(doc COMMAND "doxygen doc/libodb-doc.cfg")
+# Look for cccc, pdflatex and doxygen and build configuration files when we find
+# them.
+add_custom_target(doc)
+set(${CMAKE_DOC_BUILD_COMMAND} "")
+set(${CMAKE_SOURCE_FILES} "")
+execute_process(COMMAND ${LIBODB_SOURCE_DIR}/scripts/files.sh WORKING_DIRECTORY ${LIBODB_SOURCE_DIR} OUTPUT_VARIABLE CMAKE_SOURCE_FILES)
+file(MAKE_DIRECTORY ${LIBODB_BINARY_DIR}/doc)
+file(MAKE_DIRECTORY ${LIBODB_BINARY_DIR}/doc/latex)
+
+find_program(DOXYGEN_BINARY NAMES doxygen)
+if(${DOXYGEN_BINARY} MATCHES "doxygen")
+    message(STATUS "Doxygen found at ${DOXYGEN_BINARY}")
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/libodb-doc.cfg.in ${LIBODB_BINARY_DIR}/doc/libodb-doc.cfg @ONLY)
+    add_custom_command(TARGET doc POST_BUILD
+                   COMMAND ${DOXYGEN_BINARY} ${LIBODB_BINARY_DIR}/doc/libodb-doc.cfg
+                   WORKING_DIRECTORY ${LIBODB_BINARY_DIR}
+                   VERBATIM)
+    
+    find_program(PDFLATEX_BINARY NAMES pdflatex)
+    if(${PDFLATEX_BINARY} MATCHES "pdflatex")
+        message(STATUS "PDFLaTeX found at ${PDFLATEX_BINARY}")
+        add_custom_command(TARGET doc POST_BUILD
+                           COMMAND make
+                           WORKING_DIRECTORY ${LIBODB_BINARY_DIR}/doc/latex/
+                           VERBATIM)
+    else()
+        message(STATUS "No pdflatex was found in your path. Get it at http://www.tug.org/texlive/")
+    endif()
+else()
+    message(STATUS "No doxygen was found in your path. Get it at http://www.stack.nl/~dimitri/doxygen/")
+    message(STATUS " -> Skipping check for pdflatex.")
+endif()
+
+find_program(CCCC_BINARY NAMES cccc)
+if(${CCCC_BINARY} MATCHES "cccc")
+    message(STATUS "CCCC found at ${CCCC_BINARY}")
+    string(REPLACE " " ";" CMAKE_SOURCE_FILES ${CMAKE_SOURCE_FILES})
+    add_custom_command(TARGET doc POST_BUILD
+                       COMMAND ${CCCC_BINARY} --outdir=${LIBODB_BINARY_DIR}/doc/metrics ${CMAKE_SOURCE_FILES}
+                       WORKING_DIRECTORY ${LIBODB_BINARY_DIR}/doc/latex/
+                       VERBATIM)
+else()
+    message(STATUS "No cccc was found in your path. Get it at http://cccc.sourceforge.net/")
+endif()
 
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 

@@ -43,9 +43,11 @@ To build (but not run) the test programs:
     make checks-extra
     make checks-extralib
 
-To build the documentation:
+To build the doc target you'll need 
+	Documentation:  doxygen (http://www.stack.nl/~dimitri/doxygen/) - Required for documentation generation
+	Code Metrics:   cccc (http://cccc.sourceforge.net/)             - Optional
+	LaTeX PDF Docs: LaTeX (http://www.tug.org/texlive/)             - Optional
+and then to run:
 
     make doc
-    make doc-extra
-    make doc-extralib
 
