@@ -29,6 +29,13 @@ struct hc
 
 void handler(void* context, uint64_t length, void* data)
 {
+    assert(((data != NULL) && (length != 0)) || ((data == NULL) && (length == 0)));
+
+    if ((length == 0) && (data == NULL))
+    {
+        return;
+    }
+
     struct hc* ctxt = (struct hc*)context;
     while (len(g_i) == 0)
     {
@@ -40,7 +47,6 @@ void handler(void* context, uint64_t length, void* data)
         ctxt->i++;
     }
 
-    assert(data != NULL);
     assert(g_i == ctxt->i);
     assert(length == len(ctxt->i));
 

@@ -117,6 +117,8 @@ public:
     uint64_t size();
 
 private:
+    /// Initialize the member variables.
+    void init();
 
     /// If not NULL, ready data gets written out to this file descriptor.
     FILE* fd;
@@ -211,7 +213,7 @@ DataCollator::~DataCollator()
     }
 }
 
-DataCollator::DataCollator()
+void DataCollator::init()
 {
     context = NULL;
     handler = NULL;
@@ -221,9 +223,14 @@ DataCollator::DataCollator()
     count = 0;
 }
 
+DataCollator::DataCollator()
+{
+    init();
+}
+
 DataCollator::DataCollator(FILE* _fd)
 {
-    DataCollator();
+    init();
 
     this->fd = _fd;
     automated_output = true;
@@ -231,7 +238,7 @@ DataCollator::DataCollator(FILE* _fd)
 
 DataCollator::DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
 {
-    DataCollator();
+    init();
 
     this->handler = _handler;
     this->context = _context;
