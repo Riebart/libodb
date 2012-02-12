@@ -26,23 +26,17 @@ message(STATUS "Operating System detected as ${CMAKE_SYSTEM_NAME}")
 set(COMPILER_C)
 set(COMPILER_CXX)
 
-if(NOT DEFINED SKIP_SUN_COMPILER)
-    set(SKIP_SUN_COMPILER "false")
-endif()
-
-if(NOT DEFINED FORCE_64_BIT)
-    set(FORCE_64_BIT "true")
-endif()
-
-if(NOT DEFINED NO_OPTIMIZE)
-	set(NO_OPTIMIZE "false")
-endif()
+# Environment variables that can be specified that control the configuration
+# parameters
+#   SKIP_SUN_COMPILER
+#   NO_FORCE_64_BIT
+#   NO_OPTIMIZE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND ${SKIP_SUN_COMPILER} MATCHES "false")
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{SKIP_SUN_COMPILER}" STREQUAL "")
     message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
     find_program(COMPILER_C NAMES suncc)
     find_program(COMPILER_CXX NAMES sunCC)
@@ -105,7 +99,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif()
 
 set(CMAKE_FLAGS_X64 "")
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND ${FORCE_64_BIT} MATCHES "true")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND "$ENV{NO_FORCE_64_BIT}" STREQUAL "")
     message(STATUS "Forcing 64-bit compilation")
     set(CMAKE_FLAGS_X64 "-m64")
     add_definitions(-DSYSTEM_NAME_CYGWIN)
@@ -129,7 +123,15 @@ endif()
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")
 #set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O1 -pg -g -fprofile-arcs -ftest-coverage")
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall -g -O0")
+    if("$ENV{NO_OPTIMIZE}" STREQUAL "")
+        message(STATUS "Enabling optimizations.")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O3")
+    else()
+        message(STATUS "Disabling all optimizations.")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0")
+    endif()
+    
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
 else()
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
@@ -139,8 +141,19 @@ else()
     set(CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG ":")
     set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX ":")
     set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ";")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -g -xO5 -fast")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} -g0 -xO5 -fast -library=stlport4")
+    
+    if("$ENV{NO_OPTIMIZE}" STREQUAL "")
+        message(STATUS "Enabling optimizations.")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -xO5 -fast")
+        set(CMAKE_CXX_OPTIMIZE_FLAGS "-g0 -xO5 -fast")
+    else()
+        message(STATUS "Disabling all optimizations.")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -xO0")
+        set(CMAKE_CXX_OPTIMIZE_FLAGS "-g -xO0")
+    endif()
+    
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} ${CMAKE_C_OPTIMIZE_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} ${CMAKE_CXX_OPTIMIZE_FLAGS} -library=stlport4")
 endif()
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
