@@ -416,7 +416,7 @@ TEST_BEGIN(14)
 TEST_BEGIN(15)
 {
     DataCollator* data = new DataCollator();
-    char c[256];
+    char c[512];
 
     data->add_data(0, 128, c);
     data->add_data(256, 128, c);
