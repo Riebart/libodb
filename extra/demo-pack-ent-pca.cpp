@@ -21,8 +21,6 @@
 #include <deque>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <math.h>
 #include <float.h>
@@ -34,6 +32,7 @@
 #include "iterator.hpp"
 #include "utility.hpp"
 
+#include "bsd_hdr.h"
 #include "pca.h"
 
 #include <assert.h>
@@ -88,7 +87,7 @@ typedef struct pcaprec_hdr_s
 struct tcpip
 {
     struct ip ip_struct;
-    struct tcphdr tcp_struct; //Only works if I don't care about IP options
+    tcphdr_t tcp_struct; //Only works if I don't care about IP options
     uint32_t src_addr_count; //NB: This only works if I don't care about payloads.
     uint32_t dst_addr_count;
     uint32_t src_port_count;
@@ -115,7 +114,7 @@ struct tcpip
 // #pragma pack(1)
 // struct tcp_data
 // {
-//     struct tcphdr tcp_struct;
+//     tcphdr_t tcp_struct;
 //     uint32_t src_port_count;
 //     uint32_t dst_port_count;
 // };
@@ -284,14 +283,14 @@ int32_t compare_timestamp(void* a, void* b)
 void get_data(struct tcpip* rec, char* packet, uint16_t incl_len)
 {
 
-    memcpy(rec, packet+14, sizeof(struct tcphdr) + sizeof(struct ip));
+    memcpy(rec, packet+14, sizeof(tcphdr_t) + sizeof(struct ip));
 
     //if there are ip opts. These should basically never happen.
     if (rec->ip_struct.ip_hl > 5)
     {
         int offset = rec->ip_struct.ip_hl * 4 + 14; //The offset into layer 4?
 
-        memcpy(&(rec->tcp_struct), packet+offset, sizeof(struct tcphdr));
+        memcpy(&(rec->tcp_struct), packet+offset, sizeof(tcphdr_t));
 
         fprintf(stderr, "Packet with IP options!\n");
     }
@@ -424,7 +423,7 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
 {
 
 #define ENTROPY_MACRO(ent_name, index_name, field_name, count_name, size) \
-    es.ent_name = it_calc(index_name, sizeof(struct ip) + OFFSET(struct tcphdr, field_name), OFFSET(struct tcpip, count_name), size); \
+    es.ent_name = it_calc(index_name, sizeof(struct ip) + OFFSET(tcphdr_t, field_name), OFFSET(struct tcpip, count_name), size); \
     max_entropies.ent_name = MAX(max_entropies.ent_name, es.ent_name);
 
 
@@ -433,16 +432,16 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
 
     es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
     es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
+    es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
     es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 
     ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
     ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
     ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
 
-//     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
+//     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
 //     max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
 
     es.timestamp = timestamp;

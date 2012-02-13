@@ -83,6 +83,7 @@ char* add_data(DataCollator* data, int i, int32_t offset)
     try
     {
         data->add_data(offset, len, block);
+        free(block);
     }
     catch (int e)
     {
@@ -155,6 +156,7 @@ TEST_OPT("Overlap test, front and back")
 TEST_OPT("Overlap test, superset")
 TEST_OPT("Overlap test, subset")
 TEST_OPT("Overlap test, hanging off both ends, and overlapping everything")
+TEST_OPT("Overlap test, ending before the start offset")
 TEST_OPT_END()
 
 TEST_CASES_BEGIN()
@@ -421,6 +423,19 @@ TEST_BEGIN(15)
     data->add_data(0, 128, c);
     data->add_data(256, 128, c);
     data->add_data(-32, 512, c);
+
+    delete data;
+    return EXIT_SUCCESS;
+}
+
+TEST_BEGIN(16)
+{
+    DataCollator* data = new DataCollator();
+    char c[512];
+
+    data->add_data(0, 128, c);
+    data->add_data(256, 128, c);
+    data->add_data(-1024, 512, c);
 
     delete data;
     return EXIT_SUCCESS;

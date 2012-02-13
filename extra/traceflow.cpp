@@ -28,7 +28,7 @@ struct tree_node4
 struct tree_node6
 {
     void* links[2];
-    TCP4Flow* flow;
+    TCP6Flow* flow;
     struct flow_sig* f;
     uint32_t hash[9];
 };
@@ -118,6 +118,18 @@ void* merge6(void* aV, void* bV)
     return bV;
 }
 
+void freep4(void* v)
+{
+    struct tree_node4* a = (struct tree_node4*)v;
+    delete a->flow;
+}
+
+void freep6(void* v)
+{
+    struct tree_node6* a = (struct tree_node6*)v;
+    delete a->flow;
+}
+
 // ==============================================================================
 // ==============================================================================
 
@@ -125,7 +137,7 @@ void* merge6(void* aV, void* bV)
 
 uint64_t ctr = 0;
 struct tree_node4* proto4;
-// struct tree_node6* proto6;
+struct tree_node6* proto6;
 
 void output_handler(void* context, uint64_t length, void* data)
 {
@@ -135,12 +147,15 @@ void output_handler(void* context, uint64_t length, void* data)
     {
         printf("1\n%llu\n%llu\n", id, length);
         fwrite(data, length, 1, stdout);
+        fflush(stdout);
     }
     else
     {
         printf("2\n%llu\n", id);
     }
 }
+
+char fname[64];
 
 void proto_init4(struct tree_node4** p)
 {
@@ -157,7 +172,9 @@ void proto_init4(struct tree_node4** p)
     proto4->flow = new TCP4Flow();
 
     *ctrP = ctr;
-    proto4->flow->set_output(output_handler, ctrP);
+    proto4->flow->set_output(output_handler, ctrP, true);
+//     sprintf(fname, "tcpsess.%llu", ctr);
+//     proto4->flow->set_output(fopen(fname, "wb"), true);
     ctr++;
 }
 
@@ -172,35 +189,35 @@ void proto_setup4(struct tree_node4* p, struct flow_sig* f)
     p->flow->get_hash((uint32_t*)(&(p->hash)));
 }
 
-// void proto_init6(struct tree_node6** p)
-// {
-//     *p = (struct tree_node6*)malloc(sizeof(struct tree_node6));
-//     struct tree_node6* proto6 = *p;
-//
-//     uint64_t* ctrP = (uint64_t*)malloc(sizeof(uint64_t));
-//
-//     if ((ctrP == NULL) || (proto6 == NULL))
-//     {
-//         throw -1;
-//     }
-//
-//     proto6->flow = new TCP6Flow();
-//
-//     *ctrP = ctr;
-//     proto6->flow->set_output(output_handler, ctrP);
-//     ctr++;
-// }
+void proto_init6(struct tree_node6** p)
+{
+    *p = (struct tree_node6*)malloc(sizeof(struct tree_node6));
+    struct tree_node6* proto6 = *p;
 
-// void proto_setup4(struct tree_node6* p, struct flow_sig* f)
-// {
-//     if (!p->flow->replace_sig(f))
-//     {
-//         throw 0;
-//     }
-//
-//     p->f = f;
-//     p->flow->get_hash((uint32_t*)(&(p->hash)));
-// }
+    uint64_t* ctrP = (uint64_t*)malloc(sizeof(uint64_t));
+
+    if ((ctrP == NULL) || (proto6 == NULL))
+    {
+        throw -1;
+    }
+
+    proto6->flow = new TCP6Flow();
+
+    *ctrP = ctr;
+    proto6->flow->set_output(output_handler, ctrP, true);
+    ctr++;
+}
+
+void proto_setup6(struct tree_node6* p, struct flow_sig* f)
+{
+    if (!p->flow->replace_sig(f))
+    {
+        throw 0;
+    }
+
+    p->f = f;
+    p->flow->get_hash((uint32_t*)(&(p->hash)));
+}
 
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
@@ -251,19 +268,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         }
         else if (f->l3_type == L3_TYPE_IP6)
         {
-//             proto_setup6(proto6, f);
-//             bool added = RedBlackTreeI::e_add(flows6, proto6);
-//
-//             if (added)
-//             {
-//                 proto6 = (struct tree_node6*)malloc(sizeof(struct tree_node6));
-//                 if (proto6 == NULL)
-//                 {
-//                     throw -1;
-//                 }
-//                 proto6->flow = new TCP6Flow();
-//             }
+            free(f);
         }
+    }
+    else
+    {
+        free(f);
     }
 }
 
@@ -275,7 +285,7 @@ int main(int argc, char** argv)
     init_proto_hdr_sizes();
 
     proto_init4(&proto4);
-//     proto_init6(&proto6);
+    proto_init6(&proto6);
 
     flows4 = RedBlackTreeI::e_init_tree(true, compare4, merge4);
     flows6 = RedBlackTreeI::e_init_tree(true, compare6, merge6);
@@ -283,5 +293,9 @@ int main(int argc, char** argv)
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t* fp = pcap_open_offline(argv[1], errbuf);
     pcap_loop(fp, 0, packet_callback, NULL);
+
+    RedBlackTreeI::e_destroy_tree(flows4, freep4);
+    RedBlackTreeI::e_destroy_tree(flows6, freep6);
+
     return 0;
 }

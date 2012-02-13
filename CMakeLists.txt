@@ -111,12 +111,12 @@ else()
     add_definitions(-DSYSTEM_NAME_DARWIN)
 endif()
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{NO_OPTIMIZE}" STREQUAL "")
     find_library(TCMALLOC_LIB tcmalloc_minimal)
     if(${TCMALLOC_LIB} MATCHES "tcmalloc")
         message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
-         list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
-         list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+        list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
+#        list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
     endif()
 endif()
 
@@ -128,7 +128,7 @@ if(NOT ${COMPILER_SUITE} MATCHES "sun")
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -O3")
     else()
         message(STATUS "Disabling all optimizations.")
-        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0 -fno-inline")
     endif()
     
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")

@@ -51,13 +51,17 @@ public:
     /// @param [in] _handler The function pointer to the function to pass the data
     /// off to when it is ready.
     /// @param [in] _context The contextual information to be used by the handler.
-    void set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context);
+    /// @param [in] _free_context Whether or not to free the contextual information
+    /// upon destruction. Default is false.
+    void set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context, bool _free_context = false);
 
     /// Set the output method to a file-descriptor If this or its sister isn't called
     /// output is multiplexed to stdout in a way liable to garble everything into
     /// an unintelligible mess.
     /// @param [in] _fp The file descriptor to write to when output is ready.
-    void set_output(FILE* _fp);
+    /// @param [in] _close_fp Whether or not to close the file used for output
+    /// upon destruction. Default is false.
+    void set_output(FILE* _fp, bool _close_fp = false);
 
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
@@ -87,11 +91,19 @@ protected:
     /// this stays at it initialized value of stdout.
     FILE* fp;
 
+    /// Whether or not fclose() is called on the file pointer if it is non-NULL upon
+    /// destruction.
+    bool close_fp;
+
     /// The contextual information to be used by the handler funciton.
     void* context;
 
     /// The handler function to handle output when it is ready.
     void (*handler)(void* context, uint64_t length, void* data);
+
+    /// Whether or not free() is called on the context if it is non-NULL upon
+    /// destruction.
+    bool free_context;
 
     /// Keeps track of whether or not we've set a signature for this object.
     bool has_sig;
@@ -216,7 +228,7 @@ protected:
 
 TCPFlow::~TCPFlow()
 {
-    if (fp != stdout)
+    if (close_fp && (fp != stdout))
     {
         fclose(fp);
     }
@@ -224,6 +236,11 @@ TCPFlow::~TCPFlow()
     {
         // Send it the sentinel zero-length NULL to indicate that we're done wit the stream.
         handler(context, 0, NULL);
+
+        if (free_context && (context != NULL))
+        {
+            free(context);
+        }
     }
 }
 
@@ -238,10 +255,6 @@ TCPFlow::TCPFlow()
 
 void TCPFlow::init(struct flow_sig* f)
 {
-}
-
-void TCP4Flow::init(struct flow_sig* f)
-{
     has_sig = true;
     wrap_offset = 0;
     isn[0] = 0;
@@ -255,6 +268,11 @@ void TCP4Flow::init(struct flow_sig* f)
     rst_had = 0;
     fin_acked[0] = 0;
     fin_acked[1] = 0;
+}
+
+void TCP4Flow::init(struct flow_sig* f)
+{
+    TCPFlow::init(f);
 
     struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
@@ -271,19 +289,7 @@ void TCP4Flow::init(struct flow_sig* f)
 
 void TCP6Flow::init(struct flow_sig* f)
 {
-    has_sig = true;
-    wrap_offset = 0;
-    isn[0] = 0;
-    isn[1] = 0;
-    ack[0] = 0;
-    ack[1] = 0;
-    last_out[0] = 0;
-    last_out[1] = 0;
-    fin_had[0] = 0;
-    fin_had[1] = 0;
-    rst_had = 0;
-    fin_acked[0] = 0;
-    fin_acked[1] = 0;
+    TCPFlow::init(f);
 
     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
@@ -376,7 +382,7 @@ int TCP6Flow::add_packet(struct flow_sig* f)
 {
     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
-    int dir = (ip->src < ip->dst);
+    int dir = ((ip->src[0] < ip->dst[0]) || (ip->src[1] < ip->dst[1]));
     return TCPFlow::add_packet(f, tcp, dir);
 }
 
@@ -519,15 +525,34 @@ bool TCP6Flow::get_hash(uint32_t* dest)
     return true;
 }
 
-void TCPFlow::set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
+void TCPFlow::set_output(void (*_handler)(void* context, uint64_t length, void* data), void* _context, bool _free_context)
 {
     handler = _handler;
     context = _context;
+    free_context = _free_context;
+
+    if (close_fp && (fp != NULL))
+    {
+        fclose(fp);
+        fp = NULL;
+    }
 }
 
-void TCPFlow::set_output(FILE* _fp)
+void TCPFlow::set_output(FILE* _fp, bool _close_fp)
 {
     fp = _fp;
+    close_fp = _close_fp;
+
+    if (handler != NULL)
+    {
+        handler = NULL;
+
+        if (free_context && (context != NULL))
+        {
+            free(context);
+            context = NULL;
+        }
+    }
 }
 
 #endif

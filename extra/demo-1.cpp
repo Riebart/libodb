@@ -21,8 +21,6 @@
 #include <deque>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <arpa/inet.h>
 #include <math.h>
 #include <float.h>
@@ -33,6 +31,8 @@
 #include "buffer.hpp"
 #include "iterator.hpp"
 #include "utility.hpp"
+
+#include "bsd_hdr.h"
 
 #include <assert.h>
 
@@ -86,7 +86,7 @@ typedef struct pcaprec_hdr_s
 struct tcpip
 {
     struct ip ip_struct;
-    struct tcphdr tcp_struct; //Only works if I don't care about IP options
+    tcphdr_t tcp_struct; //Only works if I don't care about IP options
     uint32_t src_addr_count; //NB: This only works if I don't care about payloads.
     uint32_t dst_addr_count;
     uint32_t src_port_count;
@@ -109,7 +109,7 @@ struct ip_data
 #pragma pack(1)
 struct tcp_data
 {
-    struct tcphdr tcp_struct;
+    tcphdr_t tcp_struct;
     uint32_t src_port_count;
     uint32_t dst_port_count;
 };
@@ -617,8 +617,8 @@ void do_it_calcs()
     it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
 //             printf("%d, %d\n", OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count));
     it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    it_calc(src_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(struct tcphdr, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+    it_calc(src_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+    it_calc(dst_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
     it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 }
 

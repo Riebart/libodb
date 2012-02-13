@@ -63,10 +63,12 @@ public:
 
     /// Constructor that instructs the collator to write output to the specified file descriptor.
     /// @param [in] _fd The file descriptor to write data to.
+    /// @param [in] _cleanup Whether or not to close the file used for output
+    /// upon destruction. Default is false.
     ///
     /// This provides flexibility in allowing the output to be written to either a file, a socket,
     /// or stdin of a process started using popen and acquiring the write (stdin) descriptor.
-    DataCollator(FILE* _fd);
+    DataCollator(FILE* _fd, bool _cleanup = false);
 
     /// Constructor that instructs the collator to write output to the specified handler function.
     /// @param [in] _handler The function that takes in a data row (length and data pointer) and
@@ -74,10 +76,12 @@ public:
     /// @param [in,out] _context An opaque binary row that is passed to the handler function
     /// when it is called allowing handler functions to behave differently based on the collator
     /// that is calling them.
+    /// @param [in] _cleanup Whether or not to free the contextual information
+    /// upon destruction. Default is false.
     ///
     /// Useful for when more flexibility is needed, but automatic output is still required or
     /// desired.
-    DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context);
+    DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context, bool _cleanup = false);
 
     /// This funcdtion makes use of a copy-on-add policy so that data can be added form volatile
     /// locations without additional cost at the application level.
@@ -120,6 +124,11 @@ private:
     /// Initialize the member variables.
     void init();
 
+    /// Whether or not fclose() is called on the file pointer if it is non-NULL upon
+    /// destruction, or whether free() is called on the contextual information
+    /// if the handler output is enabled.
+    bool cleanup;
+
     /// If not NULL, ready data gets written out to this file descriptor.
     FILE* fd;
 
@@ -147,12 +156,14 @@ private:
 
     /// Attempts to add the new row to the front of the list, to fill in the first gap.
     /// @param [in] row The row to add.
-    void add_back(struct row* row);
+    bool try_add_back(struct row* row);
 
     /// Attempts to add the new row to the front of the list, to fill in the first gap.
-    /// @return Whether or not it was successful in adding the item to the front.
+    /// @return Whether or not it was successful in adding the item to the front
+    /// is encoded into the return value. If a NULL is returned, it was added, and
+    /// otherwise the value of the row (as it may have been realloc-ed) is sent back.
     /// @param [in] row The row to add.
-    bool try_add_front(struct row* row);
+    struct row* try_add_front(struct row* row);
 
     /// A function that grabs the contents of the head of the list and pops it off
     /// if it isn't NULL.
@@ -174,18 +185,6 @@ private:
     /// means that any rows that straddle the specified boundary will not be returned at all, instead
     /// of being returned in part.
     struct row* get_data_p(int64_t offset);
-
-    /// A function that will keep only the last N bytes of a row.
-    /// @return The newly truncated row.
-    /// @param [in] row The row to truncate
-    /// @param [in] new_length The number of bytes to keep from the end of a row.
-    struct row* truncate_row_end(struct row* row, uint64_t new_length);
-
-    /// A function that will keep only the first N bytes of a row.
-    /// @return The newly truncated row.
-    /// @param [in] row The row to truncate
-    /// @param [in] new_length The number of bytes to keep from the start of a row.
-    struct row* truncate_row_start(struct row* row, uint64_t new_length);
 };
 
 #include <stdlib.h>
@@ -193,28 +192,38 @@ private:
 
 DataCollator::~DataCollator()
 {
-    std::list<struct row*>::iterator it = rows.begin();
-    std::list<struct row*>::iterator end = rows.end();
-
     if (fd != NULL)
     {
         fflush(fd);
+
+        if (cleanup)
+        {
+            fclose(fd);
+        }
     }
     else if (handler != NULL)
     {
         handler(context, 0, NULL);
+
+        if (cleanup && (context != NULL))
+        {
+            free(context);
+        }
     }
 
-    while (it != end)
+    struct row* row;
+    while (count > 0)
     {
-        free(*it);
-        it = rows.erase(it);
+        row = rows.front();
+        free(row);
+        rows.pop_front();
         count--;
     }
 }
 
 void DataCollator::init()
 {
+    cleanup = false;
     context = NULL;
     handler = NULL;
     fd = NULL;
@@ -228,20 +237,22 @@ DataCollator::DataCollator()
     init();
 }
 
-DataCollator::DataCollator(FILE* _fd)
+DataCollator::DataCollator(FILE* _fd, bool _cleanup)
 {
     init();
 
     this->fd = _fd;
+    cleanup = _cleanup;
     automated_output = true;
 }
 
-DataCollator::DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context)
+DataCollator::DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context, bool _cleanup)
 {
     init();
 
     this->handler = _handler;
     this->context = _context;
+    cleanup = _cleanup;
     automated_output = true;
 }
 
@@ -253,20 +264,47 @@ void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
         return;
     }
 
-    struct row* row = (struct row*)malloc(sizeof(struct row) + length - 1);
+    struct row* row;
 
-    if (row == NULL)
+    if (start_offset > offset)
     {
-        throw -1;
-    }
+        if (start_offset >= (int64_t)((offset + length)))
+        {
+            // If we're here, then there is nothing to add, so just throw away
+            // the row and return
+            return;
+        }
 
-    row->offset = offset;
-    row->length = length;
-    memcpy(&(row->data), data, length);
+        row = (struct row*)malloc(sizeof(struct row) - 1 + length - (start_offset - offset));
+
+        if (row == NULL)
+        {
+            throw -1;
+        }
+
+        char* cdata = (char*)data;
+        row->offset = start_offset;
+        row->length = length - (start_offset - offset);
+        memcpy(&(row->data), cdata + (start_offset - offset), row->length);
+    }
+    else
+    {
+        row = (struct row*)malloc(sizeof(struct row) - 1 + length);
+
+        if (row == NULL)
+        {
+            throw -1;
+        }
+
+        row->offset = offset;
+        row->length = length;
+        memcpy(&(row->data), data, length);
+    }
 
     // If we successfully add it to the front, write out a bunch of data if we
     // have an automated system configured.
-    if (try_add_front(row))
+    row = try_add_front(row);
+    if (row == NULL)
     {
         if (automated_output)
         {
@@ -290,7 +328,10 @@ void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
     }
     else
     {
-        add_back(row);
+        if (!try_add_back(row))
+        {
+            throw "NO";
+        }
     }
 }
 
@@ -347,41 +388,7 @@ struct DataCollator::row* DataCollator::get_data(int64_t offset)
     return (automated_output ? NULL : get_data_p(offset));
 }
 
-struct DataCollator::row* DataCollator::truncate_row_end(struct DataCollator::row* row, uint64_t new_length)
-{
-    struct row* r2 = (struct row*)malloc(sizeof(struct row) + new_length - 1);
-
-    if (r2 == NULL)
-    {
-        throw -1;
-    }
-
-    r2->offset += row->length - new_length;
-    r2->length = new_length;
-    memcpy(&(r2->data), &(row->data) + row->length - new_length, r2->length);
-    free(row);
-
-    return r2;
-}
-
-struct DataCollator::row* DataCollator::truncate_row_start(struct DataCollator::row* row, uint64_t new_length)
-{
-    struct row* r2 = (struct row*)malloc(sizeof(struct row) + new_length - 1);
-
-    if (r2 == NULL)
-    {
-        throw -1;
-    }
-
-    r2->offset = row->offset;
-    r2->length = new_length;
-    memcpy(&(r2->data), &(row->data), r2->length);
-    free(row);
-
-    return r2;
-}
-
-bool DataCollator::try_add_front(struct DataCollator::row* row)
+struct DataCollator::row* DataCollator::try_add_front(struct DataCollator::row* row)
 {
     // The cases here are:
     //  - The list is empty
@@ -390,26 +397,13 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
     //   > This only happens if there are no automatic output mechanism set up.
     //     In which case we can just hop out and we'll add the new item from the end.
 
-    bool ret = false;
-
-    if (start_offset > row->offset)
-    {
-        if (start_offset >= (int64_t)((row->offset + row->length)))
-        {
-            // If we're here, then there is nothing to add, so just throw away
-            // the row and return false;
-            free(row);
-            return false;
-        }
-
-        row = truncate_row_end(row, row->length - (start_offset - row->offset));
-    }
+    struct row* ret = row;
 
     if (count == 0)
     {
         rows.push_front(row);
         count++;
-        ret = true;
+        ret = NULL;
     }
     else
     {
@@ -422,18 +416,53 @@ bool DataCollator::try_add_front(struct DataCollator::row* row)
         {
             rows.push_front(row);
             count++;
-            ret = true;
+            ret = NULL;
+        }
+        else if (f->offset == row->offset)
+        {
+            // If the existing one is at least as long as the new one, we can
+            // just copy the new one in and throw it away.
+            if (f->length >= row->length)
+            {
+                memcpy(&(f->data), &(row->data), row->length);
+                free(row);
+                ret = NULL;
+            }
+            else
+            {
+                // In the case where the incoming row is longer than the start one,
+                // we need to copy over the first part of the incoming row, and
+                // then shuffle everything else around.
+                // Hopefully this is rare.
+                memcpy(&(f->data), &(row->data), f->length);
+                memmove(&(row->data), &(row->data) + f->length, (row->length - f->length));
+
+                row->length -= f->length;
+                row->offset += f->length;
+
+                struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
+
+                if (tmp == NULL)
+                {
+                    throw -1;
+                }
+
+                row = tmp;
+                ret = row;
+            }
         }
     }
 
     return ret;
 }
 
-void DataCollator::add_back(struct DataCollator::row* row)
+bool DataCollator::try_add_back(struct DataCollator::row* row)
 {
     std::list<struct row*>::reverse_iterator it = rows.rbegin();
     std::list<struct row*>::reverse_iterator end = rows.rend();
     std::list<struct row*>::reverse_iterator prev = end;
+
+    bool ret = false;
 
     while (it != end)
     {
@@ -445,6 +474,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
             {
                 rows.push_back(row);
                 count++;
+                ret = true;
                 break;
             }
             // If this one hangs off the end of but extends further in, then
@@ -460,7 +490,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
                 rows.push_back(r);
                 count++;
 
-                struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+                struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
 
                 if (tmp == NULL)
                 {
@@ -468,6 +498,19 @@ void DataCollator::add_back(struct DataCollator::row* row)
                 }
 
                 row = tmp;
+                ret = false;
+            }
+            // THis one is contained in the last one.
+            else if ((row->offset > (*it)->offset) && (((*it)->offset + (*it)->length) == (row->offset + row->length)))
+            {
+                memcpy(&((*it)->data) + (row->offset - (*it)->offset), &(row->data), row->length);
+                free(row);
+                ret = true;
+                break;
+            }
+            else
+            {
+                ret = false;
             }
         }
         else
@@ -478,6 +521,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
             {
                 rows.insert(it.base(), row);
                 count++;
+                ret = true;
                 break;
             }
             // Check to see if we overlap the previous interval.
@@ -517,6 +561,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
                 if (row->length == 0)
                 {
                     free(row);
+                    ret = true;
                     break;
                 }
                 else
@@ -529,6 +574,7 @@ void DataCollator::add_back(struct DataCollator::row* row)
                     }
 
                     row = tmp;
+                    ret = false;
                 }
             }
         }
@@ -536,6 +582,13 @@ void DataCollator::add_back(struct DataCollator::row* row)
         prev = it;
         ++it;
     }
+
+    if (!ret)
+    {
+        free(row);
+    }
+
+    return ret;
 }
 
 uint64_t DataCollator::size()

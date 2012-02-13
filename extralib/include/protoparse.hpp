@@ -27,66 +27,8 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 
-// If we're on Linux, I've given up trying to work through features.h which seems
-// to require -U_GNU_SOURCE, but that undef also breaks <algorithm> for some stupid
-// reason. I'll just define things here.
-#ifdef SYSTEM_NAME_LINUX
-// Borrowed this, sans flag defines, from the Solaris tcp.h file. Stupid Linux.
-struct tcphdr_bsd
-{
-    uint16_t th_sport;  /* source port */
-    uint16_t th_dport;  /* destination port */
-    uint32_t th_seq;    /* sequence number */
-    uint32_t th_ack;    /* acknowledgement number */
-#ifdef _BIT_FIELDS_LTOH
-    uint8_t  th_x2:4,   /* (unused) */
-          th_off:4;  /* data offset */
-#else
-    uint8_t  th_off:4,  /* data offset */
-          th_x2:4;   /* (unused) */
-#endif
-    uint8_t  th_flags;  /* flags, not includign the NS flag */
-    uint16_t th_win;    /* window */
-    uint16_t th_sum;    /* checksum */
-    uint16_t th_urp;    /* urgent pointer */
-};
-
-struct udphdr_bsd
-{
-    uint16_t uh_sport;  /* source port */
-    uint16_t uh_dport;  /* destination port */
-    uint16_t uh_ulen;   /* udp length */
-    uint16_t uh_sum;    /* udp checksum */
-};
-
-typedef struct tcphdr_bsd tcphdr_t;
-typedef struct udphdr_bsd udphdr_t;
-#else
-typedef struct tcphdr tcphdr_t;
-typedef struct udphdr udphdr_t;
-#endif
-
-#undef TH_FIN
-#undef TH_SYN
-#undef TH_RST
-#undef TH_PSH
-#undef TH_ACK
-#undef TH_URG
-#undef TH_ECE
-#undef TH_CWR
-
-#define TH_FIN 0x01
-#define TH_SYN 0x02
-#define TH_RST 0x04
-#define TH_PSH 0x08
-#define TH_ACK 0x10
-#define TH_URG 0x20
-#define TH_ECE 0x40
-#define TH_CWR 0x80
-
+#include "bsd_hdr.h"
 #include "dns.hpp"
 
 using namespace std;
