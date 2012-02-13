@@ -155,8 +155,6 @@ void output_handler(void* context, uint64_t length, void* data)
     }
 }
 
-char fname[64];
-
 void proto_init4(struct tree_node4** p)
 {
     *p = (struct tree_node4*)malloc(sizeof(struct tree_node4));
@@ -173,8 +171,6 @@ void proto_init4(struct tree_node4** p)
 
     *ctrP = ctr;
     proto4->flow->set_output(output_handler, ctrP, true);
-//     sprintf(fname, "tcpsess.%llu", ctr);
-//     proto4->flow->set_output(fopen(fname, "wb"), true);
     ctr++;
 }
 
@@ -268,7 +264,44 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         }
         else if (f->l3_type == L3_TYPE_IP6)
         {
-            free(f);
+            proto_setup6(proto6, f);
+            bool added = RedBlackTreeI::e_add(flows6, proto6);
+
+            // If it gets added, make sure to free the flow since it isn't needed
+            // and set it to NULL as a sentinel for later. Reallocate our prototype.
+            if (added)
+            {
+                struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
+                struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+
+                printf("0\n%llu\n%u\n%u\n%u\n%u\n", ctr - 1,
+                       ip->src, tcp->sport,
+                       ip->dst, tcp->dport);
+
+                free(proto6->f);
+                proto6->f = NULL;
+                proto_init6(&proto6);
+            }
+            // If we didn't add it, it is because we collided and the payload got inserted
+            // into an existing flow. We should check and see if the proto's flow_sig
+            // is coming back non-NULL. If it is, we need to blow it away because
+            // it finished.
+            else
+            {
+                if (proto6->f != NULL)
+                {
+                    struct tree_node6* del;
+
+                    bool removed = RedBlackTreeI::e_remove(flows6, proto6->f, (void**)(&del));
+                    delete del->flow;
+                    free(del);
+
+                    if (!removed)
+                    {
+                        throw -2;
+                    }
+                }
+            }
         }
     }
     else
