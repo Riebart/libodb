@@ -135,7 +135,8 @@ void freep6(void* v)
 
 #include <pcap.h>
 
-uint64_t ctr = 0;
+uint64_t ctr4 = 0;
+uint64_t ctr6 = 0;
 struct tree_node4* proto4;
 struct tree_node6* proto6;
 
@@ -169,9 +170,9 @@ void proto_init4(struct tree_node4** p)
 
     proto4->flow = new TCP4Flow();
 
-    *ctrP = ctr;
+    *ctrP = ctr4;
     proto4->flow->set_output(output_handler, ctrP, true);
-    ctr++;
+    ctr4++;
 }
 
 void proto_setup4(struct tree_node4* p, struct flow_sig* f)
@@ -199,9 +200,9 @@ void proto_init6(struct tree_node6** p)
 
     proto6->flow = new TCP6Flow();
 
-    *ctrP = ctr;
+    *ctrP = ctr6;
     proto6->flow->set_output(output_handler, ctrP, true);
-    ctr++;
+    ctr6++;
 }
 
 void proto_setup6(struct tree_node6* p, struct flow_sig* f)
@@ -233,7 +234,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
                 struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                printf("0\n%llu\n%u\n%u\n%u\n%u\n", ctr - 1,
+                printf("04\n%llu\n%u\n%u\n%u\n%u\n", ctr4 - 1,
                        ip->src, tcp->sport,
                        ip->dst, tcp->dport);
 
@@ -274,9 +275,9 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                 struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                printf("0\n%llu\n%u\n%u\n%u\n%u\n", ctr - 1,
-                       ip->src, tcp->sport,
-                       ip->dst, tcp->dport);
+                printf("06\n%llu\n%llu%llu\n%u\n%llu%llu\n%u\n", ctr6 - 1,
+                       ip->src[0], ip->src[1], tcp->sport,
+                       ip->dst[0], ip->dst[1], tcp->dport);
 
                 free(proto6->f);
                 proto6->f = NULL;
