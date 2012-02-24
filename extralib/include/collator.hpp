@@ -268,7 +268,7 @@ void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
 
     if (start_offset > offset)
     {
-        if (start_offset >= (int64_t)((offset + length)))
+        if (start_offset > (int64_t)((offset + length)))
         {
             // If we're here, then there is nothing to add, so just throw away
             // the row and return
@@ -414,9 +414,47 @@ struct DataCollator::row* DataCollator::try_add_front(struct DataCollator::row* 
         // overlap.
         if (f->offset > row->offset)
         {
-            rows.push_front(row);
-            count++;
-            ret = NULL;
+            // If we hang out past the end of the open first block then we need to add in
+            // the first block, memmove the back end of the new row to the front, and mark
+            // it for insertion at the back end.
+            if ((row->offset + row->length) > f->offset)
+            {
+                // Create a new row and add it at the front.
+                // This row has the length that is the difference between
+                struct row* r2 = (struct row*)malloc(sizeof(struct row) - 1 + f->offset - row->offset);
+
+                if (r2 == NULL)
+                {
+                    throw -1;
+                }
+
+                r2->length = f->offset - row->offset;
+                r2->offset = row->offset;
+                memcpy(&(r2->data), &(row->data), r2->length);
+                rows.push_front(r2);
+                count++;
+
+                // Move the data on the old row, realloc, and then change the
+                // length and offset
+                memmove(&(row->data) + r2->length, &(row->data), row->length - r2->length);
+                row->length -= r2->length;
+                row->offset += r2->length;
+                r2 = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
+
+                if (r2 == NULL)
+                {
+                    throw -1;
+                }
+
+                row = r2;
+                ret = row;
+            }
+            else
+            {
+                rows.push_front(row);
+                count++;
+                ret = NULL;
+            }
         }
         else if (f->offset == row->offset)
         {

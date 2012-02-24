@@ -275,7 +275,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                 struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                printf("06\n%llu\n%llu%llu\n%u\n%llu%llu\n%u\n", ctr6 - 1,
+                printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n", ctr6 - 1,
                        ip->src[0], ip->src[1], tcp->sport,
                        ip->dst[0], ip->dst[1], tcp->dport);
 
