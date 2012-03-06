@@ -96,6 +96,14 @@ public:
     ///
     /// Throws a "-1" if it is unable to allocate memory for some reason.
     void add_data(int64_t offset, uint64_t length, void* data);
+    
+    /// This function truncates all data after a certain offset.
+    /// @param [in] offset The offset after which to throw away data.
+    /// @return The number of bytes thrown away.
+    ///
+    /// Used for TCP reassembly where if we get an ack, we need to throw away
+    /// everything that we have that came after that ack.
+    uint64_t truncate_after(int64_t offset);
 
     /// Used to manually retrieve any data ready for output.
     /// @return NULL if either of the automatic output methods are configured, otherwise it returns
@@ -436,9 +444,9 @@ struct DataCollator::row* DataCollator::try_add_front(struct DataCollator::row* 
 
                 // Move the data on the old row, realloc, and then change the
                 // length and offset
-                memmove(&(row->data) + r2->length, &(row->data), row->length - r2->length);
                 row->length -= r2->length;
                 row->offset += r2->length;
+                memmove(&(row->data), &(row->data) + r2->length, row->length);
                 r2 = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
 
                 if (r2 == NULL)
@@ -546,6 +554,22 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
                 ret = true;
                 break;
             }
+            // Check to see if the tail of the new one overlaps with this one.
+            // If so, copy over the tail, and then realloc the new one
+            else if ((row->offset + row->length) > (*it)->offset)
+            {
+                row->length -= (row->offset + row->length) - (*it)->offset;
+                memcpy(&((*it)->data), &(row->data) + row->length, (row->offset + row->length) - (*it)->offset);
+                struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
+                
+                if (tmp == NULL)
+                {
+                    throw -1;
+                }
+                
+                row = tmp;
+                ret = row;
+            }
             else
             {
                 ret = false;
@@ -580,7 +604,7 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
                     count++;
                     ++it;
 
-                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
 
                     if (tmp == NULL)
                     {
@@ -604,7 +628,7 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
                 }
                 else
                 {
-                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) + row->length - 1);
+                    struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
 
                     if (tmp == NULL)
                     {
@@ -627,6 +651,66 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
     }
 
     return ret;
+}
+
+uint64_t DataCollator::truncate_after(int64_t offset)
+{
+    if (count == 0)
+    {
+        return 0;
+    }
+    
+    uint64_t num_bytes = 0;
+    
+    std::list<struct row*>::reverse_iterator it = rows.rbegin();
+    std::list<struct row*>::reverse_iterator prev = it;
+    std::list<struct row*>::reverse_iterator end = rows.rend();
+    ++it;
+    
+    while (true)
+    {
+        // Check to see if we start after the offset, because then we can throw
+        // away the whole row
+        if ((*prev)->offset >= offset)
+        {
+            num_bytes += (*prev)->length;
+            free(*prev);
+            rows.erase(it.base());
+            count--;
+        }
+        else
+        {
+            // Otherwise if we hang out past the offset.
+            if (((*prev)->offset + (*prev)->length) > offset)
+            {
+                num_bytes += ((*prev)->offset + (*prev)->length) - offset;
+                (*prev)->length -= ((*prev)->offset + (*prev)->length) - offset;
+                struct row* tmp = (struct row*)realloc(*prev, sizeof(struct row) - 1 + (*prev)->length);
+                
+                if (tmp == NULL)
+                {
+                    throw -1;
+                }
+                
+                (*prev) = tmp;
+            }
+            
+            // Once we've fixed the hang-off, or if there was none, break.
+            break;
+        }
+        
+        if (it == end)
+        {
+            break;
+        }
+        else
+        {
+            prev = it;
+            ++it;
+        }
+    }
+    
+    return num_bytes;
 }
 
 uint64_t DataCollator::size()

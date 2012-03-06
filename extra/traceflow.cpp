@@ -135,10 +135,13 @@ void freep6(void* v)
 
 #include <pcap.h>
 
-uint64_t ctr4 = 0;
-uint64_t ctr6 = 0;
+uint64_t ctr = 0;
+uint64_t last4 = 0;
+uint64_t last6 = 0;
 struct tree_node4* proto4;
 struct tree_node6* proto6;
+
+// char fname[64];
 
 void output_handler(void* context, uint64_t length, void* data)
 {
@@ -148,7 +151,6 @@ void output_handler(void* context, uint64_t length, void* data)
     {
         printf("1\n%llu\n%llu\n", id, length);
         fwrite(data, length, 1, stdout);
-        fflush(stdout);
     }
     else
     {
@@ -170,9 +172,12 @@ void proto_init4(struct tree_node4** p)
 
     proto4->flow = new TCP4Flow();
 
-    *ctrP = ctr4;
+    *ctrP = ctr;
+//     sprintf(fname, "tcpsess4.%llu", ctr);
+//     proto4->flow->set_output(fopen(fname, "wb"), true);
     proto4->flow->set_output(output_handler, ctrP, true);
-    ctr4++;
+    last4 = ctr;
+    ctr++;
 }
 
 void proto_setup4(struct tree_node4* p, struct flow_sig* f)
@@ -200,9 +205,12 @@ void proto_init6(struct tree_node6** p)
 
     proto6->flow = new TCP6Flow();
 
-    *ctrP = ctr6;
+    *ctrP = ctr;
+//     sprintf(fname, "tcpsess6.%llu", ctr);
+//     proto6->flow->set_output(fopen(fname, "wb"), true);
     proto6->flow->set_output(output_handler, ctrP, true);
-    ctr6++;
+    last6 = ctr;
+    ctr++;
 }
 
 void proto_setup6(struct tree_node6* p, struct flow_sig* f)
@@ -231,16 +239,42 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             // and set it to NULL as a sentinel for later. Reallocate our prototype.
             if (added)
             {
-                struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
-                struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+                try
+                {
+                    proto4->flow->add_packet(proto4->f);
+                    
+                    struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
+                    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                printf("04\n%llu\n%u\n%u\n%u\n%u\n", ctr4 - 1,
-                       ip->src, tcp->sport,
-                       ip->dst, tcp->dport);
+                    printf("04\n%llu\n%u\n%u\n%u\n%u\n", last4,
+                        ip->src, tcp->sport,
+                        ip->dst, tcp->dport);
 
-                free(proto4->f);
-                proto4->f = NULL;
-                proto_init4(&proto4);
+                    free(proto4->f);
+                    proto4->f = NULL;
+                    proto_init4(&proto4);
+                }
+                catch (int e)
+                {
+                    switch (e)
+                    {
+                    case 1:
+                    case 2:
+                    {
+                        struct tree_node4* del;
+                        bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
+                        delete del->flow;
+                        free(del->f);
+                        free(del);
+                        proto_init4(&proto4);
+                        break;
+                    }
+
+                    default:
+                        throw e;
+                        break;
+                    }
+                }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
             // into an existing flow. We should check and see if the proto's flow_sig
@@ -272,16 +306,42 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             // and set it to NULL as a sentinel for later. Reallocate our prototype.
             if (added)
             {
-                struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
-                struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+                try
+                {
+                    proto6->flow->add_packet(proto6->f);
+                    
+                    struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
+                    struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n", ctr6 - 1,
-                       ip->src[0], ip->src[1], tcp->sport,
-                       ip->dst[0], ip->dst[1], tcp->dport);
+                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n", last6,
+                        ip->src[0], ip->src[1], tcp->sport,
+                        ip->dst[0], ip->dst[1], tcp->dport);
 
-                free(proto6->f);
-                proto6->f = NULL;
-                proto_init6(&proto6);
+                    free(proto6->f);
+                    proto6->f = NULL;
+                    proto_init6(&proto6);
+                }
+                catch (int e)
+                {
+                    switch (e)
+                    {
+                    case 1:
+                    case 2:
+                    {
+                        struct tree_node6* del;
+                        bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
+                        delete del->flow;
+                        free(del->f);
+                        free(del);
+                        proto_init6(&proto6);
+                        break;
+                    }
+
+                    default:
+                        throw e;
+                        break;
+                    }
+                }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
             // into an existing flow. We should check and see if the proto's flow_sig

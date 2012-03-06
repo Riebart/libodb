@@ -65,8 +65,10 @@ public:
 
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
-    /// @param [in] f The flow signature to match, it assumes the appropriate IP
-    /// type for the type of flow that is trying to init from it.
+    virtual void init();
+    
+    /// Initialize flow-related data values as well as the general values.
+    /// @param [in] f The flow to use as a prototype for initialization.
     virtual void init(struct flow_sig* f);
 
     /// Takes in a flow signature and a direction, obtained from the protocol
@@ -120,6 +122,9 @@ protected:
 
     /// The last byte that was output from the stream.
     uint64_t last_out[2];
+    
+    /// The last byte that was input to the stream.
+    uint64_t last_in[2];
 
     /// The offset to be applied to sequence and ACK numbers due to wrapping of
     /// the 32 bit field.
@@ -129,6 +134,9 @@ protected:
     /// The 0th item corresponds from 'low' to 'high', and 1 is the other direction.
     DataCollator data[2];
 
+    /// Keeps track of whether we just acked to this stream.
+    bool just_ack[2];
+    
     /// Keeps track of whether or not we've seen a SYN. Without one we have no
     /// initial sequence number, and so reassembly doesn't make any sense.
     bool syn_had[2];
@@ -178,6 +186,8 @@ public:
     bool get_hash(uint32_t* dest);
 
 protected:
+    /// Initialize flow-related data values as well as the general values.
+    /// @param [in] f The flow to use as a prototype for initialization.
     virtual void init(struct flow_sig* f);
 
     /// The ordered IP addresses that represent the IP portion of the flow.
@@ -216,6 +226,8 @@ public:
     bool get_hash(uint32_t* dest);
 
 protected:
+    /// Initialize flow-related data values as well as the general values.
+    /// @param [in] f The flow to use as a prototype for initialization.
     virtual void init(struct flow_sig* f);
 
     /// The ordered IP addresses that represent the IP portion of the flow.
@@ -246,16 +258,22 @@ TCPFlow::~TCPFlow()
 
 TCPFlow::TCPFlow()
 {
+    init();
     has_sig = false;
-
+    close_fp = false;
+    free_context = false;
     context = NULL;
     handler = NULL;
-    fp = stdout;
+    fp = NULL;
 }
 
 void TCPFlow::init(struct flow_sig* f)
 {
-    has_sig = true;
+    throw -10;
+}
+
+void TCPFlow::init()
+{
     wrap_offset = 0;
     isn[0] = 0;
     isn[1] = 0;
@@ -263,16 +281,21 @@ void TCPFlow::init(struct flow_sig* f)
     ack[1] = 0;
     last_out[0] = 0;
     last_out[1] = 0;
+    last_in[0] = 0;
+    last_in[1] = 0;
     fin_had[0] = 0;
     fin_had[1] = 0;
     rst_had = 0;
     fin_acked[0] = 0;
     fin_acked[1] = 0;
+    just_ack[0] = 0;
+    just_ack[1] = 0;
 }
 
 void TCP4Flow::init(struct flow_sig* f)
 {
-    TCPFlow::init(f);
+    TCPFlow::init();
+    has_sig = true;
 
     struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
@@ -289,7 +312,8 @@ void TCP4Flow::init(struct flow_sig* f)
 
 void TCP6Flow::init(struct flow_sig* f)
 {
-    TCPFlow::init(f);
+    TCPFlow::init();
+    has_sig = true;
 
     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
@@ -310,11 +334,13 @@ void TCP6Flow::init(struct flow_sig* f)
 
 TCPFlow::TCPFlow(struct flow_sig* f)
 {
-    init(f);
-
+    init();
+    has_sig = true;
+    close_fp = false;
+    free_context = false;
     context = NULL;
     handler = NULL;
-    fp = stdout;
+    fp = NULL;
 }
 
 bool TCP4Flow::check_packet(struct flow_sig* f)
@@ -424,11 +450,15 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     {
         wrap_offset += (wrap_offset == 0 ? 4294967296LL - isn[dir] : 4294967296LL);
     }
+    
+    int64_t offset = (uint64_t)(tcp->seq) + wrap_offset - isn[dir];
+    uint64_t length = f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]);
 
     // If the ACK flag is set, then we are acking some data going the other way.
     if ((tcp->flags & TH_ACK) > 0)
     {
         ack[1-dir] = (uint64_t)(tcp->ack) + wrap_offset - isn[1-dir];
+        just_ack[1-dir] = true;
 
         // Do some output...
         if (ack[1-dir] > last_out[1-dir])
@@ -464,14 +494,34 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
             }
         }
     }
+    
+    // If we just ACKed to this stream, and now we get a non-ACK and it is stepping
+    // backwards from what we last input into the stream, throw away everything after
+    // this new piece.
+    if (just_ack[dir])
+    {
+        if (length > 0)
+        {
+            just_ack[dir] = false;
+        }
+        
+        if ((offset + length) < last_in[dir])
+        {
+//             data[dir].truncate_after(offset + length);
+        }
+    }
 
     if ((tcp->flags & TH_FIN) > 0)
     {
         fin_had[dir] = true;
     }
 
-    data[dir].add_data((uint64_t)(tcp->seq) + wrap_offset - isn[dir],
-                       f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]),
+    if ((offset >= 0) && ((offset + length) > last_in[dir]))
+    {
+        last_in[dir] = offset + length;
+    }
+    
+    data[dir].add_data(offset, length,
                        &(f->hdr_start) + (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]));
 
     return (2 * dir - 1) * (f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]));
@@ -483,6 +533,7 @@ bool TCPFlow::replace_sig(struct flow_sig* f)
     if ((data[0].size() == 0) && (data[1].size() == 0))
     {
         init(f);
+        has_sig = true;
         return true;
     }
     else
