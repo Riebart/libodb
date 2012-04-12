@@ -111,7 +111,7 @@ else()
     add_definitions(-DSYSTEM_NAME_DARWIN)
 endif()
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{NO_OPTIMIZE}" STREQUAL "")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{NO_OPTIMIZE}" STREQUAL "" AND "$ENV{SKIP_TCMALLOC}" STREQUAL "")
     find_library(TCMALLOC_LIB tcmalloc_minimal)
     if(${TCMALLOC_LIB} MATCHES "tcmalloc")
         message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")

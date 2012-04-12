@@ -653,9 +653,8 @@ struct flow_sig* sig_from_packet(const uint8_t* packet, uint32_t packet_len, boo
 #ifdef DEBUG
     print_flow(f);
     printf("\n");
-#endif
-
     fflush(stdout);
+#endif
 
     return f;
 }
