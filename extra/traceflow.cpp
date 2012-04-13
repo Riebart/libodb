@@ -13,8 +13,7 @@
 #include "tcp.hpp"
 #include "redblacktreei.hpp"
 
-// #define TCP_TIMEOUT 540000000 // 9 minutes, counted in microseconds.
-#define TCP_TIMEOUT 1
+#define TCP_TIMEOUT 540000000 // 9 minutes, counted in microseconds.
 
 struct RedBlackTreeI::e_tree_root* flows4;
 struct RedBlackTreeI::e_tree_root* flows6;
@@ -63,7 +62,7 @@ struct linked_list* init_ll()
     ret->count = 0;
     ret->head = NULL;
     ret->tail = NULL;
-    
+
     return ret;
 }
 
@@ -77,7 +76,7 @@ void del_ll(struct ll_node* i, struct linked_list* list)
     {
         list->head = list->head->next;
     }
-    
+
     if (i != list->tail)
     {
         i->next->prev = i->prev;
@@ -86,30 +85,30 @@ void del_ll(struct ll_node* i, struct linked_list* list)
     {
         list->tail = list->tail->prev;
     }
-    
+
     i->next = NULL;
     i->prev = NULL;
-    
+
     list->count--;
 }
 
 void prepend_ll(struct ll_node* i, struct linked_list* list)
 {
     i->next = list->head;
-    
+
     if (list->count > 0)
     {
         list->head->prev = i;
     }
-    
+
     i->prev = NULL;
     list->head = i;
-    
+
     if (list->count == 0)
     {
         list->tail = i;
     }
-    
+
     list->count++;
 }
 
@@ -162,7 +161,7 @@ void* merge4(void* aV, void* bV)
         b->flow->add_packet(a->f);
         free(a->f);
         a->f = NULL;
-        
+
         move_to_head_ll(&(b->node), flow_list4);
         b->node.ts = cur_ts;
     }
@@ -207,7 +206,7 @@ void* merge6(void* aV, void* bV)
         b->flow->add_packet(a->f);
         free(a->f);
         a->f = NULL;
-        
+
         move_to_head_ll(&(b->node), flow_list6);
         b->node.ts = cur_ts;
     }
@@ -339,48 +338,48 @@ void proto_setup6(struct tree_node6* p, struct flow_sig* f)
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
     cur_ts = pkt_hdr->ts;
-    
+
     // Expire out the tail of the list if it is old enough.
     while ((flow_list4->count > 0) && (((cur_ts.tv_sec - flow_list4->tail->ts.tv_sec) + (cur_ts.tv_usec - flow_list4->tail->ts.tv_usec)) > TCP_TIMEOUT))
     {
         struct ll_node* ln = flow_list4->tail;
-        struct tree_node4* tn = (struct tree_node4*)((void*)ln - 2 * sizeof(void*));
-        
+        struct tree_node4* tn = reinterpret_cast<struct tree_node4*>(reinterpret_cast<uint64_t>(ln) - 2 * sizeof(uint64_t*));
+
         struct tree_node4* del;
         bool removed = RedBlackTreeI::e_remove(flows4, tn, (void**)(&del));
-        
+
         if (!removed)
         {
             throw -2;
         }
-        
+
         del_ll(&(del->node), flow_list4);
         delete del->flow;
         free(del->f);
         free(del);
     }
-    
+
     while ((flow_list6->count > 0) && (((cur_ts.tv_sec - flow_list6->tail->ts.tv_sec) + (cur_ts.tv_usec - flow_list6->tail->ts.tv_usec)) > TCP_TIMEOUT))
     {
         struct ll_node* ln = flow_list6->tail;
-        struct tree_node6* tn = (struct tree_node6*)((void*)ln - 2 * sizeof(void*));
-        
+        struct tree_node6* tn = reinterpret_cast<struct tree_node6*>(reinterpret_cast<uint64_t>(ln) - 2 * sizeof(uint64_t*));
+
         struct tree_node6* del;
         bool removed = RedBlackTreeI::e_remove(flows6, tn, (void**)(&del));
-        
+
         if (!removed)
         {
             throw -2;
         }
-        
+
         del_ll(&(del->node), flow_list6);
         delete del->flow;
         free(del->f);
         free(del);
     }
-    
+
     fflush(stderr);
-    
+
     struct flow_sig* f = sig_from_packet(packet, pkt_hdr->caplen, true, 4);
 
     if (f->l4_type == L4_TYPE_TCP)
@@ -399,13 +398,13 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     proto4->node.ts = cur_ts;
                     prepend_ll(&(proto4->node), flow_list4);
                     proto4->flow->add_packet(proto4->f);
-                    
+
                     struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
                     printf("04\n%llu\n%u\n%u\n%u\n%u\n", last4,
-                        ip->src, tcp->sport,
-                        ip->dst, tcp->dport);
+                           ip->src, tcp->sport,
+                           ip->dst, tcp->dport);
 
                     free(proto4->f);
                     proto4->f = NULL;
@@ -420,12 +419,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     {
                         struct tree_node4* del;
                         bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
-                        
+
                         if (!removed)
                         {
                             throw -2;
                         }
-                        
+
                         del_ll(&(del->node), flow_list4);
                         delete del->flow;
                         free(del->f);
@@ -450,12 +449,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 {
                     struct tree_node4* del;
                     bool removed = RedBlackTreeI::e_remove(flows4, proto4->f, (void**)(&del));
-                    
+
                     if (!removed)
                     {
                         throw -2;
                     }
-                    
+
                     del_ll(&(del->node), flow_list4);
                     delete del->flow;
                     free(del);
@@ -476,13 +475,13 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     proto4->node.ts = cur_ts;
                     prepend_ll(&(proto4->node), flow_list6);
                     proto6->flow->add_packet(proto6->f);
-                    
+
                     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
                     printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n", last6,
-                        ip->src[0], ip->src[1], tcp->sport,
-                        ip->dst[0], ip->dst[1], tcp->dport);
+                           ip->src[0], ip->src[1], tcp->sport,
+                           ip->dst[0], ip->dst[1], tcp->dport);
 
                     free(proto6->f);
                     proto6->f = NULL;
@@ -498,12 +497,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         struct tree_node6* del;
                         bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
                         del_ll(&(del->node), flow_list6);
-                        
+
                         if (!removed)
                         {
                             throw -2;
                         }
-                        
+
                         delete del->flow;
                         free(del->f);
                         free(del);
@@ -527,12 +526,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 {
                     struct tree_node6* del;
                     bool removed = RedBlackTreeI::e_remove(flows6, proto6->f, (void**)(&del));
-                    
+
                     if (!removed)
                     {
                         throw -2;
                     }
-                    
+
                     del_ll(&(del->node), flow_list6);
                     delete del->flow;
                     free(del);
@@ -555,7 +554,7 @@ int main(int argc, char** argv)
     {
         flow_list4 = init_ll();
         flow_list6 = init_ll();
-        
+
         init_proto_hdr_sizes();
 
         proto_init4(&proto4);

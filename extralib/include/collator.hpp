@@ -96,7 +96,7 @@ public:
     ///
     /// Throws a "-1" if it is unable to allocate memory for some reason.
     void add_data(int64_t offset, uint64_t length, void* data);
-    
+
     /// This function truncates all data after a certain offset.
     /// @param [in] offset The offset after which to throw away data.
     /// @return The number of bytes thrown away.
@@ -546,8 +546,8 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
                 row = tmp;
                 ret = false;
             }
-            // THis one is contained in the last one.
-            else if ((row->offset > (*it)->offset) && (((*it)->offset + (*it)->length) == (row->offset + row->length)))
+            // This one is contained in the last one.
+            else if ((row->offset > (*it)->offset) && (((*it)->offset + (*it)->length) >= (row->offset + row->length)))
             {
                 memcpy(&((*it)->data) + (row->offset - (*it)->offset), &(row->data), row->length);
                 free(row);
@@ -561,12 +561,12 @@ bool DataCollator::try_add_back(struct DataCollator::row* row)
                 row->length -= (row->offset + row->length) - (*it)->offset;
                 memcpy(&((*it)->data), &(row->data) + row->length, (row->offset + row->length) - (*it)->offset);
                 struct row* tmp = (struct row*)realloc(row, sizeof(struct row) - 1 + row->length);
-                
+
                 if (tmp == NULL)
                 {
                     throw -1;
                 }
-                
+
                 row = tmp;
                 ret = row;
             }
@@ -659,14 +659,14 @@ uint64_t DataCollator::truncate_after(int64_t offset)
     {
         return 0;
     }
-    
+
     uint64_t num_bytes = 0;
-    
+
     std::list<struct row*>::reverse_iterator it = rows.rbegin();
     std::list<struct row*>::reverse_iterator prev = it;
     std::list<struct row*>::reverse_iterator end = rows.rend();
     ++it;
-    
+
     while (true)
     {
         // Check to see if we start after the offset, because then we can throw
@@ -686,19 +686,19 @@ uint64_t DataCollator::truncate_after(int64_t offset)
                 num_bytes += ((*prev)->offset + (*prev)->length) - offset;
                 (*prev)->length -= ((*prev)->offset + (*prev)->length) - offset;
                 struct row* tmp = (struct row*)realloc(*prev, sizeof(struct row) - 1 + (*prev)->length);
-                
+
                 if (tmp == NULL)
                 {
                     throw -1;
                 }
-                
+
                 (*prev) = tmp;
             }
-            
+
             // Once we've fixed the hang-off, or if there was none, break.
             break;
         }
-        
+
         if (it == end)
         {
             break;
@@ -709,7 +709,7 @@ uint64_t DataCollator::truncate_after(int64_t offset)
             ++it;
         }
     }
-    
+
     return num_bytes;
 }
 

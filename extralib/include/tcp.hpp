@@ -66,7 +66,7 @@ public:
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
     virtual void init();
-    
+
     /// Initialize flow-related data values as well as the general values.
     /// @param [in] f The flow to use as a prototype for initialization.
     virtual void init(struct flow_sig* f);
@@ -122,7 +122,7 @@ protected:
 
     /// The last byte that was output from the stream.
     uint64_t last_out[2];
-    
+
     /// The last byte that was input to the stream.
     uint64_t last_in[2];
 
@@ -136,7 +136,7 @@ protected:
 
     /// Keeps track of whether we just acked to this stream.
     bool just_ack[2];
-    
+
     /// Keeps track of whether or not we've seen a SYN. Without one we have no
     /// initial sequence number, and so reassembly doesn't make any sense.
     bool syn_had[2];
@@ -450,7 +450,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     {
         wrap_offset += (wrap_offset == 0 ? 4294967296LL - isn[dir] : 4294967296LL);
     }
-    
+
     int64_t offset = (uint64_t)(tcp->seq) + wrap_offset - isn[dir];
     uint64_t length = f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]);
 
@@ -494,7 +494,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
             }
         }
     }
-    
+
     // If we just ACKed to this stream, and now we get a non-ACK and it is stepping
     // backwards from what we last input into the stream, throw away everything after
     // this new piece.
@@ -504,7 +504,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
         {
             just_ack[dir] = false;
         }
-        
+
         if ((offset + length) < last_in[dir])
         {
 //             data[dir].truncate_after(offset + length);
@@ -520,7 +520,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     {
         last_in[dir] = offset + length;
     }
-    
+
     data[dir].add_data(offset, length,
                        &(f->hdr_start) + (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]));
 

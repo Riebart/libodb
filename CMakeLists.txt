@@ -9,7 +9,7 @@
 # Copyright 2010-2012 Michael Himbeault and Travis Friesen
 #
 
-# FILE doesn't have COPY operation before 2.8 I think. Mightbe 2.7, but 2.6 is
+# FILE doesn't have COPY operation before 2.8 I think. Might be 2.7, but 2.6 is
 # definitely missing it.
 cmake_minimum_required(VERSION 2.8)
 
