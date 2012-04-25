@@ -63,6 +63,11 @@ public:
     /// upon destruction. Default is false.
     void set_output(FILE* _fp, bool _close_fp = false);
 
+    /// Get the context that is being used with the output handler. Can be used
+    /// to modify the context or to retrieve some information in it.
+    /// @return A pointer to the context information.
+    void* get_context();
+
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
     virtual void init();
@@ -604,6 +609,11 @@ void TCPFlow::set_output(FILE* _fp, bool _close_fp)
             context = NULL;
         }
     }
+}
+
+void* TCPFlow::get_context()
+{
+    return context;
 }
 
 #endif
