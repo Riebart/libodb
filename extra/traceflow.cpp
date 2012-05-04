@@ -13,7 +13,7 @@
 #include "tcp.hpp"
 #include "redblacktreei.hpp"
 
-#define TCP_TIMEOUT 540000000 // 9 minutes, counted in microseconds.
+#define TCP_TIMEOUT 10000000 // 10 seconds, counted in microseconds.
 
 struct RedBlackTreeI::e_tree_root* flows4;
 struct RedBlackTreeI::e_tree_root* flows6;
@@ -171,6 +171,7 @@ void* merge4(void* aV, void* bV)
         {
         case 1:
         case 2:
+        case 3:
             free(a->f);
             a->f = (struct flow_sig*)(b);
             break;
@@ -265,7 +266,7 @@ void output_handler(void* contextV, uint64_t length, void* data)
     }
     else
     {
-        printf("2\n%llu\n", id);
+        printf("%u\n%llu\n", length, id);
     }
 }
 
@@ -340,7 +341,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
     cur_ts = pkt_hdr->ts;
 
     // Expire out the tail of the list if it is old enough.
-    while ((flow_list4->count > 0) && (((cur_ts.tv_sec - flow_list4->tail->ts.tv_sec) + (cur_ts.tv_usec - flow_list4->tail->ts.tv_usec)) > TCP_TIMEOUT))
+    while ((flow_list4->count > 0) && (((cur_ts.tv_sec - flow_list4->tail->ts.tv_sec) * 1000000 + (cur_ts.tv_usec - flow_list4->tail->ts.tv_usec)) > TCP_TIMEOUT))
     {
         struct ll_node* ln = flow_list4->tail;
         struct tree_node4* tn = reinterpret_cast<struct tree_node4*>(reinterpret_cast<uint64_t>(ln) - 2 * sizeof(uint64_t*));
@@ -359,7 +360,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         free(del);
     }
 
-    while ((flow_list6->count > 0) && (((cur_ts.tv_sec - flow_list6->tail->ts.tv_sec) + (cur_ts.tv_usec - flow_list6->tail->ts.tv_usec)) > TCP_TIMEOUT))
+    while ((flow_list6->count > 0) && (((cur_ts.tv_sec - flow_list6->tail->ts.tv_sec) * 1000000 + (cur_ts.tv_usec - flow_list6->tail->ts.tv_usec)) > TCP_TIMEOUT))
     {
         struct ll_node* ln = flow_list6->tail;
         struct tree_node6* tn = reinterpret_cast<struct tree_node6*>(reinterpret_cast<uint64_t>(ln) - 2 * sizeof(uint64_t*));
@@ -416,6 +417,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     {
                     case 1:
                     case 2:
+                    case 3:
                     {
                         struct tree_node4* del;
                         bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
@@ -493,6 +495,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     {
                     case 1:
                     case 2:
+                    case 3:
                     {
                         struct tree_node6* del;
                         bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));

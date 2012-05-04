@@ -63,6 +63,13 @@ public:
     /// upon destruction. Default is false.
     void set_output(FILE* _fp, bool _close_fp = false);
 
+    /// Get the number of bytes that we've seen fly through this flow. This counts
+    /// both directions.
+    /// @return The total number of bytes of payload, in both directions, that
+    /// we've seen regardless of whether they were in order, including all
+    /// retransmissions.
+    uint64_t size();
+
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
     virtual void init();
@@ -118,7 +125,7 @@ protected:
     uint64_t isn[2];
 
     /// The last ACK-ed byte of data. Used for output.
-    uint64_t ack[2];
+    int64_t ack[2];
 
     /// The last byte that was output from the stream.
     uint64_t last_out[2];
@@ -126,9 +133,14 @@ protected:
     /// The last byte that was input to the stream.
     uint64_t last_in[2];
 
+    /// The byte that we're expecting to see at some point. This comes back from
+    /// the data collator and is used to determine if packets get lost at our
+    /// viewpoint that were successfully sent between server and client.
+    int64_t expected[2];
+
     /// The offset to be applied to sequence and ACK numbers due to wrapping of
     /// the 32 bit field.
-    uint64_t wrap_offset;
+    uint64_t wrap_offset[2];
 
     /// The collator that keeps track of the payload going across the connection.
     /// The 0th item corresponds from 'low' to 'high', and 1 is the other direction.
@@ -152,6 +164,13 @@ protected:
     /// packet that is given to us after we've seen an RST. We assume that this
     /// flow will be blown away and a fresh one started when an RST is encountered.
     bool rst_had;
+
+    /// Persistent indicator that a packet was lost. Keeps throwing the sentinel
+    /// to indicate that if packets try to be added to this payload.
+    bool packet_lost;
+
+    /// Total number of bytes seen in all payloads, including retransmissions.
+    uint64_t num_bytes;
 };
 
 class TCP4Flow : public TCPFlow
@@ -166,6 +185,9 @@ public:
     /// @throws -2 If this is called when no signature has been set up for this object.
     /// @throws 2 If the parser encounters an RST flag. Every packet that passed
     /// to this flow after an RST is encountered causes this to be thrown.
+    /// @throws 3 If there is a packet that is detected to be lost, we just bail
+    /// like we got an RST, but this sends the signal that we are bailing for a
+    /// reason not related to 'actual' traffic.
     /// @param [in] f The packet's flow signature, including the extra data added
     /// to the end of the signature, to add to the stream.
     int add_packet(struct flow_sig* f);
@@ -246,8 +268,8 @@ TCPFlow::~TCPFlow()
     }
     else if (handler != NULL)
     {
-        // Send it the sentinel zero-length NULL to indicate that we're done wit the stream.
-        handler(context, 0, NULL);
+        // Send it the sentinel zero-length NULL to indicate that we're done with the stream.
+        handler(context, 2, NULL);
 
         if (free_context && (context != NULL))
         {
@@ -274,7 +296,9 @@ void TCPFlow::init(struct flow_sig* f)
 
 void TCPFlow::init()
 {
-    wrap_offset = 0;
+    num_bytes = 0;
+    wrap_offset[0] = 0;
+    wrap_offset[1] = 0;
     isn[0] = 0;
     isn[1] = 0;
     ack[0] = 0;
@@ -286,10 +310,18 @@ void TCPFlow::init()
     fin_had[0] = 0;
     fin_had[1] = 0;
     rst_had = 0;
+    packet_lost = 0;
     fin_acked[0] = 0;
     fin_acked[1] = 0;
     just_ack[0] = 0;
     just_ack[1] = 0;
+    expected[0] = 0;
+    expected[1] = 0;
+}
+
+uint64_t TCPFlow::size()
+{
+    return this->num_bytes;
 }
 
 void TCP4Flow::init(struct flow_sig* f)
@@ -429,6 +461,10 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     {
         throw 2;
     }
+    else if (packet_lost)
+    {
+        throw 3;
+    }
     else if (fin_acked[0] && fin_acked[1])
     {
         throw 1;
@@ -448,16 +484,17 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     // byte. This difference is the maximum TCP window size of 65536<<14 == 1<<30.
     if ((tcp->seq < isn[dir]) && (isn[dir] >= 1073725440LL) && (tcp->seq < (isn[dir] - 1073725440LL)))
     {
-        wrap_offset += (wrap_offset == 0 ? 4294967296LL - isn[dir] : 4294967296LL);
+        wrap_offset[dir] += (wrap_offset[dir] == 0 ? 4294967296LL - isn[dir] : 4294967296LL);
     }
 
-    int64_t offset = (uint64_t)(tcp->seq) + wrap_offset - isn[dir];
+    int64_t offset = (uint64_t)(tcp->seq) + wrap_offset[dir] - isn[dir];
     uint64_t length = f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]);
 
     // If the ACK flag is set, then we are acking some data going the other way.
     if ((tcp->flags & TH_ACK) > 0)
     {
-        ack[1-dir] = (uint64_t)(tcp->ack) + wrap_offset - isn[1-dir];
+        ack[1-dir] = (uint64_t)(tcp->ack) + wrap_offset[1-dir] - isn[1-dir];
+
         just_ack[1-dir] = true;
 
         // Do some output...
@@ -481,6 +518,21 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
                 free(r);
                 r = data[1-dir].get_data(ack[1-dir]);
             }
+        }
+
+        expected[1-dir] = data[1-dir].get_start() + fin_had[1-dir];
+
+        // If we just saw an ack that comes after the byte we are expecting,
+        // then a packet was irrevovably lost. Bail here. This only applies if
+        // we have some notion of ISN for both directions, otherwise it will
+        // be wildly off. We also need to make sure we're not choking on the weird
+        // SEQ/ACK seuqence that happens during the initial handshake. ACKs increase
+        // even though no data is sent causing some off-by-one issues.
+        if (syn_had[0] && syn_had[1] && (ack[1-dir] > 1) && (ack[1-dir] > expected[1-dir]))
+        {
+//             fprintf(stderr, "%llu v %llu @ %llu\n", ack[1-dir], expected[1-dir], num_bytes);
+            packet_lost = true;
+            throw 3;
         }
 
         // See if this is an ACK to the other directin's FINs
@@ -521,6 +573,7 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
         last_in[dir] = offset + length;
     }
 
+    num_bytes += length;
     data[dir].add_data(offset, length,
                        &(f->hdr_start) + (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]));
 

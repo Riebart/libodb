@@ -128,6 +128,12 @@ public:
     /// @return The total number of rows currently tracked.
     uint64_t size();
 
+    /// Get the start_offset in the stream.
+    /// @return The value of start_offset, which represents how far into the stream
+    /// our 'base' is. If we're being diligent about output, this represents something
+    /// important, otherwise it is close to meaningless depending on the context.
+    int64_t get_start();
+
 private:
     /// Initialize the member variables.
     void init();
@@ -152,8 +158,12 @@ private:
     /// Holds a quick way to determine whether or not automated output is configured.
     bool automated_output;
 
-    /// Used to keep strack of where in the stream the next expected data should start.
+    /// Used to keep track of where in the stream the next expected data should start.
     int64_t start_offset;
+    
+#warning "TODO: Implement the cursor in the data collator."
+    /// Used to keep track of the first byte that is unaccounted for.
+    int64_t cursor;
 
     /// Holds the number of rows inserted into the list so that we aren't calling the
     /// O(n) .size() method of the STL list.
@@ -219,14 +229,30 @@ DataCollator::~DataCollator()
         }
     }
 
+//     uint64_t next_offset = start_offset;
+
     struct row* row;
     while (count > 0)
     {
         row = rows.front();
+        
+//         if (next_offset < row->offset)
+//         {
+//             fprintf(stderr, "- ");
+//         }
+        
+//         fprintf(stderr, "%llu ", sizeof(struct row) + row->length - 1);
+//         next_offset = row->offset + row->length;
+
         free(row);
         rows.pop_front();
         count--;
     }
+
+//     if (next_offset != start_offset)
+//     {
+//         fprintf(stderr, "\n");
+//     }
 }
 
 void DataCollator::init()
@@ -338,7 +364,7 @@ void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
     {
         if (!try_add_back(row))
         {
-            throw "NO";
+            throw -100;
         }
     }
 }
@@ -716,6 +742,11 @@ uint64_t DataCollator::truncate_after(int64_t offset)
 uint64_t DataCollator::size()
 {
     return count;
+}
+
+int64_t DataCollator::get_start()
+{
+    return start_offset;
 }
 
 #endif
