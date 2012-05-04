@@ -160,7 +160,7 @@ private:
 
     /// Used to keep track of where in the stream the next expected data should start.
     int64_t start_offset;
-    
+
 #warning "TODO: Implement the cursor in the data collator."
     /// Used to keep track of the first byte that is unaccounted for.
     int64_t cursor;
@@ -235,12 +235,12 @@ DataCollator::~DataCollator()
     while (count > 0)
     {
         row = rows.front();
-        
+
 //         if (next_offset < row->offset)
 //         {
 //             fprintf(stderr, "- ");
 //         }
-        
+
 //         fprintf(stderr, "%llu ", sizeof(struct row) + row->length - 1);
 //         next_offset = row->offset + row->length;
 
