@@ -354,6 +354,9 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             throw -2;
         }
 
+        uint64_t id = *(uint64_t*)(del->flow->get_context());
+        printf("2\n%llu\n", id);
+
         del_ll(&(del->node), flow_list4);
         delete del->flow;
         free(del->f);
@@ -372,6 +375,9 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         {
             throw -2;
         }
+
+        uint64_t id = *(uint64_t*)(del->flow->get_context());
+        printf("2\n%llu\n", id);
 
         del_ll(&(del->node), flow_list6);
         delete del->flow;
