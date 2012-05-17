@@ -71,6 +71,12 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
     fb->fp = fp;
 
     fb->size = fread(fb->buffer, 1, fb->buf_size, fp);
+    
+    //error doing initial read, other than a short file
+    if (fg->size < fb->buf_size && ferror(fb->fp) != 0)
+    {
+        return NULL;
+    }
     fb->position = 0;
 
     return fb;
