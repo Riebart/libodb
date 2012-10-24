@@ -268,7 +268,15 @@ inline Iterator* LinkedListI::it_first()
     READ_LOCK();
     LLIterator* it = new LLIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->cursor = first;
-    it->dataobj->data = GET_DATA(first);
+    if (first != NULL)
+    {
+        it->dataobj->data = GET_DATA(first);
+    }
+    else
+    {
+        it->dataobj->data = NULL;
+    }
+    
     return it;
 }
 
