@@ -470,7 +470,7 @@ void do_pca_analysis(Index * entropies)
 
     Iterator * it = entropies->it_first();
 
-    if (it->data() != NULL)
+    if (it->data() != NULL && it->get_data() != NULL)
     {
         do
         {
