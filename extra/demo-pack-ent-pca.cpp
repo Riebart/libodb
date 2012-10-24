@@ -725,7 +725,9 @@ int main(int argc, char *argv[])
 
         if (fp == NULL)
         {
-            fprintf(stderr, "\n");
+//             int errsv = errno;
+//             fprintf(stderr, "\nError on file open.\n");
+            perror(NULL);
             break;
         }
 
