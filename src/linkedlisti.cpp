@@ -35,6 +35,13 @@ LinkedListI::LinkedListI(int _ident, Comparator* _compare, Merger* _merge, bool 
 LinkedListI::~LinkedListI()
 {
     free_list(first);
+    // Free the other stuff we're using
+    delete compare;
+    if (merge != NULL)
+    {
+        delete merge;
+    }
+    
     RWLOCK_DESTROY();
 }
 

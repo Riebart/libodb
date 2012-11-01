@@ -564,10 +564,17 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
-    struct dns_verify_result* dns_result = dns_verify_packet(packet + p_offset, packet_len);
 
-    if (((p_offset + sizeof(struct dns_header)) < packet_len) && (dns_result != NULL))
+    if ((p_offset + sizeof(struct dns_header)) < packet_len)
     {
+        struct dns_verify_result* dns_result = dns_verify_packet(packet + p_offset, packet_len - p_offset);
+        
+        if (dns_result == NULL)
+        {
+            free(dns_result);
+            return p_offset;
+        }
+        
         const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(packet + p_offset);
 
         struct l7_dns l7_hdr;
@@ -586,7 +593,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         f = append_to_flow_sig(f, &l7_hdr, sizeof(struct l7_dns) - 1);
         *fp = f;
-
+        
         free(dns_result);
 
 #ifdef DEBUG

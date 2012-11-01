@@ -267,7 +267,7 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         SPLIT_LEN_FLAGS(mux);
         result->flags |= query_str_flags;
 
-        if (len < 0)
+        if ((len < 0) || ((q_offset + len + sizeof(struct dns_query)) > packet_len))
         {
             free(result);
             return NULL;
@@ -275,6 +275,12 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             q_offset += (len + sizeof(struct dns_query));
+        }
+        
+        if (q_offset > packet_len)
+        {
+            free(result);
+            return NULL;
         }
     }
 
@@ -287,7 +293,7 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         SPLIT_LEN_FLAGS(mux);
         result->flags |= query_str_flags;
 
-        if (len < 0)
+        if ((len < 0) || ((q_offset + len + sizeof(struct dns_answer)) > packet_len))
         {
             free(result);
             return NULL;
@@ -295,7 +301,20 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
+            
+            if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
+            {
+                free(result);
+                return NULL;
+            }
+            
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
+        }
+        
+        if (q_offset > packet_len)
+        {
+            free(result);
+            return NULL;
         }
     }
 
@@ -308,7 +327,7 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         SPLIT_LEN_FLAGS(mux);
         result->flags |= query_str_flags;
 
-        if (len < 0)
+        if ((len < 0) || ((q_offset + len + sizeof(struct dns_answer)) > packet_len))
         {
             free(result);
             return NULL;
@@ -316,7 +335,20 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
+            
+            if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
+            {
+                free(result);
+                return NULL;
+            }
+            
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
+        }
+        
+        if (q_offset > packet_len)
+        {
+            free(result);
+            return NULL;
         }
     }
 
@@ -329,7 +361,7 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         SPLIT_LEN_FLAGS(mux);
         result->flags |= query_str_flags;
 
-        if (len < 0)
+        if ((len < 0) || ((q_offset + len + sizeof(struct dns_answer)) > packet_len))
         {
             free(result);
             return NULL;
@@ -337,7 +369,20 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
+            
+            if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
+            {
+                free(result);
+                return NULL;
+            }
+            
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
+        }
+        
+        if (q_offset > packet_len)
+        {
+            free(result);
+            return NULL;
         }
     }
 

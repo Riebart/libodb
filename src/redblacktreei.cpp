@@ -133,6 +133,14 @@ RedBlackTreeI::~RedBlackTreeI()
     // Free the false root we malloced in the constructor.
     free(false_root);
     free(sub_false_root);
+    
+    // Free the other stuff we're using
+    delete compare;
+    if (merge != NULL)
+    {
+        delete merge;
+    }
+    
     RWLOCK_DESTROY();
 }
 

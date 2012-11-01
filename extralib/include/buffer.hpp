@@ -105,6 +105,7 @@ struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
 
     fb->buf_size = num_bytes;
     fb->buffer = (uint8_t*)(malloc(num_bytes));
+    memset(fb->buffer, 0, num_bytes);
     if (fb->buffer == NULL)
     {
         free(fb);

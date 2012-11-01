@@ -487,7 +487,10 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 
 Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void* (*keygen)(void*), int32_t keylen)
 {
-    return create_index(type, flags, new CompareCust(compare), (merge == NULL ? NULL : new MergeCust(merge)), (keygen == NULL ? NULL : new KeygenCust(keygen)), keylen);
+    CompareCust* c = new CompareCust(compare);
+    MergeCust* m = (merge == NULL ? NULL : new MergeCust(merge));
+    KeygenCust* k = (keygen == NULL ? NULL : new KeygenCust(keygen));
+    return create_index(type, flags, c, m, k, keylen);
 }
 
 Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
@@ -672,6 +675,11 @@ inline time_t ODB::get_time()
 
 uint32_t ODB::start_scheduler(uint32_t num_threads)
 {
+    if (num_threads == 0)
+    {
+        return 0;
+    }
+
     if (scheduler == NULL)
     {
         scheduler = new Scheduler(num_threads);
@@ -700,7 +708,10 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
 
 void ODB::block_until_done()
 {
-    scheduler->block_until_done();
+    if (scheduler != NULL)
+    {
+        scheduler->block_until_done();
+    }
 }
 
 Iterator * ODB::it_first()

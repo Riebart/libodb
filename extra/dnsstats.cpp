@@ -59,16 +59,18 @@ struct pcap_pkthdr32
     uint32_t len;       /* actual length of packet */
 };
 
+#pragma pack(1)
 struct domain_stat
 {
-    uint32_t domain_len;
     char* domain;
     double entropy;
     double weighted_entropy;
     uint64_t total_queries;
     uint64_t total_query_length;
     uint64_t subdomains;
+    uint32_t domain_len;
 };
+#pragma pack()
 
 struct interval_stat
 {
@@ -114,7 +116,7 @@ bool vec_sort_domain(struct domain_stat* a, struct domain_stat* b)
 bool vec_sort_entropy(struct domain_stat* a, struct domain_stat* b)
 {
     // We're flipping the return values here so that it sorts hight->low
-    return ((a->entropy > b->entropy) ? true : false);
+    return ((a->weighted_entropy > b->weighted_entropy) ? true : false);
 }
 
 bool vec_sort_count(struct domain_stat* a, struct domain_stat* b)
@@ -527,9 +529,7 @@ void* process_interval(void* args)
     std::vector<struct domain_stat*> stats;
     struct th_args* args_t = (struct th_args*)(args);
 
-    struct interval_stat istat;
-    istat.entropy = 0;
-    istat.total_queries = 0;
+    struct interval_stat istat = { 0, 0, 0, 0 };
 
     struct domain_stat* cur_stat;
     Iterator* it;
@@ -681,14 +681,18 @@ void* process_interval(void* args)
         }
 
         // Entropy + total queries + total unique
-        fwrite(&(stats[i]->entropy), 1, 2 * sizeof(double) + 3 * sizeof(uint64_t), out);
+        fwrite(&(stats[i]->entropy), 1, 2 * sizeof(double), out);
+        fwrite(&(stats[i]->weighted_entropy), 1, sizeof(double), out);
+        fwrite(&(stats[i]->total_queries), 1, sizeof(uint64_t), out);
+        fwrite(&(stats[i]->total_query_length), 1, sizeof(uint64_t), out);
+        fwrite(&(stats[i]->subdomains), 1, sizeof(uint64_t), out);
 
         free(stats[i]->domain);
         free(stats[i]);
     }
 
     // If the tree isn't empty...
-    if (args_t->valid_tree_root->count > 0)
+/*    if (args_t->valid_tree_root->count > 0)
     {
         it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
@@ -701,11 +705,11 @@ void* process_interval(void* args)
         while (it->next() != NULL);
 
         RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
-    }
+    }*/
 
     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
 
-    if (args_t->invalid_tree_root->count > 0)
+/*    if (args_t->invalid_tree_root->count > 0)
     {
         it = RedBlackTreeI::e_it_first(args_t->invalid_tree_root);
 
@@ -718,7 +722,7 @@ void* process_interval(void* args)
         while(it->next() != NULL);
 
         RedBlackTreeI::e_it_release(args_t->invalid_tree_root, it);
-    }
+    }*/
 
     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
@@ -895,7 +899,7 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
 {
     uint64_t num_records = 0;
     uint64_t nbytes;
-    uint8_t* data;
+    uint8_t* data = NULL;
 
     struct file_buffer* fb = fb_read_init(fp, 1048576);
 
@@ -949,6 +953,9 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
             pheader->caplen = ntohl(pheader->caplen);
             pheader->len = ntohl(pheader->len);
         }
+        
+        free(data);
+        SAFE_MALLOC(uint8_t*, data, pheader->caplen);
 
         nbytes = fb_read(fb, data, pheader->caplen);
 
@@ -964,10 +971,14 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
         pkthdr.ts.tv_usec = pheader->ts.tv_usec;
         pkthdr.caplen = pheader->caplen;
         pkthdr.len = pheader->len;
-
+        
         packet_driver(args_p, &pkthdr, data);
 
         num_records++;
+        if (num_records % 1000000 == 0)
+        {
+            fprintf(stderr, "%lu\n", num_records);
+        }
     }
 
     free(fheader);

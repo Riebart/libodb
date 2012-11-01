@@ -182,6 +182,7 @@ Scheduler::~Scheduler()
     update_num_threads(0);
     free(t_args);
     free(threads);
+    delete indep;
 
 #warning "Need to free the data used by the workqueues and their wokloads here."
     RedBlackTreeI::e_destroy_tree(root, NULL);
@@ -358,6 +359,12 @@ LFQueue* Scheduler::find_queue(uint64_t class_id)
 struct Scheduler::workload* Scheduler::get_work()
 {
     SCHED_LOCK();
+    
+    if (root->count == 0)
+    {
+        SCHED_UNLOCK();
+        return NULL;
+    }
 
     struct workload* first_work = NULL;
     void* first_queue = RedBlackTreeI::e_pop_first(root);

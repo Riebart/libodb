@@ -516,7 +516,7 @@ void do_pca_analysis(Index * entropies)
     free(timestamps);
 
 }
-
+uint64_t YAY1 = 0;
 
 uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 {
@@ -595,7 +595,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 
         if ((pheader->ts_sec - period_start) > PERIOD && total > 0)
         {
-
+            odb->block_until_done();
             do_it_calcs(entropies, period_start);
 
 //             printf("Tot: %lu,", total);
@@ -626,10 +626,13 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
         DataObj* dataObj = odb->add_data(&rec, false);
 
         packets->add_data(dataObj);
+        YAY1++;
 
         num_records++;
 //         free(rec);
     }
+    
+    odb->block_until_done();
 
 //     printf("Packet parsing complete\n");
 
@@ -650,7 +653,7 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
     free(fheader);
     free(pheader);
     free(data);
-    free(fb);
+    fb_destroy(fb);
 
     return num_records;
 }
@@ -666,8 +669,8 @@ int main(int argc, char *argv[])
     int i;
     ODB* odb, * entropies;
 
-    odb = new ODB(ODB::BANK_DS, sizeof(struct tcpip), prune);
-    entropies = new ODB(ODB::BANK_DS, sizeof(struct entropy_stats), null_prune);
+    odb = new ODB(ODB::BANK_DS, sizeof(struct tcpip));
+    entropies = new ODB(ODB::BANK_DS, sizeof(struct entropy_stats));
 
     Index * entropy_ts_index;
 
@@ -765,9 +768,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "%f\n", max_entropies.seq_entropy);
     fprintf(stderr, "%f\n", max_entropies.ack_entropy);
 
-    do_pca_analysis(entropies->get_indexes()->flatten()->at(0));
+    vector<Index*>* flat = entropies->get_indexes()->flatten();
+    do_pca_analysis(flat->at(0));
+    delete flat;
 
     delete odb;
+    delete entropies;
 //     delete packets;
 //     delete src_addr_index;
 //     delete dst_addr_index;

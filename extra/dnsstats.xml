@@ -57,8 +57,10 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
     <value type="uint64_l" name="Number of Bytes in Queries to Domain"/>
     <value type="uint64_l" name="Unique Queries to Domain"/>
   </loop>
+<!--
   <loop count="_numuniquequeries_" prefix="Query">
     <value type="cstr" name="Query String"/>
+-->
     <!--
     The following field contains information about what flags were thrown during 
     verification of the DNS packet.
@@ -67,6 +69,7 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
         can be indicative that the packet contains some gaps with arbitrary data 
         inserted. 
     -->
+<!--
     <value type="uint16_l" name="Verification Flags" label="vflags"/>
     <if lhs="_vflags_ &amp; 1" op="eq" rhs="1">
       <print string="Packet contains slack bytes at the end"/>
@@ -107,4 +110,5 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
       <value type="uint16_l" name="Destination Port"/>
     </loop>
   </loop>
+-->
 </fmt2xml>

@@ -30,7 +30,9 @@ set(COMPILER_CXX)
 # parameters
 #   SKIP_SUN_COMPILER
 #   NO_FORCE_64_BIT
+#   FORCE_I386
 #   NO_OPTIMIZE
+#   USE_CLANG
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
@@ -84,6 +86,9 @@ if(${COMPILER_SUITE} MATCHES "none")
     return()
 endif()
 
+# set(CMAKE_C_COMPILER clang)
+# set(CMAKE_CXX_COMPILER clang)
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # See http://en.wikipedia.org/wiki/Tcphdr : The BSD-style headers are more portable than the Linux style.
 # Need _BSD_SOURCE because tcp.h includes features.h which conditions on _BSD_SOURCE and sets __FAVOR_BSD from there.
@@ -98,11 +103,17 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     add_definitions(-DSYSTEM_NAME_LINUX)
 endif()
 
-set(CMAKE_FLAGS_X64 "")
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND "$ENV{NO_FORCE_64_BIT}" STREQUAL "")
-    message(STATUS "Forcing 64-bit compilation")
-    set(CMAKE_FLAGS_X64 "-m64")
+if(${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN")
     add_definitions(-DSYSTEM_NAME_CYGWIN)
+endif()
+
+set(CMAKE_FLAGS_ARCH_TUNE "")
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "CYGWIN" AND "$ENV{NO_FORCE_64_BIT}" STREQUAL "" AND "$ENV{FORCE_I386}" STREQUAL "")
+    message(STATUS "Forcing 64-bit compilation")
+    set(CMAKE_FLAGS_ARCH_TUNE "-march=athlon64 -mtune=athlon64")
+elseif(NOT "$ENV{FORCE_I386}" STREQUAL "")
+    message(STATUS "Forcing i386 compilation")
+    set(CMAKE_FLAGS_ARCH_TUNE "-march=i386")
 endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
@@ -125,14 +136,14 @@ endif()
 if(NOT ${COMPILER_SUITE} MATCHES "sun")
     if("$ENV{NO_OPTIMIZE}" STREQUAL "")
         message(STATUS "Enabling optimizations.")
-        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O3")
+        set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0 -fno-inline")
     else()
         message(STATUS "Disabling all optimizations.")
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0 -fno-inline")
     endif()
     
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
 else()
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
     set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.
@@ -140,7 +151,7 @@ else()
     set(CMAKE_USER_MAKE_RULES_OVERRIDE_C ":")
     set(CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG ":")
     set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX ":")
-    set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ";")
+    set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ":")
     
     if("$ENV{NO_OPTIMIZE}" STREQUAL "")
         message(STATUS "Enabling optimizations.")
@@ -152,13 +163,13 @@ else()
         set(CMAKE_CXX_OPTIMIZE_FLAGS "-g -xO0")
     endif()
     
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_X64} ${CMAKE_C_OPTIMIZE_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_X64} ${CMAKE_CXX_OPTIMIZE_FLAGS} -library=stlport4")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} ${CMAKE_C_OPTIMIZE_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} ${CMAKE_CXX_OPTIMIZE_FLAGS} -library=stlport4")
 endif()
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_X64}")
-set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_X64}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE}")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_FLAGS_ARCH_TUNE}")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_ARCH_TUNE}")
 
 #this is probably the wrong way to do this: setting compile-time defines
 add_definitions(-DENABLE_PTHREAD_LOCKS)

@@ -17,6 +17,14 @@ Testing code such as unit tests and glue scripts are in the 'test' directory.
 Sample and demo application code is in the 'extra' folder.
 Additional libraries that may be of use are in the 'extralib' folder.
 
+Supported environment variables are:
+
+    NO_FORCE_64_BIT
+    FORCE_I386
+    SKIP_SUN_COMPILER
+    NO_OPTIMIZE
+    SKIP_TCMALLOC
+
 To perform an out-of-source build (which prevents CMake from contaminating the source tree with intermediate files) of libodb:
 
     mkdir build
@@ -44,10 +52,11 @@ To build (but not run) the test programs:
     make checks-extralib
 
 To build the doc target you'll need 
-	Documentation:  doxygen (http://www.stack.nl/~dimitri/doxygen/) - Required for documentation generation
-	Code Metrics:   cccc (http://cccc.sourceforge.net/)             - Optional
-	LaTeX PDF Docs: LaTeX (http://www.tug.org/texlive/)             - Optional
-and then to run:
+   - Documentation:  doxygen (http://www.stack.nl/~dimitri/doxygen/) - Required for documentation generation
+   - Code Metrics:   cccc (http://cccc.sourceforge.net/)             - Optional
+   - LaTeX PDF Docs: LaTeX (http://www.tug.org/texlive/)             - Optional
 
-    make doc
+    and then to run:
+
+        make doc
 
