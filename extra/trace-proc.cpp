@@ -233,12 +233,12 @@ double lof_calc(ODB * odb, IndexGroup * packets)
     //Step 1: determine k-nearest-neighbors of each point. O(nlogn), in theory.
     //Our implementation is O(n^2), hence, omp.
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for (i=0; i< odb_size; i++)
 //     for ( ; it->get_data() != NULL; )
     {
         struct knn * cur_knn;
-#pragma omp critical
+        #pragma omp critical
         {
             cur_knn = reinterpret_cast<struct knn*>(it->get_data());
             it->next();

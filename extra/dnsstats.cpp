@@ -692,37 +692,37 @@ void* process_interval(void* args)
     }
 
     // If the tree isn't empty...
-/*    if (args_t->valid_tree_root->count > 0)
-    {
-        it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
-
-        do
+    /*    if (args_t->valid_tree_root->count > 0)
         {
-            struct sig_encap* encap;
-            encap = (struct sig_encap*)(it->get_data());
-            write_out_contributors_valid(encap, out);
-        }
-        while (it->next() != NULL);
+            it = RedBlackTreeI::e_it_first(args_t->valid_tree_root);
 
-        RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
-    }*/
+            do
+            {
+                struct sig_encap* encap;
+                encap = (struct sig_encap*)(it->get_data());
+                write_out_contributors_valid(encap, out);
+            }
+            while (it->next() != NULL);
+
+            RedBlackTreeI::e_it_release(args_t->valid_tree_root, it);
+        }*/
 
     RedBlackTreeI::e_destroy_tree(args_t->valid_tree_root, free_encapped);
 
-/*    if (args_t->invalid_tree_root->count > 0)
-    {
-        it = RedBlackTreeI::e_it_first(args_t->invalid_tree_root);
-
-        do
+    /*    if (args_t->invalid_tree_root->count > 0)
         {
-            struct sig_encap* encap;
-            encap = (struct sig_encap*)(it->get_data());
-            write_out_contributors_invalid(encap, out);
-        }
-        while(it->next() != NULL);
+            it = RedBlackTreeI::e_it_first(args_t->invalid_tree_root);
 
-        RedBlackTreeI::e_it_release(args_t->invalid_tree_root, it);
-    }*/
+            do
+            {
+                struct sig_encap* encap;
+                encap = (struct sig_encap*)(it->get_data());
+                write_out_contributors_invalid(encap, out);
+            }
+            while(it->next() != NULL);
+
+            RedBlackTreeI::e_it_release(args_t->invalid_tree_root, it);
+        }*/
 
     RedBlackTreeI::e_destroy_tree(args_t->invalid_tree_root, free_encapped);
 
@@ -953,7 +953,7 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
             pheader->caplen = ntohl(pheader->caplen);
             pheader->len = ntohl(pheader->len);
         }
-        
+
         free(data);
         SAFE_MALLOC(uint8_t*, data, pheader->caplen);
 
@@ -971,7 +971,7 @@ uint64_t process_file(FILE* fp, struct ph_args* args_p)
         pkthdr.ts.tv_usec = pheader->ts.tv_usec;
         pkthdr.caplen = pheader->caplen;
         pkthdr.len = pheader->len;
-        
+
         packet_driver(args_p, &pkthdr, data);
 
         num_records++;

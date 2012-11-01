@@ -24,6 +24,7 @@ Supported environment variables are:
     SKIP_SUN_COMPILER
     NO_OPTIMIZE
     SKIP_TCMALLOC
+    USE_CLANG
 
 To perform an out-of-source build (which prevents CMake from contaminating the source tree with intermediate files) of libodb:
 

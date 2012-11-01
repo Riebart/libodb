@@ -516,7 +516,6 @@ void do_pca_analysis(Index * entropies)
     free(timestamps);
 
 }
-uint64_t YAY1 = 0;
 
 uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
 {
@@ -626,12 +625,11 @@ uint32_t read_data(ODB* odb, IndexGroup* packets, ODB * entropies, FILE *fp)
         DataObj* dataObj = odb->add_data(&rec, false);
 
         packets->add_data(dataObj);
-        YAY1++;
 
         num_records++;
 //         free(rec);
     }
-    
+
     odb->block_until_done();
 
 //     printf("Packet parsing complete\n");

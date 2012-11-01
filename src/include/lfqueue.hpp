@@ -48,7 +48,7 @@ public:
         tree_node->links[1] = NULL;
         tree_node->queue = this;
     }
-    
+
     ~LFQueue()
     {
         free(tree_node);
@@ -128,7 +128,7 @@ private:
     bool in_tree;
     uint16_t flags;
     uint64_t last_high;
-    
+
     // Holds the context for this queue in the scheduler's tree
     struct tree_node* tree_node;
 };

@@ -276,7 +276,7 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         {
             q_offset += (len + sizeof(struct dns_query));
         }
-        
+
         if (q_offset > packet_len)
         {
             free(result);
@@ -301,16 +301,16 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            
+
             if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
             {
                 free(result);
                 return NULL;
             }
-            
+
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
-        
+
         if (q_offset > packet_len)
         {
             free(result);
@@ -335,16 +335,16 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            
+
             if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
             {
                 free(result);
                 return NULL;
             }
-            
+
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
-        
+
         if (q_offset > packet_len)
         {
             free(result);
@@ -369,16 +369,16 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
         else
         {
             struct dns_answer* a = (struct dns_answer*)(dns_data + q_offset + len);
-            
+
             if ((q_offset + len + sizeof(struct dns_answer) - sizeof(uint16_t) + ntohs(a->num_bytes)) > packet_len)
             {
                 free(result);
                 return NULL;
             }
-            
+
             q_offset += (len + sizeof(struct dns_answer) + ntohs(a->num_bytes));
         }
-        
+
         if (q_offset > packet_len)
         {
             free(result);

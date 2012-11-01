@@ -359,7 +359,7 @@ LFQueue* Scheduler::find_queue(uint64_t class_id)
 struct Scheduler::workload* Scheduler::get_work()
 {
     SCHED_LOCK();
-    
+
     if (root->count == 0)
     {
         SCHED_UNLOCK();

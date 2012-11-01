@@ -41,7 +41,7 @@ LinkedListI::~LinkedListI()
     {
         delete merge;
     }
-    
+
     RWLOCK_DESTROY();
 }
 
@@ -283,7 +283,7 @@ inline Iterator* LinkedListI::it_first()
     {
         it->dataobj->data = NULL;
     }
-    
+
     return it;
 }
 

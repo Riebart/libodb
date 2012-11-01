@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -46,12 +46,12 @@ void fb_destroy(struct file_buffer* fb)
 }
 
 struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
-{    
+{
     if (fp == NULL)
     {
         return NULL;
     }
-        
+
     struct file_buffer* fb;
     SAFE_MALLOC(struct file_buffer*, fb, sizeof(struct file_buffer));
 
@@ -71,7 +71,7 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes)
     fb->fp = fp;
 
     fb->size = fread(fb->buffer, 1, fb->buf_size, fp);
-    
+
     //error doing initial read, other than a short file
     if (fb->size < fb->buf_size && ferror(fb->fp) != 0)
     {
@@ -89,12 +89,12 @@ struct file_buffer* fb_read_init(char* fname, uint32_t num_bytes)
 }
 
 struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes)
-{        
+{
     if (fp == NULL)
     {
         return NULL;
     }
-    
+
     struct file_buffer* fb;
     SAFE_MALLOC(struct file_buffer*, fb, sizeof(struct file_buffer));
 
