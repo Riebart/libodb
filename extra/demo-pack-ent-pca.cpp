@@ -31,6 +31,7 @@
 #include "buffer.hpp"
 #include "iterator.hpp"
 #include "utility.hpp"
+#include "scheduler.hpp"
 
 #include "bsd_hdr.h"
 #include "pca.h"
@@ -418,6 +419,20 @@ double distance(struct tcpip * a, struct tcpip * b)
     return sqrt(sum);
 }
 
+struct it_args{
+    Index * index;    
+    int32_t offset1;
+    int32_t offset2;
+    int8_t data_size;
+    double * retval;
+};
+
+void * t_it_calc(void * vp)
+{
+    struct it_args * ia = (struct it_args *)vp;
+    *(ia->retval) = it_calc(ia->index, ia->offset1, ia->offset2, ia->data_size);
+    return NULL;
+}
 
 void do_it_calcs(ODB * entropies, uint32_t timestamp)
 {
@@ -426,32 +441,58 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     es.ent_name = it_calc(index_name, sizeof(struct ip) + OFFSET(tcphdr_t, field_name), OFFSET(struct tcpip, count_name), size); \
     max_entropies.ent_name = MAX(max_entropies.ent_name, es.ent_name);
 
-
+#define T_ENTROPY_MACRO(ent_name, index_name, field_name, count_name, size, i) \
+    struct it_args ent_name; \
+    ent_name.index = index_name; ent_name.offset1 = sizeof(struct ip) + OFFSET(tcphdr_t, field_name); ent_name.offset2 = OFFSET(struct tcpip, count_name); ent_name.data_size = size; ent_name.retval = &retvals[i];\
+    sched->add_work(&t_it_calc, &ent_name, NULL, Scheduler::NONE)
+#define T_ENTROPY_MACRO2(ent_name, index_name, field_name, count_name, size, i) \
+    struct it_args ent_name; \
+    ent_name.index = index_name; ent_name.offset1 = OFFSET(struct ip, field_name); ent_name.offset2 = OFFSET(struct tcpip, count_name); ent_name.data_size = size; ent_name.retval = &retvals[i];\
+    sched->add_work(&t_it_calc, &ent_name, NULL, Scheduler::NONE)
+    
     struct entropy_stats es;
+    
+    Scheduler * sched = new Scheduler(6);
+    double retvals [9];
 
 
-    es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
-    es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
-    es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
-    es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
-    es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
-    es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
 
-    ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
-    ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
-    ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
+//     es.src_ip_entropy = it_calc(src_addr_index, OFFSET(struct ip, ip_src), OFFSET(struct tcpip, src_addr_count), sizeof(uint32_t));
+//     es.dst_ip_entropy = it_calc(dst_addr_index, OFFSET(struct ip, ip_dst), OFFSET(struct tcpip, dst_addr_count), sizeof(uint32_t));
+//     es.src_port_entropy = it_calc(src_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_sport), OFFSET(struct tcpip, src_port_count), sizeof(uint16_t));
+//     es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
+//     es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
+//     es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
+// 
+//     ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
+//     ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
+//     ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
 
 //     es.win_size_entropy = it_calc(win_size_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_win), OFFSET(struct tcpip, win_size_count), sizeof(uint16_t));
 //     max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
+    T_ENTROPY_MACRO2(src_ip_entropy, src_addr_index, ip_src, src_addr_count, sizeof(uint32_t), 0);
+    T_ENTROPY_MACRO2(dst_ip_entropy, dst_addr_index, ip_dst, dst_addr_count, sizeof(uint32_t), 1);
+    T_ENTROPY_MACRO(src_port_entropy, src_port_index, th_sport, src_port_count, sizeof(uint16_t), 2);
+    T_ENTROPY_MACRO(dst_port_entropy, dst_port_index, th_dport, dst_port_count, sizeof(uint16_t), 3);
+    T_ENTROPY_MACRO(flags_entropy, flags_index, th_flags, flags_count, sizeof(uint8_t), 4);
+    T_ENTROPY_MACRO2(payload_len_entropy, payload_len_index, ip_len, payload_len_count, sizeof(uint16_t),5);
+    T_ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t),6);
+    T_ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t),7);
+    T_ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t),8);
 
     es.timestamp = timestamp;
 
+    sched->block_until_done();
+    
     max_entropies.src_ip_entropy = MAX(max_entropies.src_ip_entropy, es.src_ip_entropy);
     max_entropies.dst_ip_entropy = MAX(max_entropies.dst_ip_entropy, es.dst_ip_entropy);
     max_entropies.src_port_entropy = MAX(max_entropies.src_port_entropy, es.src_port_entropy);
     max_entropies.dst_port_entropy = MAX(max_entropies.dst_port_entropy, es.dst_port_entropy);
     max_entropies.flags_entropy = MAX(max_entropies.flags_entropy, es.flags_entropy);
     max_entropies.payload_len_entropy = MAX(max_entropies.payload_len_entropy, es.payload_len_entropy);
+    max_entropies.win_size_entropy = MAX(max_entropies.win_size_entropy, es.win_size_entropy);
+    max_entropies.seq_entropy = MAX(max_entropies.seq_entropy, es.seq_entropy);
+    max_entropies.ack_entropy = MAX(max_entropies.ack_entropy, es.ack_entropy);
 
     entropies->add_data(&es, true);
 }

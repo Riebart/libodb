@@ -30,6 +30,7 @@ g.xlabel('Pseudo-time')
 components = []
 num=9
 spe = []
+times = []
 
 for i in range(0,num):
     components.append([])
@@ -51,14 +52,21 @@ for line in lines:
     if len(elements) > 1:
         
         for i in range(0,num):
-            components[i].append(elements[i])
+            components[i].append(elements[i+1])
+            
+        times.append(elements[0])
 
 for i in range(num-3,num):
     for j in range(0,len(components[i])):
         spe[j] += float(components[i][j])**2
+        
+for i in range(0,len(spe)):
+    if spe[i] > 0.06:
+        print "Spike at " + times[i] + " of " + str(spe[i])
          
 g.title('SPE' + ", " + sys.argv[2] + " second intervals")
 g.plot(spe)
+g.hardcopy(sys.argv[1]+'-SPE.ps', eps=0, color=1, solid=1)
 raw_input("")
 
 for i in range (0, num):
@@ -66,5 +74,5 @@ for i in range (0, num):
     g.title('Principal component ' + str(i) + ", " + sys.argv[2] + " second intervals")
     g.plot(components[i])
     #g.plot(payload_len_ent)
-    #g.hardcopy(filename=sys.argv[1]+'a.ps', eps=0, color=1, solid=1)
+    g.hardcopy(sys.argv[1]+'-'+str(i)+'.ps', eps=0, color=1, solid=1)
     raw_input("")
