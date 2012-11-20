@@ -15,41 +15,45 @@ typedef uchar_t ether_addr_t[ETHERADDRL];
 /*
  * Ethernet address - 6 octets
  */
-struct  ether_addr {
-        ether_addr_t    ether_addr_octet;
+struct  ether_addr
+{
+    ether_addr_t    ether_addr_octet;
 };
 
 /*
  * Structure of a 10Mb/s Ethernet header.
  */
-struct  ether_header {
-        struct  ether_addr      ether_dhost;
-        struct  ether_addr      ether_shost;
-        ushort_t                ether_type;
+struct  ether_header
+{
+    struct  ether_addr      ether_dhost;
+    struct  ether_addr      ether_shost;
+    ushort_t                ether_type;
 };
 
 #define ETHER_CFI       0
 
-struct  ether_vlan_header {
-        struct  ether_addr      ether_dhost;
-        struct  ether_addr      ether_shost;
-        ushort_t                ether_tpid;
-        ushort_t                ether_tci;
-        ushort_t                ether_type;
+struct  ether_vlan_header
+{
+    struct  ether_addr      ether_dhost;
+    struct  ether_addr      ether_shost;
+    ushort_t                ether_tpid;
+    ushort_t                ether_tci;
+    ushort_t                ether_type;
 };
 
 /*
  * The VLAN tag.  Available for applications that cannot make use of struct
  * ether_vlan_header because they assume Ethernet encapsulation.
  */
-struct ether_vlan_extinfo {
-        ushort_t                ether_tci;
-        ushort_t                ether_type;
+struct ether_vlan_extinfo
+{
+    ushort_t                ether_tci;
+    ushort_t                ether_type;
 };
 
 #define ETHERTYPE_PUP           (0x0200)        /* PUP protocol */
 #define ETHERTYPE_802_MIN       (0x0600)        /* Min valid ethernet type */
-                                                /* under IEEE 802.3 rules */
+/* under IEEE 802.3 rules */
 #define ETHERTYPE_IP            (0x0800)        /* IP protocol */
 #define ETHERTYPE_ARP           (0x0806)        /* Addr. resolution protocol */
 #define ETHERTYPE_REVARP        (0x8035)        /* Reverse ARP */

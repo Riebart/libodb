@@ -419,8 +419,9 @@ double distance(struct tcpip * a, struct tcpip * b)
     return sqrt(sum);
 }
 
-struct it_args{
-    Index * index;    
+struct it_args
+{
+    Index * index;
     int32_t offset1;
     int32_t offset2;
     int8_t data_size;
@@ -449,9 +450,9 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     struct it_args ent_name; \
     ent_name.index = index_name; ent_name.offset1 = OFFSET(struct ip, field_name); ent_name.offset2 = OFFSET(struct tcpip, count_name); ent_name.data_size = size; ent_name.retval = &retvals[i];\
     sched->add_work(&t_it_calc, &ent_name, NULL, Scheduler::NONE)
-    
+
     struct entropy_stats es;
-    
+
     Scheduler * sched = new Scheduler(6);
     double retvals [9];
 
@@ -463,7 +464,7 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
 //     es.dst_port_entropy = it_calc(dst_port_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_dport), OFFSET(struct tcpip, dst_port_count), sizeof(uint16_t));
 //     es.flags_entropy = it_calc(flags_index, sizeof(struct ip) + OFFSET(tcphdr_t, th_flags), OFFSET(struct tcpip, flags_count), sizeof(uint8_t));
 //     es.payload_len_entropy = it_calc(payload_len_index, OFFSET(struct ip, ip_len), OFFSET(struct tcpip, payload_len_count), sizeof(uint16_t));
-// 
+//
 //     ENTROPY_MACRO(win_size_entropy, win_size_index, th_win, win_size_count, sizeof(uint16_t));
 //     ENTROPY_MACRO(seq_entropy, seq_index, th_seq, seq_count, sizeof(uint32_t));
 //     ENTROPY_MACRO(ack_entropy, ack_index, th_ack, ack_count, sizeof(uint32_t));
@@ -483,17 +484,17 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     es.timestamp = timestamp;
 
     sched->block_until_done();
-    
+
     es.src_ip_entropy = retvals[0];
     es.dst_ip_entropy = retvals[1];
-    es.src_port_entropy = retvals[2]; 
+    es.src_port_entropy = retvals[2];
     es.dst_port_entropy = retvals[3];
     es.flags_entropy = retvals[4];
     es.payload_len_entropy = retvals[5];
     es.win_size_entropy = retvals[6];
     es.seq_entropy = retvals[7];
     es.ack_entropy = retvals[8];
-    
+
     max_entropies.src_ip_entropy = MAX(max_entropies.src_ip_entropy, es.src_ip_entropy);
     max_entropies.dst_ip_entropy = MAX(max_entropies.dst_ip_entropy, es.dst_ip_entropy);
     max_entropies.src_port_entropy = MAX(max_entropies.src_port_entropy, es.src_port_entropy);
@@ -505,7 +506,7 @@ void do_it_calcs(ODB * entropies, uint32_t timestamp)
     max_entropies.ack_entropy = MAX(max_entropies.ack_entropy, es.ack_entropy);
 
     entropies->add_data(&es, true);
-    
+
     delete sched;
 }
 
