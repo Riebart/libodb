@@ -681,7 +681,7 @@ void* process_interval(void* args)
         }
 
         // Entropy + total queries + total unique
-        fwrite(&(stats[i]->entropy), 1, 2 * sizeof(double), out);
+        fwrite(&(stats[i]->entropy), 1, sizeof(double), out);
         fwrite(&(stats[i]->weighted_entropy), 1, sizeof(double), out);
         fwrite(&(stats[i]->total_queries), 1, sizeof(uint64_t), out);
         fwrite(&(stats[i]->total_query_length), 1, sizeof(uint64_t), out);

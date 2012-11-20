@@ -35,7 +35,11 @@ int num_cycles;
 int num_indices;
 int num_consumers;
 
+#if (ARCH64BIT)
 volatile uint64_t num_spin_waits;
+#elif (ARCH32BIT)
+volatile uint32_t num_spin_waits;
+#endif
 
 inline void* spin_work(int num_cycles)
 {
@@ -46,11 +50,21 @@ inline void* spin_work(int num_cycles)
     }
 
 #if (CMAKE_COMPILER_SUITE_SUN)
+#if (ARCH64BIT)
     atomic_inc_64_nv(&num_spin_waits);
+#else
+    atomic_inc_32_nv(&num_spin_waits);
+#endif
 #elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_fetch_and_add(&num_spin_waits, 1);
 #else
+#if (ARCH64BIT)
 #warning "Can't find a way to atomicly increment a uint64_t."
+#elif (ARCH32BIT)
+#warning "Can't find a way to atomicly increment a uint32_t."
+#else
+#warning "Not 32 or 64 bit architecture. What are we on?"
+#endif
     int temp[-1];
 #endif
 

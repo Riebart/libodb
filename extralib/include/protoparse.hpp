@@ -18,11 +18,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef SYSTEM_NAME_LINUX
-#include <net/ethernet.h>
-#else
-#include <sys/ethernet.h>
-#endif
+#include "etherstub.h"
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
