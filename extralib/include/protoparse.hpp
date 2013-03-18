@@ -557,6 +557,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     return p_offset;
 }
 
+#warning "Be able to return multiple 'queries' from one packet, including answers."
 uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, uint32_t packet_len)
 {
     struct flow_sig* f = *fp;
@@ -567,7 +568,6 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         if (dns_result == NULL)
         {
-            free(dns_result);
             return p_offset;
         }
 

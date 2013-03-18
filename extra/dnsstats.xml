@@ -22,6 +22,8 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
         prestr  = A string whose length is indicated by the first byte of the field.
         pre2str_l/pre2str_b = Same as prestr, but the length is 2 bytes (l/b indicates endianness of that field).
         cstr = C-style string that is null-terminated.
+        fstr = fixed-length string, takes a length parameter that denotes how long the segment is
+        tstr = tokenized strong, like in DNS records
             ** The "_l" or "_b" indicates whether it is stored in little or big endian in the file.
             
      Notes:
@@ -50,7 +52,7 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
   <value type="uint64_l" name="Number of non-DNS packets over UDP 53"/>
   <value type="uint64_l" name="Number of Unique non-DNS payloads over UDP 53" label="numuniquenon"/>
   <loop count="_numuniquedomains_" prefix="Domain">
-    <value type="cstr" name="Registered Domain"/>
+    <value type="tstr" name="Registered Domain"/>
     <value type="double_l" name="Domain Entropy"/>
     <value type="double_l" name="Domain Length-Weighted Entropy"/>
     <value type="uint64_l" name="Total Queries to Domain"/>
@@ -59,7 +61,7 @@ Copyright 2010-2012 Michael Himbeault and Travis Friesen
   </loop>
 <!--
   <loop count="_numuniquequeries_" prefix="Query">
-    <value type="cstr" name="Query String"/>
+    <value type="tstr" name="Query String"/>
 -->
     <!--
     The following field contains information about what flags were thrown during 

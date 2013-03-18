@@ -131,7 +131,11 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{NO_OPTIMIZE}" STREQUAL "" 
         message(STATUS "Found tcmalloc as ${TCMALLOC_LIB}")
         list(APPEND LIBS ${TCMALLOC_LIB}) # Reference: http://www.cmake.org/Wiki/CMake_Performance_Tips
 #        list(APPEND CMAKE_C_FLAGS "-fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+    else()
+        message(STATUS "No tcmalloc library in use")
     endif()
+else()
+    message(STATUS "No tcmalloc library in use")
 endif()
 
 # set(CMAKE_C_FLAGS "${CMAKE_FLAGS_X64} -Wall -O0 -g -fno-inline")

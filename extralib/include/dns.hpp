@@ -245,7 +245,8 @@ struct dns_verify_result* dns_verify_packet(const uint8_t* dns_data, uint32_t pa
     uint16_t flags = ntohs(hdr->flags);
     if ((flags & DNS_FLAG_Z) != 0)
     {
-        return false;
+        free(result);
+        return NULL;
     }
 
     // Now check the query strings in all of the questions.
@@ -414,28 +415,32 @@ void str_tolower(char* str)
     }
 }
 
+// This is very similar to __query_str_len which could lend to turning the latter into
+// doing this one's job. Tie this into protoparse, and you can output multiple queries
+// per packet.
 uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len)
 {
     char str[DNS_QUERY_MAX_LEN];
     uint32_t len = DNS_QUERY_MAX_LEN - 1;
     str[len] = 0;
 
-    struct __dns_query_it q = { p, sizeof(struct dns_header), 0, 0, packet_len, false };
+    struct __dns_query_it q = { p, sizeof(struct dns_header), 0, 0, packet_len, 0, false };
 
-    len -= (p[sizeof(struct dns_header)] + 1);
-    memcpy(str + len, p + sizeof(struct dns_header), p[sizeof(struct dns_header)] + 1);
+    if ((p[q.pos] & 0xc0) != 0xc0)
+    {
+        len -= (p[q.pos] + 1);
+        memcpy(str + len, p + q.pos, p[q.pos] + 1);
+    }
 
-    while (true)
+    while (p[0] > 0)
     {
         p = __dns_get_next_token(&q);
-
-        if (p[0] == 0)
+        
+        if (p[0] > 0)
         {
-            break;
+            len -= (p[0] + 1);
+            memcpy(str + len, p, p[0] + 1);
         }
-
-        len -= (p[0] + 1);
-        memcpy(str + len, p, p[0] + 1);
     }
 
     SAFE_MALLOC(char*, *strp, (DNS_QUERY_MAX_LEN - len));

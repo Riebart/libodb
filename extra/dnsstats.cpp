@@ -299,7 +299,7 @@ int32_t compare_memcmp(void* aV, void* bV)
     int32_t c = aF->hdr_size - bF->hdr_size;
     if (c == 0)
     {
-        c = memcmp(aV, bV, sizeof(struct flow_sig) + aF->hdr_size);
+        c = memcmp(aF, bF, sizeof(struct flow_sig) + aF->hdr_size - 1);
     }
 
     return c;
@@ -372,6 +372,7 @@ inline void process_query(struct domain_stat* stats, struct sig_encap* encap)
     uint32_t query_len = dns->query_len;
 
     stats->weighted_entropy += query_len * cur_count * log((double)cur_count);
+
     stats->total_query_length += cur_count * query_len;
 }
 
