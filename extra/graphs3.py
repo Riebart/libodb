@@ -65,6 +65,7 @@ for i in range(0,len(spe)):
         print "Spike at " + times[i] + " of " + str(spe[i])
          
 g.title('SPE' + ", " + sys.argv[2] + " second intervals")
+g.set_range("yrange", (0,0.3))
 g.plot(spe)
 g.hardcopy(sys.argv[1]+'-SPE.ps', eps=0, color=1, solid=1)
 raw_input("")
