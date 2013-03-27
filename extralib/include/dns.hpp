@@ -435,7 +435,7 @@ uint16_t dns_get_query_string(const uint8_t* p, char** strp, uint32_t packet_len
     while (p[0] > 0)
     {
         p = __dns_get_next_token(&q);
-        
+
         if (p[0] > 0)
         {
             len -= (p[0] + 1);

@@ -41,28 +41,28 @@ int init_mysql()
 
     myconn = mysql_init(NULL);
 
-    if (myconn == NULL) 
+    if (myconn == NULL)
     {
         printf("Error %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
         exit(1);
     }
 
-    if (mysql_real_connect(myconn, "localhost", "root", "root", NULL, 0, NULL, 0) == NULL) 
+    if (mysql_real_connect(myconn, "localhost", "root", "root", NULL, 0, NULL, 0) == NULL)
     {
         printf("Error %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
         exit(1);
     }
-    
+
     mysql_query(myconn, "DROP DATABASE testdb");
-    
-    if (mysql_query(myconn, "CREATE DATABASE IF NOT EXISTS testdb")) 
+
+    if (mysql_query(myconn, "CREATE DATABASE IF NOT EXISTS testdb"))
     {
         printf("Error %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
         exit(1);
     }
-    
+
     mysql_query(myconn, "USE testdb");
-    
+
     if (mysql_query(myconn, "CREATE TABLE IF NOT EXISTS packets (packet_id int NOT NULL PRIMARY KEY AUTO_INCREMENT, srcip int(32) UNSIGNED, dstip int(32) UNSIGNED, srcport int(16) UNSIGNED,  dstport int(16) UNSIGNED, payload varchar(1500))"))
     {
         printf("MySError %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
@@ -80,7 +80,7 @@ int init_mysql()
     mysql_query(myconn, "CREATE INDEX dipindex ON packets (dstip)");
     mysql_query(myconn, "CREATE INDEX sptindex ON packets (srcport)");
     mysql_query(myconn, "CREATE INDEX dptindex ON packets (dstport)");
-    
+
     //Example query
     /*
     mysql_query(conn, "SELECT * FROM writers");
@@ -96,10 +96,10 @@ int init_mysql()
         }
         printf("\n");
     }
-  */
-    
+    */
+
     return 1;
-    
+
 }
 
 int init_redis()
@@ -111,17 +111,17 @@ int init_redis()
 
 int init_postgres()
 {
-    
+
     pgconn = PQconnectdb("dbname=testdb host=localhost user=postgres password=root");
     PGresult * res;
 
-    if (PQstatus(pgconn) == CONNECTION_BAD) 
+    if (PQstatus(pgconn) == CONNECTION_BAD)
     {
         puts("We were unable to connect to the database");
         exit(1);
     }
-    
-        //Add tables and rows and indices
+
+    //Add tables and rows and indices
 //     res = PQexec(pgconn, "CREATE DATABASE IF NOT EXISTS testdb");
 //     sPQexec(pgconn, "USE testdb");
 //     if (PQresultStatus(res) != PGRES_COMMAND_OK)
@@ -136,15 +136,15 @@ int init_postgres()
         printf("PG: %s", PQresultErrorMessage(res));
     }
 
-    
+
     res = PQexec(pgconn, "CREATE TABLE packets (packet_id SERIAL NOT NULL PRIMARY KEY, srcip int8, dstip int8, srcport int4,  dstport int4, payload varchar(1500))");
-    
+
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         printf("PG: %s", PQresultErrorMessage(res));
         exit(1);
     }
-    
+
     res = PQexec(pgconn, "CREATE INDEX sipindex ON packets (srcip)");
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
@@ -160,41 +160,41 @@ int init_postgres()
     /*
         res = PQexec(conn,
                     "update people set phonenumber=\'5055559999\' where id=3");
-23 
-24         res = PQexec(conn,
-25                 "select lastname,firstname,phonenumber from people order by id");
-26 
-27         if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-28                 puts("We did not get any data!");
-29                 exit(0);
-30         }
-31 
-32         rec_count = PQntuples(res);
-33 
-34         printf("We received %d records.\n", rec_count);
-35         puts("==========================");
-36 
-37         for (row=0; row<rec_count; row++) {
-38                 for (col=0; col<3; col++) {
-39                         printf("%s\t", PQgetvalue(res, row, col));
-40                 }
-41                 puts("");
-42         }
-43 
-44         puts("==========================");
-45 
-46         PQclear(res);
-*/
-    
+    23
+    24         res = PQexec(conn,
+    25                 "select lastname,firstname,phonenumber from people order by id");
+    26
+    27         if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+    28                 puts("We did not get any data!");
+    29                 exit(0);
+    30         }
+    31
+    32         rec_count = PQntuples(res);
+    33
+    34         printf("We received %d records.\n", rec_count);
+    35         puts("==========================");
+    36
+    37         for (row=0; row<rec_count; row++) {
+    38                 for (col=0; col<3; col++) {
+    39                         printf("%s\t", PQgetvalue(res, row, col));
+    40                 }
+    41                 puts("");
+    42         }
+    43
+    44         puts("==========================");
+    45
+    46         PQclear(res);
+    */
+
     return 1;
-    
+
 }
 
 int init_tokyo()
 {
-    
+
     return 1;
-    
+
 }
 
 
@@ -273,12 +273,12 @@ int init_odb()
     INDEX_MACRO(dst_addr_index, compare_dst_addr, NULL);
     INDEX_MACRO(src_port_index, compare_src_port, NULL);
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
-    
+
 
     odb->start_scheduler(5);
-    
+
     return 1;
-    
+
 }
 
 
@@ -289,15 +289,15 @@ void ins_mysql(struct tcpip * packet)
     char str[4096];
     char pstr[3001];
     mysql_real_escape_string(myconn, pstr, (char *)packet, strlen((char *)packet));
-    
+
     snprintf(str, 2048, "INSERT INTO packets (srcip, dstip, srcport, dstport, payload) VALUES (%d, %d, %d, %d, \"%.3000s\")", packet->ip_struct.ip_src.s_addr, packet->ip_struct.ip_dst.s_addr, packet->tcp_struct.th_sport, packet->tcp_struct.th_dport, pstr);
-    
+
     if (mysql_query(myconn, str))
     {
         printf("MySError %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
-        exit(1);       
+        exit(1);
     }
-    
+
 }
 
 
@@ -305,17 +305,17 @@ void ins_pg(struct tcpip * packet)
 {
     char str[4096];
     char * es = PQescapeLiteral(pgconn, (char*)packet, 1500);
-    
+
     snprintf(str, 2048, "INSERT INTO packets (srcip, dstip, srcport, dstport, payload) VALUES (%d, %d, %d, %d, '%.3000s')", packet->ip_struct.ip_src.s_addr, packet->ip_struct.ip_dst.s_addr, packet->tcp_struct.th_sport, packet->tcp_struct.th_dport, es);
-    
+
     PGresult * res = PQexec(pgconn, str);
-    
+
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         printf("PG: %s", PQresultErrorMessage(res));
         exit(1);
     }
-    
+
     PQfreemem(es);
 }
 
@@ -323,7 +323,7 @@ void ins_odb(struct tcpip * packet)
 {
     odb->add_data(packet);
 }
-    
+
 
 void gen_packet(struct tcpip * packet)
 {
@@ -340,64 +340,64 @@ void run_sim(void (* fn) (struct tcpip *))
     struct timespec start, end;
     int i;
     struct tcpip packet;
-    
+
     clock_gettime(CLOCK_MONOTONIC, &start);
-    
+
     for (i=0; i<NUM_PACKETS; i++)
     {
         gen_packet(&packet);
-        fn(&packet);        
+        fn(&packet);
     }
-    
+
     if (fn == ins_mysql)
     {
         printf("MySQL committing...\n");
         if (mysql_commit(myconn))
         {
             printf("MySError %u: %s\n", mysql_errno(myconn), mysql_error(myconn));
-            exit(1);            
+            exit(1);
         }
     }
     else if (fn == ins_pg)
     {
         printf("Postgres committing...\n");
         PGresult * res = PQexec(pgconn, "COMMIT");
-        
+
         if (PQresultStatus(res) != PGRES_COMMAND_OK)
         {
             printf("PG: %s", PQresultErrorMessage(res));
             exit(1);
         }
-        
+
     }
     else if (fn ==ins_odb)
     {
         odb->block_until_done();
     }
-        
-    
+
+
     clock_gettime(CLOCK_MONOTONIC, &end);
-    
+
     printf("Time elapsed: %fs\n", TIME_DIFF(start, end));
-    
+
 }
 
 
 int main (int argc, char ** argv)
 {
     printf("RAND_MAX is %d\n", RAND_MAX);
-    
+
     srandom(1);
-    
+
     init_mysql();
 //     init_postgres();
     init_odb();
-    
+
     mysql_autocommit(myconn, 0);
 //     run_sim(ins_mysql);
-    
+
 //     run_sim(ins_pg);
-    
+
     run_sim(ins_odb);
 
 
