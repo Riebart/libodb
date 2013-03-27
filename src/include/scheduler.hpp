@@ -29,6 +29,8 @@
 #include "lock.hpp"
 #include "redblacktreei.hpp"
 
+#include "pthread.h"
+
 #define SCHED_MLOCK() pthread_mutex_lock(&mlock)
 #define SCHED_MLOCK_P(x) pthread_mutex_lock(&(x->mlock))
 #define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
@@ -37,13 +39,13 @@
 #define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
 #define SCHED_MLOCK_T pthread_mutex_t mlock
 
-#define SCHED_LOCK() PTHREAD_SPIN_LOCK()
-#define SCHED_LOCK_P(p) PTHREAD_SPIN_LOCK_P(p)
-#define SCHED_UNLOCK() PTHREAD_SPIN_UNLOCK()
-#define SCHED_UNLOCK_P(p) PTHREAD_SPIN_UNLOCK_P(p)
-#define SCHED_LOCK_T PTHREAD_SPIN_LOCK_T
-#define SCHED_LOCK_INIT() PTHREAD_SPIN_LOCK_INIT()
-#define SCHED_LOCK_DESTROY() PTHREAD_SPIN_LOCK_DESTROY()
+#define SCHED_LOCK() pthread_spin_lock(&lock)
+#define SCHED_LOCK_P(x) pthread_spin_lock(&(x->lock))
+#define SCHED_UNLOCK() pthread_spin_unlock(&lock)
+#define SCHED_UNLOCK_P(x) pthread_spin_unlock(&(x->lock))
+#define SCHED_LOCK_T pthread_spinlock_t lock
+#define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
+#define SCHED_LOCK_DESTROY() pthread_spin_destroy(&lock)
 
 // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
 // #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)

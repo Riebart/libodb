@@ -275,7 +275,7 @@ int init_odb()
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
     
 
-//     odb->start_scheduler(1);
+    odb->start_scheduler(5);
     
     return 1;
     
@@ -390,7 +390,7 @@ int main (int argc, char ** argv)
     srandom(1);
     
     init_mysql();
-    init_postgres();
+//     init_postgres();
     init_odb();
     
     mysql_autocommit(myconn, 0);

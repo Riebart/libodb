@@ -9,7 +9,7 @@
 # Copyright 2010-2012 Michael Himbeault and Travis Friesen
 #
 
-include_directories("include" "../extralib/include")
+include_directories("include" "../extralib/include" "../extralib/include/spinlock")
 
 add_library(odb SHARED 
             datastore.cpp 

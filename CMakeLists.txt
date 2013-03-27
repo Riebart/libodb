@@ -180,7 +180,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_ARCH_TUNE}")
 
 #this is probably the wrong way to do this: setting compile-time defines
 add_definitions(-DENABLE_PTHREAD_LOCKS)
-add_definitions(-DPTHREAD_SIMPLE_LOCKS)
+add_definitions(-DPTHREAD_SPIN_LOCKS)
 
 # Create some directories. Build fails if the directories don't already exist.
 #   This is because a compiler won't write a file to a directory if the directory doesn't exit.

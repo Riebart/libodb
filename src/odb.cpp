@@ -467,7 +467,18 @@ DataObj* ODB::add_data(void* rawdata, bool add_to_all)
 
     if (add_to_all)
     {
-        all->add_data_v(dataobj->data);
+        if (scheduler == NULL)
+        {
+            all->add_data_v(dataobj->data);
+        }
+        else
+        {
+            struct sched_args* args;
+            SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
+            args->rawdata = dataobj->data;
+            args->odb = this;
+            scheduler->add_work(odb_sched_workload, args, NULL, Scheduler::NONE);
+        }
     }
 
     return dataobj;
@@ -479,7 +490,18 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
 
     if (add_to_all)
     {
-        all->add_data_v(dataobj->data);
+        if (scheduler == NULL)
+        {
+            all->add_data_v(dataobj->data);
+        }
+        else
+        {
+            struct sched_args* args;
+            SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
+            args->rawdata = dataobj->data;
+            args->odb = this;
+            scheduler->add_work(odb_sched_workload, args, NULL, Scheduler::NONE);
+        }
     }
 
     return dataobj;
