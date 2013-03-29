@@ -274,8 +274,8 @@ int init_odb()
     INDEX_MACRO(src_port_index, compare_src_port, NULL);
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
 
-
-    odb->start_scheduler(5);
+    odb->start_scheduler(2);
+    
 
     return 1;
 
@@ -325,12 +325,20 @@ void ins_odb(struct tcpip * packet)
 }
 
 
+uint32_t val=0;
+
+
 void gen_packet(struct tcpip * packet)
 {
-    packet->ip_struct.ip_src.s_addr = random();
-    packet->ip_struct.ip_dst.s_addr = random();
-    packet->tcp_struct.th_sport = random() % MAX_PORT;
-    packet->tcp_struct.th_dport = random() % MAX_PORT;
+//     packet->ip_struct.ip_src.s_addr = random();
+//     packet->ip_struct.ip_dst.s_addr = random();
+//     packet->tcp_struct.th_sport = random() % MAX_PORT;
+//     packet->tcp_struct.th_dport = random() % MAX_PORT;
+    packet->ip_struct.ip_src.s_addr = val++;
+    packet->ip_struct.ip_dst.s_addr = val++;
+    packet->tcp_struct.th_sport = val++ % MAX_PORT;
+    packet->tcp_struct.th_dport = val++ % MAX_PORT;
+
     //don't really care what the rest of the packet is...
 }
 
@@ -394,11 +402,16 @@ int main (int argc, char ** argv)
     init_odb();
 
     mysql_autocommit(myconn, 0);
+
+    run_sim(ins_mysql);
+
 //     run_sim(ins_mysql);
 
 //     run_sim(ins_pg);
 
-    run_sim(ins_odb);
+    
+//     run_sim(ins_odb);
+
 
 
 }
