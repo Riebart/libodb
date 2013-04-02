@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <sqlite3.h>
+#include <stdio.h>
+
 #include <my_global.h>
 #include <mysql.h>
 // #include "credis.h"
@@ -25,6 +28,8 @@ MYSQL *myconn;
 // REDIS rh;
 PGconn *pgconn;
 ODB* odb;
+sqlite3 * slconn;
+sqlite3_stmt * sl_stmt;
 
 int NUM_PACKETS=1000000;
 
@@ -197,6 +202,36 @@ int init_tokyo()
 
 }
 
+int init_sqlite()
+{
+    int retval;
+    if (sqlite3_open(":memory:", &slconn))
+    {
+        printf("SQLite error on db create: %s", sqlite3_errmsg(slconn));
+        exit(1);        
+    }
+    
+    if (sqlite3_exec(slconn, "CREATE TABLE IF NOT EXISTS packets (packet_id integer NOT NULL PRIMARY KEY AUTOINCREMENT, srcip integer , dstip integer , srcport integer ,  dstport integer , payload blob)", NULL, NULL, NULL))
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }
+    if (sqlite3_exec(slconn, "CREATE INDEX sipindex ON packets (srcip)", NULL, NULL, NULL))
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }
+    
+    sqlite3_exec(slconn, "CREATE INDEX dipindex ON packets (dstip)", NULL, NULL, NULL);
+    sqlite3_exec(slconn, "CREATE INDEX sptindex ON packets (srcport)", NULL, NULL, NULL);
+    sqlite3_exec(slconn, "CREATE INDEX dptindex ON packets (dstport)", NULL, NULL, NULL);
+    sqlite3_exec(slconn, "BEGIN", NULL, NULL, NULL);
+    
+    sqlite3_prepare_v2(slconn, "INSERT INTO packets (srcip, dstip, srcport, dstport, payload) VALUES (?, ?, ?, ?, ?)", 2000, &sl_stmt, NULL );
+    
+    return 1;
+}
+
 
 //Some helper functions and macros for the ODB
 #define COMPARE_MACRO(name, field_name) \
@@ -274,7 +309,7 @@ int init_odb()
     INDEX_MACRO(src_port_index, compare_src_port, NULL);
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
 
-    odb->start_scheduler(2);
+    odb->start_scheduler(1);
     
 
     return 1;
@@ -318,6 +353,28 @@ void ins_pg(struct tcpip * packet)
 
     PQfreemem(es);
 }
+
+void ins_sql(struct tcpip * packet)
+{
+//     sqlite3_exec(slconn, "CREATE INDEX dptindex ON packets (dstport)", NULL, NULL, NULL);
+
+    sqlite3_reset(sl_stmt);
+
+    sqlite3_bind_int(sl_stmt, 0, packet->ip_struct.ip_src.s_addr);
+    sqlite3_bind_int(sl_stmt, 1, packet->ip_struct.ip_dst.s_addr);
+    sqlite3_bind_int(sl_stmt, 2, packet->tcp_struct.th_sport);
+    sqlite3_bind_int(sl_stmt, 3, packet->tcp_struct.th_dport);
+    sqlite3_bind_blob(sl_stmt, 4, packet, sizeof(struct tcpip), SQLITE_STATIC);
+    
+    if (sqlite3_step(sl_stmt) != SQLITE_DONE)
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }
+    
+    
+}
+
 
 void ins_odb(struct tcpip * packet)
 {
@@ -382,6 +439,18 @@ void run_sim(void (* fn) (struct tcpip *))
     {
         odb->block_until_done();
     }
+    else if (fn == ins_sql)
+    {
+        printf("SQLite committing...\n");
+        int res = sqlite3_exec(slconn, "COMMIT", NULL, NULL, NULL);
+
+        if (res)
+        {
+            printf("SQLite error: %s", sqlite3_errmsg(slconn));
+            exit(1);         
+        }
+
+    }
 
 
     clock_gettime(CLOCK_MONOTONIC, &end);
@@ -400,10 +469,11 @@ int main (int argc, char ** argv)
     init_mysql();
 //     init_postgres();
     init_odb();
+    init_sqlite();
 
     mysql_autocommit(myconn, 0);
 
-    run_sim(ins_mysql);
+//     run_sim(ins_mysql);
 
 //     run_sim(ins_mysql);
 
@@ -411,6 +481,7 @@ int main (int argc, char ** argv)
 
     
 //     run_sim(ins_odb);
+    run_sim(ins_sql);
 
 
 
