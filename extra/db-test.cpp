@@ -23,6 +23,7 @@
 
 #define TIME_DIFF(start, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 
+#define NUM_RUNS 3
 
 MYSQL *myconn;
 // REDIS rh;
@@ -85,6 +86,8 @@ int init_mysql()
     mysql_query(myconn, "CREATE INDEX dipindex ON packets (dstip)");
     mysql_query(myconn, "CREATE INDEX sptindex ON packets (srcport)");
     mysql_query(myconn, "CREATE INDEX dptindex ON packets (dstport)");
+    
+    mysql_autocommit(myconn, 0);
 
     //Example query
     /*
@@ -368,7 +371,7 @@ void ins_sql(struct tcpip * packet)
     
     if (sqlite3_step(sl_stmt) != SQLITE_DONE)
     {
-        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        printf("SQLite error: %s\n", sqlite3_errmsg(slconn));
         exit(1);         
     }
     
@@ -400,7 +403,7 @@ void gen_packet(struct tcpip * packet)
 }
 
 
-void run_sim(void (* fn) (struct tcpip *))
+double run_sim(void (* fn) (struct tcpip *))
 {
     struct timespec start, end;
     int i;
@@ -446,7 +449,7 @@ void run_sim(void (* fn) (struct tcpip *))
 
         if (res)
         {
-            printf("SQLite error: %s", sqlite3_errmsg(slconn));
+            printf("SQLite error: %s\n", sqlite3_errmsg(slconn));
             exit(1);         
         }
 
@@ -455,33 +458,64 @@ void run_sim(void (* fn) (struct tcpip *))
 
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    printf("Time elapsed: %fs\n", TIME_DIFF(start, end));
+//     printf("Time elapsed: %fs\n", TIME_DIFF(start, end));
+    
+    return TIME_DIFF(start,end);
 
 }
 
 
 int main (int argc, char ** argv)
 {
+    
+    extern char* optarg;
+
+    int ch;
+
+#warning "TODO: Validity checks on the options"
+    while ( (ch = getopt(argc, argv, "n:")) != -1)
+    {
+        switch (ch)
+        {
+        case 'n':
+            sscanf(optarg, "%lu", &NUM_PACKETS);
+            break;
+        }
+    }
+    
     printf("RAND_MAX is %d\n", RAND_MAX);
+    printf("NUM_PACKETS is %d\n", NUM_PACKETS);
 
     srandom(1);
 
-    init_mysql();
-//     init_postgres();
-    init_odb();
-    init_sqlite();
 
-    mysql_autocommit(myconn, 0);
+    
 
-//     run_sim(ins_mysql);
+    
+    double tot=0;
+    int i;
+    for (i=0; i<NUM_RUNS; i++)
+    {
+        
+        init_mysql();
+    //     init_postgres();
+//         init_odb();
+//         init_sqlite();
+        //     run_sim(ins_mysql);
 
-//     run_sim(ins_mysql);
+        double cur = run_sim(ins_mysql);
 
 //     run_sim(ins_pg);
 
     
 //     run_sim(ins_odb);
-    run_sim(ins_sql);
+//         double cur = run_sim(ins_sql);
+        printf("Time elapsed: %fs\n", cur);
+        tot=tot+cur;
+        
+    }
+    
+    printf("Average time: %fs\n", tot/NUM_RUNS);
 
 
 
