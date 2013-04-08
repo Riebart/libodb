@@ -10,6 +10,7 @@
 #include <netinet/ip.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <sqlite3.h>
 #include <stdio.h>
@@ -24,6 +25,8 @@
 #define TIME_DIFF(start, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 
 #define NUM_RUNS 3
+#define SQLITE_TMPFILE "./sqlite-temp"
+#define NUM_ODB_THREADS 4
 
 MYSQL *myconn;
 // REDIS rh;
@@ -208,7 +211,11 @@ int init_tokyo()
 int init_sqlite()
 {
     int retval;
-    if (sqlite3_open(":memory:", &slconn))
+    
+    unlink(SQLITE_TMPFILE);
+    
+//     if (sqlite3_open(":memory:", &slconn))
+    if (sqlite3_open(SQLITE_TMPFILE, &slconn))
     {
         printf("SQLite error on db create: %s", sqlite3_errmsg(slconn));
         exit(1);        
@@ -312,7 +319,7 @@ int init_odb()
     INDEX_MACRO(src_port_index, compare_src_port, NULL);
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
 
-    odb->start_scheduler(1);
+    odb->start_scheduler(NUM_ODB_THREADS);
     
 
     return 1;
@@ -496,20 +503,20 @@ int main (int argc, char ** argv)
     int i;
     for (i=0; i<NUM_RUNS; i++)
     {
+        double cur=0;
         
-        init_mysql();
-    //     init_postgres();
+//         init_mysql();
+//         cur = run_sim(ins_mysql);
+        
+//         init_postgres();
+//         cur = run_sim(ins_pg);
+        
 //         init_odb();
-//         init_sqlite();
-        //     run_sim(ins_mysql);
+//         cur = run_sim(ins_odb);
+        
+        init_sqlite();
+        run_sim(ins_mysql);
 
-        double cur = run_sim(ins_mysql);
-
-//     run_sim(ins_pg);
-
-    
-//     run_sim(ins_odb);
-//         double cur = run_sim(ins_sql);
         printf("Time elapsed: %fs\n", cur);
         tot=tot+cur;
         
