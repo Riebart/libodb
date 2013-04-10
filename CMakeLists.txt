@@ -39,6 +39,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
     add_definitions(-DSYSTEM_NAME_SUNOS)
 endif()
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_definitions(-DSYSTEM_NAME_DARWIN)
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{SKIP_SUN_COMPILER}" STREQUAL "")
     message(STATUS "Attempting to set compiler to Sun Studio on Solaris")
     find_program(COMPILER_C NAMES suncc)
@@ -68,7 +72,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR ${COMPILER_SUITE} MATCHES "none")
     find_program(COMPILER_C NAMES gcc)
     find_program(COMPILER_CXX NAMES g++)
     message(STATUS " -> Found ${COMPILER_C} and ${COMPILER_CXX}")
-    
+
     if(${COMPILER_C} MATCHES "none" OR ${COMPILER_CXX} MATCHES "none")
         set(COMPILER_SUITE "none")
         set(COMPILER_C "none")
@@ -112,7 +116,11 @@ set(CMAKE_FLAGS_ARCH_TUNE "")
 if((NOT ${CMAKE_SYSTEM_NAME} STREQUAL "CYGWIN") AND "$ENV{NO_FORCE_64_BIT}" STREQUAL "" AND "$ENV{FORCE_I386}" STREQUAL "")
     message(STATUS "Forcing 64-bit compilation")
     add_definitions(-DARCH64BIT)
-    set(CMAKE_FLAGS_ARCH_TUNE "-march=athlon64 -mtune=athlon64 -m64")
+    if("${COMPILER_SUITE}" STREQUAL "gcc")
+        set(CMAKE_FLAGS_ARCH_TUNE "-march=athlon64 -mtune=athlon64 -m64")
+    else()
+        set(CMAKE_FLAGS_ARCH_TUNE "-m64")
+    endif()
 elseif(NOT "$ENV{FORCE_I386}" STREQUAL "")
     message(STATUS "Forcing i386 compilation")
     add_definitions(-DARCH32BIT)
@@ -121,8 +129,6 @@ endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND ${COMPILER_SUITE} MATCHES "gcc")
     list(APPEND CMAKE_C_FLAGS "-march=native -mtune=native") # These options don't exist for Sun's compilers
-else()
-    add_definitions(-DSYSTEM_NAME_DARWIN)
 endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "SunOS" AND "$ENV{NO_OPTIMIZE}" STREQUAL "" AND "$ENV{SKIP_TCMALLOC}" STREQUAL "")
@@ -243,6 +249,8 @@ else()
 endif()
 
 add_custom_target(everything COMMAND make checks extra doc check)
+add_custom_target(all COMMAND make checks extra doc check)
+add_custom_target(help COMMAND echo "Available targets: all extra doc checks check test")
 
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})
 
