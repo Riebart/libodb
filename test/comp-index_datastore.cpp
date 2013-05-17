@@ -33,8 +33,8 @@
 
 #include "cmwc.h"
 
-#define SPREAD 5000000
-#define NUM_TABLES 4
+#define SPREAD 500
+#define NUM_TABLES 1
 #define NUM_QUERIES 1
 
 struct cmwc_state c;

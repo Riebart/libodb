@@ -18,7 +18,7 @@ else
     files=$(echo -n "")
     for f in "$@"
     do
-        files=$(cat <(echo "$files") <(find "./$f"))
+        files=$(cat <(echo "$files") <(find "$f"))
     done
 fi
 
