@@ -31,7 +31,7 @@ target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
 target_link_libraries(dpep ${LIBS})
 target_link_libraries(db-test pq rt mysqlclient ${LIBS})
-target_link_libraries(db-mem-test z bz2 rt m c tokyocabinet credis ${LIBS})
+target_link_libraries(db-mem-test z bz2 rt m c tokyocabinet credis sqlite3 ${LIBS})
 # target_link_libraries(pca_test m)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")

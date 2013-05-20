@@ -9,8 +9,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sqlite3.h>
+#include <stdio.h>
+
 REDIS rh;
 ODB * odb;
+sqlite3 * slconn;
+TCMAP *map;
+TCTREE *tree;
 
 uint64_t NUM_ITEMS = 10000;
 
@@ -65,9 +71,38 @@ int init_redis()
 
 int init_tokyo()
 {
+//     map=tcmapnew();
+    tree = tctreenew();
     return 1;
 }
 
+int init_sqlite()
+{
+    int retval;
+    
+//     unlink(SQLITE_TMPFILE);
+    
+    if (sqlite3_open(":memory:", &slconn))
+//     if (sqlite3_open(SQLITE_TMPFILE, &slconn))
+    {
+        printf("SQLite error on db create: %s", sqlite3_errmsg(slconn));
+        exit(1);        
+    }
+    
+    if (sqlite3_exec(slconn, "CREATE TABLE IF NOT EXISTS tbl (k character(512) NOT NULL PRIMARY KEY, v character (1024) NOT NULL)", NULL, NULL, NULL))
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }
+    if (sqlite3_exec(slconn, "CREATE INDEX kindex ON tbl (k)", NULL, NULL, NULL))
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }
+    
+    return 1;
+    
+}
 
 int32_t compare_key(void * a, void * b)
 {
@@ -88,22 +123,40 @@ int init_odb()
 
 int insert_redis(struct odb_item* kv)//(char * key, char * val)
 {
+
     char* key = kv->key;
     char* val = kv->val;
 
 //     if (credis_set(rh, key, val) != 0)
     credis_sadd(rh, key, val);
     char* err = credis_errorreply(rh);
-//     if (err[0] != '0')
-//     {
-//         printf("%s\n", err);
-//         printf("Key: %s\n Val: %s\n", key, val);
-//     }
+    if (err[0] != '0')
+    {
+        printf("%s\n", err);
+        printf("Key: %s\n Val: %s\n", key, val);
+    }
+
 }
 
 int insert_tokyo(struct odb_item* kv)//(char * key, char * val)
 {
+//     tcmapput2(map, kv->key, kv->val);
+    tctreeput2(tree, kv->key, kv->val);
     return 1;
+}
+
+int insert_sqlite(struct odb_item* kv)
+{
+    char str [2048];
+    
+    sprintf(str, "INSERT INTO tbl (k, v) VALUES (\"%s\", \"%s\")", kv->key, kv->val);
+    
+    if (sqlite3_exec(slconn, str, NULL, NULL, NULL))
+    {
+        printf("SQLite error: %s", sqlite3_errmsg(slconn));
+        exit(1);         
+    }    
+
 }
 
 int insert_odb(struct odb_item* kv)//(char * key, char * val)
@@ -150,13 +203,17 @@ int main(int argc, char ** argv)
         }
     }
 
-    init_odb();
+//     init_odb();
 //     init_redis();
-//     init_tokyo();
+    init_tokyo();
+//     init_sqlite();
 
-    run_sim(& insert_odb);
+//     run_sim(& insert_odb);
+//     run_sim( & insert_redis);
+//     run_sim(&insert_sqlite);
+    run_sim(&insert_tokyo);
 
-    odb->block_until_done();
+//     odb->block_until_done();
 
     printf("Finished...\n");
     pause();
