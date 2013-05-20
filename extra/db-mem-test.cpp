@@ -25,7 +25,6 @@ uint64_t NUM_ITEMS = 10000;
 #define VAL_SIZE 1024
 
 #define NUM_ODB_THREADS 1
-
 #define TIME_DIFF(start, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 
 struct odb_item
@@ -61,6 +60,15 @@ int gen_kv(char * key, char * val)
 //     val[VAL_SIZE-1] = '"';
 
     return 1;
+}
+
+int update_kv(char* s, int len, int seed)
+{
+    int pos = (seed % len);
+    
+    s[pos] = (rand()%(90 - 65 + 1)) + 65;
+    
+    return pos;
 }
 
 
@@ -118,7 +126,7 @@ int init_odb()
 
     Index * keys = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_key, NULL);
 
-//     odb->start_scheduler(NUM_ODB_THREADS);
+    odb->start_scheduler(NUM_ODB_THREADS);
 
     return 1;
 }
@@ -182,13 +190,16 @@ double run_sim(int (* fn) (struct odb_item*))//(char *, char *))
     clock_gettime(CLOCK_MONOTONIC, &start);
     
     struct odb_item kv;
+    gen_kv(kv.key, kv.val);
 //    char key [KEY_SIZE];
 //    char val [VAL_SIZE];
 
     uint64_t i;
     for (i=0; i< NUM_ITEMS; i++)
     {
-        gen_kv(kv.key, kv.val);
+        update_kv(kv.key, KEY_SIZE, i);
+        update_kv(kv.val, VAL_SIZE, i);
+//         gen_kv(kv.key, kv.val);
 //         printf("%10s, %10s\n\n", key, val);
         fn(&kv);
     }
@@ -201,6 +212,7 @@ double run_sim(int (* fn) (struct odb_item*))//(char *, char *))
     clock_gettime(CLOCK_MONOTONIC, &end);
     return TIME_DIFF(start,end);
 
+    return 1;
 }
 
 int main(int argc, char ** argv)
@@ -240,23 +252,24 @@ int main(int argc, char ** argv)
         double cur=0;
 
         init_odb();
-//     init_redis();
+//         init_redis();
 //         init_tokyo();
-//     init_sqlite();
+//         init_sqlite();
 
-        cur = run_sim(& insert_odb);
-//     run_sim( & insert_redis);
-//     run_sim(&insert_sqlite);
+        cur = run_sim(&insert_odb);
+//         cur = run_sim(&insert_redis);
 //         cur = run_sim(&insert_tokyo);
+//         cur = run_sim(&insert_sqlite);
+        
         printf("Time elapsed: %fs\n", cur);
         tot=tot+cur;
         
     }
     
-    printf("Average time: %fs\n", tot/NUM_RUNS);
+    printf("\nAverage time: %fs\n", tot/NUM_RUNS);
 
     printf("Finished...\n");
-    pause();
+//     pause();
 
     return EXIT_SUCCESS;
 }

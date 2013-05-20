@@ -326,7 +326,6 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
     this->ident = _ident;
     this->datalen = _datalen;
     all = new IndexGroup(_ident, _data);
-    num_indices = 0;
     dataobj = new DataObj(_ident);
     this->data = _data;
     this->archive = _archive;
@@ -428,11 +427,11 @@ void* odb_sched_workload(void* argsV)
 #warning "Current threading is based on insertion, not per table. Changing that is done here."
 void ODB::add_data(void* rawdata)
 {
-    if ((scheduler == NULL) || (num_indices == 1))
+    if (scheduler == NULL)
     {
         all->add_data_v(data->add_data(rawdata));
     }
-    else if (num_indices > 1)
+    else
     {
         struct sched_args* args;
         SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
@@ -446,11 +445,11 @@ void ODB::add_data(void* rawdata)
 
 void ODB::add_data(void* rawdata, uint32_t nbytes)
 {
-    if ((scheduler == NULL) || (num_indices == 1))
+    if (scheduler == NULL)
     {
         all->add_data_v(data->add_data(rawdata, nbytes));
     }
-    else if (num_indices > 1)
+    else
     {
         struct sched_args* args;
         SAFE_MALLOC(struct sched_args*, args, sizeof(struct sched_args));
@@ -519,8 +518,6 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
 Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
 {
     WRITE_LOCK();
-    
-    num_indices++;
 
     if (compare == NULL)
     {
@@ -700,7 +697,7 @@ inline time_t ODB::get_time()
 
 uint32_t ODB::start_scheduler(uint32_t num_threads)
 {
-    if (num_threads <= 1)
+    if (num_threads == 0)
     {
         return 0;
     }

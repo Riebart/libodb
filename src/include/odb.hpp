@@ -141,7 +141,6 @@ private:
     Archive* archive;
     void (*freep)(void*);
     Scheduler* scheduler;
-    uint32_t num_indices;
 
     int running;
     RWLOCK_T;

@@ -31,6 +31,9 @@
 
 #include "pthread.h"
 
+// The MLOCK class of locks is used in the scheduler anywhere sleeping is
+// necessary. This includes in the worker threads when there is no more
+// work immediately available and in block_until_done.
 #define SCHED_MLOCK() pthread_mutex_lock(&mlock)
 #define SCHED_MLOCK_P(x) pthread_mutex_lock(&(x->mlock))
 #define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
@@ -39,6 +42,10 @@
 #define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
 #define SCHED_MLOCK_T pthread_mutex_t mlock
 
+// The LOCK class of locks is used when a fast lock is required, and we 
+// won't be sleeping on it. This is used in add_work (overseer thread)
+// and get_work (worker threads). The worker threads also use these locks
+// when they are shuffling the workqueue in its tree.
 #define SCHED_LOCK() pthread_spin_lock(&lock)
 #define SCHED_LOCK_P(x) pthread_spin_lock(&(x->lock))
 #define SCHED_UNLOCK() pthread_spin_unlock(&lock)
