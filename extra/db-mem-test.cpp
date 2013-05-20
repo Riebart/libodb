@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <sqlite3.h>
 #include <stdio.h>
@@ -23,7 +24,9 @@ uint64_t NUM_ITEMS = 10000;
 #define KEY_SIZE 512
 #define VAL_SIZE 1024
 
-#define NUM_ODB_THREADS 4
+#define NUM_ODB_THREADS 1
+
+#define TIME_DIFF(start, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 
 struct odb_item
 {
@@ -71,8 +74,8 @@ int init_redis()
 
 int init_tokyo()
 {
-//     map=tcmapnew();
-    tree = tctreenew();
+    map=tcmapnew();
+//     tree = tctreenew();
     return 1;
 }
 
@@ -115,7 +118,7 @@ int init_odb()
 
     Index * keys = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_key, NULL);
 
-    odb->start_scheduler(NUM_ODB_THREADS);
+//     odb->start_scheduler(NUM_ODB_THREADS);
 
     return 1;
 }
@@ -140,8 +143,8 @@ int insert_redis(struct odb_item* kv)//(char * key, char * val)
 
 int insert_tokyo(struct odb_item* kv)//(char * key, char * val)
 {
-//     tcmapput2(map, kv->key, kv->val);
-    tctreeput2(tree, kv->key, kv->val);
+    tcmapput2(map, kv->key, kv->val);
+//     tctreeput2(tree, kv->key, kv->val);
     return 1;
 }
 
@@ -171,8 +174,13 @@ int insert_odb(struct odb_item* kv)//(char * key, char * val)
 }
 
 
-int run_sim(int (* fn) (struct odb_item*))//(char *, char *))
+double run_sim(int (* fn) (struct odb_item*))//(char *, char *))
 {
+
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    
     struct odb_item kv;
 //    char key [KEY_SIZE];
 //    char val [VAL_SIZE];
@@ -184,6 +192,14 @@ int run_sim(int (* fn) (struct odb_item*))//(char *, char *))
 //         printf("%10s, %10s\n\n", key, val);
         fn(&kv);
     }
+    
+    if (fn == insert_odb)
+    {
+        odb->block_until_done();
+    }
+    
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    return TIME_DIFF(start,end);
 
 }
 
@@ -205,15 +221,39 @@ int main(int argc, char ** argv)
 
 //     init_odb();
 //     init_redis();
-    init_tokyo();
+//     init_tokyo();
 //     init_sqlite();
 
 //     run_sim(& insert_odb);
 //     run_sim( & insert_redis);
 //     run_sim(&insert_sqlite);
-    run_sim(&insert_tokyo);
+//     run_sim(&insert_tokyo);
 
 //     odb->block_until_done();
+
+    int NUM_RUNS = 1;
+
+    double tot=0;
+    int i;
+    for (i=0; i<NUM_RUNS; i++)
+    {
+        double cur=0;
+
+        init_odb();
+//     init_redis();
+//         init_tokyo();
+//     init_sqlite();
+
+        cur = run_sim(& insert_odb);
+//     run_sim( & insert_redis);
+//     run_sim(&insert_sqlite);
+//         cur = run_sim(&insert_tokyo);
+        printf("Time elapsed: %fs\n", cur);
+        tot=tot+cur;
+        
+    }
+    
+    printf("Average time: %fs\n", tot/NUM_RUNS);
 
     printf("Finished...\n");
     pause();
