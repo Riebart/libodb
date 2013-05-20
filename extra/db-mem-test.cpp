@@ -12,12 +12,12 @@
 REDIS rh;
 ODB * odb;
 
-uint64_t NUM_ITEMS=10000;
+uint64_t NUM_ITEMS = 10000;
 
 #define KEY_SIZE 512
 #define VAL_SIZE 1024
 
-#define NUM_ODB_THREADS 2
+#define NUM_ODB_THREADS 4
 
 struct odb_item
 {
@@ -34,13 +34,13 @@ int gen_kv(char * key, char * val)
         key[i] = (rand()%(90 - 65 + 1)) + 65;
     }
     key[KEY_SIZE-1] = '\0';
-    
+
     for (i=0; i<VAL_SIZE; i++)
     {
         val[i] = (rand()%(90 - 65 + 1)) + 65;
     }
     val[VAL_SIZE-1] = '\0';
-    
+
 //     key[0] = 'a';
 //     val[0] = 'b';
 //     key[1] = '\0';
@@ -50,7 +50,7 @@ int gen_kv(char * key, char * val)
 //     key[KEY_SIZE-1] = '"';
 //     val[0] = '"';
 //     val[VAL_SIZE-1] = '"';
-    
+
     return 1;
 }
 
@@ -65,8 +65,6 @@ int init_redis()
 
 int init_tokyo()
 {
-
-    
     return 1;
 }
 
@@ -79,63 +77,66 @@ int32_t compare_key(void * a, void * b)
 int init_odb()
 {
     odb = new ODB(ODB::BANK_DS, sizeof(odb_item));
-    
+
     Index * keys = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_key, NULL);
-    
+
     odb->start_scheduler(NUM_ODB_THREADS);
-    
+
     return 1;
 }
 
 
-int insert_redis(char * key, char * val)
+int insert_redis(struct odb_item* kv)//(char * key, char * val)
 {
+    char* key = kv->key;
+    char* val = kv->val;
+
 //     if (credis_set(rh, key, val) != 0)
-    if (credis_sadd(rh, key, val) != 0)
-    {
-        printf("%s\n", credis_errorreply(rh));
-        printf("Key: %s\n Val: %s\n", key, val);
-    }
+    credis_sadd(rh, key, val);
+    char* err = credis_errorreply(rh);
+//     if (err[0] != '0')
+//     {
+//         printf("%s\n", err);
+//         printf("Key: %s\n Val: %s\n", key, val);
+//     }
 }
 
-int insert_tokyo(char * key, char * val)
+int insert_tokyo(struct odb_item* kv)//(char * key, char * val)
 {
     return 1;
 }
 
-int insert_odb(char * key, char * val)
+int insert_odb(struct odb_item* kv)//(char * key, char * val)
 {
-    struct odb_item tmp;
-    strncpy(tmp.key, key, KEY_SIZE);
-    strncpy(tmp.val, val, VAL_SIZE);
-    
-    odb->add_data(&tmp);
-    
+//    struct odb_item tmp;
+//    strncpy(tmp.key, key, KEY_SIZE);
+//    strncpy(tmp.val, val, VAL_SIZE);
+
+    odb->add_data(&kv);
+
     return 1;
-    
 }
 
 
-int run_sim(int (* fn) (char *, char *))
+int run_sim(int (* fn) (struct odb_item*))//(char *, char *))
 {
+    struct odb_item kv;
+//    char key [KEY_SIZE];
+//    char val [VAL_SIZE];
 
-    char key [KEY_SIZE];
-    char val [VAL_SIZE];
     uint64_t i;
     for (i=0; i< NUM_ITEMS; i++)
     {
-        gen_kv(key, val);
+        gen_kv(kv.key, kv.val);
 //         printf("%10s, %10s\n\n", key, val);
-        fn(key, val);
+        fn(&kv);
     }
 
 }
 
 int main(int argc, char ** argv)
 {
-
     extern char* optarg;
-
     int ch;
 
 #warning "TODO: Validity checks on the options"
@@ -148,18 +149,17 @@ int main(int argc, char ** argv)
             break;
         }
     }
-    
-//     init_odb();
-    init_redis();
-    //init_tokyo();
-    
-    
-    run_sim(& insert_redis);
 
-//     odb->block_until_done();
+    init_odb();
+//     init_redis();
+//     init_tokyo();
+
+    run_sim(& insert_odb);
+
+    odb->block_until_done();
 
     printf("Finished...\n");
     pause();
-    
+
     return EXIT_SUCCESS;
 }
