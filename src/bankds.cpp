@@ -1,12 +1,12 @@
 /* MPL2.0 HEADER START
- *
+ * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
 
@@ -639,8 +639,7 @@ inline void BankDS::purge(void (*freep)(void*))
     //
     else
     {
-        /// @warning Untested and not expected to work.
-        /// @todo Test and verify and fix as necessary.
+        /// @bug Untested and not expected to work.
         for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         {
             for (uint64_t j = 0 ; j < cap_size ; j += datalen)
@@ -757,8 +756,8 @@ BankDSIterator::BankDSIterator()
 
 DataObj* BankDSIterator::next()
 {
-/// @warning Deleted elements, kept on the stack, aren't skipped.
-/// @todo Skip deleted elements
+/// @bug Deleted elements, kept on the stack, aren't skipped.
+/// Skip deleted elements.
 /// Not difficult, but we need to change the
 /// datastructure from a stack to something else, a vector, deque or list.
 /// Then we can check the current address vs the next one in the deleted list

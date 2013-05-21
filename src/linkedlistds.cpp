@@ -1,12 +1,12 @@
 /* MPL2.0 HEADER START
- *
+ * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
 
@@ -470,8 +470,7 @@ inline void LinkedListIDS::populate(Index* index)
     READ_UNLOCK();
 }
 
-// Get the pointer to data for a given index
-// WARNING: O(n) complexity. Avoid.
+/// @attention O(n) complexity. Avoid if possilbe.
 inline void* LinkedListDS::get_at(uint64_t index)
 {
     struct datanode * cur_item=bottom;

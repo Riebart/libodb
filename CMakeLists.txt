@@ -6,7 +6,7 @@
 #
 # MPL2.0 HEADER END
 #
-# Copyright 2010-2012 Michael Himbeault and Travis Friesen
+# Copyright 2010-2013 Michael Himbeault and Travis Friesen
 #
 
 # FILE doesn't have COPY operation before 2.8 I think. Might be 2.7, but 2.6 is

@@ -1,12 +1,12 @@
 /* MPL2.0 HEADER START
- *
+ * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
 
@@ -42,6 +42,10 @@ using namespace std;
 
 volatile uint32_t ODB::num_unique = 0;
 
+/// The worker function in the memory checker thread
+/// @param[in] arg The void pointer to arguments. This is actually a pair of
+///pointers, one to the parent ODB object, and another to a 32-bit integer
+///indicating how many seconds to sleep between sweeps.
 void * mem_checker(void * arg)
 {
     void** args = reinterpret_cast<void**>(arg);
@@ -56,8 +60,8 @@ void * mem_checker(void * arg)
     pid_t pid = getpid();
 
     char path[50];
-    /// @warning This doesn't work on Solaris.
-    /// @todo Find a cross platform way of determining the runtime resident memory
+    /// @bug This doesn't work on Solaris.
+    /// Find a cross platform way of determining the runtime resident memory
     ///consumption of a process.
     sprintf(path, "/proc/%d/statm", pid);
 
@@ -420,8 +424,8 @@ void* odb_sched_workload(void* argsV)
     return NULL;
 }
 
-/// @warning Failed insertions aren't handled properly.
-/// @todo Make sure the datastores handle failed insertions properly.
+/// @bug Failed insertions aren't handled properly.
+/// Make sure the datastores handle failed insertions properly.
 /// The commented out code in the add_data functions would handle the process of
 /// removing an item from a datastore when the insertion into the index table failed.
 /// What does it mean to fail an insertion into an index group?
@@ -575,8 +579,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     return new_index;
 }
 
-/// @warning This is an untested function.
-/// @todo Test this function.
+/// @bug This is an untested function.
 bool ODB::delete_index(Index* index)
 {
     return all->delete_index(index);
@@ -599,6 +602,8 @@ IndexGroup* ODB::get_indexes()
     return all;
 }
 
+/// @todo Change this to use shorter lived locks and the scheduler so as to
+///not be as disruptive in a real-time situations.
 void ODB::remove_sweep()
 {
     if (data->prune != NULL)

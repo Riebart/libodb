@@ -1,12 +1,12 @@
 /* MPL2.0 HEADER START
- *
+ * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
 
@@ -297,8 +297,7 @@ LLIterator::LLIterator()
 {
 }
 
-/// @warning This doesn't work under sunCC with inheritance for some strange reason.
-/// @todo Find out why this doesn't work right under sunCC
+/// @bug This doesn't work under sunCC with inheritance for some strange reason.
 LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
 // : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {

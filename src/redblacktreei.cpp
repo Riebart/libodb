@@ -1,15 +1,14 @@
 /* MPL2.0 HEADER START
- *
+ * 
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
-
 #include "redblacktreei.hpp"
 #include "bankds.hpp"
 #include "common.hpp"
@@ -697,8 +696,8 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare, b
     else
     {
         if (IS_TREE(_root))
-            /// @warning This might be incorrectly done.
-            /// @todo I'm not sure if this is right. Do we pass 'embedded' to the subtree verify_n?
+            /// @bug This might be incorrectly done.
+            /// I'm not sure if this is right. Do we pass 'embedded' to the subtree verify_n?
             if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(_root->data), compare_addr, embedded)) == 0)
             {
                 FAIL("Child tree is broken.\n");
@@ -1779,8 +1778,8 @@ inline Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::tree_node* root,
     return it;
 }
 
-/// @warning Still unimplemented.
-/// @todo Implement this. Look at e_pop_first for hints.
+/// @bug Still unimplemented.
+/// Implement this. Look at e_pop_first for hints.
 void* RedBlackTreeI::e_pop_last(struct RedBlackTreeI::e_tree_root* root)
 {
     return NULL;
@@ -2045,8 +2044,7 @@ RBTIterator::RBTIterator()
 {
 }
 
-/// @warning This doesn't work under sunCC with inheritance for some strange reason.
-/// @todo Find out why this doesn't work right under sunCC
+/// @bug This doesn't work under sunCC with inheritance for some strange reason.
 RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
 // : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
