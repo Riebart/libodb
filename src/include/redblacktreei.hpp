@@ -188,6 +188,7 @@ protected:
 
 /// @class RedBlackTreeI
 /// Implementation of a top-down red-black tree.
+///
 /// A red-black tree is a flavour of self-balancing binary search tree that
 ///maintains a height of @f$ h<2\log_2{N} @f$ where @f$ N @f$ is the number of
 ///elements in the tree (The proof of this is relatively straightforward and

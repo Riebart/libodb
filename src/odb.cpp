@@ -257,7 +257,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t (*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -270,7 +270,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     {
     case LINKED_LIST_V_DS:
     {
-        datastore = new LinkedListVDS(NULL, prune, len, _flags);
+        datastore = new LinkedListVDS(NULL, prune, len_v, _flags);
         break;
     }
     default:
@@ -291,7 +291,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 #endif
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -304,7 +304,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     {
     case LINKED_LIST_V_DS:
     {
-        datastore = new LinkedListVDS(NULL, prune, len, _flags);
+        datastore = new LinkedListVDS(NULL, prune, len_v, _flags);
         break;
     }
     default:
@@ -423,8 +423,6 @@ void* odb_sched_workload(void* argsV)
     return NULL;
 }
 
-#warning "Look into why the comments are commented out in add_data."
-#warning "Current threading is based on insertion, not per table. Changing that is done here."
 void ODB::add_data(void* rawdata)
 {
     if (scheduler == NULL)
@@ -575,7 +573,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     return new_index;
 }
 
-#warning "delete_index is untested."
+// #warning "delete_index is untested."
 bool ODB::delete_index(Index* index)
 {
     return all->delete_index(index);
@@ -672,12 +670,16 @@ void ODB::purge()
 
 void ODB::set_prune(bool (*prune)(void*))
 {
+    WRITE_LOCK();
     data->prune = prune;
+    WRITE_UNLOCK();
 }
 
 bool (*ODB::get_prune())(void*)
 {
+    READ_LOCK();
     return data->prune;
+    READ_UNLOCK();
 }
 
 uint64_t ODB::size()
