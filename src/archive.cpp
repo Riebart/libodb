@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -36,15 +36,21 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
     {
         data = fopen(data_name, "ab");
         index = fopen(index_name, "ab");
+
+        // Since we're appending, seek to the end, get the position, and then
+        // rewind back to the start.
+        fseek(f, 0, SEEK_END);
+        offset = ftell(f);
+        rewind(fp);
     }
     else
     {
         data = fopen(data_name, "wb");
         index = fopen(index_name, "wb");
+        offset = 0;
     }
 
     cond = NULL;
-    offset = 0;
 }
 
 inline bool AppendOnlyFile::write(void* rawdata, uint32_t datalen)
