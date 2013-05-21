@@ -409,10 +409,10 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         }
     }
 
-#warning "TODO: Make this more efficient? See Comment."
-// I had a note here to replace something with a vector and then use a binary
-// search... We're already using a vector, and we're not looking for anything?
-// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)
+/// @todo Make this more efficient? 
+/// I had a note here to replace something with a vector and then use a binary
+/// search... We're already using a vector, and we're not looking for anything?
+/// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)
     bool (*temp)(void*);
     for (uint32_t i = 0 ; i < clones.size() ; i++)
     {
@@ -639,7 +639,8 @@ inline void BankDS::purge(void (*freep)(void*))
     //
     else
     {
-#warning "TODO: Untested and not expected to work."
+        /// @warning Untested and not expected to work.
+        /// @todo Test and verify and fix as necessary.
         for (uint64_t i = 0 ; i < posA ; i += sizeof(char*))
         {
             for (uint64_t j = 0 ; j < cap_size ; j += datalen)
@@ -756,10 +757,11 @@ BankDSIterator::BankDSIterator()
 
 DataObj* BankDSIterator::next()
 {
-#warning "TODO: Skip deleted elements (see comment)"
-// Not difficult, but we need to change the
-// datastructure from a stack to something else, a vector, deque or list.
-// Then we can check the current address vs the next one in the deleted list
+/// @warning Deleted elements, kept on the stack, aren't skipped.
+/// @todo Skip deleted elements
+/// Not difficult, but we need to change the
+/// datastructure from a stack to something else, a vector, deque or list.
+/// Then we can check the current address vs the next one in the deleted list
     posB += dstore->datalen;
 
     //We've reached the end of the current bucket

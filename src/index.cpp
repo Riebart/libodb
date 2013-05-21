@@ -142,7 +142,7 @@ void* ig_sched_workload(void* argsV)
     return NULL;
 }
 
-#warning "Current threading is based on insertion, not per table. Changing that is done here."
+/// @attention Current threading is based on insertion, not per table. Changing that is done here.
 inline void IndexGroup::add_data(DataObj* data)
 {
     // If it passes integrity checks, add it to the group.
@@ -237,7 +237,8 @@ inline void IndexGroup::add_data_v(void* data)
     }
 }
 
-#warning "I don't think any of the read-only functions here are done right."
+/// @todo I don't think any of the read-only functions here are done right.
+///What the hell do I mean by this?
 inline void IndexGroup::query(Condition* condition, DataStore* ds)
 {
     uint32_t n = indices.size();

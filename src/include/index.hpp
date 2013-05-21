@@ -28,8 +28,8 @@ class Merger;
 class Iterator;
 class Index;
 
-#warning "TODO: An index table built on a vector, behaving like the LinkedListI."
-#warning "TODO: Batch insertions for index tables. At least LL."
+/// @todo An index table built on a vector, behaving like the LinkedListI.
+/// @todo Batch insertions for index tables. At least LL.
 
 class DataObj
 {
@@ -105,7 +105,7 @@ public:
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
     virtual int get_ident();
-#warning "TODO: Add a recursive flavour of size() (See comment)"
+    /// @todo Add a recursive flavour of size() (See comment)
     //It will have to return the number of items
     //in all contained indices though. Is there a way to stop before indices at
     //the last layer of IndexGroups?
@@ -294,7 +294,7 @@ protected:
 ///data 'passes' (and should be added to the query results) and false if the
 ///data fails (and will not be returned in the results).
 /// @return A pointer to an ODB object that represents the query results.
-/// @warning This opertation is O(N), where N is the number of entries in all
+/// @attention This opertation is O(N), where N is the number of entries in all
 ///index tables contained in this IndexGroup tree.
 
 /// @fn int IndexGroup::get_ident()
@@ -386,7 +386,7 @@ protected:
 ///data 'passes' (and should be added to the query results) and false if the
 ///data fails (and will not be returned in the results).
 /// @return A pointer to an ODB object that represents the query results.
-/// @warning This operation is O(N), where N is the number of items in this
+/// @attention This operation is O(N), where N is the number of items in this
 ///index table.
 
 /// @fn uint64_t Index::size()

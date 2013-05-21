@@ -19,8 +19,8 @@
 #include "index.hpp"
 #include "iterator.hpp"
 
-#warning "TODO: Bring the bottom-up insertion code back."
-
+/// @todo Bring the bottom-up insertion code back. It is prototped in changeset
+///134 so look there.
 class RedBlackTreeI : public Index
 {
     using Index::query;

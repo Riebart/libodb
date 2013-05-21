@@ -79,7 +79,7 @@ using namespace std;
 ///they ever be used for something, this macro will empty them all when dereferencing
 ///(Since it uses a bitwise AND, it is no more work to empty all three than it is
 ///just the one used for red-black information).
-/// @warning Whenever dereferencing a pointer from the link array of a node, it
+/// @attention Whenever dereferencing a pointer from the link array of a node, it
 ///must be STRIP()-ed.
 /// @param [in] x A pointer to the link to be stripped.
 /// @return A pointer to a node without the meta-data embedded in the address.
@@ -89,7 +89,7 @@ using namespace std;
 /// This is accomplished by first stripping the meta-data from y then isolating
 ///the meta-data and OR-ing it back into the stripped version of y. This value
 ///is then assigned to x.
-/// @warning Whenever setting a pointer in the link array of a node, SET_LINK
+/// @attention Whenever setting a pointer in the link array of a node, SET_LINK
 ///must be used to preserve the meta-data.
 /// @param [in,out] x A pointer to the link to be set. The meta data of this
 ///link is not destroyed during the process.
@@ -697,7 +697,8 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare, b
     else
     {
         if (IS_TREE(_root))
-#warning "I'm not sure if this is right. Do we pass 'embedded' to the subtree verify_n?"
+            /// @warning This might be incorrectly done.
+            /// @todo I'm not sure if this is right. Do we pass 'embedded' to the subtree verify_n?
             if ((rbt_verify_n(reinterpret_cast<struct tree_node*>(_root->data), compare_addr, embedded)) == 0)
             {
                 FAIL("Child tree is broken.\n");
@@ -1531,19 +1532,14 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
         // The non-iterator pointers provide a static amount of context to make the top-down approach possible.
         struct tree_node *p, *gp;
         struct tree_node *i;
-        struct tree_node *f;
 
         // Initialize them.
         gp = NULL;
         p = NULL;
         i = false_root;
-        f = NULL;
 
         // 1-byte ints to hold some directions. Keep them small to reduce space overhead when searching.
         uint8_t dir = 1, prev_dir = 1;
-
-        // For storing the comparison value, means only one call to the compare function.
-        int32_t c;
 
         // Find the node we're removing.
         while (STRIP(i->link[dir]) != NULL)
@@ -1556,7 +1552,6 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
             p = i;
             i = STRIP(i->link[dir]);
 
-            c = -1;
             dir = 0;
 
             if (IS_TREE(i))
@@ -1566,7 +1561,6 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_pop_first_n(struct tree_node* 
                 if (new_sub_root == NULL)
                 {
                     SET_VALUE(i);
-                    f = i;
                 }
                 else
                 {
@@ -1785,9 +1779,10 @@ inline Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::tree_node* root,
     return it;
 }
 
+/// @warning Still unimplemented.
+/// @todo Implement this. Look at e_pop_first for hints.
 void* RedBlackTreeI::e_pop_last(struct RedBlackTreeI::e_tree_root* root)
 {
-#warning "Still unimplemented."
     return NULL;
 }
 
@@ -2050,8 +2045,10 @@ RBTIterator::RBTIterator()
 {
 }
 
-#warning "TODO: Find out why this doesn't work right under sunCC"
-RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
+/// @warning This doesn't work under sunCC with inheritance for some strange reason.
+/// @todo Find out why this doesn't work right under sunCC
+RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
+// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
     //dataobj = new DataObj(ident);
     dataobj->ident = ident;

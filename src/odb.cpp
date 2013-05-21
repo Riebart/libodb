@@ -56,7 +56,9 @@ void * mem_checker(void * arg)
     pid_t pid = getpid();
 
     char path[50];
-#warning "This doesn't work on Solaris."
+    /// @warning This doesn't work on Solaris.
+    /// @todo Find a cross platform way of determining the runtime resident memory
+    ///consumption of a process.
     sprintf(path, "/proc/%d/statm", pid);
 
     FILE* stat_file = fopen(path, "r");
@@ -403,11 +405,6 @@ ODB::~ODB()
     RWLOCK_DESTROY();
 }
 
-#warning "TODO: Make sure the datastores handle failed insertions properly. See Comment."
-// The commented out code in the next two functions would handle the process of
-// removing an item from a datastore when the insertion into the index table failed.
-// What does it mean to fail an insertion into an index group?
-
 struct sched_args
 {
     void* rawdata;
@@ -423,6 +420,11 @@ void* odb_sched_workload(void* argsV)
     return NULL;
 }
 
+/// @warning Failed insertions aren't handled properly.
+/// @todo Make sure the datastores handle failed insertions properly.
+/// The commented out code in the add_data functions would handle the process of
+/// removing an item from a datastore when the insertion into the index table failed.
+/// What does it mean to fail an insertion into an index group?
 void ODB::add_data(void* rawdata)
 {
     if (scheduler == NULL)
@@ -573,7 +575,8 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
     return new_index;
 }
 
-// #warning "delete_index is untested."
+/// @warning This is an untested function.
+/// @todo Test this function.
 bool ODB::delete_index(Index* index)
 {
     return all->delete_index(index);

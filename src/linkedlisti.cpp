@@ -297,8 +297,10 @@ LLIterator::LLIterator()
 {
 }
 
-#warning "TODO: Find out why this doesn't work right under sunCC"
-LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
+/// @warning This doesn't work under sunCC with inheritance for some strange reason.
+/// @todo Find out why this doesn't work right under sunCC
+LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
+// : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
     //dataobj = new DataObj(ident);
     dataobj->ident = ident;

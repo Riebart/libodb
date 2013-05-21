@@ -61,7 +61,6 @@ class ODB
     friend void * mem_checker(void * arg);
 
 public:
-#warning "TODO: Apparently this isn't the appropriate way to do this (flags)."
     /// Enum defining the types of flags that an Index can have on creation.
     /// When an index is created, these are the options that can be specified
     ///at creation time. These options control the behaviour of the index
@@ -73,6 +72,7 @@ public:
     ///to clean up that Index table. DO_NOT_POPULATE indicates that, upon
     ///creation, to suppress the standard practice which is populating the index
     ///table with the data of all of the items in the ODB's DataStore.
+    /// @todo Apparently this isn't the appropriate way to do this (flags)?
     typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexFlags;
 
     /// Enum defining the specific index implementations available.
@@ -404,8 +404,6 @@ private:
 /// Remove an index from this ODB context.
 /// @param[in] index Index to be cleaned up.
 /// @return Whether or not the deletion was successful. The deletion will fail if the index fiven is not part of the ODB's context.
-/// @warning This is an untested function.
-/// @todo Test this function.
 
 /// @fn ODB::create_group()
 /// Create an IndexGroup associated with this ODB context.

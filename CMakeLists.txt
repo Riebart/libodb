@@ -248,8 +248,8 @@ else()
     message(STATUS "No cccc was found in your path. Get it at http://cccc.sourceforge.net/")
 endif()
 
-add_custom_target(everything COMMAND make checks extra doc check)
-add_custom_target(all COMMAND make checks extra doc)
+add_custom_target(everything COMMAND make checks extra doc)
+#add_custom_target(all COMMAND make checks extra doc)
 add_custom_target(help COMMAND echo "Available targets: all extra doc checks check test")
 
 #target_link_libraries(py-demo boost_python-mt python2.6 ${LIBS})

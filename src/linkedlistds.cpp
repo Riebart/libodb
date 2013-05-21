@@ -49,9 +49,10 @@ LinkedListVDS::LinkedListVDS(DataStore* _parent, bool (*_prune)(void* rawdata), 
     this->len = _len;
 }
 
+/// @todo Since the only read case we (currently) have is trivial, might a 
+///general lock be better suited?
 inline void LinkedListDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen)
 {
-#warning "TODO: since the only read case we (currently) have is trivial, might a general lock be better suited?"
     this->true_datalen = _datalen;
     this->datalen = _datalen + time_stamp * sizeof(time_t) + query_count * sizeof(uint32_t);;
     bottom = NULL;
