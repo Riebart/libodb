@@ -65,9 +65,9 @@ int gen_kv(char * key, char * val)
 int update_kv(char* s, int len, int seed)
 {
     int pos = (seed % len);
-    
+
     s[pos] = (rand()%(90 - 65 + 1)) + 65;
-    
+
     return pos;
 }
 
@@ -90,29 +90,29 @@ int init_tokyo()
 int init_sqlite()
 {
     int retval;
-    
+
 //     unlink(SQLITE_TMPFILE);
-    
+
     if (sqlite3_open(":memory:", &slconn))
 //     if (sqlite3_open(SQLITE_TMPFILE, &slconn))
     {
         printf("SQLite error on db create: %s", sqlite3_errmsg(slconn));
-        exit(1);        
+        exit(1);
     }
-    
+
     if (sqlite3_exec(slconn, "CREATE TABLE IF NOT EXISTS tbl (k character(512) NOT NULL PRIMARY KEY, v character (1024) NOT NULL)", NULL, NULL, NULL))
     {
         printf("SQLite error: %s", sqlite3_errmsg(slconn));
-        exit(1);         
+        exit(1);
     }
     if (sqlite3_exec(slconn, "CREATE INDEX kindex ON tbl (k)", NULL, NULL, NULL))
     {
         printf("SQLite error: %s", sqlite3_errmsg(slconn));
-        exit(1);         
+        exit(1);
     }
-    
+
     return 1;
-    
+
 }
 
 int32_t compare_key(void * a, void * b)
@@ -159,14 +159,14 @@ int insert_tokyo(struct odb_item* kv)//(char * key, char * val)
 int insert_sqlite(struct odb_item* kv)
 {
     char str [2048];
-    
+
     sprintf(str, "INSERT INTO tbl (k, v) VALUES (\"%s\", \"%s\")", kv->key, kv->val);
-    
+
     if (sqlite3_exec(slconn, str, NULL, NULL, NULL))
     {
         printf("SQLite error: %s", sqlite3_errmsg(slconn));
-        exit(1);         
-    }    
+        exit(1);
+    }
 
 }
 
@@ -188,7 +188,7 @@ double run_sim(int (* fn) (struct odb_item*))//(char *, char *))
     struct timespec start, end;
 
     clock_gettime(CLOCK_MONOTONIC, &start);
-    
+
     struct odb_item kv;
     gen_kv(kv.key, kv.val);
 //    char key [KEY_SIZE];
@@ -203,12 +203,12 @@ double run_sim(int (* fn) (struct odb_item*))//(char *, char *))
 //         printf("%10s, %10s\n\n", key, val);
         fn(&kv);
     }
-    
+
     if (fn == insert_odb)
     {
         odb->block_until_done();
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &end);
     return TIME_DIFF(start,end);
 
@@ -260,12 +260,12 @@ int main(int argc, char ** argv)
 //         cur = run_sim(&insert_redis);
 //         cur = run_sim(&insert_tokyo);
 //         cur = run_sim(&insert_sqlite);
-        
+
         printf("Time elapsed: %fs\n", cur);
         tot=tot+cur;
-        
+
     }
-    
+
     printf("\nAverage time: %fs\n", tot/NUM_RUNS);
 
     printf("Finished...\n");

@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/// @todo Do something like the comparators for the free() function we're 
+/// @todo Do something like the comparators for the free() function we're
 ///passing around. That is, turn them into an object-wrapped thing?
 class Condition
 {

@@ -52,10 +52,10 @@ class ODB
 
     /// Allows the scheduled workload from ODB to access the private members.
     friend void* odb_sched_workload(void* argsV);
-    
+
     /// Allows the scheduled workload on an Index Group from ODB to access the private members.
     friend void* ig_sched_workload(void* argsV);
-    
+
     /// The memory checking thread needs access to private functions
     /// for time checking and updating.
     friend void * mem_checker(void * arg);
@@ -65,7 +65,7 @@ public:
     /// When an index is created, these are the options that can be specified
     ///at creation time. These options control the behaviour of the index
     ///table. DROP_DUPLICATES indicates that any values that compare as equal
-    ///to one already in the tree should be simply freed and dropped. 
+    ///to one already in the tree should be simply freed and dropped.
     ///DO_NOT_ADD_TO_ALL indicates that the index table should not be added
     ///to the "all" index table of the parent ODB object. Care should be
     ///taken with this flag since it is then the responsibility of the user
@@ -87,7 +87,7 @@ public:
     /// Enum defining the specific fixed-width DataStore timplementations available
     /// Fixed-width DataStore implementations require that a fixed value be
     ///specified at instantiation time, and all data is assumed to be of the
-    ///the specified size. 
+    ///the specified size.
     typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
 
     /// Emum defining the specific indirect DataStore implementations available.
@@ -99,7 +99,7 @@ public:
     typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
 
     /// Enum defining the specific variable-width DataStore implementations available.
-    /// Variable-width DataStores types allow for variable sizes of data, 
+    /// Variable-width DataStores types allow for variable sizes of data,
     ///requiring a data-size option passed on insertion.
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
@@ -162,54 +162,54 @@ private:
     ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
     ///this value.
     static volatile uint32_t num_unique;
-    
+
     /// Identity of this ODB insance in this process' context.
     int ident;
-    
+
     /// The amount of user data, in bytes, stored per data item. This is passed
     ///to the Datastore which augments it based on the options (timestamps and
     ///query count).
     uint32_t datalen;
-    
+
     /// Complete list of all Index tables associated with this ODB context.
     std::vector<Index*> tables;
-    
+
     /// Complete list of all IndexGroup objects associated with this ODB context.
     std::vector<IndexGroup*> groups;
-    
+
     /// DataStore object used as backend storage for this ODB context.
     DataStore* data;
-    
+
     /// IndexGroup used for automatic insertion of data to index tables. The
     ///default behaviour is for new index tables to be added to this group
     ///however this can be overridden with the DO_NOT_ADD_TO_ALL.
     IndexGroup* all;
-    
+
     /// Pointer to a DataOBj that is handed back to the user when the appropriate
     ///methods are called.
     DataObj* dataobj;
-    
+
     /// Thread that the memory checker runs in.
     pthread_t mem_thread;
-    
+
     /// Duration that the memory checker thread sleeps between sweeps. If this
     ///value is set to zero at ODB creation time, the memory checker thread
     ///is not started.
     uint32_t sleep_duration;
-    
+
     /// Archiving method used when objects are swept from the Datastore.
     Archive* archive;
-    
+
     /// Function used to free portions of data that are user-managed and
     ///linked to ODB managed data.
     void (*freep)(void*);
-    
+
     /// Scheduler that the ODB uses for multithreaded performance.
     Scheduler* scheduler;
 
     /// Whether or not the memory checker thread is running.
     int running;
-    
+
     /// Locking context.
     RWLOCK_T;
 };
@@ -243,10 +243,10 @@ private:
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
@@ -263,10 +263,10 @@ private:
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
@@ -282,10 +282,10 @@ private:
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
@@ -301,10 +301,10 @@ private:
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0)
@@ -318,15 +318,15 @@ private:
 ///from the datastore. If the data contains user-managed memory combined with
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
-/// @param[in] len_v The function called on the data to be inserted if no 
+/// @param[in] len_v The function called on the data to be inserted if no
 ///length is supplied. A data length can be explicitly specified, but if one
 ///is not specified, we still need to know how much memory to allocate for
 ///the item and this is done through this function.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0)
@@ -341,15 +341,15 @@ private:
 ///from the datastore. If the data contains user-managed memory combined with
 ///ODB managed memory, then this should be a function that cleans up the user
 ///managed portion.
-/// @param[in] len_v The function called on the data to be inserted if no 
+/// @param[in] len_v The function called on the data to be inserted if no
 ///length is supplied. A data length can be explicitly specified, but if one
 ///is not specified, we still need to know how much memory to allocate for
 ///the item and this is done through this function.
 /// @param[in] sleep_duration The duration, in seconds, between when the memory
-///cleanup thread wakes up to do its work. A value of 0 indicates that the 
-///cleanup thread will not be started. 
+///cleanup thread wakes up to do its work. A value of 0 indicates that the
+///cleanup thread will not be started.
 /// @param[in] flags Flag options indicate which additional metadata should
-///be included with the user data. Options are DataStore::TIME_STAMP and 
+///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
 /// @fn ODB::ODB(DataStore* dt, int ident, uint32_t datalen)
@@ -374,7 +374,7 @@ private:
 ///tree (and hence the data that will be kept) as the second argument.
 /// @param[in] keygen Function called to generate the key from the data.
 /// @param[in] keylen Length, in bytes, of the key that is generated by the
-///key generation function. A value of -1, the default, indicates that this 
+///key generation function. A value of -1, the default, indicates that this
 ///is a value-only index table, and not a key-value store.
 /// @return A pointer to the index table built given the specified parameters.
 /// @attention Merging of nodes implies dropping duplicates post merge.
@@ -395,7 +395,7 @@ private:
 ///tree (and hence the data that will be kept) as the second argument.
 /// @param[in] keygen Object used to generate the key from the data.
 /// @param[in] keylen Length, in bytes, of the key that is generated by the
-///key generation function. A value of -1, the default, indicates that this 
+///key generation function. A value of -1, the default, indicates that this
 ///is a value-only index table, and not a key-value store.
 /// @return A pointer to the index table built given the specified parameters.
 /// @attention Merging of nodes implies dropping duplicates post merge.
@@ -407,7 +407,7 @@ private:
 
 /// @fn ODB::create_group()
 /// Create an IndexGroup associated with this ODB context.
-/// @return 
+/// @return
 
 /// @fn ODB::get_indexes()
 /// Gets an IndexGroup of all of the index tables (module the DO_NOT_ADD_TO_ALL
@@ -434,7 +434,7 @@ private:
 /// @return A DataObj object that is tied to this ODB context that represents
 ///the data for adding to additional index tables.
 /// @note The bool here cannot have a default value, even though the standard
-///choice would be false. A default value makes the call ambiguous with the 
+///choice would be false. A default value makes the call ambiguous with the
 ///one above.
 
 /// @fn ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
@@ -462,11 +462,11 @@ private:
 ///
 ///2) These pointers are removed from the index tables.
 ///
-///3) An optional step includes calling ODB::update_tables with a list of 
-///old and new vectors that updates the pointers in the index tables. This 
+///3) An optional step includes calling ODB::update_tables with a list of
+///old and new vectors that updates the pointers in the index tables. This
 ///step is only run if the DataStore returned the appropriate vectors.
 ///
-///4) The datastore is called again via DataStore::remove_cleanup to perform 
+///4) The datastore is called again via DataStore::remove_cleanup to perform
 ///the actual removal of the elements from the DataStore and cleanup of
 ///intermediate storage.
 /// @see DataStore::remove_sweep
@@ -475,7 +475,7 @@ private:
 /// @see Index::remove_sweep
 /// @attention This function locks the ODB object for the duration of the sweep.
 ///This means that no data can be added, or removed, from the ODB during the
-///sweep. This is important since in real-time operations this will cause 
+///sweep. This is important since in real-time operations this will cause
 ///the inserting thread to block until the sweep completes.
 
 /// @fn ODB::purge()

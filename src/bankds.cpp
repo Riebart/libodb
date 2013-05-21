@@ -409,7 +409,7 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
         }
     }
 
-/// @todo Make this more efficient? 
+/// @todo Make this more efficient?
 /// I had a note here to replace something with a vector and then use a binary
 /// search... We're already using a vector, and we're not looking for anything?
 /// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)

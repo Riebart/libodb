@@ -89,7 +89,7 @@ int init_mysql()
     mysql_query(myconn, "CREATE INDEX dipindex ON packets (dstip)");
     mysql_query(myconn, "CREATE INDEX sptindex ON packets (srcport)");
     mysql_query(myconn, "CREATE INDEX dptindex ON packets (dstport)");
-    
+
     mysql_autocommit(myconn, 0);
 
     //Example query
@@ -211,34 +211,34 @@ int init_tokyo()
 int init_sqlite()
 {
     int retval;
-    
+
     unlink(SQLITE_TMPFILE);
-    
+
 //     if (sqlite3_open(":memory:", &slconn))
     if (sqlite3_open(SQLITE_TMPFILE, &slconn))
     {
         printf("SQLite error on db create: %s", sqlite3_errmsg(slconn));
-        exit(1);        
+        exit(1);
     }
-    
+
     if (sqlite3_exec(slconn, "CREATE TABLE IF NOT EXISTS packets (packet_id integer NOT NULL PRIMARY KEY AUTOINCREMENT, srcip integer , dstip integer , srcport integer ,  dstport integer , payload blob)", NULL, NULL, NULL))
     {
         printf("SQLite error: %s", sqlite3_errmsg(slconn));
-        exit(1);         
+        exit(1);
     }
     if (sqlite3_exec(slconn, "CREATE INDEX sipindex ON packets (srcip)", NULL, NULL, NULL))
     {
         printf("SQLite error: %s", sqlite3_errmsg(slconn));
-        exit(1);         
+        exit(1);
     }
-    
+
     sqlite3_exec(slconn, "CREATE INDEX dipindex ON packets (dstip)", NULL, NULL, NULL);
     sqlite3_exec(slconn, "CREATE INDEX sptindex ON packets (srcport)", NULL, NULL, NULL);
     sqlite3_exec(slconn, "CREATE INDEX dptindex ON packets (dstport)", NULL, NULL, NULL);
     sqlite3_exec(slconn, "BEGIN", NULL, NULL, NULL);
-    
+
     sqlite3_prepare_v2(slconn, "INSERT INTO packets (srcip, dstip, srcport, dstport, payload) VALUES (?, ?, ?, ?, ?)", 2000, &sl_stmt, NULL );
-    
+
     return 1;
 }
 
@@ -320,7 +320,7 @@ int init_odb()
     INDEX_MACRO(dst_port_index, compare_dst_port, NULL);
 
     odb->start_scheduler(NUM_ODB_THREADS);
-    
+
 
     return 1;
 
@@ -375,14 +375,14 @@ void ins_sql(struct tcpip * packet)
     sqlite3_bind_int(sl_stmt, 2, packet->tcp_struct.th_sport);
     sqlite3_bind_int(sl_stmt, 3, packet->tcp_struct.th_dport);
     sqlite3_bind_blob(sl_stmt, 4, packet, sizeof(struct tcpip), SQLITE_STATIC);
-    
+
     if (sqlite3_step(sl_stmt) != SQLITE_DONE)
     {
         printf("SQLite error: %s\n", sqlite3_errmsg(slconn));
-        exit(1);         
+        exit(1);
     }
-    
-    
+
+
 }
 
 
@@ -457,7 +457,7 @@ double run_sim(void (* fn) (struct tcpip *))
         if (res)
         {
             printf("SQLite error: %s\n", sqlite3_errmsg(slconn));
-            exit(1);         
+            exit(1);
         }
 
     }
@@ -466,7 +466,7 @@ double run_sim(void (* fn) (struct tcpip *))
     clock_gettime(CLOCK_MONOTONIC, &end);
 
 //     printf("Time elapsed: %fs\n", TIME_DIFF(start, end));
-    
+
     return TIME_DIFF(start,end);
 
 }
@@ -474,7 +474,7 @@ double run_sim(void (* fn) (struct tcpip *))
 
 int main (int argc, char ** argv)
 {
-    
+
     extern char* optarg;
 
     int ch;
@@ -489,39 +489,39 @@ int main (int argc, char ** argv)
             break;
         }
     }
-    
+
     printf("RAND_MAX is %d\n", RAND_MAX);
     printf("NUM_PACKETS is %d\n", NUM_PACKETS);
 
     srandom(1);
 
 
-    
 
-    
+
+
     double tot=0;
     int i;
     for (i=0; i<NUM_RUNS; i++)
     {
         double cur=0;
-        
+
 //         init_mysql();
 //         cur = run_sim(ins_mysql);
-        
+
 //         init_postgres();
 //         cur = run_sim(ins_pg);
-        
+
 //         init_odb();
 //         cur = run_sim(ins_odb);
-        
+
         init_sqlite();
         run_sim(ins_mysql);
 
         printf("Time elapsed: %fs\n", cur);
         tot=tot+cur;
-        
+
     }
-    
+
     printf("Average time: %fs\n", tot/NUM_RUNS);
 
 
