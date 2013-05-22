@@ -13,6 +13,8 @@
 # definitely missing it.
 cmake_minimum_required(VERSION 2.8)
 
+set(CMAKE_LEGACY_CYGWIN_WIN32 0)
+
 enable_testing()
 
 # The name of our project is "LIBODB".  CMakeLists files in this project can
@@ -154,7 +156,7 @@ if(NOT ${COMPILER_SUITE} MATCHES "sun")
         message(STATUS "Disabling all optimizations.")
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0 -fno-inline")
     endif()
-    
+
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
 else()
@@ -165,7 +167,7 @@ else()
     set(CMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG ":")
     set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX ":")
     set(CMAKE_SHARED_LIBRARY_RUNTIME_CXX_FLAG ":")
-    
+
     if("$ENV{NO_OPTIMIZE}" STREQUAL "")
         message(STATUS "Enabling optimizations.")
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -xO5 -fast")
@@ -175,7 +177,7 @@ else()
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -xO0")
         set(CMAKE_CXX_OPTIMIZE_FLAGS "-g -xO0")
     endif()
-    
+
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} ${CMAKE_C_OPTIMIZE_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} ${CMAKE_CXX_OPTIMIZE_FLAGS} -library=stlport4")
 endif()
@@ -222,7 +224,7 @@ if(${DOXYGEN_BINARY} MATCHES "doxygen")
                    COMMAND ${DOXYGEN_BINARY} ${LIBODB_BINARY_DIR}/doc/libodb-doc.cfg
                    WORKING_DIRECTORY ${LIBODB_BINARY_DIR}
                    VERBATIM)
-    
+
     find_program(PDFLATEX_BINARY NAMES pdflatex)
     if(${PDFLATEX_BINARY} MATCHES "pdflatex")
         message(STATUS "PDFLaTeX found at ${PDFLATEX_BINARY}")
@@ -258,15 +260,15 @@ add_custom_target(help COMMAND echo "Available targets: all extra doc checks che
 
 # #install directives
 # install(TARGETS odb LIBRARY DESTINATION lib)
-# 
-# install(FILES ${LIBODB_INCLUDE_SOURCE_DIR}/odb.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/index.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/iterator.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/comparator.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/archive.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/lock.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/scheduler.hpp 
-#               ${LIBODB_INCLUDE_SOURCE_DIR}/lfqueue.hpp 
+#
+# install(FILES ${LIBODB_INCLUDE_SOURCE_DIR}/odb.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/index.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/iterator.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/comparator.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/archive.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/lock.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/scheduler.hpp
+#               ${LIBODB_INCLUDE_SOURCE_DIR}/lfqueue.hpp
 #               DESTINATION include)
 
 # #Package generation directives
@@ -278,13 +280,13 @@ add_custom_target(help COMMAND echo "Available targets: all extra doc checks che
 # SET(CPACK_PACKAGE_VERSION_PATCH "1")
 # SET(CPACK_PACKAGE_CONTACT "travis_friesen@ieee.org")
 # SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A fast and lightweight datastore")
-# 
+#
 # #for the DEB package
 # SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 # SET(CPACK_DEBIAN_PACKAGE_DEPENDS "")
-# 
+#
 # #for RPM
 # SET(CPACK_RPM_PACKAGE_RELEASE "1")
-# 
+#
 # #build the packages
 # INCLUDE(CPack)

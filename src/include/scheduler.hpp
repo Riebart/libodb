@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,9 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
+
+/// Header file for the Scheduler.
+/// @file scheduler.hpp
 
 #ifndef SCHEDULER_HPP
 #define SCHEDULER_HPP
@@ -31,9 +34,10 @@
 
 #include "pthread.h"
 
-// The MLOCK class of locks is used in the scheduler anywhere sleeping is
-// necessary. This includes in the worker threads when there is no more
-// work immediately available and in block_until_done.
+/// The MLOCK class of locks is used in the scheduler anywhere sleeping is
+/// necessary. This includes in the worker threads when there is no more
+/// work immediately available and in block_until_done.
+/// @{
 #define SCHED_MLOCK() pthread_mutex_lock(&mlock)
 #define SCHED_MLOCK_P(x) pthread_mutex_lock(&(x->mlock))
 #define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
@@ -41,12 +45,14 @@
 #define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
 #define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
 #define SCHED_MLOCK_T pthread_mutex_t mlock
+/// @}
 
-// The LOCK class of locks is used when a fast lock is required, and we
-// won't be sleeping on it. This is used in add_work (overseer thread)
-// and get_work (worker threads). The worker threads also use these locks
-// when they are shuffling the workqueue in its tree. These locks will no
-// longer be needed once a proper lockfree queue is implemented.
+/// The LOCK class of locks is used when a fast lock is required, and we
+/// won't be sleeping on it. This is used in add_work (overseer thread)
+/// and get_work (worker threads). The worker threads also use these locks
+/// when they are shuffling the workqueue in its tree. These locks will no
+/// longer be needed once a proper lockfree queue is implemented.
+/// @{
 #define SCHED_LOCK() pthread_spin_lock(&lock)
 #define SCHED_LOCK_P(x) pthread_spin_lock(&(x->lock))
 #define SCHED_UNLOCK() pthread_spin_unlock(&lock)
@@ -54,6 +60,7 @@
 #define SCHED_LOCK_T pthread_spinlock_t lock
 #define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
 #define SCHED_LOCK_DESTROY() pthread_spin_destroy(&lock)
+/// @}
 
 // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
 // #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
@@ -215,3 +222,11 @@ private:
 };
 
 #endif
+
+/// @class Scheduler
+/// The class that implements a multithreaded, priority-based fair scheduler.
+///
+/// This scheduler makes use of pthreads and a thread pool of workers to provide
+///asynchronous offloading and multithreaded execution of workloads.
+/// @bug Doesn't take ALL flags into account yet. Some work. See header file.
+///Implement all of the priority flags.

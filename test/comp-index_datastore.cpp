@@ -15,7 +15,6 @@
 ///methods and examples that use the framework and test it to make sure it
 ///functions properly.
 /// @file test.cpp
-/// @Author Travis
 /// @warning Specifying too many elements for testing can eat up your RAMs
 
 #include <stdlib.h>

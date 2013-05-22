@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,11 +10,16 @@
  *
  */
 
+/// Header file for Comparator and child objects.
+/// @file comparator.hpp
+
 #ifndef COMPARATOR_HPP
 #define COMPARATOR_HPP
 
 #include <stdint.h>
 #include <string.h>
+
+/// @class Condition
 
 /// @todo Do something like the comparators for the free() function we're
 ///passing around. That is, turn them into an object-wrapped thing?

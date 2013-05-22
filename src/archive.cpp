@@ -9,8 +9,11 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
-#include "archive.hpp"
 
+/// Source file for implementation of AppendOnlyFile.
+/// @file archive.cpp
+
+#include "archive.hpp"
 #include "common.hpp"
 
 AppendOnlyFile::~AppendOnlyFile()
@@ -39,9 +42,9 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
 
         // Since we're appending, seek to the end, get the position, and then
         // rewind back to the start.
-        fseek(f, 0, SEEK_END);
-        offset = ftell(f);
-        rewind(fp);
+        fseek(data, 0, SEEK_END);
+        offset = ftell(data);
+        rewind(data);
     }
     else
     {

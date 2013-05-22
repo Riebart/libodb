@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,9 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
+
+/// Header file for Index, IndexGroup and DataObj objects.
+/// @file index.hpp
 
 #ifndef INDEX_HPP
 #define INDEX_HPP
@@ -27,9 +30,6 @@ class Condition;
 class Merger;
 class Iterator;
 class Index;
-
-/// @todo An index table built on a vector, behaving like the LinkedListI.
-/// @todo Batch insertions for index tables. At least LL.
 
 class DataObj
 {
@@ -105,10 +105,10 @@ public:
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
     virtual int get_ident();
-    /// @todo Add a recursive flavour of size() (See comment)
-    //It will have to return the number of items
-    //in all contained indices though. Is there a way to stop before indices at
-    //the last layer of IndexGroups?
+    /// @todo Add a recursive flavour of size()
+    ///It will have to return the number of items
+    ///in all contained indices though. Is there a way to stop before indices at
+    ///the last layer of IndexGroups?
     virtual uint64_t size();
 
 protected:
@@ -133,6 +133,8 @@ private:
     std::vector<IndexGroup*> indices;
 };
 
+/// @todo An index table built on a vector, behaving like the LinkedListI.
+/// @todo Batch insertions for index tables. At least LL.
 class Index : public IndexGroup
 {
     /// Allows ODB to call remove_sweep.
@@ -197,10 +199,6 @@ protected:
 
 
 #endif
-
-/// Header file for Index, IndexGroup and DataObj classes.
-/// @file index.hpp
-/// @Author Mike
 
 /// @class DataObj
 /// Class container for giving the user access to a secure piece of data to

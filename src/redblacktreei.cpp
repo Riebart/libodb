@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,10 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
+
+/// Source file for implementations of RedBlackTreeI index type as well as its iterators.
+/// @file redblacktreei.cpp
+
 #include "redblacktreei.hpp"
 #include "bankds.hpp"
 #include "common.hpp"

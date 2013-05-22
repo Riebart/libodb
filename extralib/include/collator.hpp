@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,13 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
+
+/// Contains the declaration and implementation for the DataCollator class.
+/// The idea behing putting everything in a single header file is that it can be
+///included into any project without need for additional linking. To further
+///this development decision, it does not include any other headers in this
+///project, and only relies on standard include files.
+/// @file collator.hpp
 
 #ifndef COLLATOR_HPP
 #define COLLATOR_HPP
@@ -31,8 +38,8 @@
 /// sequentially, regardless of the order in which they are input.
 ///
 /// It is able to determine the order of data by ensuring that each piece of data that is added
-/// is accompanied by an offset and a length. Overlapping data raises an exception (-2) when it
-/// is noticed.
+/// is accompanied by an offset and a length. Overlapping data raises overwrites
+/// the existing data.
 class DataCollator
 {
 public:
@@ -93,8 +100,6 @@ public:
     /// This function takes in some data row, a length, and an offset and slots it into the stream
     /// where it is supposed to be. If there are gaps or reorderings, space is left for the missing
     /// elements.
-    ///
-    /// Throws a "-1" if it is unable to allocate memory for some reason.
     void add_data(int64_t offset, uint64_t length, void* data);
 
     /// This function truncates all data after a certain offset.
@@ -205,6 +210,10 @@ private:
     struct row* get_data_p(int64_t offset);
 };
 
+// =============================================================================
+// =============================================================================
+// =============================================================================
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -290,6 +299,8 @@ DataCollator::DataCollator(void (*_handler)(void* context, uint64_t length, void
     automated_output = true;
 }
 
+/// @throws -1 Thrown on failure to allocate a new row (NULL returned from malloc)
+/// @throws -100 Thrown when it fails to add data to the back. This should never occur under normal operation.
 void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
 {
     // Just bail if we're not actually adding anything.
@@ -364,6 +375,7 @@ void DataCollator::add_data(int64_t offset, uint64_t length, void* data)
     {
         if (!try_add_back(row))
         {
+            // We should never get here.
             throw -100;
         }
     }
@@ -422,6 +434,7 @@ struct DataCollator::row* DataCollator::get_data(int64_t offset)
     return (automated_output ? NULL : get_data_p(offset));
 }
 
+/// @throws -1 Thrown on failure to allocate a new row (NULL returned from malloc or realloc)
 struct DataCollator::row* DataCollator::try_add_front(struct DataCollator::row* row)
 {
     // The cases here are:
@@ -528,6 +541,7 @@ struct DataCollator::row* DataCollator::try_add_front(struct DataCollator::row* 
     return ret;
 }
 
+/// @throws -1 Thrown on failure to allocate a new row (NULL returned from malloc or realloc)
 bool DataCollator::try_add_back(struct DataCollator::row* row)
 {
     std::list<struct row*>::reverse_iterator it = rows.rbegin();

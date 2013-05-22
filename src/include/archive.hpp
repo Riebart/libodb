@@ -10,8 +10,11 @@
  *
  */
 
-#ifndef ARCHIVER_HPP
-#define ARCHIVER_HPP
+/// Header file for Archive objects definition details, including children (AppendOnlyFile).
+/// @file archive.hpp
+
+#ifndef ARCHIVE_HPP
+#define ARCHIVE_HPP
 
 #include <stdio.h>
 #include <stdint.h>

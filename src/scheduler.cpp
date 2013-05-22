@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,12 +10,12 @@
  *
  */
 
+/// Source file for the Scheduler containing implementation details.
+/// @file scheduler.cpp
+
 #include "scheduler.hpp"
 #include "common.hpp"
 #include "lfqueue.hpp"
-
-/// @bug Doesn't take ALL flags into account yet. Some work. See header file.
-///Implement all of the priority flags.
 
 void* scheduler_worker_thread(void* args_v)
 {
