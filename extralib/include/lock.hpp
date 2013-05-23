@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,9 +10,19 @@
  *
  */
 
+/// Contains a collection of compiler definitions used to switch between locking
+///implementations at compilation time.
+/// Currently supported locking implementations are pthread RW locks, pthread
+///spin locks, pthread mutex locks, and Google's spin locks. If none of the locks
+///are chosen or enabled, then the copmpiler definitions are defined to map to
+///nothing (and so will resolve, but will not result in the placement of any code.
+/// @file lock.hpp
+
 #ifndef LOCK_HPP
 #define LOCK_HPP
 
+/// Check to see if pthread locks are defined as enabled. If so, enable all of its
+///lock flavours
 #if defined(ENABLE_PTHREAD_LOCKS) || \
 defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SPIN_LOCKS)
 #include "pthread.h"
@@ -249,30 +259,54 @@ defined(GOOGLE_SPIN_LOCKS)
 //==============================================================================
 #else
 
+/// Obtain a read lock in the context of a locking object
 #define READ_LOCK()
+/// Obtain a read lock on the locking member of something we have a pointer to
 #define READ_LOCK_P(x)
+/// Obtain a read unlock in the context of a locking object
 #define READ_UNLOCK()
+/// Obtain a read unlock on the locking member of something we have a pointer to
 #define READ_UNLOCK_P(x)
+
+/// Obtain a write lock in the context of a locking object
 #define WRITE_LOCK()
+/// Obtain a write lock on the locking member of something we have a pointer to
 #define WRITE_LOCK_P(x)
-#define WRITE_UNLOCK()
+/// Obtain a write unlock in the context of a locking object
 #define WRITE_UNLOCK_P(x)
+/// Obtain a write unlock on the locking member of something we have a pointer to
+#define WRITE_UNLOCK_P(x)
+
+/// Obtain a read/write lock in the context of a locking object
 #define LOCK()
+/// Obtain a read/write lock in the context of a locking objectof something we have a pointer to
 #define LOCK_P(x)
+/// Obtain a read/write unlock in the context of a locking object
 #define UNLOCK()
+/// Obtain a read/write unlock in the context of a locking object of something we have a pointer to
 #define UNLOCK_P(x)
 
+/// Initialize the locking member
 #define RWLOCK_INIT()
+/// Initialize the locking member of something we have a pointer to
 #define RWLOCK_INIT_P(x)
+/// Initialize the locking member
 #define LOCK_INIT()
+/// Initialize the locking member of something we have a pointer to
 #define LOCK_INIT_P(x)
 
+/// Destroy the locking member
 #define RWLOCK_DESTROY()
+/// Destroy the locking member of something we have a pointer to
 #define RWLOCK_DESTROY_P(x)
+/// Destroy the locking member
 #define LOCK_DESTROY()
+/// Destroy the locking member of something we have a pointer to
 #define LOCK_DESTROY_P(x)
 
+/// Simple lock type
 #define LOCK_T
+/// Read/write type
 #define RWLOCK_T
 #endif
 

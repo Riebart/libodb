@@ -25,6 +25,10 @@
 
 #include "common.hpp"
 
+/// Finds the minimum of two values using the ternary operator.
+/// @param[in] x One of the values.
+/// @param[in] y The other value.
+/// @return The minimum of x and y.
 #ifndef MIN
 #define MIN(x,y) (x < y ? x : y)
 #endif
@@ -72,6 +76,10 @@ void fb_destroy(struct file_buffer* fb)
 /// @param[in] fp File pointer to use as the underlying file.
 /// @param[in] num_bytes Size of the memory buffer array.
 /// @return A buffering context initialized with given parameters
+/// @retval NULL If the given file pointer (fp) is NULL, if the allocation of
+///memory for the buffering context structure fails, if the allocation of
+///memory for the buffer fails, or if the initial read from the file results in
+///an error other than a file shorter than the buffer length.
 struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes = 1048576)
 {
     if (fp == NULL)
@@ -119,6 +127,7 @@ struct file_buffer* fb_read_init(FILE* fp, uint32_t num_bytes = 1048576)
 /// @param[in] fname File name to open.
 /// @param[in] num_bytes Size of the memory buffer array.
 /// @return A buffering context initialized with given parameters
+/// @retval NULL Returns NULL in the same cases as fb_read_init(FILE*, uint32_t)
 struct file_buffer* fb_read_init(char* fname, uint32_t num_bytes = 1048576)
 {
     FILE* fp = fopen(fname, "rb");
@@ -132,6 +141,9 @@ struct file_buffer* fb_read_init(char* fname, uint32_t num_bytes = 1048576)
 /// @param[in] fp File pointer to use as the underlying file.
 /// @param[in] num_bytes Size of the memory buffer array.
 /// @return A buffering context initialized with given parameters
+/// @retval NULL If the given file pointer (fp) is NULL, if the allocation of
+///memory for the buffering context structure fails, or if the allocation of
+///memory for the buffer fails.
 struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes = 1048576)
 {
     if (fp == NULL)
@@ -174,6 +186,7 @@ struct file_buffer* fb_write_init(FILE* fp, uint32_t num_bytes = 1048576)
 /// @param[in] fname File name to open.
 /// @param[in] num_bytes Size of the memory buffer array.
 /// @return A buffering context initialized with given parameters
+/// @retval NULL Returns NULL in the same cases as fb_write_init(FILE*, uint32_t)
 struct file_buffer* fb_write_init(char* fname, uint32_t num_bytes = 1048576)
 {
     FILE* fp = fopen(fname, "wb");

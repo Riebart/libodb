@@ -27,6 +27,9 @@
 #include <stdlib.h>
 
 /// Holds the state of the CMWC generator.
+/// See http://en.wikipedia.org/wiki/Multiply-with-carry for details on the
+///operation of this PRNG.
+/// @bug This is probably not done properly. See http://en.wikipedia.org/wiki/Multiply-with-carry
 struct cmwc_state
 {
     /// A large value used to rapidly cycle the 64-bit value of x
@@ -43,7 +46,6 @@ struct cmwc_state
 /// Given a current state, generate the next random number.
 /// @param[in] c The CMWC state.
 /// @return The next random number.
-/// @bug This is probably not done properly. See http://en.wikipedia.org/wiki/Multiply-with-carry
 int32_t cmwc_next(struct cmwc_state* c)
 {
     c->x = (c->a * (c->x & (uint64_t)(0x00000000FFFFFFFF))) + (c->x >> 32);

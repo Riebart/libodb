@@ -18,10 +18,12 @@
 
 /// For the fail macro
 #include <errno.h>
+
+/// For fprintf
 #include <stdio.h>
+
+/// For malloc/calloc/realloc
 #include <stdlib.h>
-#include <stdint.h>
-#include <vector>
 
 /// Prints a back trace from the location that it was called.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf

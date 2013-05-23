@@ -10,7 +10,7 @@
  *
  */
 
-/// Contains the necessary structures and methods for handling UDP packets.
+/// Header file containing the necessary structures and methods for handling UDP packets.
 /// @file udp.hpp
 
 #ifndef UDP_HPP

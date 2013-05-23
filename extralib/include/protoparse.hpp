@@ -1,5 +1,5 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,10 @@
  * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
+
+/// Contains functions for parsing a packet into its protocol stack
+/// @file protoparse.hpp
+/// @todo Split the implementation into a cpp file
 
 #ifndef PROTOPARSE_HPP
 #define PROTOPARSE_HPP
@@ -595,7 +599,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #ifdef DEBUG
         printf("valid_dns ");
         struct l7_dns* l7_hdrp = (struct l7_dns*)(&(f->hdr_start) + l3_hdr_size[f->l3_type] + l4_hdr_size[f->l4_type]);
-        dns_print(l7_hdrp->query);
+        dns_print(stdout, l7_hdrp->query);
         printf(" ");
 #endif
 

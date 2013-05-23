@@ -22,10 +22,25 @@
 
 #include "comparator.hpp"
 
+/// Finds the maximum of two values using the ternary operator.
+/// @param[in] x One of the values.
+/// @param[in] y The other value.
+/// @return The maximum of x and y.
 #ifndef MAX
 #define MAX(x, y) ( x > y ? x : y )
 #endif
 
+/// Finds the minimum of two values using the ternary operator.
+/// @param[in] x One of the values.
+/// @param[in] y The other value.
+/// @return The minimum of x and y.
+#ifndef MIN
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#endif
+
+/// Finds the square of a value
+/// @param[in] x Value to square.
+/// @return The literal x*x
 #ifndef SQUARE
 #define SQUARE(x) ((x) * (x))
 #endif

@@ -10,7 +10,7 @@
  *
  */
 
-/// Contains the necessary structures and methods for handling TCP packets and connections.
+/// Header file containing the necessary structures and methods for handling TCP packets and connections.
 /// @file tcp.hpp
 
 #ifndef TCP_HPP
@@ -19,10 +19,18 @@
 #include "collator.hpp"
 #include "protoparse.hpp"
 
+/// Finds the minimum of two values using the ternary operator.
+/// @param[in] x One of the values.
+/// @param[in] y The other value.
+/// @return The minimum of x and y.
 #ifndef MIN
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #endif
 
+/// Finds the maximum of two values using the ternary operator.
+/// @param[in] x One of the values.
+/// @param[in] y The other value.
+/// @return The maximum of x and y.
 #ifndef MAX
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #endif
@@ -31,6 +39,11 @@
 ///
 /// This class uses a DataCollator to reassemble the segments of a TCP connection
 ///by examining the sequence and acknowledgement numbers observed in the packets.
+///Since this class is designed to work from a packet capture, it does not assume
+///that it sees all packets that are part of the connection on the wire. If it
+///observes data that is ACKed but for which no packet is seen, it aborts the
+///reassembly and outputs what it has successfully put together so far.
+/// @todo Split the implementation into its own .cpp file.
 class TCPFlow
 {
 public:
@@ -47,9 +60,9 @@ public:
 
     /// Update this flow to represent one with the given signature. This fails if
     /// anything has been added to this flow.
+    /// @param [in] f The new flow signature to be represented by this object.
     /// @return Whether or not the replacement succeded. If there is already data
     /// in the flow, this operation will fail.
-    /// @param [in] f The new flow signature to be represented by this object.
     bool replace_sig(struct flow_sig* f);
 
     /// Set the output method to a handler-type. If this or its sister isn't called
@@ -93,6 +106,11 @@ protected:
     /// Takes in a flow signature and a direction, obtained from the protocol
     /// aware flavours and adds performs the logic. Once the direction is known
     /// the rest is agnostic of the layer 3 protocol.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
+    /// @param [in] tcp The TCP struct obtained after the layer 3 header information.
+    /// @param [in] dir The direction of the flow, as obtained by the L3 protocol
+    /// aware flavours.
     /// @retval <0 Bytes were seen flowing in the direction of the higher address
     /// to the lower address.
     /// @retval >0 Bytes were seen flowing in the direction of the lower address
@@ -101,11 +119,6 @@ protected:
     /// @throws -2 If this is called when no signature has been set up for this object.
     /// @throws 2 If the parser encounters an RST flag. Every packet that passed
     /// to this flow after an RST is encountered causes this to be thrown.
-    /// @param [in] f The packet's flow signature, including the extra data added
-    /// to the end of the signature, to add to the stream.
-    /// @param [in] tcp The TCP struct obtained after the layer 3 header information.
-    /// @param [in] dir The direction of the flow, as obtained by the L3 protocol
-    /// aware flavours.
     int add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir);
 
     /// File descriptor to write to. neither of the set_output methods are called
@@ -185,10 +198,13 @@ protected:
     uint64_t num_bytes;
 };
 
+/// Class that extends the TCPFlow to operate on IPv4 packets by emplying knowledge of the IPv4 header.
 class TCP4Flow : public TCPFlow
 {
 public:
     /// Add a packet from its flow description to the TCP stream.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
     /// @retval <0 Bytes were seen flowing in the direction of the higher address
     /// to the lower address.
     /// @retval >0 Bytes were seen flowing in the direction of the lower address
@@ -200,16 +216,14 @@ public:
     /// @throws 3 If there is a packet that is detected to be lost, we just bail
     /// like we got an RST, but this sends the signal that we are bailing for a
     /// reason not related to 'actual' traffic.
-    /// @param [in] f The packet's flow signature, including the extra data added
-    /// to the end of the signature, to add to the stream.
     int add_packet(struct flow_sig* f);
 
     /// Checks a packet's flow signature against this TCP flow to see if it is
     /// eligible to be added to it.
-    /// @return Whether or not the specified flow signature matches this flow.
-    /// @throws -2 If this is called when no signature has been set up for this object.
     /// @param [in] f The packet, including extra bytes at the end of the signature,
     /// to check against this flow.
+    /// @return Whether or not the specified flow signature matches this flow.
+    /// @throws -2 If this is called when no signature has been set up for this object.
     bool check_packet(struct flow_sig* f);
 
     /// Write out the hash for this flow (based on the addresses and ports) to
@@ -232,6 +246,8 @@ class TCP6Flow : public TCPFlow
 {
 public:
     /// Add a packet from its flow description to the TCP stream.
+    /// @param [in] f The packet's flow signature, including the extra data added
+    /// to the end of the signature, to add to the stream.
     /// @retval <0 Bytes were seen flowing in the direction of the higher address
     /// to the lower address.
     /// @retval >0 Bytes were seen flowing in the direction of the lower address
@@ -240,23 +256,21 @@ public:
     /// @throws -2 If this is called when no signature has been set up for this object.
     /// @throws 2 If the parser encounters an RST flag. Every packet that passed
     /// to this flow after an RST is encountered causes this to be thrown.
-    /// @param [in] f The packet's flow signature, including the extra data added
-    /// to the end of the signature, to add to the stream.
     int add_packet(struct flow_sig* f);
 
     /// Checks a packet's flow signature against this TCP flow to see if it is
     /// eligible to be added to it.
-    /// @return Whether or not the specified flow signature matches this flow.
-    /// @throws -2 If this is called when no signature has been set up for this object.
     /// @param [in] f The packet, including extra bytes at the end of the signature,
     /// to check against this flow.
+    /// @return Whether or not the specified flow signature matches this flow.
+    /// @throws -2 If this is called when no signature has been set up for this object.
     bool check_packet(struct flow_sig* f);
 
     /// Write out the hash for this flow (based on the addresses and ports) to
     /// the specified location.
+    /// @param [in,out] dest The location to write the hash to.
     /// @return Whether or not this succeds. If there is no signature set, this
     /// will fail.
-    /// @param [in,out] dest The location to write the hash to.
     bool get_hash(uint32_t* dest);
 
 protected:

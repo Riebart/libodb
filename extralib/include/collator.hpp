@@ -16,6 +16,7 @@
 ///this development decision, it does not include any other headers in this
 ///project, and only relies on standard include files.
 /// @file collator.hpp
+/// @todo Split the implementation into a cpp file
 
 #ifndef COLLATOR_HPP
 #define COLLATOR_HPP
@@ -35,11 +36,11 @@
 /// Implementation of a data-collation method that ensures data is always obtained sequentially
 ///
 /// It uses a linked list to keep track of data pieces and ensures that they are always output
-/// sequentially, regardless of the order in which they are input.
+///sequentially, regardless of the order in which they are input.
 ///
 /// It is able to determine the order of data by ensuring that each piece of data that is added
-/// is accompanied by an offset and a length. Overlapping data raises overwrites
-/// the existing data.
+///is accompanied by an offset and a length. Overlapping data raises overwrites
+///the existing data.
 class DataCollator
 {
 public:
@@ -58,85 +59,85 @@ public:
 
     /// Destructor that ensures that the list and all rows are cleaned up.
     /// Since we can assume that none of this data is in use outside of this object, we can just
-    /// throw away the allocations and free up the memory.
+    ///throw away the allocations and free up the memory.
     ~DataCollator();
 
     /// Standard constructor for initializing members.
-    ///
     /// Useful at the application level when the output of the stream is being retrieved 'manually'
-    /// and no automatic ouptut mechanism (as provided by the other constructors) is required or
-    /// desired.
+    ///and no automatic ouptut mechanism (as provided by the other constructors) is required or
+    ///desired.
     DataCollator();
 
     /// Constructor that instructs the collator to write output to the specified file descriptor.
+    /// This provides flexibility in allowing the output to be written to either a file, a socket,
+    ///or stdin of a process started using popen and acquiring the write (stdin) descriptor.
     /// @param [in] _fd The file descriptor to write data to.
     /// @param [in] _cleanup Whether or not to close the file used for output
-    /// upon destruction. Default is false.
-    ///
-    /// This provides flexibility in allowing the output to be written to either a file, a socket,
-    /// or stdin of a process started using popen and acquiring the write (stdin) descriptor.
+    ///upon destruction. Default is false.
     DataCollator(FILE* _fd, bool _cleanup = false);
 
     /// Constructor that instructs the collator to write output to the specified handler function.
+    /// Useful for when more flexibility is needed, but automatic output is still required or
+    ///desired.
     /// @param [in] _handler The function that takes in a data row (length and data pointer) and
     /// does something with it.
     /// @param [in,out] _context An opaque binary row that is passed to the handler function
     /// when it is called allowing handler functions to behave differently based on the collator
-    /// that is calling them.
+    ///that is calling them.
     /// @param [in] _cleanup Whether or not to free the contextual information
-    /// upon destruction. Default is false.
-    ///
-    /// Useful for when more flexibility is needed, but automatic output is still required or
-    /// desired.
+    ///upon destruction. Default is false.
     DataCollator(void (*_handler)(void* context, uint64_t length, void* data), void* _context, bool _cleanup = false);
 
     /// This funcdtion makes use of a copy-on-add policy so that data can be added form volatile
-    /// locations without additional cost at the application level.
+    ///locations without additional cost at the application level.
+    /// This function takes in some data row, a length, and an offset and slots it into the stream
+    ///where it is supposed to be. If there are gaps or reorderings, space is left for the missing
+    ///elements.
     /// @param [in] offset The offset in the stream that this collator represents at which this
     /// data begins.
     /// @param [in] length The number of bytes in this row of data.
     /// @param [in] data The data row itself.
-    ///
-    /// This function takes in some data row, a length, and an offset and slots it into the stream
-    /// where it is supposed to be. If there are gaps or reorderings, space is left for the missing
-    /// elements.
     void add_data(int64_t offset, uint64_t length, void* data);
 
     /// This function truncates all data after a certain offset.
+    /// Used for TCP reassembly where if we get an ack, we need to throw away
+    ///everything that we have that came after that ack.
     /// @param [in] offset The offset after which to throw away data.
     /// @return The number of bytes thrown away.
-    ///
-    /// Used for TCP reassembly where if we get an ack, we need to throw away
-    /// everything that we have that came after that ack.
     uint64_t truncate_after(int64_t offset);
 
     /// Used to manually retrieve any data ready for output.
-    /// @return NULL if either of the automatic output methods are configured, otherwise it returns
-    /// the contents of the node at the head of the list of rows. It may return NULL indicating that
-    /// no data is ready for output. This function does not free the row, leaving it up to the user
-    /// to free the memory.
+    /// @return Pointer to the row representing the next complete block of memory
+    ///ready for output.
+    /// @retval NULL If either of the automatic output methods are configured or
+    ///if there is no data ready for output.
+    /// @attention This function does not free the row, leaving it up to the user
+    ///to free the memory.
     struct row* get_data();
 
+    /// Gets data up to a specific offset and no further.
     /// An alternative way of getting data that ensures that data after a certain
-    /// point isn't pulled from the stream. Useful for pulling, for example, from
-    /// a TCP stream up to the latest known ACKed byte.
-    /// @return NULL if either of the automatic output methods are configured, otherwise it returns
-    /// the contents of the node at the head of the list of rows. It may return NULL indicating that
-    /// no data is ready for output. This function does not free the row, leaving it up to the user
-    /// to free the memory.
+    ///point isn't pulled from the stream. Useful for pulling, for example, from
+    ///a TCP stream up to the latest known ACKed byte.
     /// @param [in] offset Any bytes strictly after the specified offset will not be returned. This
     /// means that any rows that straddle the specified boundary will not be returned at all, instead
     /// of being returned in part.
+    /// @return Pointer to the row representing the next complete block of memory
+    ///ready for output.
+    /// @retval NULL If either of the automatic output methods are configured or
+    ///if there is no data ready for output.
+    /// @attention This function does not free the row, leaving it up to the user
+    ///to free the memory.
     struct row* get_data(int64_t offset);
 
     /// Get the number of rows, not necessarily consecutive, in the list.
     /// @return The total number of rows currently tracked.
     uint64_t size();
 
-    /// Get the start_offset in the stream.
+    /// Get the start offset in the stream.
     /// @return The value of start_offset, which represents how far into the stream
-    /// our 'base' is. If we're being diligent about output, this represents something
-    /// important, otherwise it is close to meaningless depending on the context.
+    ///our 'base' is. If we are being diligent about output, this represents something
+    ///important, otherwise it is close to meaningless depending on the context.
     int64_t get_start();
 
 private:
@@ -153,11 +154,11 @@ private:
 
     /// If not NULL, ready data gets passed to this handler function.
     /// The context argument to the handler function allows for differentiation between
-    /// different collators.
+    ///different collators.
     void (*handler)(void* context, uint64_t length, void* data);
 
     /// Contextual information provided to allow state-based handling of the output
-    /// of different collators when using handler functions.
+    ///of different collators when using handler functions.
     void* context;
 
     /// Holds a quick way to determine whether or not automated output is configured.
@@ -166,12 +167,13 @@ private:
     /// Used to keep track of where in the stream the next expected data should start.
     int64_t start_offset;
 
-#warning "TODO: Implement the cursor in the data collator."
     /// Used to keep track of the first byte that is unaccounted for.
+    /// @todo Implement the cursor in the data collator.s
     int64_t cursor;
 
-    /// Holds the number of rows inserted into the list so that we aren't calling the
-    /// O(n) .size() method of the STL list.
+    /// Holds the number of rows inserted into the list
+    /// The value of this is to ensure that there aren't extraneous calls to the
+    ///O(n) .size() method of the STL list.
     uint64_t count;
 
     /// Keeps track of the list of rows allowing for space to exist between rows, representing missing data.
@@ -179,13 +181,19 @@ private:
 
     /// Attempts to add the new row to the front of the list, to fill in the first gap.
     /// @param [in] row The row to add.
+    /// @return Whether the insertion to the back of the list was successful
+    /// @retval true This should always succeed under normal operation.
+    /// @retval false A value of false from this will cause the collator to throw
+    ///a -100 indicating that something is seriously wrong (memory clobbering or
+    ///something equally heinous).
     bool try_add_back(struct row* row);
 
     /// Attempts to add the new row to the front of the list, to fill in the first gap.
-    /// @return Whether or not it was successful in adding the item to the front
-    /// is encoded into the return value. If a NULL is returned, it was added, and
-    /// otherwise the value of the row (as it may have been realloc-ed) is sent back.
     /// @param [in] row The row to add.
+    /// @return Whether or not it was successful in adding the item to the front
+    /// is encoded into the return value.
+    /// @retval NULL Indicates successful insertion of the row at the front of the list
+    /// @retval non-NULL Pointer to the row (as it may have been realloc-ed)
     struct row* try_add_front(struct row* row);
 
     /// A function that grabs the contents of the head of the list and pops it off
