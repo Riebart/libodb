@@ -68,9 +68,9 @@
 ///that includes some specific strings to print along with the backtrace.
 /// @{
 #ifdef DEBUG
-#define DEBUG(str...) PRINT_TRACE(str)
+#define DEBUG_PRINT(str...) PRINT_TRACE(str)
 #else
-#define DEBUG(str...) { }
+#define DEBUG_PRINT(str...) { }
 #endif
 /// @}
 

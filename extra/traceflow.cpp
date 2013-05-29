@@ -50,11 +50,30 @@ struct tree_node6
     struct flow_sig* f;
     uint32_t hash[9];
 };
+
+struct ip4hash
+{
+    uint32_t src_addr;
+    uint32_t dst_addr;
+    uint16_t src_port;
+    uint16_t dst_port;
+};
+
+struct ip6hash
+{
+    uint32_t src_addr[4];
+    uint32_t dst_addr[4];
+    uint16_t src_port;
+    uint16_t dst_port;
+};
+
 #pragma pack()
 
 struct linked_list* flow_list4;
 struct linked_list* flow_list6;
 struct timeval cur_ts;
+uint64_t num_pkts = 0;
+uint8_t dir = 0;
 
 struct linked_list* init_ll()
 {
@@ -151,6 +170,37 @@ int32_t compare4(void* aV, void* bV)
     return ret;
 }
 
+uint8_t test_hash4(struct ip4hash* hash, struct l3_ip4* ip, struct l4_tcp* tcp)
+{
+    int64_t c;
+
+    c = (hash->src_addr - ip->src);
+    if (c != 0)
+    {
+        return 1;
+    }
+    
+    c = (hash->dst_addr - ip->dst);
+    if (c != 0)
+    {
+        return 1;
+    }
+
+    c = (hash->src_port - tcp->sport);
+    if (c != 0)
+    {
+        return 1;
+    }
+    
+    c = (hash->dst_port - tcp->dport);
+    if (c != 0)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 void* merge4(void* aV, void* bV)
 {
     struct tree_node4* a = (struct tree_node4*)aV;
@@ -158,6 +208,14 @@ void* merge4(void* aV, void* bV)
 
     try
     {
+        struct l3_ip4* ip = (struct l3_ip4*)(&(a->f->hdr_start));
+        struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+
+        struct ip4hash hash;
+        b->flow->get_hash((uint32_t*)(&hash));
+
+        dir = test_hash4(&hash, ip, tcp);
+
         b->flow->add_packet(a->f);
         free(a->f);
         a->f = NULL;
@@ -197,6 +255,40 @@ int32_t compare6(void* aV, void* bV)
     return ret;
 }
 
+uint8_t test_hash6(struct ip6hash* hash, struct l3_ip6* ip, struct l4_tcp* tcp)
+{
+    int64_t c;
+
+    for (int i = 0 ; i < 4 ; i++)
+    {
+        c = (hash->src_addr[i] - ip->src[i]);
+        if (c != 0)
+        {
+            return 1;
+        }
+        
+        c = (hash->dst_addr[i] - ip->dst[i]);
+        if (c != 0)
+        {
+            return 1;
+        }
+    }
+    
+    c = (hash->src_port - tcp->sport);
+    if (c != 0)
+    {
+        return 1;
+    }
+    
+    c = (hash->dst_port - tcp->dport);
+    if (c != 0)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 void* merge6(void* aV, void* bV)
 {
     struct tree_node6* a = (struct tree_node6*)aV;
@@ -204,6 +296,14 @@ void* merge6(void* aV, void* bV)
 
     try
     {
+        struct l3_ip6* ip = (struct l3_ip6*)(&(a->f->hdr_start));
+        struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+
+        struct ip6hash hash;
+        b->flow->get_hash((uint32_t*)(&hash));
+
+        dir = test_hash6(&hash, ip, tcp);
+
         b->flow->add_packet(a->f);
         free(a->f);
         a->f = NULL;
@@ -253,7 +353,7 @@ uint64_t last6 = 0;
 struct tree_node4* proto4;
 struct tree_node6* proto6;
 
-// char fname[64];
+//char fname[64];
 
 void output_handler(void* contextV, uint64_t length, void* data)
 {
@@ -261,12 +361,14 @@ void output_handler(void* contextV, uint64_t length, void* data)
 
     if (data != NULL)
     {
-        printf("1\n%llu\n%llu\n", id, length);
+        printf("1\n%llu\n%llu\n%u\n%u\n%u\n", id, length, dir, cur_ts.tv_sec, cur_ts.tv_usec);
         fwrite(data, length, 1, stdout);
     }
     else
     {
-        printf("%u\n%llu\n", length, id);
+        // The length here is 0, so that is our message-type indicator.
+        // It isn't explicit, which was confusing.
+        printf("%u\n%llu\n%u\n%u\n", length, id, cur_ts.tv_sec, cur_ts.tv_usec);
     }
 }
 
@@ -285,8 +387,8 @@ void proto_init4(struct tree_node4** p)
     proto4->flow = new TCP4Flow();
 
     *id = ctr;
-//     sprintf(fname, "tcpsess4.%llu", ctr);
-//     proto4->flow->set_output(fopen(fname, "wb"), true);
+//    sprintf(fname, "tcpsess4.%llu", ctr);
+//    proto4->flow->set_output(fopen(fname, "wb"), true);
     proto4->flow->set_output(output_handler, id, true);
     last4 = ctr;
     ctr++;
@@ -338,6 +440,7 @@ void proto_setup6(struct tree_node6* p, struct flow_sig* f)
 
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
+    num_pkts++;
     cur_ts = pkt_hdr->ts;
 
     // Expire out the tail of the list if it is old enough.
@@ -409,9 +512,11 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                    printf("04\n%llu\n%u\n%u\n%u\n%u\n", last4,
+                    printf("04\n%llu\n%u\n%u\n%u\n%u\n%u\n%u\n", last4,
                            ip->src, tcp->sport,
-                           ip->dst, tcp->dport);
+                           ip->dst, tcp->dport,
+                           cur_ts.tv_sec, cur_ts.tv_usec
+                          );
 
                     free(proto4->f);
                     proto4->f = NULL;
@@ -487,9 +592,11 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n", last6,
+                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n%u\n%u", last6,
                            ip->src[0], ip->src[1], tcp->sport,
-                           ip->dst[0], ip->dst[1], tcp->dport);
+                           ip->dst[0], ip->dst[1], tcp->dport,
+                           cur_ts.tv_sec, cur_ts.tv_usec
+                          );
 
                     free(proto6->f);
                     proto6->f = NULL;
@@ -590,3 +697,16 @@ int main(int argc, char** argv)
         return e;
     }
 }
+
+// Output format:
+// 04 or 06
+//  - Indicates the start of a flow
+//
+// 1
+// - Indicates data for a flow
+//
+// 2
+// - Indicates that a flow terminated due to timeout or RST
+//
+// 0
+// - Indicates a flow finished due to FIN
