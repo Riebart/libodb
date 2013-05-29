@@ -11,6 +11,7 @@
  */
 
 /// Header file containing the necessary structures and methods for handling TCP packets and connections.
+/// @todo Selective, and other kinds of acknowledgement. http://en.wikipedia.org/wiki/Retransmission_(data_networks)
 /// @file tcp.hpp
 
 #ifndef TCP_HPP
