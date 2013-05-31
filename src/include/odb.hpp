@@ -231,6 +231,8 @@ private:
 ///to provide backend storage, which is indexed by the Index classes. The
 ///Scheduler class is used to provide multithreading and improved performance
 ///in concurrent applications.
+/// @todo Extend this with some kind of dynamic querying, daemon something.
+///Like what we tried to do with the Python interface
 
 /// @fn ODB::~ODB()
 /// Destructor is employed to orchestrate the cleanup of all of the ODB components.

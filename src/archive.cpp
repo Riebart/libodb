@@ -25,6 +25,7 @@ AppendOnlyFile::~AppendOnlyFile()
     free(index_name);
 }
 
+/// @todo Make this use a biffered writer for improved throughput
 AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
 {
     SAFE_MALLOC(char*, data_name, strlen(base_filename)+5);

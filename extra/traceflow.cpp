@@ -72,7 +72,6 @@ struct ip6hash
 struct linked_list* flow_list4;
 struct linked_list* flow_list6;
 struct timeval cur_ts;
-uint64_t num_pkts = 0;
 uint8_t dir = 0;
 
 struct linked_list* init_ll()
@@ -179,7 +178,7 @@ uint8_t test_hash4(struct ip4hash* hash, struct l3_ip4* ip, struct l4_tcp* tcp)
     {
         return 1;
     }
-    
+
     c = (hash->dst_addr - ip->dst);
     if (c != 0)
     {
@@ -191,7 +190,7 @@ uint8_t test_hash4(struct ip4hash* hash, struct l3_ip4* ip, struct l4_tcp* tcp)
     {
         return 1;
     }
-    
+
     c = (hash->dst_port - tcp->dport);
     if (c != 0)
     {
@@ -266,20 +265,20 @@ uint8_t test_hash6(struct ip6hash* hash, struct l3_ip6* ip, struct l4_tcp* tcp)
         {
             return 1;
         }
-        
+
         c = (hash->dst_addr[i] - ip->dst[i]);
         if (c != 0)
         {
             return 1;
         }
     }
-    
+
     c = (hash->src_port - tcp->sport);
     if (c != 0)
     {
         return 1;
     }
-    
+
     c = (hash->dst_port - tcp->dport);
     if (c != 0)
     {
@@ -440,7 +439,6 @@ void proto_setup6(struct tree_node6* p, struct flow_sig* f)
 
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
-    num_pkts++;
     cur_ts = pkt_hdr->ts;
 
     // Expire out the tail of the list if it is old enough.

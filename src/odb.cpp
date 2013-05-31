@@ -49,6 +49,8 @@ volatile uint32_t ODB::num_unique = 0;
 /// @param[in] arg The void pointer to arguments. This is actually a pair of
 ///pointers, one to the parent ODB object, and another to a 32-bit integer
 ///indicating how many seconds to sleep between sweeps.
+/// @todo Have a way of starting and stopping the mem checker thread with more
+///than just at construction/destruction time.
 void * mem_checker(void * arg)
 {
     void** args = reinterpret_cast<void**>(arg);
