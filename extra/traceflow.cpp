@@ -209,10 +209,8 @@ void* merge4(void* aV, void* bV)
     {
         struct l3_ip4* ip = (struct l3_ip4*)(&(a->f->hdr_start));
         struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
-
-        struct ip4hash hash;
+        struct ip4hash hash = {0};
         b->flow->get_hash((uint32_t*)(&hash));
-
         dir = test_hash4(&hash, ip, tcp);
 
         b->flow->add_packet(a->f);
@@ -257,16 +255,16 @@ int32_t compare6(void* aV, void* bV)
 uint8_t test_hash6(struct ip6hash* hash, struct l3_ip6* ip, struct l4_tcp* tcp)
 {
     int64_t c;
-
+    uint32_t* src_addr = (uint32_t*)(ip->src);
+    uint32_t* dst_addr = (uint32_t*)(ip->dst);
     for (int i = 0 ; i < 4 ; i++)
     {
-        c = (hash->src_addr[i] - ip->src[i]);
+        c = (hash->src_addr[i] - src_addr[i]);
         if (c != 0)
         {
             return 1;
         }
-
-        c = (hash->dst_addr[i] - ip->dst[i]);
+        c = (hash->dst_addr[i] - src_addr[i]);
         if (c != 0)
         {
             return 1;
@@ -365,7 +363,7 @@ void output_handler(void* contextV, uint64_t length, void* data)
     }
     else
     {
-        // The length here is 0, so that is our message-type indicator.
+        // The length here is 2, so that is our message-type indicator.
         // It isn't explicit, which was confusing.
         printf("%u\n%llu\n%u\n%u\n", length, id, cur_ts.tv_sec, cur_ts.tv_usec);
     }
@@ -449,15 +447,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
 
         struct tree_node4* del;
         bool removed = RedBlackTreeI::e_remove(flows4, tn, (void**)(&del));
-
         if (!removed)
         {
-            throw -2;
+            throw -31;
         }
-
         uint64_t id = *(uint64_t*)(del->flow->get_context());
-        printf("2\n%llu\n", id);
-
+//        printf("2\n%llu\n", id);
         del_ll(&(del->node), flow_list4);
         delete del->flow;
         free(del->f);
@@ -471,15 +466,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
 
         struct tree_node6* del;
         bool removed = RedBlackTreeI::e_remove(flows6, tn, (void**)(&del));
-
         if (!removed)
         {
-            throw -2;
+            throw -32;
         }
-
         uint64_t id = *(uint64_t*)(del->flow->get_context());
-        printf("2\n%llu\n", id);
-
+//        printf("2\n%llu\n", id);
         del_ll(&(del->node), flow_list6);
         delete del->flow;
         free(del->f);
@@ -530,12 +522,10 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     {
                         struct tree_node4* del;
                         bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
-
                         if (!removed)
                         {
-                            throw -2;
+                            throw -21;
                         }
-
                         del_ll(&(del->node), flow_list4);
                         delete del->flow;
                         free(del->f);
@@ -560,12 +550,10 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 {
                     struct tree_node4* del;
                     bool removed = RedBlackTreeI::e_remove(flows4, proto4->f, (void**)(&del));
-
                     if (!removed)
                     {
-                        throw -2;
+                        throw -41;
                     }
-
                     del_ll(&(del->node), flow_list4);
                     delete del->flow;
                     free(del);
@@ -611,12 +599,10 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         struct tree_node6* del;
                         bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
                         del_ll(&(del->node), flow_list6);
-
                         if (!removed)
                         {
-                            throw -2;
+                            throw -22;
                         }
-
                         delete del->flow;
                         free(del->f);
                         free(del);
@@ -640,12 +626,10 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 {
                     struct tree_node6* del;
                     bool removed = RedBlackTreeI::e_remove(flows6, proto6->f, (void**)(&del));
-
                     if (!removed)
                     {
-                        throw -2;
+                        throw -42;
                     }
-
                     del_ll(&(del->node), flow_list6);
                     delete del->flow;
                     free(del);
@@ -676,12 +660,20 @@ int main(int argc, char** argv)
 
         flows4 = RedBlackTreeI::e_init_tree(true, compare4, merge4);
         flows6 = RedBlackTreeI::e_init_tree(true, compare6, merge6);
-
         char errbuf[PCAP_ERRBUF_SIZE];
-        pcap_t* fp = pcap_open_offline(argv[1], errbuf);
+        pcap_t* fp;
+
+        if ((argv[1][0] == '-') && (argv[1][1] == '\0'))
+        {
+            fp = pcap_fopen_offline(stdin, errbuf);
+        }
+        else
+        {
+            fp = pcap_open_offline(argv[1], errbuf);
+        }
+
         pcap_loop(fp, 0, packet_callback, NULL);
         free(fp);
-
         RedBlackTreeI::e_destroy_tree(flows4, freep4);
         RedBlackTreeI::e_destroy_tree(flows6, freep6);
         free(flow_list4);
@@ -704,7 +696,4 @@ int main(int argc, char** argv)
 // - Indicates data for a flow
 //
 // 2
-// - Indicates that a flow terminated due to timeout or RST
-//
-// 0
-// - Indicates a flow finished due to FIN
+// - Indicates that a flow terminated due to timeout or RST or naturally on a FIN pair

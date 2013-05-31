@@ -399,9 +399,10 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         // Catch the case when the length header is broken.
         if (*total_len > (packet_len - p_offset - l3_hdr.hdr_len))
         {
-            throw -2;
+//            throw -2;
+            f->l4_type = L3_TYPE_NONE;
+            return p_offset;
         }
-
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
         *fp = f;
 
@@ -431,12 +432,12 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         l3_hdr.dst[1] = tmp_addr[1];
 
         *total_len = ntohs(ip_hdr->ip6_ctlun.ip6_un1.ip6_un1_plen);
-
         if (*total_len > (packet_len - p_offset - sizeof(struct ip6_hdr)))
         {
-            throw -2;
+//            throw -2;
+            f->l4_type = L3_TYPE_NONE;
+            return p_offset;
         }
-
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip6) - 1);
         *fp = f;
 
