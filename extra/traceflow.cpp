@@ -572,7 +572,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 try
                 {
                     proto4->node.ts = cur_ts;
-                    prepend_ll(&(proto4->node), flow_list6);
+                    prepend_ll(&(proto6->node), flow_list6);
                     proto6->flow->add_packet(proto6->f);
 
                     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
