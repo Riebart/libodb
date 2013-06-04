@@ -314,6 +314,7 @@ void* merge6(void* aV, void* bV)
         {
         case 1:
         case 2:
+        case 3:
             free(a->f);
             a->f = (struct flow_sig*)(b);
             break;
@@ -571,14 +572,14 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
             {
                 try
                 {
-                    proto4->node.ts = cur_ts;
+                    proto6->node.ts = cur_ts;
                     prepend_ll(&(proto6->node), flow_list6);
                     proto6->flow->add_packet(proto6->f);
 
                     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n%u\n%u", last6,
+                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n%u\n%u\n", last6,
                            ip->src[0], ip->src[1], tcp->sport,
                            ip->dst[0], ip->dst[1], tcp->dport,
                            cur_ts.tv_sec, cur_ts.tv_usec

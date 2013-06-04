@@ -381,7 +381,7 @@ void TCP6Flow::init(struct flow_sig* f)
     for (int i = 0 ; i < 4 ; i++)
     {
         addrs[4*dir+i] = ((uint32_t*)(&(ip->src)))[i];
-        addrs[i] = ((uint32_t*)(&(ip->dst)))[i];
+        addrs[4*(1-dir)+i] = ((uint32_t*)(&(ip->dst)))[i];
     }
 
     ports[dir] = tcp->sport;
@@ -515,7 +515,16 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     }
 
     int64_t offset = (uint64_t)(tcp->seq) + wrap_offset[dir] - isn[dir];
-    uint64_t length = f->hdr_size - (l3_hdr_size[L3_TYPE_IP4] + l4_hdr_size[L4_TYPE_TCP]);
+    uint64_t length = f->hdr_size - l4_hdr_size[L4_TYPE_TCP];
+
+    if (f->l3_type != L3_TYPE_IP4)
+    {
+        length -= l3_hdr_size[L3_TYPE_IP4];
+    }
+    else if (f->l3_type != L3_TYPE_IP6)
+    {
+        length -= l3_hdr_size[L3_TYPE_IP6];
+    }
 
     // If the ACK flag is set, then we are acking some data going the other way.
     if ((tcp->flags & TH_ACK) > 0)

@@ -112,6 +112,7 @@ struct l4_tcp
     uint32_t seq;
     uint32_t ack;
     uint16_t flags;
+    uint8_t opt_bytes;
     uint8_t next;
 };
 
@@ -494,6 +495,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         l4_hdr.ack = ntohl(tcp_hdr->th_ack);
         l4_hdr.flags = tcp_hdr->th_flags;
 
+        // Minimum TCP header size is 20 bytes
+        l4_hdr.opt_bytes = tcp_hdr->th_off * sizeof(uint32_t) - 20;
+
         uint16_t cksum = tcp_hdr->th_sum;
         if ((*fp)->l3_type == L3_TYPE_IP4)
         {
@@ -511,7 +515,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         f->l7_type = L7_TYPE_ATTEMPT;
 
-        p_offset += tcp_hdr->th_off * 4; // Since the offset field contains the number of 32-bit words in the TCP header.
+        p_offset += tcp_hdr->th_off * sizeof(uint32_t); // Since the offset field contains the number of 32-bit words in the TCP header.
     }
     else if (f->l4_type == L4_TYPE_UDP)
     {
