@@ -517,11 +517,11 @@ int TCPFlow::add_packet(struct flow_sig* f, struct l4_tcp* tcp, int dir)
     int64_t offset = (uint64_t)(tcp->seq) + wrap_offset[dir] - isn[dir];
     uint64_t length = f->hdr_size - l4_hdr_size[L4_TYPE_TCP];
 
-    if (f->l3_type != L3_TYPE_IP4)
+    if (f->l3_type == L3_TYPE_IP4)
     {
         length -= l3_hdr_size[L3_TYPE_IP4];
     }
-    else if (f->l3_type != L3_TYPE_IP6)
+    else if (f->l3_type == L3_TYPE_IP6)
     {
         length -= l3_hdr_size[L3_TYPE_IP6];
     }
