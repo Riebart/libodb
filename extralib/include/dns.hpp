@@ -229,6 +229,28 @@ struct __dns_query_it
 ///encounter chained pointers.
 const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
 {
+    // If we hit the null terminator as the first character, it is a 'root'
+    // query
+    if (q->pos >= q->packet_len)
+    {
+        return NULL;
+    }
+    else if (q->q[q->pos] == 0x00)
+    {
+        // Then just return a pointer to this location.
+        // The idea is that if you call for the next token on an iteratore that
+        // is already at the end, it just continues to return a pointer to the
+        // end.
+        
+        if (q->incl_len >= 0)
+        {
+            q->incl_len = (-1) * (q->incl_len + 1);
+            q->total_len++;
+        }
+        
+        return q->q + q->pos;
+    }
+
     // If we are at the end of the packet, and still not done the query string,
     // then this packet is broken. Return NULL;
     if (q->pos >= q->packet_len)
@@ -290,8 +312,8 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         q->pos = ptr_val;
         q->ptd = true;
     }
-
-    // If we hit the null terminator.
+    
+    // If we hit the null terminator at the end, we are done with the query
     if (q->pos >= q->packet_len)
     {
         return NULL;
@@ -302,14 +324,14 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         // The idea is that if you call for the next token on an iteratore that
         // is already at the end, it just continues to return a pointer to the
         // end.
-
+        
         if (q->incl_len >= 0)
         {
             q->incl_len = (-1) * (q->incl_len + 1);
         }
-
+        
         q->total_len++;
-
+        
         return q->q + q->pos;
     }
 
