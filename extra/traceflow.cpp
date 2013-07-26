@@ -649,6 +649,12 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
 
 int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        printf("Usage: traceflow <filename|->\n");
+        return 1;
+    }
+
     try
     {
         flow_list4 = init_ll();

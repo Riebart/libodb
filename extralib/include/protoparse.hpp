@@ -45,6 +45,9 @@ uint8_t l7_hdr_size[256];
 #define L2_TYPE_ETHERNET 1
 
 #define L3_TYPE_NONE 0
+#define L3_TYPE_8021Q 0x8100
+#define L3_TYPE_8021AD 0x88A8
+#define L3_TYPE_8021QINQ 0x9100
 #define L3_TYPE_IP4 ETHERTYPE_IP
 #define L3_TYPE_IP6 ETHERTYPE_IPV6
 
@@ -89,6 +92,14 @@ struct packet
     uint8_t data;
 };
 
+struct l2_ethernet
+{
+    struct ether_addr src;
+    struct ether_addr dst;
+    uint8_t num_tags;
+    struct vlan_tag* vlans;
+};
+
 struct l3_ip4
 {
     uint32_t src;
@@ -99,7 +110,7 @@ struct l3_ip4
 
 struct l3_ip6
 {
-    // 128-bytes per ip6 address.
+    // 128-bits per ip6 address.
     uint64_t src[2];
     uint64_t dst[2];
     uint8_t next;
@@ -135,6 +146,7 @@ struct l7_dns
 
 struct flow_sig
 {
+    struct l2_ethernet l2_hdr;
     uint16_t l3_type;
     uint16_t l4_type;
     uint16_t l7_type;
@@ -309,6 +321,9 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     const struct ether_header* eptr = reinterpret_cast<const struct ether_header*>(packet);
     const uint8_t* eth_dhost = reinterpret_cast<const uint8_t*>(&(eptr->ether_dhost));
 
+    f->l2_hdr.src = eptr->ether_shost;
+    f->l2_hdr.dst = eptr->ether_dhost;
+
     // Assume ethernet, and check out the destination ethernet addresses to see which multicast group they fall into.
     if ((eth_dhost[0] & 1) == 1) // This checks to see if it is a multicast.
     {
@@ -361,13 +376,51 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
             f->l3_type = ntohs(eptr->ether_type);
         }
+
+        p_offset += sizeof(struct ether_header);
     }
     else
     {
-        f->l3_type = ntohs(eptr->ether_type);
-    }
+        p_offset += sizeof(struct ether_header);
 
-    p_offset += sizeof(struct ether_header);
+        struct vlan_tag* tmp;
+        int num_tags = 0;
+        f->l3_type = ntohs(eptr->ether_type);
+
+        // Now process VLAN tags
+        while ((f->l3_type == L3_TYPE_8021Q) ||
+               (f->l3_type == L3_TYPE_8021AD) ||
+               (f->l3_type == L3_TYPE_8021QINQ))
+        {
+            if (packet_len <= (p_offset + 4))
+            {
+                f->l3_type == L3_TYPE_NONE;
+                return p_offset;
+            }
+
+            num_tags++;
+
+            if (num_tags == 1)
+            {
+                SAFE_MALLOC(struct vlan_tag*, f->l2_hdr.vlans, sizeof(struct vlan_tag));
+                uint16_t tt = ntohs(*reinterpret_cast<const uint16_t*>(packet + p_offset));
+                f->l2_hdr.vlans[0] = *reinterpret_cast<struct vlan_tag*>(&tt);
+            }
+            else
+            {
+                SAFE_REALLOC(struct vlan_tag*, f->l2_hdr.vlans, tmp, num_tags * sizeof(struct vlan_tag));
+                f->l2_hdr.vlans = tmp;
+                uint16_t tt = ntohs(*reinterpret_cast<const uint16_t*>(packet + p_offset));
+                f->l2_hdr.vlans[num_tags - 1] = *reinterpret_cast<struct vlan_tag*>(&tt);
+//                tmp[num_tags - 1] = *reinterpret_cast<const struct vlan_tag*>(packet + p_offset);
+            }
+
+            f->l3_type = ntohs(*reinterpret_cast<const uint16_t*>(packet + p_offset + 2));
+            p_offset += 4;
+        }
+
+        f->l2_hdr.num_tags = num_tags;
+    }
 
     return p_offset;
 }

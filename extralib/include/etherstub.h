@@ -52,6 +52,15 @@ struct  ether_header
 /// Defines whether or not we are using Canonical Format Indicator
 #define ETHER_CFI       0
 
+// Break the latter two byts of the VLAN tag into the PCP, DEI and VID
+// This is to be used on it AFTER you ntohs() the pair of bytes.
+struct vlan_tag
+{
+    uint16_t vid:12; // VLAN ID
+    uint8_t dei:1; // Whether this packet is eligible for dropping in congestion.
+    uint8_t pcp:3; // Used to determine priority, with 0 as best-effort and 7 as highest.
+};
+
 /// An Ethernet packet with an 802.1Q VLAN header
 /// @todo Implement complete breakout of the VLAN header based on http://en.wikipedia.org/wiki/IEEE_802.1Q#Frame_format
 struct  ether_vlan_header
