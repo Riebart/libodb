@@ -15,7 +15,28 @@
 
 #define TCP_TIMEOUT 10000000 // 10 seconds, counted in microseconds.
 
+/// Throw should only ever hold values of 1, 2 or 3 indicating how the flow ended.
+///All other throws should bypass this variable.
 int thrown = 0;
+
+/// The reason we are bailing. Globally set from within the catch blocks where thrown is set.
+int reason = -1;
+
+int thrown_to_reason(int thrown)
+{
+    switch (thrown)
+    {
+        case 1:
+            return TCPFlow::FIN;
+        case 2:
+            return TCPFlow::RST;
+        case 3:
+            return TCPFlow::MISSING_PACKET;
+
+        default:
+            return -1;
+    }
+}
 
 struct RedBlackTreeI::e_tree_root* flows4;
 struct RedBlackTreeI::e_tree_root* flows6;
@@ -211,8 +232,10 @@ void* merge4(void* aV, void* bV)
     {
         struct l3_ip4* ip = (struct l3_ip4*)(&(a->f->hdr_start));
         struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
+
         struct ip4hash hash = {0};
         b->flow->get_hash((uint32_t*)(&hash));
+
         dir = test_hash4(&hash, ip, tcp);
 
         b->flow->add_packet(a->f);
@@ -229,14 +252,19 @@ void* merge4(void* aV, void* bV)
         case 1:
         case 2:
         case 3:
+        {
             free(a->f);
             a->f = (struct flow_sig*)(b);
             thrown = e;
+            reason = thrown_to_reason(thrown);
             break;
+        }
 
         default:
+        {
             throw e;
             break;
+        }
         }
     }
 
@@ -318,14 +346,19 @@ void* merge6(void* aV, void* bV)
         case 1:
         case 2:
         case 3:
+        {
             free(a->f);
             a->f = (struct flow_sig*)(b);
             thrown = e;
+            reason = thrown_to_reason(thrown);
             break;
+        }
 
         default:
+        {
             throw e;
             break;
+        }
         }
     }
 
@@ -458,8 +491,8 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         }
         uint64_t id = *(uint64_t*)(del->flow->get_context());
 //        printf("2\n%llu\n", id);
-        del->flow->set_bail_reason(TCPFlow::TIMEOUT);
         del_ll(&(del->node), flow_list4);
+        del->flow->set_bail_reason(TCPFlow::TIMEOUT);
         delete del->flow;
         free(del->f);
         free(del);
@@ -493,8 +526,9 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
     {
         if (f->l3_type == L3_TYPE_IP4)
         {
-            proto_setup4(proto4, f);
             thrown = 0;
+            reason = -1;
+            proto_setup4(proto4, f);
             bool added = RedBlackTreeI::e_add(flows4, proto4);
 
             // If it gets added, make sure to free the flow since it isn't needed
@@ -525,7 +559,23 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
-                    thrown = e;
+                    switch (e)
+                    {
+                    case 1:
+                    case 2:
+                    case 3:
+                    {
+                        thrown = e;
+                        reason = thrown_to_reason(thrown);
+                        break;
+                    }
+
+                    default:
+                    {
+                        throw e;
+                        break;
+                    }
+                    }
                 }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
@@ -543,64 +593,47 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         throw -41;
                     }
                     del_ll(&(del->node), flow_list4);
+                    del->flow->set_bail_reason(reason);
                     delete del->flow;
                     free(del);
+
+                    thrown = 0;
+                    reason = -1;
                 }
             }
 
-            int reason;
-            switch (thrown)
+            if (reason > -1)
             {
-                case 1:
+                struct tree_node4* del;
+                bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
+                del_ll(&(del->node), flow_list4);
+                if (!removed)
                 {
-                    if (thrown == 1)
-                    {
-                        reason = TCPFlow::FIN;
-                    }
+                    throw -21;
                 }
-                case 2:
-                {
-                    if (thrown == 2)
-                    {
-                        reason = TCPFlow::RST;
-                    }
-                }
-                case 3:
-                {
-                    if (thrown == 3)
-                    {
-                        reason = TCPFlow::MISSING_PACKET;
-                    }
+                del->flow->set_bail_reason(reason);
+                delete del->flow;
+                free(del->f);
+                free(del);
 
-                    struct tree_node4* del;
-                    bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
-                    del_ll(&(del->node), flow_list4);
-                    if (!removed)
-                    {
-                        throw -21;
-                    }
-                    del->flow->set_bail_reason(reason);
-                    delete del->flow;
-                    free(del->f);
-                    free(del);
-                    proto_init4(&proto4);
-                    break;
-                }
+                thrown = 0;
+                reason = -1;
 
-                default:
-                {
-                    throw thrown;
-                    break;
-                }
+                proto_init4(&proto4);
             }
         }
         else if (f->l3_type == L3_TYPE_IP6)
         {
+            thrown = 0;
+            reason = -1;
             proto_setup6(proto6, f);
             bool added = RedBlackTreeI::e_add(flows6, proto6);
 
             // If it gets added, make sure to free the flow since it isn't needed
             // and set it to NULL as a sentinel for later. Reallocate our prototype.
+            //
+            // If 'thrown' got set during the insertion, it was because we merged
+            // and called the add_packet function, so 'added' will be false.
             if (added)
             {
                 try
@@ -624,7 +657,23 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
-                    thrown = e;
+                    switch (e)
+                    {
+                    case 1:
+                    case 2:
+                    case 3:
+                    {
+                        thrown = e;
+                        reason = thrown_to_reason(thrown);
+                        break;
+                    }
+
+                    default:
+                    {
+                        throw e;
+                        break;
+                    }
+                    }
                 }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
@@ -642,55 +691,26 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         throw -42;
                     }
                     del_ll(&(del->node), flow_list6);
+                    del->flow->set_bail_reason(reason);
                     delete del->flow;
                     free(del);
                 }
             }
 
-            int reason;
-            switch (thrown)
+            if (reason > -1)
             {
-                case 1:
+                struct tree_node6* del;
+                bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
+                del_ll(&(del->node), flow_list6);
+                if (!removed)
                 {
-                    if (thrown == 1)
-                    {
-                        reason = TCPFlow::FIN;
-                    }
+                    throw -22;
                 }
-                case 2:
-                {
-                    if (thrown == 2)
-                    {
-                        reason = TCPFlow::RST;
-                    }
-                }
-                case 3:
-                {
-                    if (thrown == 3)
-                    {
-                        reason = TCPFlow::MISSING_PACKET;
-                    }
-
-                    struct tree_node6* del;
-                    bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
-                    del_ll(&(del->node), flow_list6);
-                    if (!removed)
-                    {
-                        throw -22;
-                    }
-                    del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
-                    delete del->flow;
-                    free(del->f);
-                    free(del);
-                    proto_init6(&proto6);
-                    break;
-                }
-
-                default:
-                {
-                    throw thrown;
-                    break;
-                }
+                del->flow->set_bail_reason(reason);
+                delete del->flow;
+                free(del->f);
+                free(del);
+                proto_init6(&proto6);
             }
         }
     }
