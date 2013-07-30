@@ -517,24 +517,31 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
+                    int reason = 0;
+
                     switch (e)
                     {
                     case 1:
                     {
                         if (e == 1)
                         {
-                            del->flow->set_bail_reason(TCPFlow::FIN);
+                            reason = TCPFlow::FIN;
                         }
                     }
                     case 2:
                     {
                         if (e == 2)
                         {
-                            del->flow->set_bail_reason(TCPFlow::RST);
+                            reason = TCPFlow::RST;
                         }
                     }
                     case 3:
                     {
+                        if (e == 3)
+                        {
+                            reason = TCPFlow::MISSING_PACKET;
+                        }
+
                         struct tree_node4* del;
                         bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
                         del_ll(&(del->node), flow_list4);
@@ -542,7 +549,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         {
                             throw -21;
                         }
-                        del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
+                        del->flow->set_bail_reason(reason);
                         delete del->flow;
                         free(del->f);
                         free(del);
@@ -606,24 +613,30 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
+                    int reason = 0;
                     switch (e)
                     {
                     case 1:
                     {
                         if (e == 1)
                         {
-                            del->flow->set_bail_reason(TCPFlow::FIN);
+                            reason = TCPFlow::FIN;
                         }
                     }
                     case 2:
                     {
                         if (e == 2)
                         {
-                            del->flow->set_bail_reason(TCPFlow::RST);
+                            reason = TCPFlow::RST;
                         }
                     }
                     case 3:
                     {
+                        if (e == 3)
+                        {
+                            reason = TCPFlow::MISSING_PACKET;
+                        }
+
                         struct tree_node6* del;
                         bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
                         del_ll(&(del->node), flow_list6);
