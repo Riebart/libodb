@@ -15,6 +15,8 @@
 
 #define TCP_TIMEOUT 10000000 // 10 seconds, counted in microseconds.
 
+int thrown = 0;
+
 struct RedBlackTreeI::e_tree_root* flows4;
 struct RedBlackTreeI::e_tree_root* flows6;
 
@@ -229,6 +231,7 @@ void* merge4(void* aV, void* bV)
         case 3:
             free(a->f);
             a->f = (struct flow_sig*)(b);
+            thrown = e;
             break;
 
         default:
@@ -317,6 +320,7 @@ void* merge6(void* aV, void* bV)
         case 3:
             free(a->f);
             a->f = (struct flow_sig*)(b);
+            thrown = e;
             break;
 
         default:
@@ -490,10 +494,14 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         if (f->l3_type == L3_TYPE_IP4)
         {
             proto_setup4(proto4, f);
+            thrown = 0;
             bool added = RedBlackTreeI::e_add(flows4, proto4);
 
             // If it gets added, make sure to free the flow since it isn't needed
             // and set it to NULL as a sentinel for later. Reallocate our prototype.
+            //
+            // If 'thrown' got set during the insertion, it was because we merged
+            // and called the add_packet function, so 'added' will be false.
             if (added)
             {
                 try
@@ -517,50 +525,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
-                    int reason = 0;
-
-                    switch (e)
-                    {
-                    case 1:
-                    {
-                        if (e == 1)
-                        {
-                            reason = TCPFlow::FIN;
-                        }
-                    }
-                    case 2:
-                    {
-                        if (e == 2)
-                        {
-                            reason = TCPFlow::RST;
-                        }
-                    }
-                    case 3:
-                    {
-                        if (e == 3)
-                        {
-                            reason = TCPFlow::MISSING_PACKET;
-                        }
-
-                        struct tree_node4* del;
-                        bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
-                        del_ll(&(del->node), flow_list4);
-                        if (!removed)
-                        {
-                            throw -21;
-                        }
-                        del->flow->set_bail_reason(reason);
-                        delete del->flow;
-                        free(del->f);
-                        free(del);
-                        proto_init4(&proto4);
-                        break;
-                    }
-
-                    default:
-                        throw e;
-                        break;
-                    }
+                    thrown = e;
                 }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
@@ -580,6 +545,52 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     del_ll(&(del->node), flow_list4);
                     delete del->flow;
                     free(del);
+                }
+            }
+
+            int reason;
+            switch (thrown)
+            {
+                case 1:
+                {
+                    if (thrown == 1)
+                    {
+                        reason = TCPFlow::FIN;
+                    }
+                }
+                case 2:
+                {
+                    if (thrown == 2)
+                    {
+                        reason = TCPFlow::RST;
+                    }
+                }
+                case 3:
+                {
+                    if (thrown == 3)
+                    {
+                        reason = TCPFlow::MISSING_PACKET;
+                    }
+
+                    struct tree_node4* del;
+                    bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
+                    del_ll(&(del->node), flow_list4);
+                    if (!removed)
+                    {
+                        throw -21;
+                    }
+                    del->flow->set_bail_reason(reason);
+                    delete del->flow;
+                    free(del->f);
+                    free(del);
+                    proto_init4(&proto4);
+                    break;
+                }
+
+                default:
+                {
+                    throw thrown;
+                    break;
                 }
             }
         }
@@ -613,49 +624,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                 }
                 catch (int e)
                 {
-                    int reason = 0;
-                    switch (e)
-                    {
-                    case 1:
-                    {
-                        if (e == 1)
-                        {
-                            reason = TCPFlow::FIN;
-                        }
-                    }
-                    case 2:
-                    {
-                        if (e == 2)
-                        {
-                            reason = TCPFlow::RST;
-                        }
-                    }
-                    case 3:
-                    {
-                        if (e == 3)
-                        {
-                            reason = TCPFlow::MISSING_PACKET;
-                        }
-
-                        struct tree_node6* del;
-                        bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
-                        del_ll(&(del->node), flow_list6);
-                        if (!removed)
-                        {
-                            throw -22;
-                        }
-                        del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
-                        delete del->flow;
-                        free(del->f);
-                        free(del);
-                        proto_init6(&proto6);
-                        break;
-                    }
-
-                    default:
-                        throw e;
-                        break;
-                    }
+                    thrown = e;
                 }
             }
             // If we didn't add it, it is because we collided and the payload got inserted
@@ -675,6 +644,52 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     del_ll(&(del->node), flow_list6);
                     delete del->flow;
                     free(del);
+                }
+            }
+
+            int reason;
+            switch (thrown)
+            {
+                case 1:
+                {
+                    if (thrown == 1)
+                    {
+                        reason = TCPFlow::FIN;
+                    }
+                }
+                case 2:
+                {
+                    if (thrown == 2)
+                    {
+                        reason = TCPFlow::RST;
+                    }
+                }
+                case 3:
+                {
+                    if (thrown == 3)
+                    {
+                        reason = TCPFlow::MISSING_PACKET;
+                    }
+
+                    struct tree_node6* del;
+                    bool removed = RedBlackTreeI::e_remove(flows6, proto6, (void**)(&del));
+                    del_ll(&(del->node), flow_list6);
+                    if (!removed)
+                    {
+                        throw -22;
+                    }
+                    del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
+                    delete del->flow;
+                    free(del->f);
+                    free(del);
+                    proto_init6(&proto6);
+                    break;
+                }
+
+                default:
+                {
+                    throw thrown;
+                    break;
                 }
             }
         }
