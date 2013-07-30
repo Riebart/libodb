@@ -370,12 +370,14 @@ void* merge6(void* aV, void* bV)
 void freep4(void* v)
 {
     struct tree_node4* a = (struct tree_node4*)v;
+    a->flow->set_bail_reason(TCPFlow::TIMEOUT);
     delete a->flow;
 }
 
 void freep6(void* v)
 {
     struct tree_node6* a = (struct tree_node6*)v;
+    a->flow->set_bail_reason(TCPFlow::TIMEOUT);
     delete a->flow;
 }
 
@@ -396,10 +398,13 @@ void output_handler(void* contextV, uint64_t length, void* data)
 {
     uint64_t id = *(uint64_t*)contextV;
 
-    if ((data != NULL) && (!suppressed[1]))
+    if (data != NULL)
     {
-        printf("1\n%llu\n%llu\n%u\n%u\n%u\n", id, length, dir, cur_ts.tv_sec, cur_ts.tv_usec);
-        fwrite(data, length, 1, stdout);
+        if (!suppressed[1])
+        {
+            printf("1\n%llu\n%llu\n%u\n%u\n%u\n", id, length, dir, cur_ts.tv_sec, cur_ts.tv_usec);
+            fwrite(data, length, 1, stdout);
+        }
     }
     else if (!suppressed[length])
     {
