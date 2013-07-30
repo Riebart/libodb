@@ -22,6 +22,8 @@ int thrown = 0;
 /// The reason we are bailing. Globally set from within the catch blocks where thrown is set.
 int reason = -1;
 
+bool suppressed[512];
+
 int thrown_to_reason(int thrown)
 {
     switch (thrown)
@@ -394,12 +396,12 @@ void output_handler(void* contextV, uint64_t length, void* data)
 {
     uint64_t id = *(uint64_t*)contextV;
 
-    if (data != NULL)
+    if ((data != NULL) && (!suppressed[1]))
     {
         printf("1\n%llu\n%llu\n%u\n%u\n%u\n", id, length, dir, cur_ts.tv_sec, cur_ts.tv_usec);
         fwrite(data, length, 1, stdout);
     }
-    else
+    else if (!suppressed[length])
     {
         // The length here is the message type, so that is our message-type indicator.
         // It isn't explicit, which was confusing.
@@ -547,11 +549,14 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     struct l3_ip4* ip = (struct l3_ip4*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                    printf("04\n%llu\n%u\n%u\n%u\n%u\n%u\n%u\n", last4,
-                           ip->src, tcp->sport,
-                           ip->dst, tcp->dport,
-                           cur_ts.tv_sec, cur_ts.tv_usec
-                          );
+                    if (!suppressed[4])
+                    {
+                        printf("04\n%llu\n%u\n%u\n%u\n%u\n%u\n%u\n", last4,
+                            ip->src, tcp->sport,
+                            ip->dst, tcp->dport,
+                            cur_ts.tv_sec, cur_ts.tv_usec
+                        );
+                    }
 
                     free(proto4->f);
                     proto4->f = NULL;
@@ -645,11 +650,14 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     struct l3_ip6* ip = (struct l3_ip6*)(&(f->hdr_start));
                     struct l4_tcp* tcp = (struct l4_tcp*)(&(ip->next));
 
-                    printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n%u\n%u\n", last6,
-                           ip->src[0], ip->src[1], tcp->sport,
-                           ip->dst[0], ip->dst[1], tcp->dport,
-                           cur_ts.tv_sec, cur_ts.tv_usec
-                          );
+                    if (!suppressed[6])
+                    {
+                        printf("06\n%llu\n%llu %llu\n%u\n%llu %llu\n%u\n%u\n%u\n", last6,
+                            ip->src[0], ip->src[1], tcp->sport,
+                            ip->dst[0], ip->dst[1], tcp->dport,
+                            cur_ts.tv_sec, cur_ts.tv_usec
+                        );
+                    }
 
                     free(proto6->f);
                     proto6->f = NULL;
@@ -727,8 +735,29 @@ int main(int argc, char** argv)
 {
     if (argc < 2)
     {
-        printf("Usage: traceflow <filename|->\n");
+        printf("Usage: traceflow <filename|-> [-N]..\n\n\t-N\tSuppress output message with type N in range 0 to 512 inclusive.\n");
         return 1;
+    }
+
+    for (int i = 0 ; i < 512 ; i++)
+    {
+        suppressed[i] = false;
+    }
+
+    for (int i = 2 ; i < argc ; i++)
+    {
+        int suppr = 0;
+        int n = sscanf(argv[i] + 1, "%d", &suppr);
+
+        if ((n == 1) && (0 <= suppr) && (suppr <= 512))
+        {
+            suppressed[suppr] = true;
+            fprintf(stderr, "Suppressing output pf \"%d\" messages.\n", suppr);
+        }
+        else
+        {
+            fprintf(stderr, "\"%s\" is not a valid message class to suppress.\n", argv[i]);
+        }
     }
 
     try
