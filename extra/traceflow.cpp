@@ -364,7 +364,7 @@ void output_handler(void* contextV, uint64_t length, void* data)
     }
     else
     {
-        // The length here is 2, so that is our message-type indicator.
+        // The length here is the message type, so that is our message-type indicator.
         // It isn't explicit, which was confusing.
         printf("%u\n%llu\n%u\n%u\n", length, id, cur_ts.tv_sec, cur_ts.tv_usec);
     }
@@ -454,6 +454,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         }
         uint64_t id = *(uint64_t*)(del->flow->get_context());
 //        printf("2\n%llu\n", id);
+        del->flow->set_bail_reason(TCPFlow::TIMEOUT);
         del_ll(&(del->node), flow_list4);
         delete del->flow;
         free(del->f);
@@ -474,6 +475,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
         uint64_t id = *(uint64_t*)(del->flow->get_context());
 //        printf("2\n%llu\n", id);
         del_ll(&(del->node), flow_list6);
+        del->flow->set_bail_reason(TCPFlow::TIMEOUT);
         delete del->flow;
         free(del->f);
         free(del);
@@ -518,16 +520,29 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     switch (e)
                     {
                     case 1:
+                    {
+                        if (e == 1)
+                        {
+                            del->flow->set_bail_reason(TCPFlow::FIN);
+                        }
+                    }
                     case 2:
+                    {
+                        if (e == 2)
+                        {
+                            del->flow->set_bail_reason(TCPFlow::RST);
+                        }
+                    }
                     case 3:
                     {
                         struct tree_node4* del;
                         bool removed = RedBlackTreeI::e_remove(flows4, proto4, (void**)(&del));
+                        del_ll(&(del->node), flow_list4);
                         if (!removed)
                         {
                             throw -21;
                         }
-                        del_ll(&(del->node), flow_list4);
+                        del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
                         delete del->flow;
                         free(del->f);
                         free(del);
@@ -594,7 +609,19 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                     switch (e)
                     {
                     case 1:
+                    {
+                        if (e == 1)
+                        {
+                            del->flow->set_bail_reason(TCPFlow::FIN);
+                        }
+                    }
                     case 2:
+                    {
+                        if (e == 2)
+                        {
+                            del->flow->set_bail_reason(TCPFlow::RST);
+                        }
+                    }
                     case 3:
                     {
                         struct tree_node6* del;
@@ -604,6 +631,7 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uin
                         {
                             throw -22;
                         }
+                        del->flow->set_bail_reason(TCPFlow::MISSING_PACKET);
                         delete del->flow;
                         free(del->f);
                         free(del);
@@ -696,11 +724,38 @@ int main(int argc, char** argv)
 }
 
 // Output format:
-// 04 or 06
-//  - Indicates the start of a flow
-//
-// 1
+// - Indicates the start of a IPv4 flow
+// 04
+// <flow id>
+// <src addr>
+// <src port>
+// <dst addr>
+// <dst port>
+// <timestamp: seconds>
+// <timestamp: microseconds>
+
+// - Indicates the start of a IPv6 flow
+// 06
+// <flow id>
+// <src addr: first 64 bits>
+// <src addr: last 64 bits>
+// <src port>
+// <dst addr: first 64 bits>
+// <dst addr: last 64 bits>
+// <dst port>
+// <timestamp: seconds>
+// <timestamp: microseconds>
+
 // - Indicates data for a flow
-//
-// 2
-// - Indicates that a flow terminated due to timeout or RST or naturally on a FIN pair
+// 1
+// <flow id>
+// <length of data>
+// <direction of data: 0 or 1>
+// <timestamp: seconds>
+// <timestamp: microseconds>
+
+// - Indicates that a flow terminated. 0 = FIN, 1 = RST, 2 = timeout, 3 = Lost packet
+// <256 + bail_reason>
+// <flow id>
+// <timestamp: seconds>
+// <timestamp: microseconds>

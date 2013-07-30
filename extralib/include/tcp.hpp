@@ -48,6 +48,10 @@
 class TCPFlow
 {
 public:
+
+    /// Enum defining the ways that we could bail on the flow.
+    typedef enum { FIN = 0, RST = 1, TIMEOUT = 2, MISSING_PACKET = 3 } BailReason;
+
     /// Destructor that does the mandatory cleanup such as closing files and whatnot.
     ~TCPFlow();
 
@@ -95,6 +99,9 @@ public:
     /// to modify the context or to retrieve some information in it.
     /// @return A pointer to the context information.
     void* get_context();
+
+    // Set the reason for bailing on a connection. By default it is TCPFlow::FIN
+    void set_bail_reason(int reason);
 
 protected:
     /// Initialize the state of the flow tracking with the given flow signature
@@ -197,6 +204,9 @@ protected:
 
     /// Total number of bytes seen in all payloads, including retransmissions.
     uint64_t num_bytes;
+
+    // Additional indication as to why we bailed. Used in the desctructor for output.
+    uint8_t bail_reason;
 };
 
 /// Class that extends the TCPFlow to operate on IPv4 packets by emplying knowledge of the IPv4 header.
@@ -296,7 +306,7 @@ TCPFlow::~TCPFlow()
     else if (handler != NULL)
     {
         // Send it the sentinel zero-length NULL to indicate that we're done with the stream.
-        handler(context, 2, NULL);
+        handler(context, 256 + bail_reason, NULL);
 
         if (free_context && (context != NULL))
         {
@@ -323,6 +333,7 @@ void TCPFlow::init(struct flow_sig* f)
 
 void TCPFlow::init()
 {
+    bail_reason = 0;
     num_bytes = 0;
     wrap_offset[0] = 0;
     wrap_offset[1] = 0;
@@ -698,6 +709,11 @@ void TCPFlow::set_output(FILE* _fp, bool _close_fp)
 void* TCPFlow::get_context()
 {
     return context;
+}
+
+void TCPFlow::set_bail_reason(int reason)
+{
+    this->bail_reason = reason;
 }
 
 #endif
