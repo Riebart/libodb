@@ -261,6 +261,7 @@ int main(int argc, char ** argv)
 //         cur = run_sim(&insert_tokyo);
 //         cur = run_sim(&insert_sqlite);
 
+        delete odb;
         printf("Time elapsed: %fs\n", cur);
         tot=tot+cur;
 

@@ -190,6 +190,10 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_ARCH_TUNE}")
 add_definitions(-DENABLE_PTHREAD_LOCKS)
 add_definitions(-DPTHREAD_SPIN_LOCKS)
 
+# The RBT extra features can be enabled here.
+#add_definitions(-DVERBOSE_RBT_VERIFY)
+#add_definitions(-DRBT_PROFILE)
+
 # Create some directories. Build fails if the directories don't already exist.
 #   This is because a compiler won't write a file to a directory if the directory doesn't exit.
 # file(MAKE_DIRECTORY "${LIBODB_BINARY_DIR}")

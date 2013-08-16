@@ -12,6 +12,7 @@
 
 /// Source file for implementations of RedBlackTreeI index type as well as its iterators.
 /// @file redblacktreei.cpp
+/// @bug Make this support 32-bit architectures because all of the bit twiddling assumes a 64-bit long pointer.
 
 #include "redblacktreei.hpp"
 #include "bankds.hpp"
@@ -186,6 +187,10 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::single_rotation(struct tr
 
     // Set the appropriate link to point to the old root.
     SET_LINK(temp->link[dir], n);
+    
+#ifdef RBT_PROFILE
+    fprintf(stderr, ",%lu,%lu", (uint64_t)n, (uint64_t)temp);
+#endif
 
     // Perform some colour switching. Since in all cases n is black and temp is red, swap them.
     SET_RED(n);
@@ -197,6 +202,9 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::single_rotation(struct tr
 
 inline struct RedBlackTreeI::tree_node* RedBlackTreeI::double_rotation(struct tree_node* n, int dir)
 {
+#ifdef RBT_PROFILE
+    fprintf(stderr, ",%lu", (uint64_t)n);
+#endif
     // First rotate in the opposite direction of the 'overall' rotation. This is to resolve the inside grandchild problem.
     SET_LINK(n->link[!dir], single_rotation(STRIP(n->link[!dir]), !dir));
 
@@ -228,6 +236,10 @@ bool RedBlackTreeI::add_data_v2(void* rawdata)
     WRITE_LOCK();
     bool something_added = false;
     root = add_data_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
+    
+#ifdef RBT_PROFILE
+    fprintf(stderr, "\n");
+#endif
 
     // The information about whether a new node was added is encoded into the root.
     if (TAINTED(root))
@@ -304,6 +316,10 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
     ((struct tree_node*)rawdata)->link[1] = NULL;
 
     root->data = e_add_data_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata);
+    
+#ifdef RBT_PROFILE
+    fprintf(stderr, "\n");
+#endif
 
     // The information about whether a new node was added is encoded into the root.
     if (TAINTED(root->data))
@@ -369,6 +385,10 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
     }
     else
     {
+#ifdef RBT_PROFILE
+        fprintf(stderr, "%lu,%lu,%lu", (uint64_t)rawdata, (uint64_t)root, (uint64_t)false_root);
+#endif
+
         // The real root sits as the false root's right child.
         false_root->link[1] = root;
         false_root->link[0] = NULL;
@@ -396,6 +416,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
             if (i == NULL)
             {
                 struct tree_node* n = (struct tree_node*)(rawdata);
+#ifdef RBT_PROFILE
+                fprintf(stderr, ",%lu", (uint64_t)n);
+#endif
                 SET_RED(n);
                 SET_LINK(p->link[dir], n);
                 i = n;
@@ -503,6 +526,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* r
             gp = p;
             p = i;
             i = STRIP(i->link[dir]);
+#ifdef RBT_PROFILE
+            fprintf(stderr, ",%lu", (uint64_t)i);
+#endif
         }
     }
 
@@ -538,6 +564,10 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
     }
     else
     {
+#ifdef RBT_PROFILE
+        fprintf(stderr, "%lu,%lu,%lu", (uint64_t)rawdata, (uint64_t)root, (uint64_t)false_root);
+#endif
+
         // The real root sits as the false root's right child.
         false_root->link[1] = root;
         false_root->link[0] = NULL;
@@ -565,6 +595,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
             if (i == NULL)
             {
                 struct tree_node* n = make_node(rawdata);
+#ifdef RBT_PROFILE
+                fprintf(stderr, ",%lu", (uint64_t)n);
+#endif
                 SET_LINK(p->link[dir], n);
                 i = n;
                 ret = 1;
@@ -604,6 +637,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
 
             // At the moment no duplicates are allowed.
             // Currently this also handles the general stopping case.
+#ifdef RBT_PROFILE
+            fprintf(stderr, ",%lu", (uint64_t)(GET_DATA(i)));
+#endif
             c = compare->compare(rawdata, GET_DATA(i));
             if (c == 0)
             {
@@ -670,6 +706,9 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
             gp = p;
             p = i;
             i = STRIP(i->link[dir]);
+#ifdef RBT_PROFILE
+            fprintf(stderr, ",%lu", (uint64_t)i);
+#endif
         }
     }
 

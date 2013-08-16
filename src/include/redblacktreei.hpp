@@ -47,12 +47,31 @@
 ///left child pointer. Since I believe that I'm guaranteed at least four byte
 ///alignment I don't think this will be an issue.
 ///
+/// The implementation supports the RBT_VERBOSE_VERIFY compile-time flag that
+///enable verbose output of the tree structure upon call to rbt_verify(). Output
+///is suitable for reading into Mathematica for plotting as a graph.
+///
+/// The implementation also supports the RBT_PROFILE compile-time flag that will
+///enable output to stderr of the memory access patterns involved in tree
+///operations. This can be used to determine how pathological the access
+///patterns are in a particular use case. The output is sent to stderr and is in
+///a CSV format where each row represents an operation. The first item is the
+///address of the data being operated on (inserted, deleted, looked up), the
+///second item is the address of the root of the tree. Items following that are
+///addresses of the data it needs to look up (nodes to traverse to, data items
+///to compare against, and tree nodes for rotations), but no information is in
+///the output (currently) that allows for disginguishing between them. For almost
+///all of the addresses, you can safely assume that it is reading about 24 bytes
+///since that is the size of a tree node.
+///
 /// Implementation is based on the  tutorial at Eternally Confuzzled
 ///(http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_rbtree.aspx)
 ///and some notes in a blog
 ///(http://www.canonware.com/~ttt/2008/04/left-leaning-red-black-trees-are-hard.html)
 /// @todo Bring the bottom-up insertion code back. It is prototyped in changeset
 ///134 so look there.
+/// @todo Implement the RBT_PROFILE code paths in the deletion and lookup
+///functions in addition to insertion
 class RedBlackTreeI : public Index
 {
     /// We override this method inherited from the base Index class.
