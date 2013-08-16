@@ -332,7 +332,7 @@ inline uint32_t get_domain_len(char* query)
         // At each step, add in the length of the current token, plus the separator.
         // First make sure we're not eating up the last token.
         // This also inherently handles NULL queries properly.
-        if (query[domain_len + query[domain_len]] == 0)
+        if (query[domain_len + query[domain_len] + 1] == 0)
         {
             break;
         }
@@ -340,9 +340,10 @@ inline uint32_t get_domain_len(char* query)
         domain_len += query[domain_len] + 1;
     }
 
+    // If there is only one token, domain_len will be 0 here.
     if (domain_len == 0)
     {
-        domain_len = 1;
+        domain_len = 0;
     }
 
     return domain_len;
@@ -353,9 +354,18 @@ inline uint32_t get_domain_len(char* query)
 // cat pubsuf.txt | grep -vE "(^//|^$)" | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)$/\1\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\4.\3.\2/' | sed 's/^\([!]*\)\([^.]*\)\.\([^.]*\)\.\([^.]*\)\.\([^.]*\)$/\1\5.\4.\3.\2/' > pubsuf2
 inline char* get_domain(char* q, uint32_t len)
 {
-    char* ret = reinterpret_cast<char*>(malloc(len + 1));
-    memcpy(ret, q, len);
-    ((char*)ret)[len] = 0;
+    char* ret;
+    if (len == 0)
+    {
+        ret = reinterpret_cast<char*>(malloc(1));
+        ret[0] = 0;
+    }
+    else
+    {
+        ret = reinterpret_cast<char*>(malloc(len + 1));
+        memcpy(ret, q, len);
+        ((char*)ret)[len] = 0;
+    }
 
     return ret;
 }
@@ -678,7 +688,7 @@ void* process_interval(void* args)
         }
         else
         {
-            fwrite(stats[i]->domain, 1, stats[i]->domain_len, out);
+            fwrite(stats[i]->domain, 1, stats[i]->domain_len + 1, out);
         }
 
         // Entropy + total queries + total unique
