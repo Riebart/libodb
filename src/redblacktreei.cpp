@@ -707,7 +707,7 @@ struct RedBlackTreeI::tree_node* RedBlackTreeI::add_data_n(struct tree_node* roo
             p = i;
             i = STRIP(i->link[dir]);
 #ifdef RBT_PROFILE
-            fprintf(stderr, ",%lu", (uint64_t)i);
+            fprintf(stderr, ",%lu,%lu", (uint64_t)i, (uint64_t)(STRIP(p->link[1-dir])));
 #endif
         }
     }

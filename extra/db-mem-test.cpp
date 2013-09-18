@@ -19,7 +19,7 @@ sqlite3 * slconn;
 TCMAP *map;
 TCTREE *tree;
 
-uint64_t NUM_ITEMS = 10000;
+uint64_t NUM_ITEMS = 100000;
 
 #define KEY_SIZE 512
 #define VAL_SIZE 1024
@@ -126,7 +126,7 @@ int init_odb()
 
     Index * keys = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare_key, NULL);
 
-    odb->start_scheduler(NUM_ODB_THREADS);
+//     odb->start_scheduler(NUM_ODB_THREADS);
 
     return 1;
 }
@@ -263,7 +263,11 @@ int main(int argc, char ** argv)
 
         delete odb;
         printf("Time elapsed: %fs\n", cur);
-        tot=tot+cur;
+        
+        if (abs((i * cur) / tot - 1) < 0.1)
+        {
+            tot=tot+cur;
+        }
 
     }
 
