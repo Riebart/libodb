@@ -6,7 +6,7 @@
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2013 Michael Himbeault and Travis Friesen
  *
  */
 
