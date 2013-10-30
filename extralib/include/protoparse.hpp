@@ -437,6 +437,7 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(struct ip))
         {
+            f->l3_type = L3_TYPE_NONE;
             return p_offset;
         }
 
@@ -454,13 +455,27 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         if (*total_len > (packet_len - p_offset - l3_hdr.hdr_len))
         {
 //            throw -2;
-            f->l4_type = L3_TYPE_NONE;
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
         *fp = f;
 
-        f->l4_type = ip4_hdr->ip_p;
+        uint16_t frag_offset = ntohs(ip4_hdr->ip_off);
+        uint8_t flags = (frag_offset & 0xE000) >> 12;
+        frag_offset = frag_offset & 0x1FFF;
+
+        // Test the flags. The DontFragment bit is OK, but the MoreFragments bit should be punted.
+        // Also verify that the reserved bit is not set.
+
+        if (((flags & 1) > 0) || ((flags & 2) > 2) || (frag_offset > 0))
+        {
+            f->l4_type = L4_TYPE_NONE;
+        }
+        else
+        {
+            f->l4_type = ip4_hdr->ip_p;
+        }
 
         p_offset += l3_hdr.hdr_len;
     }
@@ -471,6 +486,7 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(struct ip6_hdr))
         {
+            f->l3_type = L3_TYPE_NONE;
             return p_offset;
         }
 
@@ -536,6 +552,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(tcphdr_t))
         {
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
 
@@ -577,6 +594,7 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(udphdr_t))
         {
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
 
@@ -630,6 +648,7 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         if (dns_result == NULL)
         {
+            f->l7_type = L7_TYPE_NONE;
             return p_offset;
         }
 
