@@ -389,9 +389,9 @@ void freep6(void* v)
 uint64_t ctr = 0;
 uint64_t last4 = 0;
 uint64_t last6 = 0;
+uint64_t pkt_num = 0;
 struct tree_node4* proto4;
 struct tree_node6* proto6;
-
 //char fname[64];
 
 void output_handler(void* contextV, uint64_t length, void* data)
@@ -408,6 +408,10 @@ void output_handler(void* contextV, uint64_t length, void* data)
     }
     else if (!suppressed[length])
     {
+//        if (length > 255)
+//        {
+//            printf("%llu ", pkt_num);
+//        }
         // The length here is the message type, so that is our message-type indicator.
         // It isn't explicit, which was confusing.
         printf("%u\n%llu\n%u\n%u\n", length, id, cur_ts.tv_sec, cur_ts.tv_usec);
@@ -479,11 +483,10 @@ void proto_setup6(struct tree_node6* p, struct flow_sig* f)
     p->f = f;
     p->flow->get_hash((uint32_t*)(&(p->hash)));
 }
-
 void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdr, const uint8_t* packet)
 {
+    pkt_num++;
     cur_ts = pkt_hdr->ts;
-
     // Expire out the tail of the list if it is old enough.
     while ((flow_list4->count > 0) && (((cur_ts.tv_sec - flow_list4->tail->ts.tv_sec) * 1000000 + (cur_ts.tv_usec - flow_list4->tail->ts.tv_usec)) > TCP_TIMEOUT))
     {

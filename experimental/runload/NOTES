@@ -1,0 +1,2 @@
+gcc -fPIC -shared -o libload.so load.c
+gcc main.c -ldl -o main

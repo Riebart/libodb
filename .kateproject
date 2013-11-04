@@ -1,8 +1,8 @@
 {
     "name": "libODB",
     "files": [ {
-             "directory": ".", 
-             "filters": [ "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" ],
+             "directory": ".",
+             "filters": [ "*.c", "*.cpp", "*.h", "*.hpp", "CMakeLists.txt" ],
              "recursive": 1
              } ]
 }

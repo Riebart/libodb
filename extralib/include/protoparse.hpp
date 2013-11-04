@@ -437,9 +437,9 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(struct ip))
         {
+            f->l3_type = L3_TYPE_NONE;
             return p_offset;
         }
-
         struct ip* ip4_hdr = (struct ip*)(packet + p_offset);
         struct l3_ip4 l3_hdr;
 
@@ -454,13 +454,27 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         if (*total_len > (packet_len - p_offset - l3_hdr.hdr_len))
         {
 //            throw -2;
-            f->l4_type = L3_TYPE_NONE;
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
         f = append_to_flow_sig(f, &l3_hdr, sizeof(struct l3_ip4) - 1);
         *fp = f;
 
-        f->l4_type = ip4_hdr->ip_p;
+        uint16_t frag_offset = ntohs(ip4_hdr->ip_off);
+        uint8_t flags = (frag_offset & 0xE000) >> 12;
+        frag_offset = frag_offset & 0x1FFF;
+
+        // Test the flags. The DontFragment bit is OK, but the MoreFragments bit should be punted.
+        // Also verify that the reserved bit is not set.
+
+        if (((flags & 1) > 0) || ((flags & 2) > 2) || (frag_offset > 0))
+        {
+            f->l4_type = L4_TYPE_NONE;
+        }
+        else
+        {
+            f->l4_type = ip4_hdr->ip_p;
+        }
 
         p_offset += l3_hdr.hdr_len;
     }
@@ -471,9 +485,9 @@ uint32_t l3_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(struct ip6_hdr))
         {
+            f->l3_type = L3_TYPE_NONE;
             return p_offset;
         }
-
         struct ip6_hdr* ip_hdr = (struct ip6_hdr*)(packet + p_offset);
         struct l3_ip6 l3_hdr;
 
@@ -536,9 +550,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(tcphdr_t))
         {
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
-
         tcphdr_t* tcp_hdr = (tcphdr_t*)(packet + p_offset);
         struct l4_tcp l4_hdr;
 
@@ -577,9 +591,9 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 #endif
         if (packet_len < p_offset + sizeof(udphdr_t))
         {
+            f->l4_type = L4_TYPE_NONE;
             return p_offset;
         }
-
         udphdr_t* udp_hdr = (udphdr_t*)(packet + p_offset);
         struct l4_udp l4_hdr;
 
@@ -627,12 +641,11 @@ uint32_t l7_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
     if ((p_offset + sizeof(struct dns_header)) < packet_len)
     {
         struct dns_verify_result* dns_result = dns_verify_packet(packet + p_offset, packet_len - p_offset);
-
         if (dns_result == NULL)
         {
+            f->l7_type = L7_TYPE_NONE;
             return p_offset;
         }
-
         const struct dns_header* hdr = reinterpret_cast<const struct dns_header*>(packet + p_offset);
 
         struct l7_dns l7_hdr;
