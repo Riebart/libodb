@@ -21,6 +21,16 @@
 
 #include "buffer.hpp"
 
+// This controls whether buffered readers and writers are used or not
+//#define BUFFERED
+#undef BUFFERED
+
+// This is how long of a buffer to use on explicit bufferd readers and writers
+// If you plan on reading in from pipes, use something like ulimit -p to find out
+//how big they are. On LInux, they are ocmmonly the size of a single kernel page,
+//or about 8*512=4096 bytes.
+#define BUFFER_LENGTH 1048576
+
 struct timeval32
 {
     uint32_t tv_sec;
@@ -106,12 +116,21 @@ void packet_callback(uint8_t* args, const struct pcap_pkthdr* pkt_hdrC, const ui
     fwrite(packet, pkt_hdr->caplen, 1, stdout);
 }
 
+#ifdef BUFFERED
 bool read_pkthdr(struct file_buffer* fb, struct pcap_pkthdr32* hdr, bool swap)
+#else
+bool read_pkthdr(FILE* fb, struct pcap_pkthdr32* hdr, bool swap)
+#endif
 {
+#ifdef BUFFERED
     uint32_t nbytes = fb_read(fb, hdr, sizeof(struct pcap_pkthdr32));
+#else
+    uint32_t nbytes = sizeof(struct pcap_pkthdr32) * fread(hdr, sizeof(struct pcap_pkthdr32), 1, fb);
+#endif
 
     if ((nbytes < sizeof(struct pcap_pkthdr32)) && (nbytes > 0))
     {
+        fprintf(stderr, "FAILED ON READING PACKET HEADER\n");
         return false;
     }
 
@@ -142,20 +161,34 @@ inline int compare_times(struct pcap_pkthdr32 a, struct pcap_pkthdr32 b)
     }
 }
 
+#ifdef BUFFERED
 void read_sorted_files(struct file_buffer** fb, int num_files)
+#else
+void read_sorted_files(FILE** fb, int num_files)
+#endif
 {
     uint32_t nbytes = 0;
     bool swap = false;
     uint8_t* buffer;
     uint32_t max_snaplen = 0;
+#ifdef BUFFERED
     struct file_buffer* out;
+#else
+    FILE* out;
+#endif
+    uint32_t* pkt_counts = (uint32_t*)malloc(sizeof(uint32_t) * num_files);
 
     // First, read in the file headers from each.
     for (int i = 0 ; i < num_files ; i++)
     {
+        pkt_counts[i] = 0;
         struct pcap_file_header fheader;
 
+#ifdef BUFFERED
         nbytes = fb_read(fb[i], &fheader, sizeof(struct pcap_file_header));
+#else
+        nbytes = sizeof(struct pcap_file_header) * fread(&fheader, sizeof(struct pcap_file_header), 1, fb[i]);
+#endif
         if (nbytes < sizeof(struct pcap_file_header))
         {
             fprintf(stderr, "CRITICAL: Short read on file %u header (%lu of %lu).\n", i + 1, nbytes, sizeof(struct pcap_file_header));
@@ -204,7 +237,11 @@ void read_sorted_files(struct file_buffer** fb, int num_files)
     }
 
     buffer = (uint8_t*)malloc(max_snaplen);
+#ifdef BUFFERED
     out = fb_write_init(stdout, 1048576);
+#else
+    out = stdout;
+#endif
     uint32_t num_closed = 0;
 
     // Now actually do the shit.
@@ -222,7 +259,11 @@ void read_sorted_files(struct file_buffer** fb, int num_files)
         }
 
         // Grab the rest of the packet to dump out.
+#ifdef BUFFERED
         nbytes = fb_read(fb[first], buffer, pump[first].caplen);
+#else
+        nbytes = pump[first].caplen * fread(buffer, pump[first].caplen, 1, fb[first]);
+#endif
 
         if (nbytes < pump[first].caplen)
         {
@@ -230,8 +271,12 @@ void read_sorted_files(struct file_buffer** fb, int num_files)
 
             // Now close the one that failed on us.
             num_closed++;
+#ifdef BUFFERED
             fclose(fb[first]->fp);
             fb_destroy(fb[first]);
+#else
+            fclose(fb[first]);
+#endif
 
             // Now to ensure we never try read from it, set that pump's timesteamp
             //to the max value.
@@ -249,21 +294,49 @@ void read_sorted_files(struct file_buffer** fb, int num_files)
         }
 
         // Now actually write.
+#ifdef BUFFERED
         fb_write(out, &(pump[first]), sizeof(struct pcap_pkthdr32));
         fb_write(out, buffer, pump[first].caplen);
+#else
+        fwrite(&(pump[first]), sizeof(struct pcap_pkthdr32), 1, out);
+        fwrite(buffer, pump[first].caplen, 1, out);
+#endif
 
         // Get the next packet into the pump
         read_pkthdr(fb[first], &(pump[first]), swap);
 
+        pkt_counts[first]++;
         num_pkts++;
+
+//         if ((num_pkts % 100000) == 0)
+//         {
+//             for (int i = 0 ; i < num_files ; i++)
+//             {
+//                 fprintf(stderr, "%u ", pkt_counts[i]);
+//             }
+//             fprintf(stderr, "\n");
+//             fflush(stderr);
+//         }
     }
-    
-    fb_write_flush(out);
+
+    for (int i = 0 ; i < num_files ; i++)
+    {
+        fprintf(stderr, "%u ", pkt_counts[i]);
+    }
+    fprintf(stderr, "\n");
+    fflush(stderr);
 
     free(pump);
     free(buffer);
+
+#ifdef BUFFERED
+    fb_write_flush(out);
     fclose(out->fp);
     fb_destroy(out);
+#else
+    fflush(out);
+    fclose(out);
+#endif
 }
 
 /*
@@ -295,7 +368,11 @@ int main(int argc, char** argv)
     //from the files in chronological order.
     if ((argv[1][0] == '-') && (argv[1][1] == 's') && (argv[1][2] == '\0'))
     {
+#ifdef BUFFERED
         struct file_buffer** fb = (struct file_buffer**)malloc((argc - 2) * sizeof(struct file_buffer*));
+#else
+        FILE** fb = (FILE**)malloc((argc - 2) * sizeof(FILE));
+#endif
 
         // Step 1: open all of the files as buffered readers
 
@@ -303,21 +380,33 @@ int main(int argc, char** argv)
         {
             if ((argv[i][0] == '-') && (argv[i][1] == '\0'))
             {
-                fb[i - 2] = fb_read_init(stdin, 1048576);
+#ifdef BUFFERED
+                fb[i - 2] = fb_read_init(stdin, BUFFER_LENGTH);
+#else
+                fb[i - 2] = stdin;
+#endif
             }
             else
             {
-                fb[i - 2] = fb_read_init(argv[i], 1048576);
+#ifdef BUFFERED
+                fb[i - 2] = fb_read_init(argv[i], BUFFER_LENGTH);
+#else
+                fb[i - 2] = fopen(argv[i], "rb");
+#endif
             }
         }
 
         read_sorted_files(fb, argc - 2);
 
-        for (int i = 0 ; i < argc - 2 ; i++)
-        {
-            fclose(fb[i]->fp);
-            fb_destroy(fb[i]);
-        }
+//         for (int i = 0 ; i < argc - 2 ; i++)
+//         {
+// #ifdef BUFFERED
+//             fclose(fb[i]->fp);
+//             fb_destroy(fb[i]);
+// #else
+//             fclose(fb[i]);
+// #endif
+//         }
     }
     // Otherwise just do the concatenation thing.
     else
