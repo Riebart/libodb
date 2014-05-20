@@ -142,6 +142,36 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_RWLOCK_T SpinLock lock;
 #endif
 
+#if defined (ENABLE_CPP11LOCKS)
+#include <mutex>
+
+#define CPP11_READ_LOCK() lock.lock()
+#define CPP11_READ_LOCK_P(x) (x->lock).lock()
+#define CPP11_READ_UNLOCK() lock.unlock()
+#define CPP11_READ_UNLOCK_P(x) (x->lock).unlock()
+#define CPP11_WRITE_LOCK() lock.lock()
+#define CPP11_WRITE_LOCK_P(x) (x->lock).lock()
+#define CPP11_WRITE_UNLOCK() lock.unlock()
+#define CPP11_WRITE_UNLOCK_P(x) (x->lock).unlock()
+#define CPP11_LOCK() lock.lock()
+#define CPP11_LOCK_P(x) (x->lock).lock()
+#define CPP11_UNLOCK() lock.unlock()
+#define CPP11_UNLOCK_P(x) (x->lock).unlock()
+
+#define CPP11_RWLOCK_INIT()
+#define CPP11_RWLOCK_INIT_P(x) 
+#define CPP11_LOCK_INIT()
+#define CPP11_LOCK_INIT_P(x)
+
+#define CPP11_RWLOCK_DESTROY()
+#define CPP11_RWLOCK_DESTROY_P(x)
+#define CPP11_LOCK_DESTROY()
+#define CPP11_LOCK_DESTROY_P(x)
+
+#define CPP11_LOCK_T std::mutex lock;
+#define CPP11_RWLOCK_T std::mutex lock;
+#endif
+
 #if defined(PTHREAD_RW_LOCKS)
 #define READ_LOCK() PTHREAD_RW_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_RW_READ_LOCK_P(x)
@@ -257,6 +287,36 @@ defined(GOOGLE_SPIN_LOCKS)
 #define RWLOCK_T GOOGLE_SPIN_RWLOCK_T
 
 //==============================================================================
+#elif defined(CPP11LOCKS)
+
+#define READ_LOCK() CPP11_READ_LOCK()
+#define READ_LOCK_P(x) CPP11_READ_LOCK_P(x)
+#define READ_UNLOCK() CPP11_READ_UNLOCK()
+#define READ_UNLOCK_P(x) CPP11_READ_UNLOCK_P(x)
+#define WRITE_LOCK() CPP11_WRITE_LOCK()
+#define WRITE_LOCK_P(x) CPP11_WRITE_LOCK_P(x)
+#define WRITE_UNLOCK() CPP11_WRITE_UNLOCK()
+#define WRITE_UNLOCK_P(x) CPP11_WRITE_UNLOCK_P(x)
+#define LOCK() CPP11_LOCK()
+#define LOCK_P(x) CPP11_LOCK_P(x)
+#define UNLOCK() CPP11_UNLOCK()
+#define UNLOCK_P(x) CPP11_UNLOCK_P(x)
+
+#define RWLOCK_INIT() CPP11_RWLOCK_INIT()
+#define RWLOCK_INIT_P(x) CPP11_RWLOCK_INIT_P(x)
+#define LOCK_INIT() CPP11_LOCK_INIT()
+#define LOCK_INIT_P(x) CPP11_LOCK_INIT_P(x)
+
+#define RWLOCK_DESTROY() CPP11_RWLOCK_DESTROY()
+#define RWLOCK_DESTROY_P(x) CPP11_RWLOCK_DESTROY_P(x)
+#define LOCK_DESTROY() CPP11_LOCK_DESTROY()
+#define LOCK_DESTROY_P(x) CPP11_LOCK_DESTROY_P(x)
+
+#define LOCK_T CPP11_LOCK_T
+#define RWLOCK_T CPP11_RWLOCK_T
+
+
+//==============================================================================
 #else
 
 /// Obtain a read lock in the context of a locking object
@@ -273,7 +333,7 @@ defined(GOOGLE_SPIN_LOCKS)
 /// Obtain a write lock on the locking member of something we have a pointer to
 #define WRITE_LOCK_P(x)
 /// Obtain a write unlock in the context of a locking object
-#define WRITE_UNLOCK_P(x)
+#define WRITE_UNLOCK()
 /// Obtain a write unlock on the locking member of something we have a pointer to
 #define WRITE_UNLOCK_P(x)
 

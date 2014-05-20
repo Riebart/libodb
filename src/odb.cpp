@@ -16,7 +16,16 @@
 #include <string.h>
 #include <vector>
 #include <time.h>
+
+#ifdef CPP11THREADS
+#include <chrono>
+#define THREAD_CREATE(t, f, a) t = std::thread(f, a)
+#define THREAD_JOIN(t) if (t.joinable()) t.join()
+#else
 #include <unistd.h>
+#define THREAD_CREATE(t, f, a) pthread_create(&t, NULL, &f, a)
+#define THREAD_JOIN(t) pthread_join(t)
+#endif
 
 #if (CMAKE_COMPILER_SUITE_SUN)
 #include <atomic.h>
@@ -43,7 +52,7 @@
 
 using namespace std;
 
-volatile uint32_t ODB::num_unique = 0;
+ATOMIC_T ODB::num_unique = 0;
 
 /// The worker function in the memory checker thread
 /// @param[in] arg The void pointer to arguments. This is actually a pair of
@@ -62,6 +71,9 @@ void * mem_checker(void * arg)
 
     uint32_t count = 0;
 
+#ifdef WIN32
+    //! @warning "WIN32PORT memory consumption checking"
+#else
     pid_t pid = getpid();
 
     char path[50];
@@ -71,14 +83,22 @@ void * mem_checker(void * arg)
     sprintf(path, "/proc/%d/statm", pid);
 
     FILE* stat_file = fopen(path, "r");
+#endif
 
+#ifdef CPP11THREADS
+    std::chrono::seconds dura(sleep_duration);
+#else
     struct timespec ts;
 
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000;
+    ts.tv_sec = sleep_duration;
+    ts.tv_nsec = 0;
+#endif
 
     while (parent->is_running())
     {
+#ifdef WIN32
+    //! @warning "WIN32PORT memory consumption checking"
+#else
         if (stat_file != NULL)
         {
             stat_file = freopen(path, "r", stat_file);
@@ -118,14 +138,23 @@ void * mem_checker(void * arg)
                 count = 0;
             }
         }
+#endif
 
+#ifdef CPP11THREADS
+        std::this_thread::sleep_for(dura);
+#else
         nanosleep(&ts, NULL);
+#endif
     }
 
+#ifdef WIN32
+    //! @warning "WIN32PORT memory consumption checking"
+#else
     if (stat_file != NULL)
     {
         fclose(stat_file);
     }
+#endif
 
     return NULL;
 }
@@ -159,12 +188,18 @@ ODB::ODB(FixedDatastoreType dt, uint32_t _datalen, bool (*prune)(void* rawdata),
 
     init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
 
-#if (CMAKE_COMPILER_SUITE_SUN)
+#ifdef CPP11THREADS
+    num_unique.fetch_add(1);
+#elif (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
 #elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_add_and_fetch(&num_unique, 1);
 #else
+#ifdef WIN32
+#error "Can't find a way to atomicly increment a uint32_t."
+#else
 #warning "Can't find a way to atomicly increment a uint32_t."
+#endif
     int temp[-1];
 #endif
 }
@@ -228,12 +263,18 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
 
-#if (CMAKE_COMPILER_SUITE_SUN)
+#ifdef CPP11THREADS
+    num_unique.fetch_add(1);
+#elif (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
 #elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_add_and_fetch(&num_unique, 1);
 #else
+#ifdef WIN32
+#error "Can't find a way to atomicly increment a uint32_t."
+#else
 #warning "Can't find a way to atomicly increment a uint32_t."
+#endif
     int temp[-1];
 #endif
 }
@@ -292,12 +333,18 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
 
     init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
 
-#if (CMAKE_COMPILER_SUITE_SUN)
+#ifdef CPP11THREADS
+    num_unique.fetch_add(1);
+#elif (CMAKE_COMPILER_SUITE_SUN)
     atomic_inc_32(&num_unique);
 #elif (CMAKE_COMPILER_SUITE_GCC)
     __sync_add_and_fetch(&num_unique, 1);
 #else
+#ifdef WIN32
+#error "Can't find a way to atomicly increment a uint32_t."
+#else
 #warning "Can't find a way to atomicly increment a uint32_t."
+#endif
     int temp[-1];
 #endif
 }
@@ -366,7 +413,13 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
         SAFE_MALLOC(void**, args, sizeof(ODB*) + sizeof(uint32_t));
         args[0] = this;
         *reinterpret_cast<uint32_t*>(&(args[1])) = _sleep_duration;
-        pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
+
+        THREAD_CREATE(mem_thread, mem_checker, args);
+//#ifdef CPP11THREADS
+//        mem_thread = std::thread(mem_checker, args);
+//#else
+//        pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
+//#endif
     }
     else
     {
@@ -380,7 +433,7 @@ ODB::~ODB()
     if (running)
     {
         running = 0;
-        pthread_join(mem_thread, NULL);
+        THREAD_JOIN(mem_thread);
     }
 
     WRITE_LOCK();

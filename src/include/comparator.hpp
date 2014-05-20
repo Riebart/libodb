@@ -207,7 +207,18 @@ class CompareUInt64 : public Comparator
 public:
     virtual inline int32_t compare(void* a, void* b)
     {
-        return *reinterpret_cast<uint64_t*>(a) - *reinterpret_cast<uint64_t*>(b);
+        if (*reinterpret_cast<uint64_t*>(a) < *reinterpret_cast<uint64_t*>(b))
+        {
+            return -1;
+        }
+        else if (*reinterpret_cast<uint64_t*>(a) > *reinterpret_cast<uint64_t*>(b))
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
     }
 };
 

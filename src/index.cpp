@@ -329,10 +329,14 @@ Index::Index()
 {
     // Implemented because something, somewhere, needs it when linking. Not sure where.
     // Also now for setting the LUID.
+#ifdef WIN32
+    luid_val = (uint64_t)this;
+#else
     char* end;
     char buf[20];
     sprintf(buf, "%p", this);
     luid_val = strtoull(buf, &end, 16);
+#endif
     scheduler = NULL;
 }
 

@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\extralib">
+      <UniqueIdentifier>{3c9adf32-4394-4d7c-96b4-645d7323d703}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\archive.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bankds.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\datastore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\index.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\iterator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lfqueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\linkedlistds.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\linkedlisti.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\odb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\redblacktreei.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\scheduler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\include\archive.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\bankds.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\comparator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\datastore.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\index.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\iterator.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\lfqueue.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\linkedlistds.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\linkedlisti.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\odb.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\redblacktreei.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\scheduler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\skiplisti.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\triei.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\include\utility.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\bsd_hdr.h">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\buffer.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\cmwc.h">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\collator.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\common.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\dns.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\etherstub.h">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\ip.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\lock.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\log.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\pca.h">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\protoparse.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\tcp.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\extralib\include\udp.hpp">
+      <Filter>Header Files\extralib</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

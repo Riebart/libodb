@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6295B9DA-83C9-4DEC-9463-4F56ED2A66F4}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libodb</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>ENABLE_CPP11LOCKS;CPP11LOCKS;CPP11THREADS;WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../extralib/include;../../src/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>ENABLE_CPP11LOCKS;CPP11LOCKS;CPP11THREADS;WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../extralib/include;../../src/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\archive.cpp" />
+    <ClCompile Include="..\..\src\bankds.cpp" />
+    <ClCompile Include="..\..\src\datastore.cpp" />
+    <ClCompile Include="..\..\src\index.cpp" />
+    <ClCompile Include="..\..\src\iterator.cpp" />
+    <ClCompile Include="..\..\src\lfqueue.cpp" />
+    <ClCompile Include="..\..\src\linkedlistds.cpp" />
+    <ClCompile Include="..\..\src\linkedlisti.cpp" />
+    <ClCompile Include="..\..\src\odb.cpp" />
+    <ClCompile Include="..\..\src\redblacktreei.cpp" />
+    <ClCompile Include="..\..\src\scheduler.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\extralib\include\bsd_hdr.h" />
+    <ClInclude Include="..\..\extralib\include\buffer.hpp" />
+    <ClInclude Include="..\..\extralib\include\cmwc.h" />
+    <ClInclude Include="..\..\extralib\include\collator.hpp" />
+    <ClInclude Include="..\..\extralib\include\common.hpp" />
+    <ClInclude Include="..\..\extralib\include\dns.hpp" />
+    <ClInclude Include="..\..\extralib\include\etherstub.h" />
+    <ClInclude Include="..\..\extralib\include\ip.hpp" />
+    <ClInclude Include="..\..\extralib\include\lock.hpp" />
+    <ClInclude Include="..\..\extralib\include\log.hpp" />
+    <ClInclude Include="..\..\extralib\include\pca.h" />
+    <ClInclude Include="..\..\extralib\include\protoparse.hpp" />
+    <ClInclude Include="..\..\extralib\include\tcp.hpp" />
+    <ClInclude Include="..\..\extralib\include\udp.hpp" />
+    <ClInclude Include="..\..\src\include\archive.hpp" />
+    <ClInclude Include="..\..\src\include\bankds.hpp" />
+    <ClInclude Include="..\..\src\include\comparator.hpp" />
+    <ClInclude Include="..\..\src\include\datastore.hpp" />
+    <ClInclude Include="..\..\src\include\index.hpp" />
+    <ClInclude Include="..\..\src\include\iterator.hpp" />
+    <ClInclude Include="..\..\src\include\lfqueue.hpp" />
+    <ClInclude Include="..\..\src\include\linkedlistds.hpp" />
+    <ClInclude Include="..\..\src\include\linkedlisti.hpp" />
+    <ClInclude Include="..\..\src\include\odb.hpp" />
+    <ClInclude Include="..\..\src\include\redblacktreei.hpp" />
+    <ClInclude Include="..\..\src\include\scheduler.hpp" />
+    <ClInclude Include="..\..\src\include\skiplisti.hpp" />
+    <ClInclude Include="..\..\src\include\triei.hpp" />
+    <ClInclude Include="..\..\src\include\utility.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

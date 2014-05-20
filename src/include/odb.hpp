@@ -18,9 +18,22 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <pthread.h>
 #include <time.h>
 #include <vector>
+
+#ifdef CPP11THREADS
+#include <thread>
+#include <mutex>
+#include <atomic>
+
+#define THREAD_T std::thread
+#define ATOMIC_T std::atomic<uint64_t>
+#else
+#include <pthread.h>
+
+#define THREAD_T pthread_t
+#define ATOMIC_T volatile uint32_t
+#endif
 
 #include "lock.hpp"
 #include "scheduler.hpp"
@@ -164,7 +177,7 @@ private:
     ///currently running in the context of the process. Atomic operations
     ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
     ///this value.
-    static volatile uint32_t num_unique;
+    static ATOMIC_T num_unique;
 
     /// Identity of this ODB insance in this process' context.
     int ident;
@@ -193,7 +206,7 @@ private:
     DataObj* dataobj;
 
     /// Thread that the memory checker runs in.
-    pthread_t mem_thread;
+    THREAD_T mem_thread;
 
     /// Duration that the memory checker thread sleeps between sweeps. If this
     ///value is set to zero at ODB creation time, the memory checker thread

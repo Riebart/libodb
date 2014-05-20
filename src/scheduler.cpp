@@ -17,6 +17,22 @@
 #include "common.hpp"
 #include "lfqueue.hpp"
 
+#ifdef CPP11THREADS
+#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
+#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
+#define THREAD_COND_INIT(v)
+#define THREAD_COND_WAIT(v, l) (v).wait((l))
+#define THREAD_COND_SIGNAL(v) (v).notify_one()
+#define THREAD_COND_BROADCAST(v) (v).notify_all()
+#else
+#define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
+#define THREAD_JOIN(t) pthread_join((t))
+#define THREAD_COND_INIT(v) pthread_cond_init(&(v), NULL)
+#define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));
+#define THREAD_COND_SIGNAL(v) pthread_cond_signal(&(v))
+#define THREAD_COND_BROADCAST(v) pthread_cond_broadcast(&(v))
+#endif
+
 void* scheduler_worker_thread(void* args_v)
 {
     struct Scheduler::workload* work;
@@ -36,11 +52,12 @@ void* scheduler_worker_thread(void* args_v)
         {
             // Before we sleep, we should wake up anything waiting on the block
             args->scheduler->num_threads_parked++;
-            pthread_cond_signal(&(args->scheduler->block_cond));
+            THREAD_COND_SIGNAL(args->scheduler->block_cond);
 
             // cond_wait releases the lock when it starts waiting, and is guaranteed
             // to hold it when it returns.
-            pthread_cond_wait(&(args->scheduler->work_cond), &(args->scheduler->mlock));
+            THREAD_COND_WAIT(args->scheduler->work_cond, args->scheduler->mlock);
+
             args->scheduler->num_threads_parked--;
         }
 
@@ -153,11 +170,12 @@ Scheduler::Scheduler(uint32_t _num_threads)
     work_avail = 0;
     this->num_threads = _num_threads;
     num_threads_parked = 0;
-    pthread_cond_init(&work_cond, NULL);
-    pthread_cond_init(&block_cond, NULL);
+    THREAD_COND_INIT(work_cond);
+    THREAD_COND_INIT(block_cond);
+
     indep = new LFQueue();
 
-    SAFE_MALLOC(pthread_t*, threads, num_threads * sizeof(pthread_t));
+    SAFE_MALLOC(THREAD_T*, threads, num_threads * sizeof(THREAD_T));
     SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
     root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
@@ -172,7 +190,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
         t_args[i]->scheduler = this;
         t_args[i]->counter = 0;
 
-        pthread_create(&(threads[i]), NULL, scheduler_worker_thread, t_args[i]);
+        THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
     }
 }
 
@@ -223,7 +241,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32
     work_avail++;
 
     // Now we need to notify at least one thread that there is work available.
-    pthread_cond_signal(&work_cond);
+    THREAD_COND_SIGNAL(work_cond);
 
     SCHED_UNLOCK();
 }
@@ -261,7 +279,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
     work_avail++;
 
     // Now we need to notify at least one thread that there is work available.
-    pthread_cond_signal(&work_cond);
+    THREAD_COND_SIGNAL(work_cond);
 
     SCHED_UNLOCK();
 }
@@ -278,9 +296,10 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
     }
     else if (new_num_threads > num_threads)
     {
-        pthread_t* new_threads;
+        THREAD_T* new_threads;
+        SAFE_REALLOC(THREAD_T*, threads, new_threads, new_num_threads * sizeof(THREAD_T));
+
         struct thread_args** new_t_args;
-        SAFE_REALLOC(pthread_t*, threads, new_threads, new_num_threads * sizeof(pthread_t));
         SAFE_REALLOC(struct thread_args**, t_args, new_t_args, new_num_threads * sizeof(struct thread_args*));
         threads = new_threads;
         t_args = new_t_args;
@@ -293,7 +312,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
             t_args[i]->scheduler = this;
             t_args[i]->counter = 0;
 
-            pthread_create(&(threads[i]), NULL, scheduler_worker_thread, t_args[i]);
+            THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
         }
     }
     else
@@ -310,14 +329,14 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         // In order to kill the ones that are waiting, we need to wake up all of
         // the threads so they check their run condition. Most will go right back
         // to waiting, but the ones we're killing will die after this call.
-        pthread_cond_broadcast(&work_cond);
+        THREAD_COND_BROADCAST(work_cond);
 
         // Now we can join and kill in sequence. This process will take slightly
         // longer than the remainder of the latest-ending running workload.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
         {
-            pthread_cond_broadcast(&work_cond);
-            pthread_join(threads[i], NULL);
+            THREAD_COND_BROADCAST(work_cond);
+            THREAD_JOIN(threads[i]);
             free(t_args[i]);
         }
     }
@@ -407,7 +426,8 @@ struct Scheduler::workload* Scheduler::get_work()
     return first_work;
 }
 
-// Be careful about using this: This will wake up if all queues are momentarily exhausted, even though more work is in the pipe.
+// Be careful about using this: This will wake up if all queues are momentarily exhausted, even though
+// more work is in the pipe and is being added to the scheduler.
 // Do not assume that just because this function returned that no work is being processed.
 void Scheduler::block_until_done()
 {
@@ -415,13 +435,15 @@ void Scheduler::block_until_done()
 
     while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
     {
-        pthread_cond_wait(&block_cond, &mlock);
+        THREAD_COND_WAIT(block_cond, mlock);
 
         // If we still pass the looping condition, we can skip the trylock.
+        // If we don't pass the looping condition, that is it looks like we might be out of work
         if (!((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)))
         {
-            // Try to spinlock to see if anything is contending for spinlock access
-            if (pthread_spin_trylock(&lock) == 0)
+            // Try to spinlock to see if anything is contending for spinlock access, which means we might
+            // be adding work
+            if (SCHED_TRYLOCK() == 0)
             {
                 // If we succeed, then unlock and return;
                 SCHED_UNLOCK();

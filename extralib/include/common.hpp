@@ -28,7 +28,7 @@
 /// Prints a back trace from the location that it was called.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define PRINT_TRACE(str...) { \
+#define PRINT_TRACE(str, ...) { \
     if (errno != 0) { \
         fprintf (stderr, "%s:%d: %m: ",  __FILE__, __LINE__);\
         fprintf (stderr, str);\
@@ -43,7 +43,7 @@
 /// @param[in] code Code to throw. Can be anything that throw accepts.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define THROW_ERROR(code, str...) { \
+#define THROW_ERROR(code, str, ...) { \
     PRINT_TRACE(str); \
     throw code; \
     }
@@ -58,7 +58,7 @@
 /// Prints a backtrace and aborts execution at that point.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define FAIL(str...) { \
+#define FAIL(str, ...) { \
     PRINT_TRACE(str); \
     abort(); }
 
@@ -68,9 +68,9 @@
 ///that includes some specific strings to print along with the backtrace.
 /// @{
 #ifdef DEBUG
-#define DEBUG_PRINT(str...) PRINT_TRACE(str)
+#define DEBUG_PRINT(str, ...) PRINT_TRACE(str)
 #else
-#define DEBUG_PRINT(str...) { }
+#define DEBUG_PRINT(str, ...) { }
 #endif
 /// @}
 
