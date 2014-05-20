@@ -569,12 +569,12 @@ uint32_t l4_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
         if ((*fp)->l3_type == L3_TYPE_IP4)
         {
             struct l3_ip4* ip4 = (struct l3_ip4*)(&((*fp)->hdr_start));
-            l4_hdr.flags |= (cksum == tcp4_checksum(ip4->src, ip4->dst, packet, packet_len)) << 9;
+//            l4_hdr.flags |= (cksum == tcp4_checksum(ip4->src, ip4->dst, packet, packet_len)) << 9;
         }
         else if ((*fp)->l3_type == L3_TYPE_IP6)
         {
             struct l3_ip6* ip6 = (struct l3_ip6*)(&((*fp)->hdr_start));
-            l4_hdr.flags |= (cksum == tcp6_checksum(ip6->src, ip6->dst, packet, packet_len)) << 9;
+//            l4_hdr.flags |= (cksum == tcp6_checksum(ip6->src, ip6->dst, packet, packet_len)) << 9;
         }
 
         f = append_to_flow_sig(f, &l4_hdr, sizeof(struct l4_tcp) - 1);

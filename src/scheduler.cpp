@@ -26,7 +26,7 @@
 #define THREAD_COND_BROADCAST(v) (v).notify_all()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
-#define THREAD_JOIN(t) pthread_join((t))
+#define THREAD_JOIN(t) pthread_join((t), NULL)
 #define THREAD_COND_INIT(v) pthread_cond_init(&(v), NULL)
 #define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));
 #define THREAD_COND_SIGNAL(v) pthread_cond_signal(&(v))

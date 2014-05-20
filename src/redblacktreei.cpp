@@ -187,7 +187,7 @@ inline struct RedBlackTreeI::tree_node* RedBlackTreeI::single_rotation(struct tr
 
     // Set the appropriate link to point to the old root.
     SET_LINK(temp->link[dir], n);
-    
+
 #ifdef RBT_PROFILE
     fprintf(stderr, ",%lu,%lu", (uint64_t)n, (uint64_t)temp);
 #endif
@@ -236,7 +236,7 @@ bool RedBlackTreeI::add_data_v2(void* rawdata)
     WRITE_LOCK();
     bool something_added = false;
     root = add_data_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
-    
+
 #ifdef RBT_PROFILE
     fprintf(stderr, "\n");
 #endif
@@ -316,7 +316,7 @@ bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata
     ((struct tree_node*)rawdata)->link[1] = NULL;
 
     root->data = e_add_data_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata);
-    
+
 #ifdef RBT_PROFILE
     fprintf(stderr, "\n");
 #endif

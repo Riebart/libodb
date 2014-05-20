@@ -35,8 +35,8 @@
 #define SCHED_MLOCK_P(x) ((x)->mlock.lock())
 #define SCHED_MUNLOCK() (mlock.unlock())
 #define SCHED_MUNLOCK_P(x) ((x)->mlock.unlock())
-#define SCHED_MLOCK_INIT() 
-#define SCHED_MLOCK_DESTROY() 
+#define SCHED_MLOCK_INIT()
+#define SCHED_MLOCK_DESTROY()
 #define SCHED_MLOCK_T std::mutex mlock
 /// @}
 
@@ -53,8 +53,8 @@
 #define SCHED_TRYLOCK_P(x) ((x)->mlock.try_lock())
 #define SCHED_UNLOCK() (mlock.unlock())
 #define SCHED_UNLOCK_P(x) ((x)->mlock.unlock())
-#define SCHED_LOCK_INIT() 
-#define SCHED_LOCK_DESTROY() 
+#define SCHED_LOCK_INIT()
+#define SCHED_LOCK_DESTROY()
 #define SCHED_LOCK_T std::mutex lock
 /// @}
 

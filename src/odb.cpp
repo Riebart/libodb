@@ -19,12 +19,12 @@
 
 #ifdef CPP11THREADS
 #include <chrono>
-#define THREAD_CREATE(t, f, a) t = std::thread(f, a)
-#define THREAD_JOIN(t) if (t.joinable()) t.join()
+#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
+#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
 #else
 #include <unistd.h>
-#define THREAD_CREATE(t, f, a) pthread_create(&t, NULL, &f, a)
-#define THREAD_JOIN(t) pthread_join(t)
+#define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
+#define THREAD_JOIN(t) pthread_join((t), NULL)
 #endif
 
 #if (CMAKE_COMPILER_SUITE_SUN)
@@ -97,7 +97,7 @@ void * mem_checker(void * arg)
     while (parent->is_running())
     {
 #ifdef WIN32
-    //! @warning "WIN32PORT memory consumption checking"
+        //! @warning "WIN32PORT memory consumption checking"
 #else
         if (stat_file != NULL)
         {
