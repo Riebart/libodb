@@ -389,8 +389,8 @@ uint32_t l2_sig(struct flow_sig** fp, const uint8_t* packet, uint32_t p_offset, 
 
         // Now process VLAN tags
         while ((f->l3_type == L3_TYPE_8021Q) ||
-               (f->l3_type == L3_TYPE_8021AD) ||
-               (f->l3_type == L3_TYPE_8021QINQ))
+                (f->l3_type == L3_TYPE_8021AD) ||
+                (f->l3_type == L3_TYPE_8021QINQ))
         {
             if (packet_len <= (p_offset + 4))
             {

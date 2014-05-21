@@ -241,13 +241,13 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         // The idea is that if you call for the next token on an iteratore that
         // is already at the end, it just continues to return a pointer to the
         // end.
-        
+
         if (q->incl_len >= 0)
         {
             q->incl_len = (-1) * (q->incl_len + 1);
             q->total_len++;
         }
-        
+
         return q->q + q->pos;
     }
 
@@ -312,7 +312,7 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         q->pos = ptr_val;
         q->ptd = true;
     }
-    
+
     // If we hit the null terminator at the end, we are done with the query
     if (q->pos >= q->packet_len)
     {
@@ -324,14 +324,14 @@ const uint8_t* __dns_get_next_token(struct __dns_query_it* q)
         // The idea is that if you call for the next token on an iteratore that
         // is already at the end, it just continues to return a pointer to the
         // end.
-        
+
         if (q->incl_len >= 0)
         {
             q->incl_len = (-1) * (q->incl_len + 1);
         }
-        
+
         q->total_len++;
-        
+
         return q->q + q->pos;
     }
 

@@ -56,6 +56,7 @@ IndexGroup::IndexGroup(uint64_t _ident, DataStore* _parent)
     this->ident = _ident;
     this->parent = _parent;
     scheduler = NULL;
+    indices = new std::vector<IndexGroup*>();
 }
 
 bool IndexGroup::add_index(IndexGroup* ig)
@@ -327,7 +328,7 @@ uint64_t IndexGroup::size()
 
 // ============================================================================
 
-Index::Index()
+Index::Index() : IndexGroup()
 {
     // Implemented because something, somewhere, needs it when linking. Not sure where.
     // Also now for setting the LUID.

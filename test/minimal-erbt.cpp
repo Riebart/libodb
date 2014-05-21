@@ -66,7 +66,10 @@ int main (int argc, char ** argv)
         data->data = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
 
         // Add the new node to the tree.
-        RedBlackTreeI::e_add(root, data);
+        if (!RedBlackTreeI::e_add(root, data))
+        {
+            free(data);
+        }
     }
 
     // Print out how many items are in the tree.
@@ -84,7 +87,7 @@ int main (int argc, char ** argv)
 
     // Destroy the tree root. This does not destroy the items in the tree, you
     // need to destroy those manually to reclaim the memory.
-    RedBlackTreeI::e_destroy_tree(root);
+    RedBlackTreeI::e_destroy_tree(root, free);
 
     return EXIT_SUCCESS;
 }

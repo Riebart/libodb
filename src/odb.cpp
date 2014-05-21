@@ -45,7 +45,7 @@
 #else
 #warning "Can't find a way to atomicly increment a uint32_t."
 #endif
-    int temp[-1];
+int temp[-1];
 #endif
 
 #if (CMAKE_COMPILER_SUITE_SUN)
@@ -438,6 +438,17 @@ ODB::~ODB()
         delete curr;
     }
     delete tables;
+
+    //! @todo There's potential for leaks here if it is unclear who is allocating the archiver.
+    //if (archive != NULL)
+    //{
+    //    delete archive;
+    //}
+
+#ifdef CPP11THREADS
+    delete mem_thread;
+    delete num_unique;
+#endif
 
     WRITE_UNLOCK();
     RWLOCK_DESTROY();

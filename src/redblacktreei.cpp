@@ -1442,8 +1442,6 @@ void RedBlackTreeI::e_free_n(struct tree_node* root, bool drop_duplicates, void 
         {
             freep(root);
         }
-
-        free(root);
     }
 }
 
@@ -2098,6 +2096,7 @@ RBTIterator::RBTIterator(uint64_t ident, uint64_t _true_datalen, bool _time_stam
     this->query_count = _query_count;
     this->true_datalen = _true_datalen;
     it = NULL;
+    trail = new std::stack<struct RedBlackTreeI::tree_node*>();
 }
 
 RBTIterator::~RBTIterator()

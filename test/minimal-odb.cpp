@@ -60,7 +60,8 @@ int main (int argc, char ** argv)
     //  - The size of the data we are going t be inserting.
     //  - How to handle files that are throw out by remove_sweep(). This can be
     //    NULL, which means that removed items are torched and unrecoverable.
-    ODB odb(ODB::BANK_DS, sizeof(long), prune, new AppendOnlyFile((char*)"minimal_odb.archive", false));
+    AppendOnlyFile* a = new AppendOnlyFile((char*)"minimal_odb.archive", false);
+    ODB* odb = new ODB(ODB::BANK_DS, sizeof(long), prune, a);
 
     // Create the index table that will be applied to the data inserted into the
     // ODB object.
@@ -68,18 +69,18 @@ int main (int argc, char ** argv)
     //  - The flag indicates that the index table will not drop duplicates
     //  - The comparison function that determines the sorting order applied to
     //    the index table.
-    Index* ind = odb.create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+    Index* ind = odb->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
 
     // Add the data to the ODB object and its index table.
     for (long i = 0 ; i < 100 ; i++)
     {
         v = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
-        odb.add_data(&v);
+        odb->add_data(&v);
     }
 
     // Prune out some items in the ODB according to the pruning function that
     // was specified upon creation
-    odb.remove_sweep();
+    odb->remove_sweep();
 
     // This demonstrates how to use iterators, and iterating through an index
     // table.
@@ -110,6 +111,9 @@ int main (int argc, char ** argv)
     ODB* res = ind->query(condition);
 
     printf("Query contains %lu items.\n", res->size());
+    
+    delete odb;
+    delete a;
 
     return EXIT_SUCCESS;
 }

@@ -48,7 +48,7 @@
 // http://gcc.gnu.org/gcc-4.3/changes.html
 #include <tr1/unordered_map>
 #define MAP_T std::tr1::unordered_map<uint64_t, LFQueue*>
-#define MAP_GET(map, key) (map)->at((key))
+#define MAP_GET(map, key) (*(map))[(key)]
 #elif CMAKE_COMPILER_SUITE_SUN
 // http://www.sgi.com/tech/stl/hash_map.html
 #include <hash_map>

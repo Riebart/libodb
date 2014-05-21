@@ -117,7 +117,7 @@ public:
 
     static struct e_tree_root* e_init_tree(bool drop_duplicates, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL);
     static struct e_tree_root* e_init_tree(bool drop_duplicates, Comparator* compare, Merger* merge);
-    static void e_destroy_tree(struct e_tree_root* root, void (*destroy)(void*) = NULL);
+    static void e_destroy_tree(struct e_tree_root* root, void (*freep)(void*) = NULL);
 
     /// Insert a piece of data into an embedded RBT.
     /// @param[in] root The root of the embedded RBT to insert the data into.

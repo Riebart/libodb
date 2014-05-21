@@ -16,6 +16,10 @@
 #include "archive.hpp"
 #include "common.hpp"
 
+Archive::~Archive()
+{
+}
+
 AppendOnlyFile::~AppendOnlyFile()
 {
     fclose(data);
@@ -28,8 +32,10 @@ AppendOnlyFile::~AppendOnlyFile()
 /// @todo Make this use a biffered writer for improved throughput
 AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
 {
-    SAFE_MALLOC(char*, data_name, strlen(base_filename)+5);
-    SAFE_MALLOC(char*, index_name, strlen(base_filename)+5);
+    // The strcat call incurs a conditional jump on unitialized value from here
+    // according to valgrind. So calloc() it.
+    SAFE_CALLOC(char*, data_name, 1, strlen(base_filename)+5);
+    SAFE_CALLOC(char*, index_name, 1, strlen(base_filename)+5);
 
     memcpy(data_name, base_filename, strlen(base_filename));
     memcpy(index_name, base_filename, strlen(base_filename));
@@ -63,7 +69,7 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
         data = fopen(data_name, "ab");
         index = fopen(index_name, "ab");
 #endif
-        
+
         // Since we're appending, seek to the end, get the position, and then
         // rewind back to the start.
         fseek(data, 0, SEEK_END);

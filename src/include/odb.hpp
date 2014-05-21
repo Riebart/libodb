@@ -14,6 +14,7 @@
 /// @file odb.hpp
 
 //! @todo Update the documentation with potentially changed function signatures.
+//! @todo Provide facilities for deleting the clones potenntially returned by queries.
 
 #include "dll.hpp"
 

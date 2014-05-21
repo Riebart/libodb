@@ -31,6 +31,9 @@
 class LIBODB_API Archive
 {
 public:
+    /// Standard destructor
+    ~Archive();
+
     /// The function used to write a piece of data according to the rules of the object defines.
     /// @param[in] rawdata Pointer to the data to be written
     /// @param[in] datalen The number of bytes of data to write.

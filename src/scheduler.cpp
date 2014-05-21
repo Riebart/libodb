@@ -284,7 +284,7 @@ Scheduler::~Scheduler()
     /// @bug The data used by the workqueues and their un-processed workloads is not freed.
     /// Need to free the data used by the workqueues and their unprocessed wokloads here.
     RedBlackTreeI::e_destroy_tree(root, NULL);
-    
+
     delete queue_map;
     SCHED_LOCK_DESTROY();
     SCHED_MLOCK_DESTROY();
