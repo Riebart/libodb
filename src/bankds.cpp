@@ -605,6 +605,7 @@ inline void BankDS::purge(void (*freep)(void*))
 {
     WRITE_LOCK();
 
+    //! @todo Again, extern "C" is causing issues.
     if (freep == free)
     {
         uint32_t num_clones = clones->size();

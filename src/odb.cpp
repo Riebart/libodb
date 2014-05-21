@@ -133,7 +133,7 @@ void * mem_checker(void * arg)
 
             if (rsize > parent->mem_limit)
             {
-                THROW_ERROR("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
+                THROW_ERROR_M("MEM_OVFLW", "Memory usage exceeds limit: %ld > %lu", rsize, parent->mem_limit);
             }
         }
 
@@ -369,6 +369,7 @@ void ODB::init(DataStore* _data, uint64_t _ident, uint64_t _datalen, Archive* _a
 
     if (_freep == NULL)
     {
+        //! @todo free() is actually an extern "C" exported function, and that is being discarded here. Warp in something else?
         this->freep = free;
     }
     else
@@ -391,6 +392,7 @@ void ODB::init(DataStore* _data, uint64_t _ident, uint64_t _datalen, Archive* _a
         args[0] = this;
         *reinterpret_cast<uint32_t*>(&(args[1])) = _sleep_duration;
 
+        //! @todo extern "C" is disappearing here in argument 3 (the function pointer) to pthread_create()
         THREAD_CREATE(mem_thread, mem_checker, args);
     }
     else

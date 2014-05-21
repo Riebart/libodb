@@ -24,6 +24,44 @@
 #define THREAD_COND_WAIT(v, l) (v)->wait(*(l))
 #define THREAD_COND_SIGNAL(v) (v)->notify_one()
 #define THREAD_COND_BROADCAST(v) (v)->notify_all()
+
+/// The MLOCK class of locks is used in the scheduler anywhere sleeping is
+/// necessary. This includes in the worker threads when there is no more
+/// work immediately available and in block_until_done.
+/// @{
+#define SCHED_MLOCK() (mlock->lock())
+#define SCHED_MLOCK_P(x) ((x)->mlock->lock())
+#define SCHED_MUNLOCK() (mlock->unlock())
+#define SCHED_MUNLOCK_P(x) ((x)->mlock->unlock())
+#define SCHED_MLOCK_INIT() mlock = new std::mutex()
+#define SCHED_MLOCK_DESTROY() delete mlock
+/// @}
+
+/// The LOCK class of locks is used when a fast lock is required, and we
+/// won't be sleeping on it. This is used in add_work (overseer thread)
+/// and get_work (worker threads). The worker threads also use these locks
+/// when they are shuffling the workqueue in its tree. These locks will no
+/// longer be needed once a proper lockfree queue is implemented.
+/// @{
+//! @todo Investigate C++11 spinlocks: http://anki3d.org/spinlock/
+#define SCHED_LOCK() (mlock->lock())
+#define SCHED_LOCK_P(x) ((x)->mlock->lock())
+#define SCHED_TRYLOCK() (mlock->try_lock())
+#define SCHED_TRYLOCK_P(x) ((x)->mlock->try_lock())
+#define SCHED_UNLOCK() (mlock->unlock())
+#define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
+#define SCHED_LOCK_INIT() mlock = new std::mutex()
+#define SCHED_LOCK_DESTROY() delete mlock
+
+/// @}
+
+// #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
+// #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
+// #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
+// #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
+// #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
+// #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
+// #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_JOIN(t) pthread_join((t), NULL)
@@ -31,6 +69,43 @@
 #define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));
 #define THREAD_COND_SIGNAL(v) pthread_cond_signal(&(v))
 #define THREAD_COND_BROADCAST(v) pthread_cond_broadcast(&(v))
+
+/// The MLOCK class of locks is used in the scheduler anywhere sleeping is
+/// necessary. This includes in the worker threads when there is no more
+/// work immediately available and in block_until_done.
+/// @{
+#define SCHED_MLOCK() pthread_mutex_lock(&mlock)
+#define SCHED_MLOCK_P(x) pthread_mutex_lock(&((x)->mlock))
+#define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
+#define SCHED_MUNLOCK_P(x) pthread_mutex_unlock(&((x)->mlock))
+#define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
+#define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
+
+/// @}
+
+/// The LOCK class of locks is used when a fast lock is required, and we
+/// won't be sleeping on it. This is used in add_work (overseer thread)
+/// and get_work (worker threads). The worker threads also use these locks
+/// when they are shuffling the workqueue in its tree. These locks will no
+/// longer be needed once a proper lockfree queue is implemented.
+/// @{
+#define SCHED_LOCK() pthread_spin_lock(&lock)
+#define SCHED_LOCK_P(x) pthread_spin_lock(&((x)->lock))
+#define SCHED_TRYLOCK() pthread_spin_trylock(&lock)
+#define SCHED_TRYLOCK_P(x) pthread_spin_trylock(&((x)->lock))
+#define SCHED_UNLOCK() pthread_spin_unlock(&lock)
+#define SCHED_UNLOCK_P(x) pthread_spin_unlock(&((x)->lock))
+#define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
+#define SCHED_LOCK_DESTROY() pthread_spin_destroy(&lock)
+/// @}
+
+// #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
+// #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
+// #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
+// #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
+// #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
+// #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
+// #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #endif
 
 void* scheduler_worker_thread(void* args_v)
@@ -192,6 +267,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
         t_args[i]->scheduler = this;
         t_args[i]->counter = 0;
 
+        //! @todo extern "C"
         THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
     }
 }
@@ -316,6 +392,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
             t_args[i]->scheduler = this;
             t_args[i]->counter = 0;
 
+            //! @todo extern "C"
             THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
         }
     }
@@ -370,12 +447,12 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
 /// may often run dry as the producer produces work slower than consumers consume it.
 LFQueue* Scheduler::find_queue(uint64_t class_id)
 {
-    LFQueue* retval = queue_map->at(class_id);
+    LFQueue* retval = MAP_GET(queue_map, class_id);
 
     if (retval == NULL)
     {
         retval = new LFQueue();
-        queue_map->at(class_id) = retval;
+        MAP_GET(queue_map, class_id) = retval;
     }
 
     return retval;

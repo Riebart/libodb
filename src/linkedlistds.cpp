@@ -423,6 +423,7 @@ void LinkedListDS::purge(void (*freep)(void*))
 
     while (next != NULL)
     {
+        //! @todo extern "C"
         if (freep != free)
         {
             freep(&(curr->data));
@@ -432,6 +433,7 @@ void LinkedListDS::purge(void (*freep)(void*))
         next = next->next;
     }
 
+    //! @todo extern "C"
     if (freep != free)
     {
         free(&(curr->data));

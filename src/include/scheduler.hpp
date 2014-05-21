@@ -28,104 +28,32 @@
 
 #define THREAD_T std::thread*
 #define CONDVAR_T std::condition_variable_any*
-
-//! @todo Move these macro functions into the CPP file.
-/// The MLOCK class of locks is used in the scheduler anywhere sleeping is
-/// necessary. This includes in the worker threads when there is no more
-/// work immediately available and in block_until_done.
-/// @{
-#define SCHED_MLOCK() (mlock->lock())
-#define SCHED_MLOCK_P(x) ((x)->mlock->lock())
-#define SCHED_MUNLOCK() (mlock->unlock())
-#define SCHED_MUNLOCK_P(x) ((x)->mlock->unlock())
-#define SCHED_MLOCK_INIT() mlock = new std::mutex()
-#define SCHED_MLOCK_DESTROY() delete mlock
 #define SCHED_MLOCK_T std::mutex* mlock
-/// @}
-
-/// The LOCK class of locks is used when a fast lock is required, and we
-/// won't be sleeping on it. This is used in add_work (overseer thread)
-/// and get_work (worker threads). The worker threads also use these locks
-/// when they are shuffling the workqueue in its tree. These locks will no
-/// longer be needed once a proper lockfree queue is implemented.
-/// @{
-//! @todo Investigate C++11 spinlocks: http://anki3d.org/spinlock/
-#define SCHED_LOCK() (mlock->lock())
-#define SCHED_LOCK_P(x) ((x)->mlock->lock())
-#define SCHED_TRYLOCK() (mlock->try_lock())
-#define SCHED_TRYLOCK_P(x) ((x)->mlock->try_lock())
-#define SCHED_UNLOCK() (mlock->unlock())
-#define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
-#define SCHED_LOCK_INIT() mlock = new std::mutex()
-#define SCHED_LOCK_DESTROY() delete mlock
 #define SCHED_LOCK_T std::mutex* lock
-/// @}
-
-// #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
-// #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
-// #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
-// #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
-// #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
-// #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
-// #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
-
 #else
 #include <pthread.h>
 
 #define THREAD_T pthread_t
 #define CONDVAR_T pthread_cond_t
-
-/// The MLOCK class of locks is used in the scheduler anywhere sleeping is
-/// necessary. This includes in the worker threads when there is no more
-/// work immediately available and in block_until_done.
-/// @{
-#define SCHED_MLOCK() pthread_mutex_lock(&mlock)
-#define SCHED_MLOCK_P(x) pthread_mutex_lock(&((x)->mlock))
-#define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
-#define SCHED_MUNLOCK_P(x) pthread_mutex_unlock(&((x)->mlock))
-#define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
-#define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
 #define SCHED_MLOCK_T pthread_mutex_t mlock
-/// @}
-
-/// The LOCK class of locks is used when a fast lock is required, and we
-/// won't be sleeping on it. This is used in add_work (overseer thread)
-/// and get_work (worker threads). The worker threads also use these locks
-/// when they are shuffling the workqueue in its tree. These locks will no
-/// longer be needed once a proper lockfree queue is implemented.
-/// @{
-#define SCHED_LOCK() pthread_spin_lock(&lock)
-#define SCHED_LOCK_P(x) pthread_spin_lock(&((x)->lock))
-#define SCHED_TRYLOCK() pthread_spin_trylock(&lock)
-#define SCHED_TRYLOCK_P(x) pthread_spin_trylock(&((x)->lock))
-#define SCHED_UNLOCK() pthread_spin_unlock(&lock)
-#define SCHED_UNLOCK_P(x) pthread_spin_unlock(&((x)->lock))
 #define SCHED_LOCK_T pthread_spinlock_t lock
-#define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
-#define SCHED_LOCK_DESTROY() pthread_spin_destroy(&lock)
-/// @}
-
-// #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
-// #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
-// #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
-// #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
-// #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
-// #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
-// #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #endif
 
 #ifdef WIN32
 #include <unordered_map>
 #define MAP_T std::unordered_map<uint64_t, LFQueue*>
+#define MAP_GET(map, key) (map)->at((key))
 #elif CMAKE_COMPILER_SUITE_GCC
 // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
 // http://gcc.gnu.org/gcc-4.3/changes.html
 #include <tr1/unordered_map>
 #define MAP_T std::tr1::unordered_map<uint64_t, LFQueue*>
+#define MAP_GET(map, key) (map)->at((key))
 #elif CMAKE_COMPILER_SUITE_SUN
 // http://www.sgi.com/tech/stl/hash_map.html
 #include <hash_map>
 #define MAP_T std::hash_map<uint64_t, LFQueue*>
+#define MAP_GET(map, key) (*(map))[(key)]
 #endif
 
 #include "lock.hpp"
