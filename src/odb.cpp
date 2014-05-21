@@ -24,11 +24,13 @@
 #define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
 #define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
 #define ATOMIC_INIT(val) new std::atomic<uint64_t>(val)
+#define ATOMIC_FETCH(val) (val)->load()
 #else
 #include <unistd.h>
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_JOIN(t) pthread_join((t), NULL)
 #define ATOMIC_INIT(val) (val)
+#define ATOMIC_FETCH(val) (val)
 #endif
 
 #ifdef CPP11THREADS
@@ -200,7 +202,7 @@ ODB::ODB(FixedDatastoreType dt, uint64_t _datalen, bool (*prune)(void* rawdata),
     }
     }
 
-    init(datastore, *num_unique, _datalen, _archive, _freep, _sleep_duration);
+    init(datastore, ATOMIC_FETCH(num_unique), _datalen, _archive, _freep, _sleep_duration);
     ATOMIC_INCREMENT(num_unique);
 }
 
@@ -261,7 +263,7 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     }
 
-    init(datastore, *num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
+    init(datastore, ATOMIC_FETCH(num_unique), sizeof(void*), _archive, _freep, _sleep_duration);
     ATOMIC_INCREMENT(num_unique);
 }
 
@@ -317,7 +319,7 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     }
 
-    init(datastore, *num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
+    init(datastore, ATOMIC_FETCH(num_unique), sizeof(void*), _archive, _freep, _sleep_duration);
     ATOMIC_INCREMENT(num_unique);
 }
 

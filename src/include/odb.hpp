@@ -181,7 +181,6 @@ private:
     ///currently running in the context of the process. Atomic operations
     ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
     ///this value.
-    //! @bug Make sure that this is fetched atomically.
     static ATOMICP_T num_unique;
 
     /// Identity of this ODB insance in this process' context.
