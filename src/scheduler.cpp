@@ -18,8 +18,9 @@
 #include "lfqueue.hpp"
 
 #ifdef CPP11THREADS
-#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
-#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
+#define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
+#define THREAD_DESTROY(t) delete (t)
+#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
 #define THREAD_COND_INIT(v) (v) = new std::condition_variable_any();
 #define THREAD_COND_WAIT(v, l) (v)->wait(*(l))
 #define THREAD_COND_SIGNAL(v) (v)->notify_one()
@@ -51,7 +52,7 @@
 #define SCHED_UNLOCK() (mlock->unlock())
 #define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
 #define SCHED_LOCK_INIT() mlock = new std::mutex()
-#define SCHED_LOCK_DESTROY() delete mlock
+#define SCHED_LOCK_DESTROY() delete lock
 
 /// @}
 
@@ -64,6 +65,7 @@
 // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
+#define THREAD_DESROY(t)
 #define THREAD_JOIN(t) pthread_join((t), NULL)
 #define THREAD_COND_INIT(v) pthread_cond_init(&(v), NULL)
 #define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));
@@ -113,13 +115,28 @@ void* scheduler_worker_thread(void* args_v)
     struct Scheduler::workload* work;
     struct Scheduler::thread_args* args = (struct Scheduler::thread_args*)args_v;
 
-    while (true)
+	// The general flow is like this:
+	// - If we bounce back to the top of the loop, and break out if we're told to
+	//   stop before we reacquire the lock
+	// - If we're still running, lock the scheduler's mutex, and check for work.
+	// - If there's no work, park this thread, signal the block_until_done condvar
+	//   and wait on the work_cond condvar, to reacquire the scheduler's mutex on wakeup
+	//   NOTE: block_until_done() waits on block_cond, to hold the mlock.
+	//   NOTE: Signalling a condvar with no waiters is OK
+	//         http://stackoverflow.com/questions/9598034/what-happens-if-no-threads-are-waiting-and-condition-signal-was-sent
+	// - On wakeup, decrement the parked threads counter while we still have the mutex.
+	// - All of the above is done in a loop to prevent spurious wakeups.
+	//   NOTE: Because this thread holds the lock when it wakes up, we always hold the lock
+	//   at the beginning of that spurious wake-up ignoring loop.
+	// - We may have been woken up just to exit, so bail if that's the case.
+	// - Try to get work, and take NULL if there is nothing to do.
+	//   NOTE: get_work() acquires the lock (fast lock)
+	// - If there's work, do the work, and if it wasn't in the indep queue, put the
+	//   queue back into the tree for the next worker. Use the fast lock for this.
+	// - Then free the work item, increment how much work this thread did, and repeat.
+    while (args->run)
     {
         // Break out if we're told to stop before we re-acquire the lock.
-        if (!args->run)
-        {
-            break;
-        }
 
         SCHED_MLOCK_P(args->scheduler);
 
@@ -127,6 +144,7 @@ void* scheduler_worker_thread(void* args_v)
         {
             // Before we sleep, we should wake up anything waiting on the block
             args->scheduler->num_threads_parked++;
+			//! @bug According to https://computing.llnl.gov/tutorials/pthreads/#ConVarSignal this is probably done wrong.
             THREAD_COND_SIGNAL(args->scheduler->block_cond);
 
             // cond_wait releases the lock when it starts waiting, and is guaranteed
@@ -138,11 +156,13 @@ void* scheduler_worker_thread(void* args_v)
 
         SCHED_MUNLOCK_P(args->scheduler);
 
+		// Break out if we're told to wake up because we were stopping.
         if (!args->run)
         {
             break;
         }
 
+		// get_work() grabs the fast lock on its own.
         work = ((args->scheduler->root->count > 0) ? args->scheduler->get_work() : NULL);
 
         if (work != NULL)
@@ -268,7 +288,8 @@ Scheduler::Scheduler(uint32_t _num_threads)
         t_args[i]->counter = 0;
 
         //! @todo extern "C"
-        THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
+		threads[i] = new std::thread(scheduler_worker_thread, t_args[i]);
+        //THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
     }
 }
 
@@ -413,11 +434,13 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
         THREAD_COND_BROADCAST(work_cond);
 
         // Now we can join and kill in sequence. This process will take slightly
-        // longer than the remainder of the latest-ending running workload.
+        // longer than the remainder of the latest-ending running workload in the
+		// threads we don't want anymore.
         for (uint32_t i = new_num_threads ; i < num_threads ; i++)
         {
             THREAD_COND_BROADCAST(work_cond);
             THREAD_JOIN(threads[i]);
+			THREAD_DESTROY(threads[i]);
             free(t_args[i]);
         }
     }
@@ -514,8 +537,12 @@ void Scheduler::block_until_done()
 {
     SCHED_MLOCK();
 
+	// If there are any unparked threads, we need to wait on them
     while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
     {
+		//! @bug RACE CONDITION A thread may park in here before we wait on the condition variable, so we'll never wake up.
+		// When worker threads park themselves, they signal this condvar. The only thing
+		// that waits on this is this function. 
         THREAD_COND_WAIT(block_cond, mlock);
 
         // If we still pass the looping condition, we can skip the trylock.

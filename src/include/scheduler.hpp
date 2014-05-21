@@ -26,7 +26,7 @@
 #include <mutex>
 #include <condition_variable>
 
-#define THREAD_T std::thread
+#define THREAD_T std::thread*
 #define CONDVAR_T std::condition_variable_any*
 #define SCHED_MLOCK_T std::mutex* mlock
 #define SCHED_LOCK_T std::mutex* lock
