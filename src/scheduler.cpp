@@ -18,8 +18,8 @@
 #include "lfqueue.hpp"
 
 #ifdef CPP11THREADS
-#define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
-#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
+#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
+#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
 #define THREAD_COND_INIT(v) (v) = new std::condition_variable_any();
 #define THREAD_COND_WAIT(v, l) (v)->wait(*(l))
 #define THREAD_COND_SIGNAL(v) (v)->notify_one()
