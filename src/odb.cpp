@@ -36,8 +36,10 @@
 #ifdef CPP11THREADS
 #define ATOMIC_INCREMENT(v) (v)->fetch_add(1);
 #elif (CMAKE_COMPILER_SUITE_SUN)
+//! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) atomic_inc_32(&(v));
 #elif (CMAKE_COMPILER_SUITE_GCC)
+//! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) __sync_add_and_fetch(&(v), 1);
 #else
 #ifdef WIN32
