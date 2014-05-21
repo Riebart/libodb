@@ -754,7 +754,7 @@ int RedBlackTreeI::rbt_verify_n(struct tree_node* _root, Comparator* _compare, b
             if (IS_RED(left) || IS_RED(right))
             {
 #ifndef VERBOSE_RBT_VERIFY
-                FAIL("Red violation @ %ld, %p : %p", *(long*)GET_DATA(_root), left, right);
+                FAIL_M("Red violation @ %ld, %p : %p", *(long*)GET_DATA(_root), left, right);
 #else
                 fprintf(stderr, "Red violation\n");
 #endif

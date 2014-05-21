@@ -28,7 +28,7 @@
 /// Prints a back trace from the location that it was called.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define PRINT_TRACE(str, ...) { \
+#define PRINT_TRACE_M(str, ...) { \
     if (errno != 0) { \
         fprintf (stderr, "%s:%d: %m: ",  __FILE__, __LINE__);\
         fprintf (stderr, str);\
@@ -38,15 +38,17 @@
         fprintf (stderr, str);\
         fprintf (stderr, "\n");} \
     }
+#define PRINT_TRACE(str) PRINT_TRACE_M(str, "")
 
 /// Throws an error code and prints a backtrace at the same time.
 /// @param[in] code Code to throw. Can be anything that throw accepts.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define THROW_ERROR(code, str, ...) { \
+#define THROW_ERROR_M(code, str, ...) { \
     PRINT_TRACE(str); \
     throw code; \
     }
+#define THROW_ERROR(code, str) THROW_ERROR_M(code, str, "")
 
 /// Throws a specific error when an unimplemented stub function is called.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
@@ -58,9 +60,10 @@
 /// Prints a backtrace and aborts execution at that point.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
-#define FAIL(str, ...) { \
+#define FAIL_M(str, ...) { \
     PRINT_TRACE(str); \
     abort(); }
+#define FAIL(str) FAIL_M(str, "")
 
 /// Defines a debugging output function that results in zero additional code if debugging is disabled.
 ///If debugging is enabled, it prints a backtrace and moves along.

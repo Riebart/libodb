@@ -565,7 +565,7 @@ Index* ODB::create_index(IndexType type, uint32_t flags, Comparator* compare, Me
 
     if (((keylen == -1) && (keygen != NULL)) || ((keylen != -1) && (keygen == NULL)))
     {
-        THROW_ERROR("INV_KEYLEN", "Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
+        THROW_ERROR_M("INV_KEYLEN", "Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
     }
 
     bool do_not_add_to_all = ((flags & DO_NOT_ADD_TO_ALL) != 0);
