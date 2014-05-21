@@ -142,34 +142,35 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_RWLOCK_T SpinLock lock;
 #endif
 
-#if defined (ENABLE_CPP11LOCKS)
+#if defined (ENABLE_CPP11LOCKS) || \
+defined(CPP11LOCKS)
 #include <mutex>
 
-#define CPP11_READ_LOCK() lock.lock()
-#define CPP11_READ_LOCK_P(x) (x->lock).lock()
-#define CPP11_READ_UNLOCK() lock.unlock()
-#define CPP11_READ_UNLOCK_P(x) (x->lock).unlock()
-#define CPP11_WRITE_LOCK() lock.lock()
-#define CPP11_WRITE_LOCK_P(x) (x->lock).lock()
-#define CPP11_WRITE_UNLOCK() lock.unlock()
-#define CPP11_WRITE_UNLOCK_P(x) (x->lock).unlock()
-#define CPP11_LOCK() lock.lock()
-#define CPP11_LOCK_P(x) (x->lock).lock()
-#define CPP11_UNLOCK() lock.unlock()
-#define CPP11_UNLOCK_P(x) (x->lock).unlock()
+#define CPP11_READ_LOCK() rwlock->lock()
+#define CPP11_READ_LOCK_P(x) ((x)->rwlock)->lock()
+#define CPP11_READ_UNLOCK() rwlock->unlock()
+#define CPP11_READ_UNLOCK_P(x) ((x)->rwlock)->unlock()
+#define CPP11_WRITE_LOCK() rwlock->lock()
+#define CPP11_WRITE_LOCK_P(x) ((x)->rwlock)->lock()
+#define CPP11_WRITE_UNLOCK() rwlock->unlock()
+#define CPP11_WRITE_UNLOCK_P(x) ((x)->rwlock)->unlock()
+#define CPP11_LOCK() lock->lock()
+#define CPP11_LOCK_P(x) ((x)->lock)->lock()
+#define CPP11_UNLOCK() lock->unlock()
+#define CPP11_UNLOCK_P(x) ((x)->lock)->unlock()
 
-#define CPP11_RWLOCK_INIT()
-#define CPP11_RWLOCK_INIT_P(x) 
-#define CPP11_LOCK_INIT()
-#define CPP11_LOCK_INIT_P(x)
+#define CPP11_RWLOCK_INIT() rwlock = new std::mutex()
+#define CPP11_RWLOCK_INIT_P(x) ((x)->rwlock) = new std::mutex()
+#define CPP11_LOCK_INIT() lock = new std::mutex()
+#define CPP11_LOCK_INIT_P(x) ((x)->lock) = new std::mutex()
 
-#define CPP11_RWLOCK_DESTROY()
-#define CPP11_RWLOCK_DESTROY_P(x)
-#define CPP11_LOCK_DESTROY()
-#define CPP11_LOCK_DESTROY_P(x)
+#define CPP11_RWLOCK_DESTROY() delete rwlock
+#define CPP11_RWLOCK_DESTROY_P(x) delete ((x)->rwlock)
+#define CPP11_LOCK_DESTROY() delete lock
+#define CPP11_LOCK_DESTROY_P(x) delete ((x)->lock)
 
-#define CPP11_LOCK_T std::mutex lock;
-#define CPP11_RWLOCK_T std::mutex lock;
+#define CPP11_LOCK_T std::mutex* lock;
+#define CPP11_RWLOCK_T std::mutex* rwlock;
 #endif
 
 #if defined(PTHREAD_RW_LOCKS)

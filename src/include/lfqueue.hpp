@@ -13,6 +13,8 @@
 /// Header file for LFQueue objects.
 /// @file lfqueue.hpp
 
+#include "dll.hpp"
+
 #ifndef LFQUEUE_HPP
 #define LFQUEUE_HPP
 
@@ -32,7 +34,7 @@
 /// those used on the workloads. For example, when a workload is added to the queue
 /// with the many flags also affects how this queue is scheduled.
 
-class LFQueue
+class LIBODB_API LFQueue
 {
     friend void* scheduler_worker_thread(void* args_v);
     friend int32_t compare_workqueue(void* aV, void* bV);
@@ -50,16 +52,19 @@ public:
         tree_node->links[0] = NULL;
         tree_node->links[1] = NULL;
         tree_node->queue = this;
+
+        base = new std::deque<struct Scheduler::workload*>();
     }
 
     ~LFQueue()
     {
         free(tree_node);
+        delete base;
     }
 
     void push_back(struct Scheduler::workload* item)
     {
-        base.push_back(item);
+        base->push_back(item);
 
         // If this item is high priority, then this queue becomes that immediately.
         if (item->flags & Scheduler::HIGH_PRIORITY)
@@ -69,7 +74,7 @@ public:
         }
 
         // If this is the only item in the list, and it is a BG load, we can go BG.
-        if ((base.size() == 1) && (item->flags & Scheduler::BACKGROUND))
+        if ((base->size() == 1) && (item->flags & Scheduler::BACKGROUND))
         {
             flags = Scheduler::BACKGROUND;
         }
@@ -77,26 +82,26 @@ public:
 
     struct Scheduler::workload* peek()
     {
-        return base.front();
+        return base->front();
     }
 
     struct Scheduler::workload* pop_front()
     {
-        if (base.size() == 0)
+        if (base->size() == 0)
         {
             return NULL;
         }
         else
         {
-            struct Scheduler::workload* front = base.front();
-            base.pop_front();
+            struct Scheduler::workload* front = base->front();
+            base->pop_front();
 
             // If we just popped a HP load, we need to see if that was the latest one.
             // Alternatively, if we weren't HP to begin with...
             if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
             {
                 // If it was, we can reset to either BG or NONE, depending on the head.
-                if (base.front()->flags & Scheduler::BACKGROUND)
+                if (base->front()->flags & Scheduler::BACKGROUND)
                 {
                     flags = Scheduler::BACKGROUND;
                 }
@@ -112,7 +117,7 @@ public:
 
     uint64_t size()
     {
-        return base.size();
+        return base->size();
     }
 
 private:
@@ -122,7 +127,7 @@ private:
         LFQueue* queue;
     };
 
-    std::deque<struct Scheduler::workload*> base;
+    std::deque<struct Scheduler::workload*>* base;
 
     // "in_tree" contains whether or not a queue has been pushed from the scheduler's
     // tree due to being empty. A queue that is temporarily out of the scheduler's

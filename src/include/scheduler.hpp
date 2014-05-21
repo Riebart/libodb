@@ -13,6 +13,8 @@
 /// Header file for the Scheduler.
 /// @file scheduler.hpp
 
+#include "dll.hpp"
+
 #ifndef SCHEDULER_HPP
 #define SCHEDULER_HPP
 
@@ -24,20 +26,21 @@
 #include <mutex>
 #include <condition_variable>
 
-#define THREAD_T std::thread
-#define CONDVAR_T std::condition_variable_any
+#define THREAD_T std::thread*
+#define CONDVAR_T std::condition_variable_any*
 
+//! @todo Move these macro functions into the CPP file.
 /// The MLOCK class of locks is used in the scheduler anywhere sleeping is
 /// necessary. This includes in the worker threads when there is no more
 /// work immediately available and in block_until_done.
 /// @{
-#define SCHED_MLOCK() (mlock.lock())
-#define SCHED_MLOCK_P(x) ((x)->mlock.lock())
-#define SCHED_MUNLOCK() (mlock.unlock())
-#define SCHED_MUNLOCK_P(x) ((x)->mlock.unlock())
-#define SCHED_MLOCK_INIT()
-#define SCHED_MLOCK_DESTROY()
-#define SCHED_MLOCK_T std::mutex mlock
+#define SCHED_MLOCK() (mlock->lock())
+#define SCHED_MLOCK_P(x) ((x)->mlock->lock())
+#define SCHED_MUNLOCK() (mlock->unlock())
+#define SCHED_MUNLOCK_P(x) ((x)->mlock->unlock())
+#define SCHED_MLOCK_INIT() mlock = new std::mutex()
+#define SCHED_MLOCK_DESTROY() delete mlock
+#define SCHED_MLOCK_T std::mutex* mlock
 /// @}
 
 /// The LOCK class of locks is used when a fast lock is required, and we
@@ -47,15 +50,15 @@
 /// longer be needed once a proper lockfree queue is implemented.
 /// @{
 //! @todo Investigate C++11 spinlocks: http://anki3d.org/spinlock/
-#define SCHED_LOCK() (mlock.lock())
-#define SCHED_LOCK_P(x) ((x)->mlock.lock())
-#define SCHED_TRYLOCK() (mlock.try_lock())
-#define SCHED_TRYLOCK_P(x) ((x)->mlock.try_lock())
-#define SCHED_UNLOCK() (mlock.unlock())
-#define SCHED_UNLOCK_P(x) ((x)->mlock.unlock())
-#define SCHED_LOCK_INIT()
-#define SCHED_LOCK_DESTROY()
-#define SCHED_LOCK_T std::mutex lock
+#define SCHED_LOCK() (mlock->lock())
+#define SCHED_LOCK_P(x) ((x)->mlock->lock())
+#define SCHED_TRYLOCK() (mlock->try_lock())
+#define SCHED_TRYLOCK_P(x) ((x)->mlock->try_lock())
+#define SCHED_UNLOCK() (mlock->unlock())
+#define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
+#define SCHED_LOCK_INIT() mlock = new std::mutex()
+#define SCHED_LOCK_DESTROY() delete mlock
+#define SCHED_LOCK_T std::mutex* lock
 /// @}
 
 // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
@@ -113,13 +116,16 @@
 
 #ifdef WIN32
 #include <unordered_map>
+#define MAP_T std::unordered_map<uint64_t, LFQueue*>
 #elif CMAKE_COMPILER_SUITE_GCC
 // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
 // http://gcc.gnu.org/gcc-4.3/changes.html
 #include <tr1/unordered_map>
+#define MAP_T std::tr1::unordered_map<uint64_t, LFQueue*>
 #elif CMAKE_COMPILER_SUITE_SUN
 // http://www.sgi.com/tech/stl/hash_map.html
 #include <hash_map>
+#define MAP_T std::hash_map<uint64_t, LFQueue*>
 #endif
 
 #include "lock.hpp"
@@ -152,7 +158,7 @@ class LFQueue;
  *      schedule.
  */
 
-class Scheduler
+class LIBODB_API Scheduler
 {
     friend void* scheduler_worker_thread(void* args_v);
     friend int32_t compare_workqueue(void* aV, void* bV);
@@ -268,13 +274,7 @@ private:
 
     struct RedBlackTreeI::e_tree_root* root;
 
-#ifdef WIN32
-    std::unordered_map<uint64_t, LFQueue*> queue_map;
-#elif CMAKE_COMPILER_SUITE_GCC
-    std::tr1::unordered_map<uint64_t, LFQueue*> queue_map;
-#elif CMAKE_COMPILER_SUITE_SUN
-    std::hash_map<uint64_t, LFQueue*> queue_map;
-#endif
+    MAP_T* queue_map;
 
     LFQueue* indep;
 };

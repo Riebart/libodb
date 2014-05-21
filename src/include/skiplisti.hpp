@@ -13,6 +13,8 @@
 /// Header file for SkipListI index type as well as its iterators.
 /// @file skiplisti.hpp
 
+#include "dll.hpp"
+
 #ifndef SKIPLISTI_HPP
 #define SKIPLISTI_HPP
 
@@ -20,7 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-class SkipListI : public Index
+#include "index.hpp"
+
+class LIBODB_API SkipListI : public Index
 {
 public:
     SkipListI(int (*)(void*, void*), void* (*)(void*, void*), bool);

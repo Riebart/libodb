@@ -13,6 +13,8 @@
 /// Header file for DataStore and child objects.
 /// @file datastore.hpp
 
+#include "dll.hpp"
+
 #ifndef DATASTORE_HPP
 #define DATASTORE_HPP
 
@@ -33,7 +35,7 @@ class Index;
 class Archive;
 class Iterator;
 
-class DataStore
+class LIBODB_API DataStore
 {
     friend class ODB;
     friend class IndexGroup;
@@ -81,10 +83,10 @@ protected:
     virtual uint64_t size();
 
     DataStore* parent;
-    std::vector<ODB*> clones;
+    std::vector<ODB*>* clones;
     bool (*prune)(void* rawdata);
-    uint32_t datalen;
-    uint32_t true_datalen;
+    uint64_t datalen;
+    uint64_t true_datalen;
     uint32_t flags;
     time_t cur_time;
     bool time_stamp;

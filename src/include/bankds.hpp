@@ -13,6 +13,8 @@
 /// Header file for BankDS datastore type and any children (BankIDS) as well as their Iterators.
 /// @file bankds.hpp
 
+#include "dll.hpp"
+
 #ifndef BANKDS_HPP
 #define BANKDS_HPP
 
@@ -22,7 +24,7 @@
 #include "lock.hpp"
 #include "iterator.hpp"
 
-class BankDS : public DataStore
+class LIBODB_API BankDS : public DataStore
 {
     using DataStore::add_data;
     using DataStore::get_addr;
@@ -62,10 +64,10 @@ protected:
     uint64_t cap;
     uint64_t cap_size;
     uint64_t datalen;
-    std::stack<void*> deleted;
+    std::stack<void*>* deleted;
 };
 
-class BankIDS : public BankDS
+class LIBODB_API BankIDS : public BankDS
 {
     using DataStore::add_data;
 
@@ -89,7 +91,7 @@ protected:
     virtual void populate(Index* index);
 };
 
-class BankDSIterator : public Iterator
+class LIBODB_API BankDSIterator : public Iterator
 {
     friend class BankDS;
 

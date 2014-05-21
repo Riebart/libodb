@@ -30,8 +30,8 @@ using namespace std;
 BankDS::BankDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags, uint64_t _cap)
 {
     this->flags = _flags;
-    time_stamp = (_flags & DataStore::TIME_STAMP);
-    query_count = (_flags & DataStore::QUERY_COUNT);
+    time_stamp = ((_flags & DataStore::TIME_STAMP) != 0);
+    query_count = ((_flags & DataStore::QUERY_COUNT) != 0);
 
     init(_parent, _prune, _datalen, _cap);
 }
@@ -50,6 +50,8 @@ BankIDS::BankIDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint32_t _fl
 
 inline void BankDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint64_t _cap)
 {
+    deleted = new std::stack<void*>;
+
     // Initialize the cursor position and data count
     posA = 0;
     posB = 0;
@@ -71,7 +73,7 @@ inline void BankDS::init(DataStore* _parent, bool (*_prune)(void* rawdata), uint
 
     // Allocate the first bucket and assign the location of it to the first location in data.
     // This is essentially a memcpy without the memcpy call.
-    SAFE_MALLOC(char*, *(data), cap_size);
+    SAFE_MALLOC(char*, *(data), (size_t)cap_size);
 
     RWLOCK_INIT();
 }
@@ -93,6 +95,8 @@ BankDS::~BankDS()
 
     // Free the list of buckets.
     free(data);
+
+    delete deleted;
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
 }
@@ -103,7 +107,7 @@ inline void* BankDS::add_data(void* rawdata)
     void* ret = get_addr();
 
     // Copy the data into the datastore.
-    memcpy(ret, rawdata, true_datalen);
+    memcpy(ret, rawdata, (size_t)true_datalen);
 
     // Stores a timestamp right after the data if the datastore is set to do that.
     if (time_stamp)
@@ -125,7 +129,7 @@ inline void* BankDS::get_addr()
 
     WRITE_LOCK();
     // Check if any locations are marked as empty. If none are...
-    if (deleted.empty())
+    if (deleted->empty())
     {
         // Store the data location to be returned later.
         ret = *(data + posA) + posB;
@@ -149,21 +153,21 @@ inline void* BankDS::get_addr()
                 list_size *= 2;
 
                 // realloc us some new space.
-                SAFE_REALLOC(char**, data, data, list_size * sizeof(char*));
+                SAFE_REALLOC(char**, data, data, (size_t)(list_size * sizeof(char*)));
             }
 
             // Allocate a new bucket.
-            SAFE_MALLOC(char*, *(data + posA), cap * datalen);
+            SAFE_MALLOC(char*, *(data + posA), (size_t)(cap * datalen));
         }
     }
     // If there are empty locations...
     else
     {
         // Get the top one.
-        ret = deleted.top();
+        ret = deleted->top();
 
         // Pop the stack.
-        deleted.pop();
+        deleted->pop();
     }
 
     // Increment the number of data items in the datastore.
@@ -218,7 +222,7 @@ inline bool BankDS::remove_at(uint64_t index)
     {
         WRITE_LOCK();
         // Push the memory location onto the stack.
-        deleted.push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen);
+        deleted->push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen);
         data_count--;
         WRITE_UNLOCK();
 
@@ -273,7 +277,7 @@ inline bool BankDS::remove_addr(void* addr)
     {
         WRITE_LOCK();
         data_count--;
-        deleted.push(addr);
+        deleted->push(addr);
         WRITE_UNLOCK();
     }
     return found;
@@ -417,12 +421,12 @@ inline vector<void*>** BankDS::remove_sweep(Archive* archive)
 /// search... We're already using a vector, and we're not looking for anything?
 /// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)
     bool (*temp)(void*);
-    for (uint32_t i = 0 ; i < clones.size() ; i++)
+    for (uint32_t i = 0 ; i < clones->size() ; i++)
     {
-        temp = clones[i]->get_prune();
-        clones[i]->set_prune(prune);
-        clones[i]->remove_sweep();
-        clones[i]->set_prune(temp);
+        temp = clones->at(i)->get_prune();
+        clones->at(i)->set_prune(prune);
+        clones->at(i)->remove_sweep();
+        clones->at(i)->set_prune(temp);
     }
 
     sort(marked[0]->begin(), marked[0]->end());
@@ -497,7 +501,7 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
             marked[0]->push_back(*reinterpret_cast<void**>(*(data + i) + j));
 
             // Copy memory from the end of the datastore to the beginning.
-            memcpy(*(data + i) + j, *(data + posA_t) + posB_t, datalen);
+            memcpy(*(data + i) + j, *(data + posA_t) + posB_t, (size_t)datalen);
 
             // Now find a new location to copy data from.
             // We need to start by stepping backwards one spot.
@@ -548,12 +552,12 @@ inline vector<void*>** BankIDS::remove_sweep(Archive* archive)
     WRITE_UNLOCK();
 
     bool (*temp)(void*);
-    for (uint32_t i = 0 ; i < clones.size() ; i++)
+    for (uint32_t i = 0 ; i < clones->size() ; i++)
     {
-        temp = clones[i]->get_prune();
-        clones[i]->set_prune(prune);
-        clones[i]->remove_sweep();
-        clones[i]->set_prune(temp);
+        temp = clones->at(i)->get_prune();
+        clones->at(i)->set_prune(prune);
+        clones->at(i)->remove_sweep();
+        clones->at(i)->set_prune(temp);
     }
 
     sort(marked[0]->begin(), marked[0]->end());
@@ -603,10 +607,10 @@ inline void BankDS::purge(void (*freep)(void*))
 
     if (freep == free)
     {
-        uint32_t num_clones = clones.size();
+        uint32_t num_clones = clones->size();
         for (uint32_t i = 0 ; i < num_clones ; i++)
         {
-            clones[i]->purge();
+            clones->at(i)->purge();
         }
 
         // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).

@@ -32,15 +32,38 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
     SAFE_MALLOC(char*, index_name, strlen(base_filename)+5);
 
     memcpy(data_name, base_filename, strlen(base_filename));
-    strcat(data_name, ".dat");
     memcpy(index_name, base_filename, strlen(base_filename));
+
+#ifdef WIN32
+    strcat_s(data_name, 4, ".dat");
+    strcat_s(index_name, 4, ".ind");
+#else
+    strcat(data_name, ".dat");
     strcat(index_name, ".ind");
+#endif
 
     if (append)
     {
+#ifdef WIN32
+        int r;
+        r = fopen_s(&data, data_name, "ab");
+        if (r != 0)
+        {
+            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+            return;
+        }
+
+        r = fopen_s(&index, index_name, "ab");
+        if (r != 0)
+        {
+            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+            return;
+        }
+#else
         data = fopen(data_name, "ab");
         index = fopen(index_name, "ab");
-
+#endif
+        
         // Since we're appending, seek to the end, get the position, and then
         // rewind back to the start.
         fseek(data, 0, SEEK_END);
@@ -49,22 +72,40 @@ AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
     }
     else
     {
+#ifdef WIN32
+        int r;
+        r = fopen_s(&data, data_name, "wb");
+        if (r != 0)
+        {
+            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+            return;
+        }
+
+        r = fopen_s(&index, index_name, "wb");
+        if (r != 0)
+        {
+            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+            return;
+        }
+#else
         data = fopen(data_name, "wb");
         index = fopen(index_name, "wb");
+#endif
+
         offset = 0;
     }
 
     cond = NULL;
 }
 
-inline bool AppendOnlyFile::write(void* rawdata, uint32_t datalen)
+inline bool AppendOnlyFile::write(void* rawdata, uint64_t datalen)
 {
     if ((cond != NULL) && (cond->condition(rawdata)))
     {
         return false;
     }
 
-    if (fwrite(rawdata, datalen, 1, data))
+    if (fwrite(rawdata, (size_t)datalen, 1, data))
     {
         if (fwrite(&offset, sizeof(uint64_t), 1, index))
         {

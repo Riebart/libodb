@@ -18,12 +18,12 @@
 #include "lfqueue.hpp"
 
 #ifdef CPP11THREADS
-#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
-#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
-#define THREAD_COND_INIT(v)
-#define THREAD_COND_WAIT(v, l) (v).wait((l))
-#define THREAD_COND_SIGNAL(v) (v).notify_one()
-#define THREAD_COND_BROADCAST(v) (v).notify_all()
+#define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
+#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
+#define THREAD_COND_INIT(v) (v) = new std::condition_variable_any();
+#define THREAD_COND_WAIT(v, l) (v)->wait(*(l))
+#define THREAD_COND_SIGNAL(v) (v)->notify_one()
+#define THREAD_COND_BROADCAST(v) (v)->notify_all()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_JOIN(t) pthread_join((t), NULL)
@@ -166,6 +166,8 @@ int32_t compare_workqueue(void* aV, void* bV)
 
 Scheduler::Scheduler(uint32_t _num_threads)
 {
+    queue_map = new MAP_T();
+
     work_counter = 1;
     work_avail = 0;
     this->num_threads = _num_threads;
@@ -206,6 +208,8 @@ Scheduler::~Scheduler()
     /// @bug The data used by the workqueues and their un-processed workloads is not freed.
     /// Need to free the data used by the workqueues and their unprocessed wokloads here.
     RedBlackTreeI::e_destroy_tree(root, NULL);
+    
+    delete queue_map;
     SCHED_LOCK_DESTROY();
     SCHED_MLOCK_DESTROY();
 }
@@ -366,12 +370,12 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
 /// may often run dry as the producer produces work slower than consumers consume it.
 LFQueue* Scheduler::find_queue(uint64_t class_id)
 {
-    LFQueue* retval = queue_map[class_id];
+    LFQueue* retval = queue_map->at(class_id);
 
     if (retval == NULL)
     {
         retval = new LFQueue();
-        queue_map[class_id] = retval;
+        queue_map->at(class_id) = retval;
     }
 
     return retval;

@@ -13,6 +13,8 @@
 /// Header file for Archive objects definition details, including children (AppendOnlyFile).
 /// @file archive.hpp
 
+#include "dll.hpp"
+
 #ifndef ARCHIVE_HPP
 #define ARCHIVE_HPP
 
@@ -26,14 +28,14 @@
 ///
 /// This class is the virtual parent class that the rest of ODB makes use of
 ///when archiving data to disk.
-class Archive
+class LIBODB_API Archive
 {
 public:
     /// The function used to write a piece of data according to the rules of the object defines.
     /// @param[in] rawdata Pointer to the data to be written
     /// @param[in] datalen The number of bytes of data to write.
     /// @return Whether or not the write was successful.
-    virtual bool write(void* rawdata, uint32_t datalen) = 0;
+    virtual bool write(void* rawdata, uint64_t datalen) = 0;
 
     /// Function that sets the constraint on whether or not data will be written to the archive.
     /// @param[in] _cond Condition that embodies the logic that deteermines if
@@ -59,7 +61,7 @@ protected:
 ///variable width data. Both files are stored in binary format, with the .ind
 ///file containing 64-bit integers in the endianness of the architecture of the
 ///host that wrote them. No endianness indicators are placed in the .ind file.
-class AppendOnlyFile : public Archive
+class LIBODB_API AppendOnlyFile : public Archive
 {
 public:
     /// Standard destructor
@@ -76,7 +78,7 @@ public:
     /// @param[in] rawdata Pointer to the data to be written
     /// @param[in] datalen The number of bytes of data to write.
     /// @return Whether or not the write was successful.
-    virtual bool write(void* rawdata, uint32_t datalen);
+    virtual bool write(void* rawdata, uint64_t datalen);
 
 private:
     /// File name of the file that holds the raw data.

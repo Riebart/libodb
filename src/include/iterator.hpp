@@ -13,6 +13,8 @@
 /// Header file for Iterator objects.
 /// @file iterator.hpp
 
+#include "dll.hpp"
+
 #ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 
@@ -22,7 +24,7 @@
 class DataObj;
 class DataStore;
 
-class Iterator
+class LIBODB_API Iterator
 {
     friend class RedBlackTreeI;
     friend class LinkedListI;
@@ -44,7 +46,7 @@ protected:
     bool drop_duplicates;
     bool time_stamp;
     bool query_count;
-    uint32_t true_datalen;
+    uint64_t true_datalen;
     DataObj* dataobj;
     Iterator* it;
     DataStore* parent;

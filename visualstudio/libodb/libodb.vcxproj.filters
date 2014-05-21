@@ -98,47 +98,14 @@
     <ClInclude Include="..\..\src\include\utility.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\extralib\include\bsd_hdr.h">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\buffer.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\cmwc.h">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\collator.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\extralib\include\common.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\dns.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\etherstub.h">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\ip.hpp">
       <Filter>Header Files\extralib</Filter>
     </ClInclude>
     <ClInclude Include="..\..\extralib\include\lock.hpp">
       <Filter>Header Files\extralib</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\extralib\include\log.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\pca.h">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\protoparse.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\tcp.hpp">
-      <Filter>Header Files\extralib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\extralib\include\udp.hpp">
-      <Filter>Header Files\extralib</Filter>
+    <ClInclude Include="..\..\src\include\dll.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

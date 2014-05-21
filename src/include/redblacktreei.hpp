@@ -13,6 +13,8 @@
 /// Header file for RedBlackTreeI index type as well as its iterators.
 /// @file redblacktreei.hpp
 
+#include "dll.hpp"
+
 #ifndef REDBLACKTREEI_HPP
 #define REDBLACKTREEI_HPP
 
@@ -72,7 +74,7 @@
 ///134 so look there.
 /// @todo Implement the RBT_PROFILE code paths in the deletion and lookup
 ///functions in addition to insertion
-class RedBlackTreeI : public Index
+class LIBODB_API RedBlackTreeI : public Index
 {
     /// We override this method inherited from the base Index class.
     /// @{
@@ -103,7 +105,7 @@ public:
         Merger* merge;
         bool drop_duplicates;
         uint64_t count;
-        LOCK_T;
+        RWLOCK_T;
     };
 
     /// Destructor that employs a partial-recursion
@@ -171,7 +173,7 @@ protected:
     ///embedded in the tree node (So as not to bloat and/or unbalance the tree).
     /// @param[in] drop_duiplicates A boolean value indicating whether or not
     ///the tree should allow duplicates.
-    RedBlackTreeI(int ident,
+    RedBlackTreeI(uint64_t ident,
                   Comparator* compare,
                   Merger* merge,
                   bool drop_duplicates);
@@ -327,19 +329,19 @@ protected:
             void** del_node);
     virtual void remove_sweep(std::vector<void*>* marked);
 
-    static Iterator* it_first(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_first(DataStore* parent, struct tree_node* root, uint64_t ident, bool drop_duiplicates);
     static Iterator* e_it_first(struct tree_node* root, bool drop_duiplicates);
 
-    static Iterator* it_last(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates);
+    static Iterator* it_last(DataStore* parent, struct tree_node* root, uint64_t ident, bool drop_duiplicates);
     static Iterator* e_it_last(struct tree_node* root, bool drop_duiplicates);
 
-    static Iterator* it_lookup(DataStore* parent, struct tree_node* root, int ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
+    static Iterator* it_lookup(DataStore* parent, struct tree_node* root, uint64_t ident, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
     static Iterator* e_it_lookup(struct tree_node* root, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
 
     static struct tree_node* e_pop_first_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, bool drop_duplicates, void** del_node);
 };
 
-class RBTIterator : public Iterator
+class LIBODB_API RBTIterator : public Iterator
 {
     friend class RedBlackTreeI;
 
@@ -351,12 +353,12 @@ public:
 
 protected:
     RBTIterator();
-    RBTIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+    RBTIterator(uint64_t ident, uint64_t true_datalen, bool time_stamp, bool query_count);
 
-    std::stack<struct RedBlackTreeI::tree_node*> trail;
+    std::stack<struct RedBlackTreeI::tree_node*>* trail;
 };
 
-class ERBTIterator : public Iterator
+class LIBODB_API ERBTIterator : public Iterator
 {
     friend class RedBlackTreeI;
 
@@ -369,7 +371,7 @@ public:
 protected:
     ERBTIterator();
 
-    std::stack<struct RedBlackTreeI::tree_node*> trail;
+    std::stack<struct RedBlackTreeI::tree_node*>* trail;
 };
 
 #endif

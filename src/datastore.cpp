@@ -21,17 +21,21 @@
 
 DataStore::DataStore()
 {
+    clones = new std::vector<ODB*>();
     data_count = 0;
     parent = NULL;
+    RWLOCK_INIT();
 }
 
 DataStore::~DataStore()
 {
-    while (!clones.empty())
+    while (!clones->empty())
     {
-        delete clones.back();
-        clones.pop_back();
+        delete clones->back();
+        clones->pop_back();
     }
+    delete clones;
+    RWLOCK_DESTROY();
 }
 
 inline void* DataStore::add_data(void* rawdata)
@@ -113,7 +117,7 @@ inline uint64_t DataStore::size()
 
 inline void DataStore::update_parent(ODB* odb)
 {
-    parent->clones.push_back(odb);
+    parent->clones->push_back(odb);
 }
 
 inline Iterator* DataStore::it_first()

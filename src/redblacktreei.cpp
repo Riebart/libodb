@@ -114,7 +114,7 @@ using namespace std;
 #define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
 #define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
 
-RedBlackTreeI::RedBlackTreeI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
+RedBlackTreeI::RedBlackTreeI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = _ident;
@@ -355,7 +355,7 @@ bool RedBlackTreeI::e_remove(struct RedBlackTreeI::e_tree_root* root, void* rawd
     root->count -= ret;
 
     WRITE_UNLOCK_P(root);
-    return ret;
+    return (ret != 0);
 }
 
 void RedBlackTreeI::purge()
@@ -909,7 +909,7 @@ inline bool RedBlackTreeI::remove(void* rawdata)
 
     count -= ret;
     WRITE_UNLOCK();
-    return ret;
+    return (ret != 0);
 }
 
 struct RedBlackTreeI::tree_node* RedBlackTreeI::remove_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
@@ -1459,7 +1459,7 @@ Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::e_tree_root* root)
     return e_it_first((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
-inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
+inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI::tree_node* root, uint64_t ident, bool drop_duplicates)
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
@@ -1475,11 +1475,11 @@ inline Iterator* RedBlackTreeI::it_first(DataStore* parent, struct RedBlackTreeI
 
         while (curr != NULL)
         {
-            it->trail.push(curr);
+            it->trail->push(curr);
             curr = STRIP(curr->link[0]);
         }
 
-        struct tree_node* top = it->trail.top();
+        struct tree_node* top = it->trail->top();
 
         if (drop_duplicates)
         {
@@ -1517,11 +1517,11 @@ inline Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::tree_node* root
 
         while (curr != NULL)
         {
-            it->trail.push(curr);
+            it->trail->push(curr);
             curr = STRIP(curr->link[0]);
         }
 
-        struct tree_node* top = it->trail.top();
+        struct tree_node* top = it->trail->top();
 
         if (drop_duplicates)
         {
@@ -1736,7 +1736,7 @@ Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::e_tree_root* root)
     return e_it_last((struct tree_node*)(root->data), root->drop_duplicates);
 }
 
-inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates)
+inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI::tree_node* root, uint64_t ident, bool drop_duplicates)
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
@@ -1752,11 +1752,11 @@ inline Iterator* RedBlackTreeI::it_last(DataStore* parent, struct RedBlackTreeI:
 
         while (curr != NULL)
         {
-            it->trail.push(TAINT(curr));
+            it->trail->push(TAINT(curr));
             curr = STRIP(curr->link[1]);
         }
 
-        struct tree_node* top = UNTAINT(it->trail.top());
+        struct tree_node* top = UNTAINT(it->trail->top());
 
         if (drop_duplicates)
         {
@@ -1794,11 +1794,11 @@ inline Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::tree_node* root,
 
         while (curr != NULL)
         {
-            it->trail.push(TAINT(curr));
+            it->trail->push(TAINT(curr));
             curr = STRIP(curr->link[1]);
         }
 
-        struct tree_node* top = UNTAINT(it->trail.top());
+        struct tree_node* top = UNTAINT(it->trail->top());
 
         if (drop_duplicates)
         {
@@ -1840,7 +1840,7 @@ Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::e_tree_root* root, vo
     return e_it_lookup((struct tree_node*)(root->data), root->drop_duplicates, root->compare, rawdata, dir);
 }
 
-inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTreeI::tree_node* root, int ident, bool drop_duplicates, Comparator* compare, void* rawdata, int8_t dir)
+inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTreeI::tree_node* root, uint64_t ident, bool drop_duplicates, Comparator* compare, void* rawdata, int8_t dir)
 {
     RBTIterator* it = new RBTIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
     it->parent = parent;
@@ -1866,7 +1866,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
                 break;
             }
 
-            it->trail.push((d ? TAINT(i) : i));
+            it->trail->push((d ? TAINT(i) : i));
 
             p = i;
             i = STRIP(i->link[(uint8_t)d]);
@@ -1874,7 +1874,7 @@ inline Iterator* RedBlackTreeI::it_lookup(DataStore* parent, struct RedBlackTree
 
         if (i != NULL)
         {
-            it->trail.push(i);
+            it->trail->push(i);
 
             if (dir == 0)
             {
@@ -1984,7 +1984,7 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
                 break;
             }
 
-            it->trail.push((d ? TAINT(i) : i));
+            it->trail->push((d ? TAINT(i) : i));
 
             p = i;
             i = STRIP(i->link[(uint8_t)d]);
@@ -1992,7 +1992,7 @@ inline Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::tree_node* roo
 
         if (i != NULL)
         {
-            it->trail.push(i);
+            it->trail->push(i);
 
             if (dir == 0)
             {
@@ -2085,10 +2085,11 @@ void RedBlackTreeI::e_it_release(struct RedBlackTreeI::e_tree_root* root, Iterat
 
 RBTIterator::RBTIterator()
 {
+    trail = new std::stack<struct RedBlackTreeI::tree_node*>();
 }
 
 /// @bug This doesn't work under sunCC with inheritance for some strange reason.
-RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
+RBTIterator::RBTIterator(uint64_t ident, uint64_t _true_datalen, bool _time_stamp, bool _query_count)
 // : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
     //dataobj = new DataObj(ident);
@@ -2101,6 +2102,7 @@ RBTIterator::RBTIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bo
 
 RBTIterator::~RBTIterator()
 {
+    delete trail;
 }
 
 inline DataObj* RBTIterator::next()
@@ -2122,36 +2124,36 @@ inline DataObj* RBTIterator::next()
             it = NULL;
         }
 
-        if (STRIP(UNTAINT(trail.top())->link[1]) != NULL)
+        if (STRIP(UNTAINT(trail->top())->link[1]) != NULL)
         {
-            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
-            trail.pop();
-            trail.push(TAINT(curr));
+            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail->top());
+            trail->pop();
+            trail->push(TAINT(curr));
             curr = STRIP(curr->link[1]);
 
             while (curr != NULL)
             {
-                trail.push(curr);
+                trail->push(curr);
                 curr = STRIP(curr->link[0]);
             }
         }
         else
         {
-            trail.pop();
+            trail->pop();
 
-            while ((!(trail.empty())) && (TAINTED(trail.top())))
+            while ((!(trail->empty())) && (TAINTED(trail->top())))
             {
-                trail.pop();
+                trail->pop();
             }
 
-            if (trail.empty())
+            if (trail->empty())
             {
                 dataobj->data = NULL;
                 return NULL;
             }
         }
 
-        struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
+        struct RedBlackTreeI::tree_node* top = UNTAINT(trail->top());
         if (drop_duplicates)
         {
             dataobj->data = top->data;
@@ -2192,36 +2194,36 @@ inline DataObj* RBTIterator::prev()
             it = NULL;
         }
 
-        if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
+        if (STRIP(UNTAINT(trail->top())->link[0]) != NULL)
         {
-            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
-            trail.pop();
-            trail.push(UNTAINT(curr));
+            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail->top());
+            trail->pop();
+            trail->push(UNTAINT(curr));
             curr = STRIP(curr->link[0]);
 
             while (curr != NULL)
             {
-                trail.push(TAINT(curr));
+                trail->push(TAINT(curr));
                 curr = STRIP(curr->link[1]);
             }
         }
         else
         {
-            trail.pop();
+            trail->pop();
 
-            while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            while ((!(trail->empty())) && (!(TAINTED(trail->top()))))
             {
-                trail.pop();
+                trail->pop();
             }
 
-            if (trail.empty())
+            if (trail->empty())
             {
                 dataobj->data = NULL;
                 return NULL;
             }
         }
 
-        struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
+        struct RedBlackTreeI::tree_node* top = UNTAINT(trail->top());
         if (drop_duplicates)
         {
             dataobj->data = top->data;
@@ -2257,10 +2259,12 @@ inline DataObj* RBTIterator::data()
 
 ERBTIterator::ERBTIterator()
 {
+    trail = new std::stack<struct RedBlackTreeI::tree_node*>();
 }
 
 ERBTIterator::~ERBTIterator()
 {
+    delete trail;
 }
 
 inline DataObj* ERBTIterator::next()
@@ -2282,36 +2286,36 @@ inline DataObj* ERBTIterator::next()
             it = NULL;
         }
 
-        if (STRIP(UNTAINT(trail.top())->link[1]) != NULL)
+        if (STRIP(UNTAINT(trail->top())->link[1]) != NULL)
         {
-            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
-            trail.pop();
-            trail.push(TAINT(curr));
+            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail->top());
+            trail->pop();
+            trail->push(TAINT(curr));
             curr = STRIP(curr->link[1]);
 
             while (curr != NULL)
             {
-                trail.push(curr);
+                trail->push(curr);
                 curr = STRIP(curr->link[0]);
             }
         }
         else
         {
-            trail.pop();
+            trail->pop();
 
-            while ((!(trail.empty())) && (TAINTED(trail.top())))
+            while ((!(trail->empty())) && (TAINTED(trail->top())))
             {
-                trail.pop();
+                trail->pop();
             }
 
-            if (trail.empty())
+            if (trail->empty())
             {
                 dataobj->data = NULL;
                 return NULL;
             }
         }
 
-        struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
+        struct RedBlackTreeI::tree_node* top = UNTAINT(trail->top());
         if (drop_duplicates)
         {
             dataobj->data = top;
@@ -2352,36 +2356,36 @@ inline DataObj* ERBTIterator::prev()
             it = NULL;
         }
 
-        if (STRIP(UNTAINT(trail.top())->link[0]) != NULL)
+        if (STRIP(UNTAINT(trail->top())->link[0]) != NULL)
         {
-            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail.top());
-            trail.pop();
-            trail.push(UNTAINT(curr));
+            struct RedBlackTreeI::tree_node* curr = UNTAINT(trail->top());
+            trail->pop();
+            trail->push(UNTAINT(curr));
             curr = STRIP(curr->link[0]);
 
             while (curr != NULL)
             {
-                trail.push(TAINT(curr));
+                trail->push(TAINT(curr));
                 curr = STRIP(curr->link[1]);
             }
         }
         else
         {
-            trail.pop();
+            trail->pop();
 
-            while ((!(trail.empty())) && (!(TAINTED(trail.top()))))
+            while ((!(trail->empty())) && (!(TAINTED(trail->top()))))
             {
-                trail.pop();
+                trail->pop();
             }
 
-            if (trail.empty())
+            if (trail->empty())
             {
                 dataobj->data = NULL;
                 return NULL;
             }
         }
 
-        struct RedBlackTreeI::tree_node* top = UNTAINT(trail.top());
+        struct RedBlackTreeI::tree_node* top = UNTAINT(trail->top());
         if (drop_duplicates)
         {
             dataobj->data = top;

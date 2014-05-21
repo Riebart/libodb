@@ -13,6 +13,8 @@
 /// Header file for Comparator and child objects.
 /// @file comparator.hpp
 
+#include "dll.hpp"
+
 #ifndef COMPARATOR_HPP
 #define COMPARATOR_HPP
 
@@ -23,13 +25,13 @@
 
 /// @todo Do something like the comparators for the free() function we're
 ///passing around. That is, turn them into an object-wrapped thing?
-class Condition
+class LIBODB_API Condition
 {
 public:
     virtual bool condition(void* a) = 0;
 };
 
-class ConditionCust : public Condition
+class LIBODB_API ConditionCust : public Condition
 {
 public:
     ConditionCust(bool (*_c)(void*))
@@ -46,13 +48,13 @@ private:
     bool (*c)(void*);
 };
 
-class Pruner
+class LIBODB_API Pruner
 {
 public:
     virtual bool prune(void* a) = 0;
 };
 
-class PruneCust : public Pruner
+class LIBODB_API PruneCust : public Pruner
 {
 public:
     PruneCust(bool (*_p)(void*))
@@ -69,13 +71,13 @@ private:
     bool (*p)(void*);
 };
 
-class Keygen
+class LIBODB_API Keygen
 {
 public:
     virtual void* keygen(void* a) = 0;
 };
 
-class KeygenCust : public Keygen
+class LIBODB_API KeygenCust : public Keygen
 {
 public:
     KeygenCust(void* (*_k)(void*))
@@ -92,13 +94,13 @@ private:
     void* (*k)(void*);
 };
 
-class Merger
+class LIBODB_API Merger
 {
 public:
     virtual void* merge(void* a, void* b) = 0;
 };
 
-class MergeCust : public Merger
+class LIBODB_API MergeCust : public Merger
 {
 public:
     MergeCust(void* (*_m)(void*, void*))
@@ -115,19 +117,19 @@ private:
     void* (*m)(void*, void*);
 };
 
-class Comparator
+class LIBODB_API Comparator
 {
 public:
     virtual int32_t compare(void* a, void* b) = 0;
 };
 
-class Modifier
+class LIBODB_API Modifier
 {
 public:
     virtual void* mod(void* a) = 0;
 };
 
-class ModCompare : public Comparator
+class LIBODB_API ModCompare : public Comparator
 {
 public:
     ModCompare(Modifier* _m, Comparator* _c)
@@ -146,7 +148,7 @@ private:
     Modifier* m;
 };
 
-class ModOffset : public Modifier
+class LIBODB_API ModOffset : public Modifier
 {
 public:
     ModOffset(uint32_t _offset)
@@ -163,7 +165,7 @@ private:
     uint32_t offset;
 };
 
-class ModAddrof : public Modifier
+class LIBODB_API ModAddrof : public Modifier
 {
 public:
     virtual inline void* mod(void* a)
@@ -176,7 +178,7 @@ private:
     void* addr;
 };
 
-class ModDeref : public Modifier
+class LIBODB_API ModDeref : public Modifier
 {
 public:
     virtual inline void* mod(void* a)
@@ -185,7 +187,7 @@ public:
     }
 };
 
-class CompareCust : public Comparator
+class LIBODB_API CompareCust : public Comparator
 {
 public:
     CompareCust(int32_t (*_c)(void*, void*))
@@ -202,7 +204,7 @@ private:
     int32_t (*c)(void*, void*);
 };
 
-class CompareUInt64 : public Comparator
+class LIBODB_API CompareUInt64 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -222,7 +224,7 @@ public:
     }
 };
 
-class CompareUInt32 : public Comparator
+class LIBODB_API CompareUInt32 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -231,7 +233,7 @@ public:
     }
 };
 
-class CompareUInt16 : public Comparator
+class LIBODB_API CompareUInt16 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -240,7 +242,7 @@ public:
     }
 };
 
-class CompareUInt8 : public Comparator
+class LIBODB_API CompareUInt8 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -249,7 +251,7 @@ public:
     }
 };
 
-class CompareInt64 : public Comparator
+class LIBODB_API CompareInt64 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -258,7 +260,7 @@ public:
     }
 };
 
-class CompareInt32 : public Comparator
+class LIBODB_API CompareInt32 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -267,7 +269,7 @@ public:
     }
 };
 
-class CompareInt16 : public Comparator
+class LIBODB_API CompareInt16 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -276,7 +278,7 @@ public:
     }
 };
 
-class CompareInt8 : public Comparator
+class LIBODB_API CompareInt8 : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -285,7 +287,7 @@ public:
     }
 };
 
-class CompareFloat : public Comparator
+class LIBODB_API CompareFloat : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -294,7 +296,7 @@ public:
     }
 };
 
-class CompareDouble : public Comparator
+class LIBODB_API CompareDouble : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -303,7 +305,7 @@ public:
     }
 };
 
-class CompareLongDouble : public Comparator
+class LIBODB_API CompareLongDouble : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)
@@ -312,7 +314,7 @@ public:
     }
 };
 
-class CompareString : public Comparator
+class LIBODB_API CompareString : public Comparator
 {
 public:
     virtual inline int32_t compare(void* a, void* b)

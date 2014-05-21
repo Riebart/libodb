@@ -13,6 +13,8 @@
 /// Header file for TrieI index type as well as its iterators.
 /// @file triei.hpp
 
+#include "dll.hpp"
+
 #ifndef TRIEI_HPP
 #define TRIEI_HPP
 
@@ -20,7 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-class TrieI : public Index
+#include "index.hpp"
+
+class LIBODB_API TrieI : public Index
 {
 public:
     TrieI(int keylen);

@@ -17,21 +17,38 @@
 #include <vector>
 #include <time.h>
 
+#include "odb.hpp"
+
 #ifdef CPP11THREADS
 #include <chrono>
-#define THREAD_CREATE(t, f, a) (t) = std::thread((f), (a))
-#define THREAD_JOIN(t) if ((t).joinable()) (t).join()
+#define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
+#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
+#define ATOMIC_INIT(val) new std::atomic<uint64_t>(val)
 #else
 #include <unistd.h>
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_JOIN(t) pthread_join((t), NULL)
+#define ATOMIC_INIT(val) (val)
+#endif
+
+#ifdef CPP11THREADS
+#define ATOMIC_INCREMENT(v) (v)->fetch_add(1);
+#elif (CMAKE_COMPILER_SUITE_SUN)
+#define ATOMIC_INCREMENT(v) atomic_inc_32(&(v));
+#elif (CMAKE_COMPILER_SUITE_GCC)
+#define ATOMIC_INCREMENT(v) __sync_add_and_fetch(&(v), 1);
+#else
+#ifdef WIN32
+#error "Can't find a way to atomicly increment a uint32_t."
+#else
+#warning "Can't find a way to atomicly increment a uint32_t."
+#endif
+    int temp[-1];
 #endif
 
 #if (CMAKE_COMPILER_SUITE_SUN)
 #include <atomic.h>
 #endif
-
-#include "odb.hpp"
 
 // Utility headers.
 #include "common.hpp"
@@ -50,9 +67,7 @@
 
 #define SLEEP_DURATION 60
 
-using namespace std;
-
-ATOMIC_T ODB::num_unique = 0;
+ATOMICP_T ODB::num_unique = ATOMIC_INIT(0);
 
 /// The worker function in the memory checker thread
 /// @param[in] arg The void pointer to arguments. This is actually a pair of
@@ -66,14 +81,13 @@ void * mem_checker(void * arg)
     ODB* parent = reinterpret_cast<ODB*>(args[0]);
     uint32_t sleep_duration = *reinterpret_cast<uint32_t*>(&(args[1]));
 
-    uint64_t vsize;
-    uint64_t rsize = 0;
-
     uint32_t count = 0;
 
 #ifdef WIN32
     //! @warning "WIN32PORT memory consumption checking"
 #else
+    uint64_t vsize;
+    uint64_t rsize = 0;
     pid_t pid = getpid();
 
     char path[50];
@@ -159,7 +173,7 @@ void * mem_checker(void * arg)
     return NULL;
 }
 
-ODB::ODB(FixedDatastoreType dt, uint32_t _datalen, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(FixedDatastoreType dt, uint64_t _datalen, bool (*prune)(void* rawdata), Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -186,25 +200,11 @@ ODB::ODB(FixedDatastoreType dt, uint32_t _datalen, bool (*prune)(void* rawdata),
     }
     }
 
-    init(datastore, num_unique, _datalen, _archive, _freep, _sleep_duration);
-
-#ifdef CPP11THREADS
-    num_unique.fetch_add(1);
-#elif (CMAKE_COMPILER_SUITE_SUN)
-    atomic_inc_32(&num_unique);
-#elif (CMAKE_COMPILER_SUITE_GCC)
-    __sync_add_and_fetch(&num_unique, 1);
-#else
-#ifdef WIN32
-#error "Can't find a way to atomicly increment a uint32_t."
-#else
-#warning "Can't find a way to atomicly increment a uint32_t."
-#endif
-    int temp[-1];
-#endif
+    init(datastore, *num_unique, _datalen, _archive, _freep, _sleep_duration);
+    ATOMIC_INCREMENT(num_unique);
 }
 
-ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, uint64_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -261,25 +261,11 @@ ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     }
 
-    init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-
-#ifdef CPP11THREADS
-    num_unique.fetch_add(1);
-#elif (CMAKE_COMPILER_SUITE_SUN)
-    atomic_inc_32(&num_unique);
-#elif (CMAKE_COMPILER_SUITE_GCC)
-    __sync_add_and_fetch(&num_unique, 1);
-#else
-#ifdef WIN32
-#error "Can't find a way to atomicly increment a uint32_t."
-#else
-#warning "Can't find a way to atomicly increment a uint32_t."
-#endif
-    int temp[-1];
-#endif
+    init(datastore, *num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
+    ATOMIC_INCREMENT(num_unique);
 }
 
-ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -331,25 +317,11 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archi
     }
     }
 
-    init(datastore, num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
-
-#ifdef CPP11THREADS
-    num_unique.fetch_add(1);
-#elif (CMAKE_COMPILER_SUITE_SUN)
-    atomic_inc_32(&num_unique);
-#elif (CMAKE_COMPILER_SUITE_GCC)
-    __sync_add_and_fetch(&num_unique, 1);
-#else
-#ifdef WIN32
-#error "Can't find a way to atomicly increment a uint32_t."
-#else
-#warning "Can't find a way to atomicly increment a uint32_t."
-#endif
-    int temp[-1];
-#endif
+    init(datastore, *num_unique, sizeof(void*), _archive, _freep, _sleep_duration);
+    ATOMIC_INCREMENT(num_unique);
 }
 
-ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
+ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void (*_freep)(void*), uint32_t (*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
 {
     if ((prune == NULL) && (_sleep_duration > 0))
     {
@@ -374,13 +346,16 @@ ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int _ident, Arc
     init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
 }
 
-ODB::ODB(DataStore* _data, int _ident, uint32_t _datalen)
+ODB::ODB(DataStore* _data, uint64_t _ident, uint64_t _datalen)
 {
     init(_data, _ident, _datalen, NULL, NULL, 0);
 }
 
-void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
+void ODB::init(DataStore* _data, uint64_t _ident, uint64_t _datalen, Archive* _archive, void (*_freep)(void*), uint32_t _sleep_duration)
 {
+    tables = new std::vector<Index*>();
+    groups = new std::vector<IndexGroup*>();
+
     this->ident = _ident;
     this->datalen = _datalen;
     all = new IndexGroup(_ident, _data);
@@ -415,11 +390,6 @@ void ODB::init(DataStore* _data, int _ident, uint32_t _datalen, Archive* _archiv
         *reinterpret_cast<uint32_t*>(&(args[1])) = _sleep_duration;
 
         THREAD_CREATE(mem_thread, mem_checker, args);
-//#ifdef CPP11THREADS
-//        mem_thread = std::thread(mem_checker, args);
-//#else
-//        pthread_create(&mem_thread, NULL, &mem_checker, reinterpret_cast<void*>(args));
-//#endif
     }
     else
     {
@@ -449,19 +419,21 @@ ODB::~ODB()
 
     IndexGroup* curr;
 
-    while (!groups.empty())
+    while (!groups->empty())
     {
-        curr = groups.back();
-        groups.pop_back();
+        curr = groups->back();
+        groups->pop_back();
         delete curr;
     }
+    delete groups;
 
-    while (!tables.empty())
+    while (!tables->empty())
     {
-        curr = tables.back();
-        tables.pop_back();
+        curr = tables->back();
+        tables->pop_back();
         delete curr;
     }
+    delete tables;
 
     WRITE_UNLOCK();
     RWLOCK_DESTROY();
@@ -569,7 +541,7 @@ DataObj* ODB::add_data(void* rawdata, uint32_t nbytes, bool add_to_all)
     return dataobj;
 }
 
-Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void* (*keygen)(void*), int32_t keylen)
+Index* ODB::create_index(IndexType type, uint32_t flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*), void* (*keygen)(void*), int32_t keylen)
 {
     CompareCust* c = new CompareCust(compare);
     MergeCust* m = (merge == NULL ? NULL : new MergeCust(merge));
@@ -577,7 +549,7 @@ Index* ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, vo
     return create_index(type, flags, c, m, k, keylen);
 }
 
-Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
+Index* ODB::create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
 {
     WRITE_LOCK();
 
@@ -596,9 +568,9 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
         THROW_ERROR("INV_KEYLEN", "Keygen != NULL and keylen >= 0 must be satisfied together or neither.\n\tkeylen=%d,keygen=%p", keylen, keygen);
     }
 
-    bool do_not_add_to_all = flags & DO_NOT_ADD_TO_ALL;
-    bool do_not_populate = flags & DO_NOT_POPULATE;
-    bool drop_duplicates = flags & DROP_DUPLICATES;
+    bool do_not_add_to_all = ((flags & DO_NOT_ADD_TO_ALL) != 0);
+    bool do_not_populate = ((flags & DO_NOT_POPULATE) != 0);
+    bool drop_duplicates = ((flags & DROP_DUPLICATES) != 0);
     Index* new_index;
 
     switch (type)
@@ -621,7 +593,7 @@ Index* ODB::create_index(IndexType type, int flags, Comparator* compare, Merger*
 
     new_index->parent = data;
     new_index->scheduler = scheduler;
-    tables.push_back(new_index);
+    tables->push_back(new_index);
 
     if (!do_not_add_to_all)
     {
@@ -649,7 +621,7 @@ IndexGroup* ODB::create_group()
     g->scheduler = scheduler;
 
     WRITE_LOCK();
-    groups.push_back(g);
+    groups->push_back(g);
     WRITE_UNLOCK();
 
     return g;
@@ -667,20 +639,20 @@ void ODB::remove_sweep()
     if (data->prune != NULL)
     {
         WRITE_LOCK();
-        vector<void*>** marked = data->remove_sweep(archive);
+        std::vector<void*>** marked = data->remove_sweep(archive);
 
-        uint32_t n = tables.size();
+        uint32_t n = tables->size();
 
         if (n > 0)
         {
             if (n == 1)
             {
-                tables[0]->remove_sweep(marked[0]);
+                tables->at(0)->remove_sweep(marked[0]);
             }
             else
                 for (uint32_t i = 0 ; i < n ; i++)
                 {
-                    tables[i]->remove_sweep(marked[0]);
+                    tables->at(i)->remove_sweep(marked[0]);
                 }
 
             if (marked[2] != NULL)
@@ -694,29 +666,29 @@ void ODB::remove_sweep()
     }
 }
 
-void ODB::update_tables(vector<void*>* old_addr, vector<void*>* new_addr)
+void ODB::update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr)
 {
-    uint32_t n = tables.size();
+    uint32_t n = tables->size();
 
     if (n > 0)
     {
         if (n == 0)
         {
-            tables[0]->update(old_addr, new_addr, datalen);
+            tables->at(0)->update(old_addr, new_addr, datalen);
         }
         else
 // #pragma omp parallel for
             for (uint32_t i = 0 ; i < n ; i++)
             {
-                tables[i]->update(old_addr, new_addr, datalen);
+                tables->at(i)->update(old_addr, new_addr, datalen);
             }
     }
 
-    n = data->clones.size();
+    n = data->clones->size();
 
     for (uint32_t i = 0 ; i < n ; i++)
     {
-        data->clones[i]->update_tables(old_addr, new_addr);
+        data->clones->at(i)->update_tables(old_addr, new_addr);
     }
 }
 
@@ -724,9 +696,9 @@ void ODB::purge()
 {
     WRITE_LOCK();
 
-    for (uint32_t i = 0 ; i < tables.size() ; i++)
+    for (uint32_t i = 0 ; i < tables->size() ; i++)
     {
-        tables[i]->purge();
+        tables->at(i)->purge();
     }
 
     data->purge(freep);
@@ -776,14 +748,14 @@ uint32_t ODB::start_scheduler(uint32_t num_threads)
 
         WRITE_LOCK();
 
-        for (uint32_t i = 0 ; i < tables.size() ; i++)
+        for (uint32_t i = 0 ; i < tables->size() ; i++)
         {
-            tables[i]->scheduler = scheduler;
+            tables->at(i)->scheduler = scheduler;
         }
 
-        for (uint32_t i = 0 ; i < groups.size() ; i++)
+        for (uint32_t i = 0 ; i < groups->size() ; i++)
         {
-            groups[i]->scheduler = scheduler;
+            groups->at(i)->scheduler = scheduler;
         }
 
         WRITE_UNLOCK();
@@ -804,12 +776,12 @@ void ODB::block_until_done()
     }
 }
 
-Iterator * ODB::it_first()
+Iterator* ODB::it_first()
 {
     return data->it_first();
 }
 
-Iterator * ODB::it_last()
+Iterator* ODB::it_last()
 {
     return data->it_last();
 }

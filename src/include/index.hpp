@@ -13,6 +13,8 @@
 /// Header file for Index, IndexGroup and DataObj objects.
 /// @file index.hpp
 
+#include "dll.hpp"
+
 #ifndef INDEX_HPP
 #define INDEX_HPP
 
@@ -31,7 +33,7 @@ class Merger;
 class Iterator;
 class Index;
 
-class DataObj
+class LIBODB_API DataObj
 {
     /// Requires ability to set the data field.
     friend class ODB;
@@ -65,7 +67,7 @@ class DataObj
     friend class LinkedListDSIterator;
 
 public:
-    inline void * get_data()
+    inline void* get_data()
     {
         return data;
     };
@@ -73,14 +75,14 @@ public:
 
 private:
     DataObj();
-    DataObj(int ident);
+    DataObj(uint64_t ident);
     ~DataObj();
 
-    int ident;
+    uint64_t ident;
     void* data;
 };
 
-class IndexGroup
+class LIBODB_API IndexGroup
 {
     /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
     ///skip the overhead of verifying data integrity since that is guaranteed
@@ -104,7 +106,7 @@ public:
     virtual ODB* query_eq(void* rawdata);
     virtual ODB* query_lt(void* rawdata);
     virtual ODB* query_gt(void* rawdata);
-    virtual int get_ident();
+    virtual uint64_t get_ident();
     /// @todo Add a recursive flavour of size()
     ///It will have to return the number of items
     ///in all contained indices though. Is there a way to stop before indices at
@@ -113,9 +115,9 @@ public:
 
 protected:
     IndexGroup();
-    IndexGroup(int _ident, DataStore* _parent);
+    IndexGroup(uint64_t _ident, DataStore* _parent);
 
-    int ident;
+    uint64_t ident;
     DataStore* parent;
 
     Scheduler* scheduler;
@@ -130,12 +132,12 @@ protected:
     RWLOCK_T;
 
 private:
-    std::vector<IndexGroup*> indices;
+    std::vector<IndexGroup*>* indices;
 };
 
 /// @todo An index table built on a vector, behaving like the LinkedListI.
 /// @todo Batch insertions for index tables. At least LL.
-class Index : public IndexGroup
+class LIBODB_API Index : public IndexGroup
 {
     /// Allows ODB to call remove_sweep.
     friend class ODB;
@@ -186,7 +188,8 @@ protected:
     virtual void query_lt(void* rawdata, DataStore* ds);
     virtual void query_gt(void* rawdata, DataStore* ds);
     virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
+    //! @bug Another setting of -1 as a the defauly value to a uint...
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint64_t datalen = -1);
     virtual bool remove(void* rawdata);
     virtual void remove_sweep(std::vector<void*>* marked);
 
@@ -295,7 +298,7 @@ protected:
 /// @attention This opertation is O(N), where N is the number of entries in all
 ///index tables contained in this IndexGroup tree.
 
-/// @fn int IndexGroup::get_ident()
+/// @fn uint64_t IndexGroup::get_ident()
 /// Obtain the identifier of this IndexGroup.
 /// It is possible that one would want to verify the indentifier of an
 ///IndexGroup and this function allows the user to obtain the necessary

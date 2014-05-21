@@ -24,7 +24,7 @@ using namespace std;
 
 #define GET_DATA(x) (x->data)
 
-LinkedListI::LinkedListI(int _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
+LinkedListI::LinkedListI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
 {
     RWLOCK_INIT();
     this->ident = _ident;
@@ -214,7 +214,7 @@ void LinkedListI::query(Condition* condition, DataStore* ds)
     READ_UNLOCK();
 }
 
-inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
+inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr, uint64_t datalen)
 {
     sort(old_addr->begin(), old_addr->end());
 
@@ -229,9 +229,11 @@ inline void LinkedListI::update(vector<void*>* old_addr, vector<void*>* new_addr
         {
             curr->data = new_addr->at(i);
 
-            if (datalen > 0)
+            //! @note Because the defauly value is -1 unsigned, check that.
+            //if (datalen > 0)
+            if (datalen < (-1))
             {
-                memcpy(new_addr->at(i), old_addr, datalen);
+                memcpy(new_addr->at(i), old_addr, (size_t)datalen);
             }
 
             i++;
@@ -301,7 +303,7 @@ LLIterator::LLIterator()
 }
 
 /// @bug This doesn't work under sunCC with inheritance for some strange reason.
-LLIterator::LLIterator(int ident, uint32_t _true_datalen, bool _time_stamp, bool _query_count)
+LLIterator::LLIterator(uint64_t ident, uint64_t _true_datalen, bool _time_stamp, bool _query_count)
 // : Iterator::Iterator(ident, true_datalen, time_stamp, query_count)
 {
     //dataobj = new DataObj(ident);

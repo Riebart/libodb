@@ -29,8 +29,8 @@ using namespace std;
 LinkedListDS::LinkedListDS(DataStore* _parent, bool (*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags)
 {
     this->flags = _flags;
-    time_stamp = (_flags & DataStore::TIME_STAMP);
-    query_count = (_flags & DataStore::QUERY_COUNT);
+    time_stamp = ((_flags & DataStore::TIME_STAMP) != 0);
+    query_count = ((_flags & DataStore::QUERY_COUNT) != 0);
 
     init(_parent, _prune, _datalen);
 }
@@ -87,16 +87,16 @@ inline void* LinkedListDS::add_data(void* rawdata)
 {
     void* ret = get_addr();
 
-    memcpy(ret, rawdata, true_datalen);
+    memcpy(ret, rawdata, (size_t)true_datalen);
 
     if (time_stamp)
     {
-        SET_TIME_STAMP(ret, cur_time, true_datalen);
+        SET_TIME_STAMP(ret, cur_time, (size_t)true_datalen);
     }
 
     if (query_count)
     {
-        SET_QUERY_COUNT(ret, 0, true_datalen);
+        SET_QUERY_COUNT(ret, 0, (size_t)true_datalen);
     }
 
     return ret;
@@ -105,7 +105,7 @@ inline void* LinkedListDS::add_data(void* rawdata)
 inline void* LinkedListDS::get_addr()
 {
     struct datanode* new_element;
-    SAFE_MALLOC(struct datanode*, new_element, datalen + sizeof(struct datanode*));
+    SAFE_MALLOC(struct datanode*, new_element, (size_t)(datalen + sizeof(struct datanode*)));
 
     WRITE_LOCK();
     new_element->next=bottom;
@@ -150,7 +150,7 @@ inline void* LinkedListVDS::get_addr()
 inline void* LinkedListVDS::get_addr(uint32_t nbytes)
 {
     struct datanode* new_element;
-    SAFE_MALLOC(struct datanode*, new_element, nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*));
+    SAFE_MALLOC(struct datanode*, new_element, (size_t)(nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*)));
     new_element->datalen = nbytes;
 
     WRITE_LOCK();
@@ -312,12 +312,12 @@ std::vector<void*>** LinkedListDS::remove_sweep(Archive* archive)
         READ_UNLOCK();
 
         bool (*temp)(void*);
-        for (uint32_t i = 0 ; i < clones.size() ; i++)
+        for (uint32_t i = 0 ; i < clones->size() ; i++)
         {
-            temp = clones[i]->get_prune();
-            clones[i]->set_prune(prune);
-            clones[i]->remove_sweep();
-            clones[i]->set_prune(temp);
+            temp = clones->at(i)->get_prune();
+            clones->at(i)->set_prune(prune);
+            clones->at(i)->remove_sweep();
+            clones->at(i)->set_prune(temp);
         }
 
         sort(marked[0]->begin(), marked[0]->end());
@@ -369,12 +369,12 @@ std::vector<void*>** LinkedListIDS::remove_sweep(Archive* archive)
         READ_UNLOCK();
 
         bool (*temp)(void*);
-        for (uint32_t i = 0 ; i < clones.size() ; i++)
+        for (uint32_t i = 0 ; i < clones->size() ; i++)
         {
-            temp = clones[i]->get_prune();
-            clones[i]->set_prune(prune);
-            clones[i]->remove_sweep();
-            clones[i]->set_prune(temp);
+            temp = clones->at(i)->get_prune();
+            clones->at(i)->set_prune(prune);
+            clones->at(i)->remove_sweep();
+            clones->at(i)->set_prune(temp);
         }
 
         sort(marked[0]->begin(), marked[0]->end());
@@ -412,10 +412,10 @@ void LinkedListDS::remove_cleanup(vector<void*>** marked)
 void LinkedListDS::purge(void (*freep)(void*))
 {
     WRITE_LOCK();
-    uint32_t num_clones = clones.size();
+    uint32_t num_clones = clones->size();
     for (uint32_t i = 0 ; i < num_clones ; i++)
     {
-        clones[i]->purge();
+        clones->at(i)->purge();
     }
 
     struct datanode* curr = bottom;

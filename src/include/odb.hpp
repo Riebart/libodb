@@ -13,6 +13,10 @@
 /// Header file for ODB.
 /// @file odb.hpp
 
+//! @todo Update the documentation with potentially changed function signatures.
+
+#include "dll.hpp"
+
 #ifndef ODB_HPP
 #define ODB_HPP
 
@@ -26,13 +30,13 @@
 #include <mutex>
 #include <atomic>
 
-#define THREAD_T std::thread
-#define ATOMIC_T std::atomic<uint64_t>
+#define THREADP_T std::thread*
+#define ATOMICP_T std::atomic<uint64_t>*
 #else
 #include <pthread.h>
 
-#define THREAD_T pthread_t
-#define ATOMIC_T volatile uint32_t
+#define THREADP_T pthread_t
+#define ATOMICP_T volatile uint32_t
 #endif
 
 #include "lock.hpp"
@@ -56,7 +60,7 @@ class Merger;
 class Keygen;
 class Iterator;
 
-class ODB
+class LIBODB_API ODB
 {
     /// Allow IndexGroup objects to create a new specifically identified ODB
     ///instance.
@@ -119,15 +123,15 @@ public:
     ///requiring a data-size option passed on insertion.
     typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-    ODB(FixedDatastoreType dt, uint32_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
     ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
     ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
 
     ~ODB();
 
-    Index* create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
+    Index* create_index(IndexType type, uint32_t flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
 
-    Index* create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
+    Index* create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
 
     bool delete_index(Index* index);
 
@@ -158,40 +162,41 @@ public:
     uint64_t mem_limit;
 
     /// Used to determine if memory checker thread is running or not.
-    int is_running()
+    bool is_running()
     {
         return running;
     };
 
 
 private:
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(DataStore* dt, int ident, uint32_t datalen);
+    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    ODB(DataStore* dt, uint64_t ident, uint64_t datalen);
 
-    void init(DataStore* data, int ident, uint32_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
+    void init(DataStore* data, uint64_t ident, uint64_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
     void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
 
     /// Static variable that indicates the number of unique ODB instances
     ///currently running in the context of the process. Atomic operations
     ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
     ///this value.
-    static ATOMIC_T num_unique;
+    //! @bug Make sure that this is fetched atomically.
+    static ATOMICP_T num_unique;
 
     /// Identity of this ODB insance in this process' context.
-    int ident;
+    uint64_t ident;
 
     /// The amount of user data, in bytes, stored per data item. This is passed
     ///to the Datastore which augments it based on the options (timestamps and
     ///query count).
-    uint32_t datalen;
+    uint64_t datalen;
 
     /// Complete list of all Index tables associated with this ODB context.
-    std::vector<Index*> tables;
+    std::vector<Index*>* tables;
 
     /// Complete list of all IndexGroup objects associated with this ODB context.
-    std::vector<IndexGroup*> groups;
+    std::vector<IndexGroup*>* groups;
 
     /// DataStore object used as backend storage for this ODB context.
     DataStore* data;
@@ -206,7 +211,7 @@ private:
     DataObj* dataobj;
 
     /// Thread that the memory checker runs in.
-    THREAD_T mem_thread;
+    THREADP_T mem_thread;
 
     /// Duration that the memory checker thread sleeps between sweeps. If this
     ///value is set to zero at ODB creation time, the memory checker thread
@@ -224,7 +229,7 @@ private:
     Scheduler* scheduler;
 
     /// Whether or not the memory checker thread is running.
-    int running;
+    bool running;
 
     /// Locking context.
     RWLOCK_T;
@@ -271,7 +276,7 @@ private:
 ///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
-/// @fn ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), int ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
+/// @fn ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, uint32_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
 /// Private portion of the ODB creation chain.
 /// @param[in] dt Specific implementation flag.
 /// @param[in] prune The function called on each item in the datastore to
@@ -310,7 +315,7 @@ private:
 ///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
-/// @fn ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
+/// @fn ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0)
 /// Private portion of the ODB creation chain.
 /// @param[in] dt Specific implementation flag.
 /// @param[in] prune The function called on each item in the datastore to
@@ -351,7 +356,7 @@ private:
 ///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
-/// @fn ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), int ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0)
+/// @fn ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0)
 /// Standard public constructor when using an indirect DataStore.
 /// @param[in] dt Specific implementation flag.
 /// @param[in] datalen Length of the data that the user is inserting.
@@ -374,7 +379,7 @@ private:
 ///be included with the user data. Options are DataStore::TIME_STAMP and
 ///DataStore::QUERY_COUNT
 
-/// @fn ODB::ODB(DataStore* dt, int ident, uint32_t datalen)
+/// @fn ODB::ODB(DataStore* dt, uint64_t ident, uint32_t datalen)
 /// Work horse for ODB creation. Everything else just abstracts away the detals
 ///and this function does the common work.
 /// @param[in] dt Datastore type.
@@ -382,7 +387,7 @@ private:
 /// @param[in] datalen Length of the user data that will be inserted into this
 ///ODB.
 
-/// @fn ODB::create_index(IndexType type, int flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1)
+/// @fn ODB::create_index(IndexType type, uint32_t flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1)
 /// Create an Index table associated with this ODB object.
 /// @param[in] type Index table type
 /// @param[in] flags Flags (ODB::IndexFlags) used to control how the Index
@@ -404,7 +409,7 @@ private:
 /// @see MergeCust
 /// @see KeygenCust
 
-/// @fn ODB::create_index(IndexType type, int flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1)
+/// @fn ODB::create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1)
 /// Create an Index table associated with this ODB object.
 /// @param[in] type Index table type
 /// @param[in] flags Flags (ODB::IndexFlags) used to control how the Index

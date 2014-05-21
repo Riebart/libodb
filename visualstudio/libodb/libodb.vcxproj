@@ -53,8 +53,9 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ENABLE_CPP11LOCKS;CPP11LOCKS;CPP11THREADS;WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CPP11LOCKS;CPP11THREADS;WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../extralib/include;../../src/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -69,8 +70,9 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ENABLE_CPP11LOCKS;CPP11LOCKS;CPP11THREADS;WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CPP11LOCKS;CPP11THREADS;WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBODB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>../../extralib/include;../../src/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,24 +95,13 @@
     <ClCompile Include="..\..\src\scheduler.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\extralib\include\bsd_hdr.h" />
-    <ClInclude Include="..\..\extralib\include\buffer.hpp" />
-    <ClInclude Include="..\..\extralib\include\cmwc.h" />
-    <ClInclude Include="..\..\extralib\include\collator.hpp" />
     <ClInclude Include="..\..\extralib\include\common.hpp" />
-    <ClInclude Include="..\..\extralib\include\dns.hpp" />
-    <ClInclude Include="..\..\extralib\include\etherstub.h" />
-    <ClInclude Include="..\..\extralib\include\ip.hpp" />
     <ClInclude Include="..\..\extralib\include\lock.hpp" />
-    <ClInclude Include="..\..\extralib\include\log.hpp" />
-    <ClInclude Include="..\..\extralib\include\pca.h" />
-    <ClInclude Include="..\..\extralib\include\protoparse.hpp" />
-    <ClInclude Include="..\..\extralib\include\tcp.hpp" />
-    <ClInclude Include="..\..\extralib\include\udp.hpp" />
     <ClInclude Include="..\..\src\include\archive.hpp" />
     <ClInclude Include="..\..\src\include\bankds.hpp" />
     <ClInclude Include="..\..\src\include\comparator.hpp" />
     <ClInclude Include="..\..\src\include\datastore.hpp" />
+    <ClInclude Include="..\..\src\include\dll.hpp" />
     <ClInclude Include="..\..\src\include\index.hpp" />
     <ClInclude Include="..\..\src\include\iterator.hpp" />
     <ClInclude Include="..\..\src\include\lfqueue.hpp" />

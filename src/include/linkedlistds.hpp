@@ -13,6 +13,8 @@
 /// Header file for LinkedListDS datastore type and any children (LinkedListIDS, LinkedListVDS) as well as their Iterators.
 /// @file linkedlistds.hpp
 
+#include "dll.hpp"
+
 #ifndef LINKEDLISTDS_HPP
 #define LINKEDLISTDS_HPP
 
@@ -20,7 +22,7 @@
 #include "lock.hpp"
 #include "iterator.hpp"
 
-class LinkedListDS : public DataStore
+class LIBODB_API LinkedListDS : public DataStore
 {
     using DataStore::add_data;
     using DataStore::get_addr;
@@ -71,7 +73,7 @@ protected:
     uint64_t datalen;
 };
 
-class LinkedListIDS : public LinkedListDS
+class LIBODB_API LinkedListIDS : public LinkedListDS
 {
     using DataStore::add_data;
 
@@ -97,7 +99,7 @@ protected:
     virtual void populate(Index* index);
 };
 
-class LinkedListVDS : public LinkedListDS
+class LIBODB_API LinkedListVDS : public LinkedListDS
 {
     /// Since the constructors are protected, ODB needs to be able to create new
     ///datastores.
@@ -128,7 +130,7 @@ protected:
     uint32_t (*len)(void*);
 };
 
-class LinkedListDSIterator : public Iterator
+class LIBODB_API LinkedListDSIterator : public Iterator
 {
     friend class LinkedListDS;
 

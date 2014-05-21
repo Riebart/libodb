@@ -34,7 +34,7 @@ DataObj::DataObj()
 {
 }
 
-DataObj::DataObj(int _ident)
+DataObj::DataObj(uint64_t _ident)
 {
     this->ident = _ident;
 }
@@ -43,13 +43,15 @@ DataObj::DataObj(int _ident)
 
 IndexGroup::IndexGroup()
 {
+    indices = new std::vector<IndexGroup*>();
 }
 
 IndexGroup::~IndexGroup()
 {
+    delete indices;
 }
 
-IndexGroup::IndexGroup(int _ident, DataStore* _parent)
+IndexGroup::IndexGroup(uint64_t _ident, DataStore* _parent)
 {
     this->ident = _ident;
     this->parent = _parent;
@@ -61,7 +63,7 @@ bool IndexGroup::add_index(IndexGroup* ig)
     // If it passes integrity checks, add it to the group.
     if (ident == ig->ident)
     {
-        indices.push_back(ig);
+        indices->push_back(ig);
         return true;
     }
     else
@@ -74,13 +76,13 @@ bool IndexGroup::delete_index(IndexGroup* ig)
 {
     if (ident == ig->ident)
     {
-        for (uint32_t i = 0 ; i < indices.size() ; i++)
+        for (uint32_t i = 0 ; i < indices->size() ; i++)
         {
             // If we've got our match, then return true.
-            if (indices[i] == ig)
+            if (indices->at(i) == ig)
             {
-                delete indices[i];
-                indices.erase(indices.begin() + i);
+                delete indices->at(i);
+                indices->erase(indices->begin() + i);
                 return true;
             }
             // Otherwise recursively check for it.
@@ -90,7 +92,7 @@ bool IndexGroup::delete_index(IndexGroup* ig)
                 // If we actually have an IndexGroup, this should bail and return NULL.
                 // Checking for that NULL, we can then test the IndexGroup for ig.
                 // If we find it, return true, otherwise carry on.
-                if ((dynamic_cast<Index*>(indices[i]) == NULL) && (indices[i]->delete_index(ig)))
+                if ((dynamic_cast<Index*>(indices->at(i)) == NULL) && (indices->at(i)->delete_index(ig)))
                 {
                     return true;
                 }
@@ -103,9 +105,9 @@ bool IndexGroup::delete_index(IndexGroup* ig)
 
 IndexGroup* IndexGroup::at(uint32_t i)
 {
-    if (i < indices.size())
+    if (i < indices->size())
     {
-        return indices[i];
+        return indices->at(i);
     }
     else
     {
@@ -122,9 +124,9 @@ vector<Index*>* IndexGroup::flatten()
 
 vector<Index*>* IndexGroup::flatten(vector<Index*>* list)
 {
-    for (uint32_t i = 0 ; i < indices.size() ; i++)
+    for (uint32_t i = 0 ; i < indices->size() ; i++)
     {
-        indices[i]->flatten(list);
+        indices->at(i)->flatten(list);
     }
 
     return list;
@@ -219,7 +221,7 @@ inline ODB* IndexGroup::query_gt(void* rawdata)
     return odb;
 }
 
-inline int IndexGroup::get_ident()
+inline uint64_t IndexGroup::get_ident()
 {
     return ident;
 }
@@ -227,7 +229,7 @@ inline int IndexGroup::get_ident()
 inline void IndexGroup::add_data_v(void* data)
 {
     // Do it the silly way in order to preserve speed when compiled with zero optimizations.
-    uint32_t n = indices.size();
+    uint32_t n = indices->size();
 
     if (n == 0)
     {
@@ -236,7 +238,7 @@ inline void IndexGroup::add_data_v(void* data)
 
     for (uint32_t i = 0 ; i < n ; i++)
     {
-        indices[i]->add_data_v(data);
+        indices->at(i)->add_data_v(data);
     }
 }
 
@@ -244,83 +246,83 @@ inline void IndexGroup::add_data_v(void* data)
 ///What the hell do I mean by this?
 inline void IndexGroup::query(Condition* condition, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    uint32_t n = indices->size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
         {
-            indices[0]->query(condition, ds);
+            indices->at(0)->query(condition, ds);
         }
         else
             for (uint32_t i = 0 ; i < n ; i++)
             {
-                indices[i]->query(condition, ds);
+                indices->at(i)->query(condition, ds);
             }
     }
 }
 
 inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    uint32_t n = indices->size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
         {
-            indices[0]->query_eq(rawdata, ds);
+            indices->at(0)->query_eq(rawdata, ds);
         }
         else
             for (uint32_t i = 0 ; i < n ; i++)
             {
-                indices[i]->query_eq(rawdata, ds);
+                indices->at(i)->query_eq(rawdata, ds);
             }
     }
 }
 
 inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    uint32_t n = indices->size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
         {
-            indices[0]->query_lt(rawdata, ds);
+            indices->at(0)->query_lt(rawdata, ds);
         }
         else
             for (uint32_t i = 0 ; i < n ; i++)
             {
-                indices[i]->query_lt(rawdata, ds);
+                indices->at(i)->query_lt(rawdata, ds);
             }
     }
 }
 
 inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
 {
-    uint32_t n = indices.size();
+    uint32_t n = indices->size();
 
     // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
     if (n > 0)
     {
         if (n == 1)
         {
-            indices[0]->query_gt(rawdata, ds);
+            indices->at(0)->query_gt(rawdata, ds);
         }
         else
             for (uint32_t i = 0 ; i < n ; i++)
             {
-                indices[i]->query_gt(rawdata, ds);
+                indices->at(i)->query_gt(rawdata, ds);
             }
     }
 }
 
 uint64_t IndexGroup::size()
 {
-    return indices.size();
+    return indices->size();
 }
 
 // ============================================================================
@@ -468,7 +470,7 @@ inline void Index::query_gt(void* rawdata, DataStore* ds)
 {
 }
 
-inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr, uint32_t datalen)
+inline void Index::update(vector<void*>* old_addr, vector<void*>* new_addr, uint64_t datalen)
 {
 }
 

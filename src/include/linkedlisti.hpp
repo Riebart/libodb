@@ -13,6 +13,8 @@
 /// Header file for LinkedListI index type as well as its iterators.
 /// @file linkedlisti.hpp
 
+#include "dll.hpp"
+
 #ifndef LINKEDLISTI_HPP
 #define LINKEDLISTI_HPP
 
@@ -21,7 +23,7 @@
 #include "index.hpp"
 #include "iterator.hpp"
 
-class LinkedListI : public Index
+class LIBODB_API LinkedListI : public Index
 {
     using Index::query;
     using Index::remove;
@@ -39,7 +41,7 @@ public:
     virtual Iterator* it_middle(DataObj* data);
 
 protected:
-    LinkedListI(int ident, Comparator* compare, Merger* merge, bool drop_duplicates);
+    LinkedListI(uint64_t ident, Comparator* compare, Merger* merge, bool drop_duplicates);
 
     struct node
     {
@@ -50,7 +52,8 @@ protected:
     virtual bool add_data_v2(void* data);
     virtual void purge();
     void query(Condition* condition, DataStore* ds);
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen = -1);
+    //! @bug What are the impacts of assigning a -1 to a uint here?
+    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint64_t datalen = -1);
     static void free_list(struct node* head);
     virtual bool remove(void* data);
     virtual void remove_sweep(std::vector<void*>* marked);
@@ -58,7 +61,7 @@ protected:
     struct node* first;
 };
 
-class LLIterator : public Iterator
+class LIBODB_API LLIterator : public Iterator
 {
     friend class LinkedListI;
 
@@ -69,7 +72,7 @@ public:
 
 protected:
     LLIterator();
-    LLIterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+    LLIterator(uint64_t ident, uint64_t true_datalen, bool time_stamp, bool query_count);
 
     struct LinkedListI::node* cursor;
 };
