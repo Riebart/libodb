@@ -13,6 +13,8 @@
 /// Header file for the Scheduler.
 /// @file scheduler.hpp
 
+//! @todo Find some way of not requiring that applications using this library set the same locking defines as the library when compiled.
+
 #include "dll.hpp"
 
 #ifndef SCHEDULER_HPP
@@ -29,7 +31,15 @@
 #define THREAD_T std::thread*
 #define CONDVAR_T std::condition_variable_any*
 #define SCHED_MLOCK_T std::mutex* mlock
+
+#ifndef CPP11SPINMUTEX
+//! @todo Promote the spin locks to an API exported type? Could be useful...
+class SpinLock;
+#define SCHED_LOCK_T SpinLock* lock
+#else
 #define SCHED_LOCK_T std::mutex* lock
+#endif
+
 #else
 #include <pthread.h>
 

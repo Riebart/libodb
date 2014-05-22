@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <algorithm>
+#include <atomic>
 
 // Use OpenMP as a comparison for multithreading speedup.
 #include <omp.h>
@@ -16,8 +17,6 @@
 		fprintf(stderr, "%u %u\n", (LHS), (RHS));\
 		assert((LHS) == (RHS));\
 	}
-
-#define STRINGER(a) #a
 
 #define TEST_CLASS_BEGIN(name) \
 	{\
@@ -95,6 +94,101 @@ void sleep(int msec, bool dots)
 	std::this_thread::sleep_for(d);
 }
 
+// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
+// Nore that there's no way to get the value from an atomic_flag without setting it, so
+// we can't build a try_lock on it.
+// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+class SpinLock
+{
+public:
+	void lock()
+	{
+		bool exp = false;
+		bool des = true;
+		// Weak exchanges can spuriously return
+		while (!lck.compare_exchange_weak(exp, des))
+		{
+			exp = false;
+		}
+	}
+
+	//! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
+	bool try_lock()
+	{
+		return lck.load();
+	}
+
+	void unlock()
+	{
+		lck.store(false);
+	}
+
+private:
+	std::atomic<bool> lck = false;
+};
+
+void test_atomic_bool()
+{
+	TEST_CLASS_BEGIN("Atomic variable lock-free status");
+	bool b;
+
+	{
+		TEST_CASE("atomic<bool>")
+		std::atomic<bool> a;
+		b = std::atomic_is_lock_free(&a);
+		fprintf(stderr, "std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
+		TEST_CASE_END();
+	}
+
+	{
+		TEST_CASE("atomic<bool>")
+		std::atomic<uint64_t> a;
+		b = std::atomic_is_lock_free(&a);
+		fprintf(stderr, "std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
+		TEST_CASE_END();
+	}
+	
+	TEST_CLASS_END();
+}
+
+SpinLock lock;
+
+void* threadid_print_worker(void* a)
+{
+	lock.lock();
+	fprintf(stderr, "%u\n", GetCurrentThreadId());
+	sleep(500, false);
+	lock.unlock();
+	return NULL;
+}
+
+void test_spinlocks()
+{
+	TEST_CLASS_BEGIN("SpinLock tests");
+
+	TEST_CASE("Spawning Scheduler with four workers")
+	Scheduler* sched = new Scheduler(4);
+
+	TEST_CASE("Driver holding lock and adding four work units");
+	lock.lock();
+	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+
+	TEST_CASE("Driver sleeping for five seconds, check CPU usage on host");
+	sleep(5000, true);
+
+	TEST_CASE("Driver unlocking and blocking, workers starting");
+	lock.unlock();
+	sched->block_until_done();
+
+	TEST_CASE_END();
+	delete sched;
+
+	TEST_CLASS_END();
+}
+
 void* threadid_worker(void* a)
 {
 	mlock.lock();
@@ -147,23 +241,23 @@ void thread_start_stop()
 	TEST_CLASS_BEGIN("Worker thread count");
 	Scheduler* sched = new Scheduler(0);
 
-	TEST_CASE("1");
+	TEST_CASE("1 thread");
 	thread_count(sched, 1);
-	TEST_CASE("2");
+	TEST_CASE("2 threads");
 	thread_count(sched, 2);
-	TEST_CASE("1");
+	TEST_CASE("1 thread");
 	thread_count(sched, 1);
-	TEST_CASE("5");
+	TEST_CASE("5 threads");
 	thread_count(sched, 5);
-	TEST_CASE("1");
+	TEST_CASE("1 thread");
 	thread_count(sched, 1);
-	TEST_CASE("10");
+	TEST_CASE("10 threads");
 	thread_count(sched, 10);
-	TEST_CASE("64");
+	TEST_CASE("64 threads");
 	thread_count(sched, 64);
-	TEST_CASE("128");
+	TEST_CASE("128 threads");
 	thread_count(sched, 128);
-	TEST_CASE("512");
+	TEST_CASE("512 threads");
 	thread_count(sched, 512);
 
 	TEST_CASE_END();
@@ -193,6 +287,7 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 {
 	TEST_CLASS_BEGIN(name);
 
+	char buf[128];
 	uint64_t done = 0;
 	int64_t us1 = 0, uso;
 	int64_t omp_local;
@@ -203,6 +298,20 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 	for (int i = 0; i < n; i++)
 	{
 		us1 += (int64_t)f(args) + i;
+	}
+
+	for (int nt = 2; nt <= omp_get_max_threads(); nt++)
+	{
+		sprintf_s(buf, "Unscheduled work items, %d threads (OpenMP)", nt);
+		TEST_CASE(buf);
+		uso = 0;
+#pragma omp parallel for num_threads(nt) reduction(+ : uso)
+		for (int i = 0; i < n; i++)
+		{
+			uso += (int64_t)f(args) + i;
+		}
+		ASSERT_UU(us1, uso);
+		TEST_CASE_END();
 	}
 
 	TEST_CASE("Add work items, 0 consumers");
@@ -219,21 +328,8 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 	done += n;
 	TEST_CASE_END();
 
-	char buf[128];
 	for (int nt = 2; nt <= omp_get_max_threads(); nt++)
 	{
-		sprintf_s(buf, "Unscheduled work items, %d threads(OpenMP)", nt);
-		TEST_CASE(buf);
-		uso = 0;
-#pragma omp parallel for num_threads(nt) reduction(+ : uso)
-		for (int i = 0; i < n; i++)
-		{
-			uso += (int64_t)f(args) + i;
-		}
-		//printf(" - %d - ", uso);
-		ASSERT_UU(us1, uso);
-		TEST_CASE_END();
-
 		sched->update_num_threads(0);
 		for (int i = 0; i < n; i++)
 		{
@@ -247,7 +343,11 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 		ASSERT_UU(done + n, sched->get_num_complete());
 		done += n;
 		TEST_CASE_END();
+	}
 
+	for (int nt = 1; nt <= omp_get_max_threads(); nt++)
+	{
+		sched->update_num_threads(nt);
 		sprintf_s(buf, "%d consumers, simultaneous add-consume", nt);
 		TEST_CASE(buf);
 		for (int i = 0; i < n; i++)
@@ -268,6 +368,9 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 
 int main(int argc, char** argv)
 {
+	test_atomic_bool();
+	test_spinlocks();
+
 	create_destroy();
 	thread_start_stop();
 

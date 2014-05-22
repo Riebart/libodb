@@ -44,16 +44,71 @@
 /// when they are shuffling the workqueue in its tree. These locks will no
 /// longer be needed once a proper lockfree queue is implemented.
 /// @{
-//! @todo Investigate C++11 spinlocks: http://anki3d.org/spinlock/
-#define SCHED_LOCK() (mlock->lock())
-#define SCHED_LOCK_P(x) ((x)->mlock->lock())
-#define SCHED_TRYLOCK() (mlock->try_lock())
-#define SCHED_TRYLOCK_P(x) ((x)->mlock->try_lock())
+//! @todo Investigate C++11 spinlocks
+#ifndef CPP11SPINMUTEX
+#include <atomic>
+
+// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
+// Nore that there's no way to get the value from an atomic_flag without setting it, so
+// we can't build a try_lock on it.
+// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+class SpinLock
+{
+public:
+	void lock()
+	{
+		bool expected = false;
+		bool desired = true;
+		// We expect the lock to be false (what we set it to when unlocking), and want to set it
+		// to true;
+		while (!lck.compare_exchange_weak(expected, desired))
+		{
+			// Each time we 'fail' a compare-exchange, the desired expected value gets changed.
+			expected = false;
+		}
+	}
+
+	//! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
+	bool try_lock()
+	{
+		bool expected = false;
+		bool desired = true;
+		// We expect the lock to be false (what we set it to when unlocking), and want to set it
+		// to true, but we'll ony try once, so we want a string check.
+		// The operation returns true if we changed the value, and false otherwise, so just return
+		// its value.
+		return lck.compare_exchange_strong(expected, desired);
+	}
+
+	void unlock()
+	{
+		lck.store(false);
+	}
+
+private:
+	std::atomic<bool> lck = false;
+};
+
+#define SCHED_LOCK() (lock->lock())
+#define SCHED_LOCK_P(x) ((x)->lock->lock())
+#define SCHED_TRYLOCK() (lock->try_lock())
+#define SCHED_TRYLOCK_P(x) ((x)->lock->try_lock())
 #define SCHED_TRYLOCK_SUCCESSVAL true
-#define SCHED_UNLOCK() (mlock->unlock())
-#define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
+#define SCHED_UNLOCK() (lock->unlock())
+#define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
+#define SCHED_LOCK_INIT() lock = new SpinLock()
+#define SCHED_LOCK_DESTROY() delete lock
+#else
+#define SCHED_LOCK() (lock->lock())
+#define SCHED_LOCK_P(x) ((x)->lock->lock())
+#define SCHED_TRYLOCK() (lock->try_lock())
+#define SCHED_TRYLOCK_P(x) ((x)->lock->try_lock())
+#define SCHED_TRYLOCK_SUCCESSVAL true
+#define SCHED_UNLOCK() (lock->unlock())
+#define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
 #define SCHED_LOCK_INIT() lock = new std::mutex()
 #define SCHED_LOCK_DESTROY() delete lock
+#endif
 
 /// @}
 
