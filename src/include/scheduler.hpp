@@ -156,6 +156,7 @@ public:
     void block_until_done();
 
     uint64_t get_num_complete();
+	uint64_t get_num_available();
 
 private:
     struct workload
@@ -187,6 +188,9 @@ private:
     // Counter that will determine the IDs of new workloads added.
     volatile uint64_t work_counter;
     volatile uint64_t work_avail;
+
+	//! This keeps track of the work completed by threads we've discarded.
+	uint64_t historical_work_completed;
 
     SCHED_LOCK_T;
     SCHED_MLOCK_T;

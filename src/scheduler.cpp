@@ -49,9 +49,10 @@
 #define SCHED_LOCK_P(x) ((x)->mlock->lock())
 #define SCHED_TRYLOCK() (mlock->try_lock())
 #define SCHED_TRYLOCK_P(x) ((x)->mlock->try_lock())
+#define SCHED_TRYLOCK_SUCCESSVAL true
 #define SCHED_UNLOCK() (mlock->unlock())
 #define SCHED_UNLOCK_P(x) ((x)->mlock->unlock())
-#define SCHED_LOCK_INIT() mlock = new std::mutex()
+#define SCHED_LOCK_INIT() lock = new std::mutex()
 #define SCHED_LOCK_DESTROY() delete lock
 
 /// @}
@@ -95,6 +96,7 @@
 #define SCHED_LOCK_P(x) pthread_spin_lock(&((x)->lock))
 #define SCHED_TRYLOCK() pthread_spin_trylock(&lock)
 #define SCHED_TRYLOCK_P(x) pthread_spin_trylock(&((x)->lock))
+#define SCHED_TRYLOCK_SUCCESSVAL 0
 #define SCHED_UNLOCK() pthread_spin_unlock(&lock)
 #define SCHED_UNLOCK_P(x) pthread_spin_unlock(&((x)->lock))
 #define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
@@ -265,6 +267,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
 
     work_counter = 1;
     work_avail = 0;
+	historical_work_completed = 0;
     this->num_threads = _num_threads;
     num_threads_parked = 0;
     THREAD_COND_INIT(work_cond);
@@ -288,8 +291,7 @@ Scheduler::Scheduler(uint32_t _num_threads)
         t_args[i]->counter = 0;
 
         //! @todo extern "C"
-		threads[i] = new std::thread(scheduler_worker_thread, t_args[i]);
-        //THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
+        THREAD_CREATE(threads[i], scheduler_worker_thread, t_args[i]);
     }
 }
 
@@ -304,7 +306,7 @@ Scheduler::~Scheduler()
 
     /// @bug The data used by the workqueues and their un-processed workloads is not freed.
     /// Need to free the data used by the workqueues and their unprocessed wokloads here.
-    RedBlackTreeI::e_destroy_tree(root, NULL);
+    RedBlackTreeI::e_destroy_tree(root, free);
 
     delete queue_map;
     SCHED_LOCK_DESTROY();
@@ -351,6 +353,7 @@ void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64
 {
     if ((flags & Scheduler::BACKGROUND) && (flags & Scheduler::HIGH_PRIORITY))
     {
+		//! @todo Turn this into a return value, not a throw.
         throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
     }
 
@@ -441,6 +444,7 @@ uint32_t Scheduler::update_num_threads(uint32_t new_num_threads)
             THREAD_COND_BROADCAST(work_cond);
             THREAD_JOIN(threads[i]);
 			THREAD_DESTROY(threads[i]);
+			historical_work_completed += t_args[i]->counter;
             free(t_args[i]);
         }
     }
@@ -533,6 +537,7 @@ struct Scheduler::workload* Scheduler::get_work()
 // Be careful about using this: This will wake up if all queues are momentarily exhausted, even though
 // more work is in the pipe and is being added to the scheduler.
 // Do not assume that just because this function returned that no work is being processed.
+// Another spurious return can occur if 
 void Scheduler::block_until_done()
 {
     SCHED_MLOCK();
@@ -550,8 +555,10 @@ void Scheduler::block_until_done()
         if (!((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)))
         {
             // Try to spinlock to see if anything is contending for spinlock access, which means we might
-            // be adding work
-            if (SCHED_TRYLOCK() == 0)
+            // be adding work.
+			// Note that C++11 try_lock() returns true if it grabbed the lock, while pthread_spn_trylock()
+			// returns 0 on success, and otherwise on error. Ugh.
+            if (SCHED_TRYLOCK() == SCHED_TRYLOCK_SUCCESSVAL)
             {
                 // If we succeed, then unlock and return;
                 SCHED_UNLOCK();
@@ -568,8 +575,15 @@ uint64_t Scheduler::get_num_complete()
     uint64_t sum = 0;
     for (uint32_t i = 0 ; i < num_threads ; i++)
     {
+		// This counter is not accessed atomically, but that's OK, we aren't looking for precision.
         sum += t_args[i]->counter;
     }
 
-    return sum;
+    return historical_work_completed + sum;
+}
+
+uint64_t Scheduler::get_num_available()
+{
+	// This does not atomically fetch this value, but again that doesn't really matter.
+	return work_avail;
 }
