@@ -23,6 +23,7 @@
 
 #include "common.hpp"
 #include "scheduler.hpp"
+#include "lock.hpp"
 
 #include <deque>
 

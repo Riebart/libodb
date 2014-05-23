@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include "lock.hpp"
 
 namespace libodb
 {

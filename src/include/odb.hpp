@@ -35,6 +35,7 @@
 #endif
 
 #include "scheduler.hpp"
+#include "lock.hpp"
 
 namespace libodb
 {

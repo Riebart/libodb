@@ -50,6 +50,7 @@
 
 #include "lfqueue.hpp"
 #include "redblacktreei.hpp"
+#include "lock.hpp"
 
 namespace libodb
 {

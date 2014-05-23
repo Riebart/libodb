@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include "lock.hpp"
+
 namespace libodb
 {
 

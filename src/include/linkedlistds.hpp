@@ -20,6 +20,7 @@
 
 #include "datastore.hpp"
 #include "iterator.hpp"
+#include "lock.hpp"
 
 namespace libodb
 {

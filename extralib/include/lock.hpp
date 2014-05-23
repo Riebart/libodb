@@ -17,21 +17,16 @@
 ///are chosen or enabled, then the copmpiler definitions are defined to map to
 ///nothing (and so will resolve, but will not result in the placement of any code.
 /// You should define one of LOCK_HPP_TYPES or LOCK_HPP_FUNCTIONS before including
-//this file. These defines control which parts of this file get activated. The types
+///this file. These defines control which parts of this file get activated. The types
 ///should be included/defined in your class/namespace headers, and the functions
 ///should be included/defined in your cpp/source header files to limit scope
 ///pollution.
 /// @file lock.hpp
 
-#ifndef LOCK_HPP
-#define LOCK_HPP
-
 /// Check to see if pthread locks are defined as enabled. If so, enable all of its
 ///lock flavours
 #if defined(ENABLE_PTHREAD_LOCKS) || \
 defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SPIN_LOCKS)
-
-#include "pthread.h"
 
 #ifdef LOCK_HPP_FUNCTIONS
 
@@ -65,6 +60,9 @@ defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SP
 #define PTHREAD_RW_RWLOCK_T_NAME prwlock
 typedef pthread_rwlock_t PTHREAD_RW_LOCK_T;
 typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
+#elif !defined(LOCK_HPP)
+#define LOCK_HPP
+#include <pthread.h>
 #endif
 
 /* PTHREAD_SIMPLE */
@@ -97,6 +95,9 @@ typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
 #define PTHREAD_SIMPLE_RWLOCK_T_NAME mrwlock
 typedef pthread_mutex_t PTHREAD_SIMPLE_LOCK_T;
 typedef pthread_mutex_t PTHREAD_SIMPLE_RWLOCK_T;
+#elif !defined(LOCK_HPP)
+#define LOCK_HPP
+#include <pthread.h>
 #endif
 
 /* PTHREAD_SPIN */
@@ -125,18 +126,19 @@ typedef pthread_mutex_t PTHREAD_SIMPLE_RWLOCK_T;
 #define PTHREAD_SPIN_LOCK_DESTROY_P(x) pthread_spin_destroy(&((x)->slock))
 
 #elif defined(LOCK_HPP_TYPES)
-#define PTHREAD_SIMPLE_LOCK_T_NAME slock
-#define PTHREAD_SIMPLE_LOCK_T_NAME srwlock
+#define PTHREAD_SPIN_LOCK_T_NAME slock
+#define PTHREAD_SPIN_RWLOCK_T_NAME srwlock
 typedef pthread_spinlock_t PTHREAD_SPIN_LOCK_T;
 typedef pthread_spinlock_t PTHREAD_SPIN_RWLOCK_T;
+#elif !defined(LOCK_HPP)
+#define LOCK_HPP
+#include <pthread.h>
 #endif
 
 #endif
 
 #if defined(ENABLE_GOOGLE_LOCKS) || \
 defined(GOOGLE_SPIN_LOCKS)
-
-#include "spinlock/spinlock.h"
 
 #ifdef LOCK_HPP_FUNCTIONS
 #define GOOGLE_SPIN_READ_LOCK() gsrwlock.Lock()
@@ -167,14 +169,15 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_RWLOCK_T_NAME gsrwlock
 typedef SpinLock GOOGLE_SPIN_LOCK_T;
 typedef SpinLock GOOGLE_SPIN_RWLOCK_T;
+#elif !defined(LOCK_HPP)
+#define LOCK_HPP
+#include "spinlock/spinlock.h"
 #endif
 
 #endif
 
 #if defined (ENABLE_CPP11LOCKS) || \
 defined(CPP11LOCKS)
-
-#include <mutex>
 
 #ifdef LOCK_HPP_FUNCTIONS
 #define CPP11_READ_LOCK() cpp11rwlock->lock()
@@ -205,6 +208,9 @@ defined(CPP11LOCKS)
 #define CPP11_RWLOCK_T_NAME cpp11rwlock
 typedef std::mutex* CPP11_LOCK_T;
 typedef std::mutex* CPP11_RWLOCK_T;
+#elif !defined(LOCK_HPP)
+#define LOCK_HPP
+#include <mutex>
 #endif
 
 #endif
@@ -441,4 +447,4 @@ typedef CPP11_RWLOCK_T RWLOCK_T;
 
 #endif
 
-#endif
+// #endif

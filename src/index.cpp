@@ -26,6 +26,9 @@
 
 namespace libodb
 {
+    
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
 
     DataObj::~DataObj()
     {

@@ -23,9 +23,13 @@
 
 #include "index.hpp"
 #include "iterator.hpp"
+#include "lock.hpp"
 
 namespace libodb
 {
+    
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
 
     /// @class RedBlackTreeI
     /// Implementation of a top-down red-black tree.
