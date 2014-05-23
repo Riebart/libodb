@@ -176,6 +176,7 @@ namespace libodb
 
 
     private:
+
         ODB(FixedDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);

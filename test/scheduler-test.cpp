@@ -1,5 +1,7 @@
 #include "scheduler.hpp"
 
+using namespace libodb;
+
 #include <assert.h>
 #include <vector>
 #include <set>
@@ -34,7 +36,6 @@
 	if (!___case_ended && (___case_name != NULL))\
 		{\
 		ftime(&___case_end);\
-		/*___case_elapsed = ((double)(___case_end - ___case_start) / CLOCKS_PER_SEC);*/\
 		___case_elapsed = TIME_DIFF(___case_end, ___case_start);\
 		printf("(end) %.5gs\n", \
 		___case_elapsed);\
@@ -46,7 +47,6 @@
 	if (___class_name != NULL)\
 	{\
 		ftime(&___class_end);\
-		/*___class_elapsed = ((double)(___class_end - ___class_start) / CLOCKS_PER_SEC);*/\
 		___class_elapsed = TIME_DIFF(___class_end, ___class_start);\
 		printf("= %s = %.5gs\n\n", \
 		___class_name, \
@@ -123,38 +123,38 @@ void sleep(int msec, bool dots)
 }
 
 #ifdef CPP11THREADS
-// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
-// Nore that there's no way to get the value from an atomic_flag without setting it, so
-// we can't build a try_lock on it.
-// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
-class SpinLock
-{
-public:
-    void lock()
-    {
-        bool exp = false;
-        bool des = true;
-        // Weak exchanges can spuriously return
-        while (!lck.compare_exchange_weak(exp, des))
-        {
-            exp = false;
-        }
-    }
-    
-    //! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
-    bool try_lock()
-    {
-        return lck.load();
-    }
-    
-    void unlock()
-    {
-        lck.store(false);
-    }
-    
-private:
-    std::atomic<bool> lck = false;
-};
+//// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
+//// Nore that there's no way to get the value from an atomic_flag without setting it, so
+//// we can't build a try_lock on it.
+//// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+//class SpinLock
+//{
+//public:
+//    void lock()
+//    {
+//        bool exp = false;
+//        bool des = true;
+//        // Weak exchanges can spuriously return
+//        while (!lck.compare_exchange_weak(exp, des))
+//        {
+//            exp = false;
+//        }
+//    }
+//    
+//    //! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
+//    bool try_lock()
+//    {
+//        return lck.load();
+//    }
+//    
+//    void unlock()
+//    {
+//        lck.store(false);
+//    }
+//    
+//private:
+//    std::atomic<bool> lck = false;
+//};
 
 void test_atomic_bool()
 {

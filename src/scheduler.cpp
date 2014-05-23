@@ -23,6 +23,7 @@
 
 namespace libodb
 {
+
 #ifdef CPP11THREADS
 #define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
 #define THREAD_DESTROY(t) delete (t)
@@ -50,49 +51,7 @@ namespace libodb
     /// when they are shuffling the workqueue in its tree. These locks will no
     /// longer be needed once a proper lockfree queue is implemented.
     /// @{
-    //! @todo Investigate C++11 spinlocks
 #ifndef CPP11SPINMUTEX
-    // http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
-    // Nore that there's no way to get the value from an atomic_flag without setting it, so
-    // we can't build a try_lock on it.
-    // We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
-    class SpinLock
-    {
-    public:
-        void lock()
-        {
-            bool expected = false;
-            bool desired = true;
-            // We expect the lock to be false (what we set it to when unlocking), and want to set it
-            // to true;
-            while (!lck.compare_exchange_weak(expected, desired))
-            {
-                // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
-                expected = false;
-            }
-        }
-
-        //! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
-        bool try_lock()
-        {
-            bool expected = false;
-            bool desired = true;
-            // We expect the lock to be false (what we set it to when unlocking), and want to set it
-            // to true, but we'll ony try once, so we want a string check.
-            // The operation returns true if we changed the value, and false otherwise, so just return
-            // its value.
-            return lck.compare_exchange_strong(expected, desired);
-        }
-
-        void unlock()
-        {
-            lck.store(false);
-        }
-
-    private:
-        std::atomic<bool> lck = false;
-    };
-
 #define SCHED_LOCK() (lock->lock())
 #define SCHED_LOCK_P(x) ((x)->lock->lock())
 #define SCHED_TRYLOCK() (lock->try_lock())
@@ -102,6 +61,7 @@ namespace libodb
 #define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
 #define SCHED_LOCK_INIT() lock = new SpinLock()
 #define SCHED_LOCK_DESTROY() delete lock
+
 #else
 #define SCHED_LOCK() (lock->lock())
 #define SCHED_LOCK_P(x) ((x)->lock->lock())
@@ -112,17 +72,10 @@ namespace libodb
 #define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
 #define SCHED_LOCK_INIT() lock = new std::mutex()
 #define SCHED_LOCK_DESTROY() delete lock
-#endif
 
+#endif
     /// @}
 
-    // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
-    // #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
-    // #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
-    // #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
-    // #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
-    // #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
-    // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_DESTROY(t) ;
@@ -170,20 +123,59 @@ namespace libodb
     // #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
     // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #endif
-    
+
 #ifdef WIN32
 #define MAP_GET(map, key) (map)->at((key))
 
 #elif CMAKE_COMPILER_SUITE_GCC
-// http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
-// http://gcc.gnu.org/gcc-4.3/changes.html
+    // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
+    // http://gcc.gnu.org/gcc-4.3/changes.html
 #define MAP_GET(map, key) (*(map))[(key)]
 
 #elif CMAKE_COMPILER_SUITE_SUN
-// http://www.sgi.com/tech/stl/hash_map.html
+    // http://www.sgi.com/tech/stl/hash_map.html
 #define MAP_GET(map, key) (*(map))[(key)]
 
 #endif
+
+    SpinLock::SpinLock()
+    {
+        l = new std::atomic<bool>(false);
+    }
+
+    SpinLock::~SpinLock()
+    {
+        delete l;
+    }
+
+    void SpinLock::lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true;
+        while (!l->compare_exchange_weak(expected, desired))
+        {
+            // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
+            expected = false;
+        }
+    }
+
+    bool SpinLock::try_lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true, but we'll ony try once, so we want a string check.
+        // The operation returns true if we changed the value, and false otherwise, so just return
+        // its value.
+        return l->compare_exchange_strong(expected, desired);
+    }
+
+    void SpinLock::unlock()
+    {
+        l->store(false);
+    }
 
     void* scheduler_worker_thread(void* args_v)
     {
@@ -292,11 +284,11 @@ namespace libodb
     {
         struct Scheduler::queue_el* aN = reinterpret_cast<struct Scheduler::queue_el*>(aV);
         struct Scheduler::queue_el* bN = reinterpret_cast<struct Scheduler::queue_el*>(bV);
-        
+
         LFQueue<struct Scheduler::workload*>* a = aN->queue;
         LFQueue<struct Scheduler::workload*>* b = aN->queue;
 
-        int32_t ret;
+        int32_t ret = 0;
 
         // First compare the flags; if they are equal then we can move onto checking the head workload.
         // Are they equally high-important?
@@ -434,7 +426,7 @@ namespace libodb
 
         SCHED_UNLOCK();
     }
-    
+
     void Scheduler::update_queue_push_flags(struct Scheduler::queue_el* q, uint32_t f)
     {
         // If the new item is high priority, then so is the queue
@@ -485,7 +477,7 @@ namespace libodb
         struct queue_el* q = find_queue(class_id);
         q->queue->push_back(work);
         Scheduler::update_queue_push_flags(q, flags);
-        
+
         work->q = q;
 
         if (!q->in_tree)
@@ -567,7 +559,7 @@ namespace libodb
 
         return num_threads;
     }
-    
+
     /// QUEUE MANAGEMENT STRUCTURES
     /// There should be a Red-black tree that keeps track of all of the workqueues
     /// and sorts based on the oldest workload, and any applicable flags in applied
@@ -593,7 +585,7 @@ namespace libodb
 
         if (retval == NULL)
         {
-//             retval = new LFQueue();
+            //             retval = new LFQueue();
             SAFE_MALLOC(struct queue_el*, retval, sizeof(struct queue_el));
             retval->link[0] = NULL;
             retval->link[1] = NULL;
@@ -601,7 +593,7 @@ namespace libodb
             retval->flags = Scheduler::NONE;
             retval->in_tree = false;
             retval->num_hp = 0;
-            
+
             MAP_GET(queue_map, class_id) = retval;
         }
 
@@ -615,7 +607,7 @@ namespace libodb
         if (f & HIGH_PRIORITY)
         {
             q->num_hp--;
-            
+
             if (q->num_hp == 0)
             {
                 q->flags &= ~Scheduler::HIGH_PRIORITY;
@@ -628,7 +620,7 @@ namespace libodb
             q->flags &= BACKGROUND;
         }
     }
-    
+
     struct Scheduler::workload* Scheduler::get_work()
     {
         SCHED_LOCK();

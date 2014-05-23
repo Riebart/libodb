@@ -50,7 +50,23 @@
 
 namespace libodb
 {
-    template <class T> class LFQueue;
+
+    // http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
+    // Nore that there's no way to get the value from an atomic_flag without setting it, so
+    // we can't build a try_lock on it.
+    // We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+    class LIBODB_API SpinLock
+    {
+    public:
+        SpinLock();
+        ~SpinLock();
+        void lock();
+        bool try_lock();
+        void unlock();
+
+    private:
+        std::atomic<bool>* l;
+    };
 
 #ifdef CPP11THREADS
     typedef std::thread* THREAD_T;
@@ -72,8 +88,10 @@ namespace libodb
     typedef pthread_cond_t CONDVAR_T;
     typedef pthread_mutex_t SCHED_MLOCK_T;
     typedef pthread_spinlock_t SCHED_LOCK_T;
-    
+
 #endif
+
+    template <class T> class LFQueue;
 
     /* BEHAVIOUR DESCRIPTION
      * - Addition of new workloads is thread-safe, but blocking. Threads will block
@@ -105,7 +123,7 @@ namespace libodb
         friend void* scheduler_worker_thread(void* args_v);
         friend int32_t compare_workqueue(void* aV, void* bV);
 
-//         friend class LFQueue;
+        //         friend class LFQueue;
 
     public:
         /// These flags aren't currently propagated to the containing queues when appropriate,
@@ -174,7 +192,7 @@ namespace libodb
 
     private:
         struct workload;
-        
+
         struct queue_el
         {
             void* link[2];
@@ -183,7 +201,7 @@ namespace libodb
             uint32_t flags;
             uint32_t num_hp;
         };
-        
+
         struct workload
         {
             void* (*func)(void*);
@@ -191,7 +209,7 @@ namespace libodb
             void** retval;
             uint64_t id;
             struct queue_el* q;
-//             LFQueue* queue;
+            //             LFQueue* queue;
             uint32_t flags;
         };
 
@@ -204,7 +222,7 @@ namespace libodb
 
         struct queue_el* find_queue(uint64_t class_id);
         struct workload* get_work();
-        
+
         static void update_queue_push_flags(struct queue_el* q, uint32_t f);
         static void update_queue_pop_flags(struct queue_el* q, uint32_t f);
 
@@ -229,19 +247,19 @@ namespace libodb
 
         struct RedBlackTreeI::e_tree_root* root;
 
-        #ifdef WIN32
+#ifdef WIN32
         typedef std::unordered_map<uint64_t, struct queue_el*> MAP_T;
-        
-        #elif CMAKE_COMPILER_SUITE_GCC
+
+#elif CMAKE_COMPILER_SUITE_GCC
         // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
         // http://gcc.gnu.org/gcc-4.3/changes.html
         typedef std::tr1::unordered_map<uint64_t, struct queue_el*> MAP_T;
-        
-        #elif CMAKE_COMPILER_SUITE_SUN
+
+#elif CMAKE_COMPILER_SUITE_SUN
         // http://www.sgi.com/tech/stl/hash_map.html
         typedef std::hash_map<uint64_t, struct queue_el*> MAP_T;
-        
-        #endif
+
+#endif
         MAP_T* queue_map;
 
         struct queue_el indep;
