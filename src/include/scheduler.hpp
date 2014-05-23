@@ -136,8 +136,8 @@ namespace libodb
         /// Below is the list of flags that are currently implemented, and where the code is.
         ///
         /// READ_ONLY           get_work
-        /// HIGH_PRIORITY       compare_workqueue
-        /// BACKGROUND          compare_workqueue
+        /// HIGH_PRIORITY       compare_workqueue, update_queue_push_flags, update_queue_pop_flags
+        /// BACKGROUND          compare_workqueue, update_queue_push_flags, update_queue_pop_flags
 
         /* FLAG DESCRIPTIONS
          * NONE
@@ -212,7 +212,6 @@ namespace libodb
             void** retval;
             uint64_t id;
             struct queue_el* q;
-            //             LFQueue* queue;
             uint32_t flags;
         };
 

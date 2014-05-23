@@ -664,11 +664,6 @@ namespace libodb
                 q->in_tree = true;
                 first_work->q = NULL;
             }
-            //! @todo is this redundant?
-            //else
-            //{
-            //    first_work->q = q;
-            //}
 
             work_avail--;
         }

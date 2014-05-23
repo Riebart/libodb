@@ -44,22 +44,12 @@ namespace libodb
     public:
         LFQueue()
         {
-// //             in_tree = false;
-// //             flags = Scheduler::NONE;
-// //             last_high = 0;
-// 
-// //             SAFE_MALLOC(struct tree_node*, tree_node, sizeof(struct tree_node));
-// //             tree_node->links[0] = NULL;
-// //             tree_node->links[1] = NULL;
-// //             tree_node->queue = this;
-
             base = new std::deque<T>();
             RWLOCK_INIT();
         }
 
         ~LFQueue()
         {
-//             free(tree_node);
             delete base;
             RWLOCK_DESTROY();
         }
@@ -69,19 +59,6 @@ namespace libodb
             WRITE_LOCK();
             base->push_back(item);
             WRITE_UNLOCK();
-
-//             // If this item is high priority, then this queue becomes that immediately.
-//             if (item->flags & Scheduler::HIGH_PRIORITY)
-//             {
-//                 last_high = item->id;
-//                 flags = Scheduler::HIGH_PRIORITY;
-//             }
-// 
-//             // If this is the only item in the list, and it is a BG load, we can go BG.
-//             if ((base->size() == 1) && (item->flags & Scheduler::BACKGROUND))
-//             {
-//                 flags = Scheduler::BACKGROUND;
-//             }
         }
 
         T peek()
@@ -106,21 +83,6 @@ namespace libodb
                 base->pop_front();
                 WRITE_UNLOCK();
                 return front;
-
-//                 // If we just popped a HP load, we need to see if that was the latest one.
-//                 // Alternatively, if we weren't HP to begin with...
-//                 if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
-//                 {
-//                     // If it was, we can reset to either BG or NONE, depending on the head.
-//                     if (base->front()->flags & Scheduler::BACKGROUND)
-//                     {
-//                         flags = Scheduler::BACKGROUND;
-//                     }
-//                     else
-//                     {
-//                         flags = Scheduler::NONE;
-//                     }
-//                 }
             }
         }
 
@@ -133,25 +95,7 @@ namespace libodb
         }
 
     private:
-//         struct tree_node
-//         {
-//             void* links[2];
-//             LFQueue* queue;
-//         };
-
         std::deque<T>* base;
-
-        // "in_tree" contains whether or not a queue has been pushed from the scheduler's
-        // tree due to being empty. A queue that is temporarily out of the scheduler's
-        // tree due to an in-progress workload will not have this value changed unless
-        // the queue is empty when it is due to re-insertion into the tree.
-//         bool in_tree;
-//         uint16_t flags;
-//         uint64_t last_high;
-
-        // Holds the context for this queue in the scheduler's tree
-//         struct tree_node* tree_node;
-        
         RWLOCK_T;
     };
 
