@@ -23,6 +23,7 @@
 
 #include "common.hpp"
 #include "scheduler.hpp"
+#include "lock.hpp"
 
 #include <deque>
 
@@ -37,58 +38,61 @@ namespace libodb
     /// those used on the workloads. For example, when a workload is added to the queue
     /// with the many flags also affects how this queue is scheduled.
 
-    class LIBODB_API LFQueue
+    //! @todo Convert this to the scheduler's spinlocks.
+    template <class T> class LIBODB_API LFQueue
     {
-        friend void* scheduler_worker_thread(void* args_v);
-        friend int32_t compare_workqueue(void* aV, void* bV);
-
-        friend class Scheduler;
-
     public:
         LFQueue()
         {
-            in_tree = false;
-            flags = Scheduler::NONE;
-            last_high = 0;
+// //             in_tree = false;
+// //             flags = Scheduler::NONE;
+// //             last_high = 0;
+// 
+// //             SAFE_MALLOC(struct tree_node*, tree_node, sizeof(struct tree_node));
+// //             tree_node->links[0] = NULL;
+// //             tree_node->links[1] = NULL;
+// //             tree_node->queue = this;
 
-            SAFE_MALLOC(struct tree_node*, tree_node, sizeof(struct tree_node));
-            tree_node->links[0] = NULL;
-            tree_node->links[1] = NULL;
-            tree_node->queue = this;
-
-            base = new std::deque<struct Scheduler::workload*>();
+            base = new std::deque<T>();
+            RWLOCK_INIT();
         }
 
         ~LFQueue()
         {
-            free(tree_node);
+//             free(tree_node);
             delete base;
+            RWLOCK_DESTROY();
         }
 
-        void push_back(struct Scheduler::workload* item)
+        void push_back(T item)
         {
+            WRITE_LOCK();
             base->push_back(item);
+            WRITE_UNLOCK();
 
-            // If this item is high priority, then this queue becomes that immediately.
-            if (item->flags & Scheduler::HIGH_PRIORITY)
-            {
-                last_high = item->id;
-                flags = Scheduler::HIGH_PRIORITY;
-            }
-
-            // If this is the only item in the list, and it is a BG load, we can go BG.
-            if ((base->size() == 1) && (item->flags & Scheduler::BACKGROUND))
-            {
-                flags = Scheduler::BACKGROUND;
-            }
+//             // If this item is high priority, then this queue becomes that immediately.
+//             if (item->flags & Scheduler::HIGH_PRIORITY)
+//             {
+//                 last_high = item->id;
+//                 flags = Scheduler::HIGH_PRIORITY;
+//             }
+// 
+//             // If this is the only item in the list, and it is a BG load, we can go BG.
+//             if ((base->size() == 1) && (item->flags & Scheduler::BACKGROUND))
+//             {
+//                 flags = Scheduler::BACKGROUND;
+//             }
         }
 
-        struct Scheduler::workload* peek()
+        T peek()
         {
-            return base->front();
+            READ_LOCK();
+            T ret = base->front();
+            READ_UNLOCK();
+            return ret;
         }
 
-        struct Scheduler::workload* pop_front()
+        T pop_front()
         {
             if (base->size() == 0)
             {
@@ -96,23 +100,25 @@ namespace libodb
             }
             else
             {
-                struct Scheduler::workload* front = base->front();
+                WRITE_LOCK();
+                T front = base->front();
                 base->pop_front();
+                WRITE_UNLOCK();
 
-                // If we just popped a HP load, we need to see if that was the latest one.
-                // Alternatively, if we weren't HP to begin with...
-                if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
-                {
-                    // If it was, we can reset to either BG or NONE, depending on the head.
-                    if (base->front()->flags & Scheduler::BACKGROUND)
-                    {
-                        flags = Scheduler::BACKGROUND;
-                    }
-                    else
-                    {
-                        flags = Scheduler::NONE;
-                    }
-                }
+//                 // If we just popped a HP load, we need to see if that was the latest one.
+//                 // Alternatively, if we weren't HP to begin with...
+//                 if ((!(flags & Scheduler::HIGH_PRIORITY)) && ((front->flags & Scheduler::HIGH_PRIORITY) && (front->id == last_high)))
+//                 {
+//                     // If it was, we can reset to either BG or NONE, depending on the head.
+//                     if (base->front()->flags & Scheduler::BACKGROUND)
+//                     {
+//                         flags = Scheduler::BACKGROUND;
+//                     }
+//                     else
+//                     {
+//                         flags = Scheduler::NONE;
+//                     }
+//                 }
 
                 return front;
             }
@@ -120,29 +126,34 @@ namespace libodb
 
         uint64_t size()
         {
+            READ_LOCK();
             return base->size();
+            READ_UNLOCK();
         }
 
     private:
-        struct tree_node
-        {
-            void* links[2];
-            LFQueue* queue;
-        };
+//         struct tree_node
+//         {
+//             void* links[2];
+//             LFQueue* queue;
+//         };
 
-        std::deque<struct Scheduler::workload*>* base;
+        std::deque<T>* base;
 
         // "in_tree" contains whether or not a queue has been pushed from the scheduler's
         // tree due to being empty. A queue that is temporarily out of the scheduler's
         // tree due to an in-progress workload will not have this value changed unless
         // the queue is empty when it is due to re-insertion into the tree.
-        bool in_tree;
-        uint16_t flags;
-        uint64_t last_high;
+//         bool in_tree;
+//         uint16_t flags;
+//         uint64_t last_high;
 
         // Holds the context for this queue in the scheduler's tree
-        struct tree_node* tree_node;
+//         struct tree_node* tree_node;
+        
+        RWLOCK_T;
     };
+
 }
 
 #endif

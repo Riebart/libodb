@@ -15,9 +15,9 @@
 
 #include "scheduler.hpp"
 #include "common.hpp"
-#include "lfqueue.hpp"
 
-#ifndef CPP11SPINMUTEX
+#if defined(CPP11THREADS) &&\
+!defined(CPP11SPINMUTEX)
 #include <atomic>
 #endif
 
@@ -170,6 +170,20 @@ namespace libodb
     // #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
     // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #endif
+    
+#ifdef WIN32
+#define MAP_GET(map, key) (map)->at((key))
+
+#elif CMAKE_COMPILER_SUITE_GCC
+// http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
+// http://gcc.gnu.org/gcc-4.3/changes.html
+#define MAP_GET(map, key) (*(map))[(key)]
+
+#elif CMAKE_COMPILER_SUITE_SUN
+// http://www.sgi.com/tech/stl/hash_map.html
+#define MAP_GET(map, key) (*(map))[(key)]
+
+#endif
 
     void* scheduler_worker_thread(void* args_v)
     {
@@ -247,18 +261,18 @@ namespace libodb
                 //
                 // We add the queue back to the tree here. Might have to add it into the arguments
                 // that come in along with the workload itself.
-                if (work->queue != NULL)
+                if (work->q != NULL)
                 {
-                    if (work->queue->size() > 0)
+                    if (work->q->queue->size() > 0)
                     {
                         SCHED_LOCK_P(args->scheduler);
-                        RedBlackTreeI::e_add(args->scheduler->root, work->queue->tree_node);
-                        work->queue->in_tree = true;
+                        RedBlackTreeI::e_add(args->scheduler->root, work->q);
+                        work->q->in_tree = true;
                         SCHED_UNLOCK_P(args->scheduler);
                     }
                     else
                     {
-                        work->queue->in_tree = false;
+                        work->q->in_tree = false;
                     }
                 }
 
@@ -276,14 +290,24 @@ namespace libodb
     /// and the queue itself.
     int32_t compare_workqueue(void* aV, void* bV)
     {
-        LFQueue* a = (reinterpret_cast<struct Scheduler::tree_node*>(aV))->queue;
-        LFQueue* b = (reinterpret_cast<struct Scheduler::tree_node*>(bV))->queue;
+        struct Scheduler::queue_el* aN = reinterpret_cast<struct Scheduler::queue_el*>(aV);
+        struct Scheduler::queue_el* bN = reinterpret_cast<struct Scheduler::queue_el*>(bV);
+        
+        LFQueue<struct Scheduler::workload*>* a = aN->queue;
+        LFQueue<struct Scheduler::workload*>* b = aN->queue;
 
         int32_t ret;
 
         // First compare the flags; if they are equal then we can move onto checking the head workload.
         // Are they equally high-important?
-        ret = (b->flags & Scheduler::HIGH_PRIORITY) - (a->flags & Scheduler::HIGH_PRIORITY);
+        if ((aN->flags & Scheduler::HIGH_PRIORITY) && !(aN->flags & Scheduler::HIGH_PRIORITY))
+        {
+            return -1;
+        }
+        else if ((bN->flags & Scheduler::HIGH_PRIORITY) && !(aN->flags & Scheduler::HIGH_PRIORITY))
+        {
+            return 1;
+        }
 
         if (ret != 0) // If either is high priority, and the other is not...
         {
@@ -291,7 +315,7 @@ namespace libodb
         }
         else
         {
-            ret = (a->flags & Scheduler::BACKGROUND) - (b->flags & Scheduler::BACKGROUND);
+            ret = (aN->flags & Scheduler::BACKGROUND) - (bN->flags & Scheduler::BACKGROUND);
 
             if (ret != 0) // If either is background, and the other is not.
             {
@@ -332,7 +356,9 @@ namespace libodb
         THREAD_COND_INIT(work_cond);
         THREAD_COND_INIT(block_cond);
 
-        indep = new LFQueue();
+        indep.queue = new LFQueue<struct workload*>();
+        indep.flags = Scheduler::NONE;
+        indep.in_tree = false;
 
         SAFE_MALLOC(THREAD_T*, threads, num_threads * sizeof(THREAD_T));
         SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
@@ -361,7 +387,7 @@ namespace libodb
         update_num_threads(0);
         free(t_args);
         free(threads);
-        delete indep;
+        delete indep.queue;
 
         /// @bug The data used by the workqueues and their un-processed workloads is not freed.
         /// Need to free the data used by the workqueues and their unprocessed wokloads here.
@@ -392,12 +418,13 @@ namespace libodb
         work->id = workload_id;
         work->flags = flags;
 
-        indep->push_back(work);
+        // We need to consider the flags here.
+        indep.queue->push_back(work);
 
-        if (!indep->in_tree)
+        if (!indep.in_tree)
         {
-            RedBlackTreeI::e_add(root, indep->tree_node);
-            indep->in_tree = true;
+            RedBlackTreeI::e_add(root, &indep);
+            indep.in_tree = true;
         }
 
         work_avail++;
@@ -406,6 +433,31 @@ namespace libodb
         THREAD_COND_SIGNAL(work_cond);
 
         SCHED_UNLOCK();
+    }
+    
+    void Scheduler::update_queue_push_flags(struct Scheduler::queue_el* q, uint32_t f)
+    {
+        // If the new item is high priority, then so is the queue
+        if (f & Scheduler::HIGH_PRIORITY)
+        {
+            q->flags = Scheduler::HIGH_PRIORITY;
+            q->num_hp++;
+        }
+        // If this is the only item in the queue, and it is a background item
+        // then the whole queue can go background.
+        else if ((q->queue->size() == 1) && (f & Scheduler::BACKGROUND))
+        {
+            q->flags = Scheduler::BACKGROUND;
+        }
+        // If we're adding a non-BACKGROUND workload to a BACKGROUND queue, it isn't
+        // background anymore.
+        else if ((q->flags & Scheduler::BACKGROUND) && !(f & Scheduler::BACKGROUND))
+        {
+            q->flags &= ~Scheduler::BACKGROUND;
+        }
+        // If the new workload isn't high priority, or background, then the priority
+        // doesn't change when adding a new item.
+        //! @todo Other priority types?
     }
 
     void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)
@@ -430,13 +482,16 @@ namespace libodb
         work->flags = flags;
 
         // Here we need to identify the interference class and add this to it.
-        LFQueue* queue = find_queue(class_id);
-        queue->push_back(work);
+        struct queue_el* q = find_queue(class_id);
+        q->queue->push_back(work);
+        Scheduler::update_queue_push_flags(q, flags);
+        
+        work->q = q;
 
-        if (!queue->in_tree)
+        if (!q->in_tree)
         {
-            RedBlackTreeI::e_add(root, queue->tree_node);
-            queue->in_tree = true;
+            RedBlackTreeI::e_add(root, q);
+            q->in_tree = true;
         }
 
         work_avail++;
@@ -512,7 +567,7 @@ namespace libodb
 
         return num_threads;
     }
-
+    
     /// QUEUE MANAGEMENT STRUCTURES
     /// There should be a Red-black tree that keeps track of all of the workqueues
     /// and sorts based on the oldest workload, and any applicable flags in applied
@@ -531,19 +586,49 @@ namespace libodb
     /// an empty queue, that queue must be rearranged in the RBT. However, destroying
     /// a queue when it becomes empty is not wise either since in some cases a queue
     /// may often run dry as the producer produces work slower than consumers consume it.
-    LFQueue* Scheduler::find_queue(uint64_t class_id)
+    struct Scheduler::queue_el* Scheduler::find_queue(uint64_t class_id)
     {
-        LFQueue* retval = MAP_GET(queue_map, class_id);
+        //! @bug Do all of the map implementations reutrn null when looking up an ID that isn't in them?
+        struct queue_el* retval = MAP_GET(queue_map, class_id);
 
         if (retval == NULL)
         {
-            retval = new LFQueue();
+//             retval = new LFQueue();
+            SAFE_MALLOC(struct queue_el*, retval, sizeof(struct queue_el));
+            retval->link[0] = NULL;
+            retval->link[1] = NULL;
+            retval->queue = new LFQueue<struct workload*>();
+            retval->flags = Scheduler::NONE;
+            retval->in_tree = false;
+            retval->num_hp = 0;
+            
             MAP_GET(queue_map, class_id) = retval;
         }
 
         return retval;
     }
 
+    void Scheduler::update_queue_pop_flags(struct Scheduler::queue_el* q, uint32_t f)
+    {
+        // If we popped a high-priority workload, decrement that.
+        // If that counter hits zero, then discard the HIGH_PRIORITY flag
+        if (f & HIGH_PRIORITY)
+        {
+            q->num_hp--;
+            
+            if (q->num_hp == 0)
+            {
+                q->flags &= ~Scheduler::HIGH_PRIORITY;
+            }
+        }
+        // If we're back to the last item, and it is BACKGROUND, then the queue is
+        // BACKGROUND
+        else if ((q->queue->size() == 1) && (q->queue->peek()->flags & Scheduler::BACKGROUND))
+        {
+            q->flags &= BACKGROUND;
+        }
+    }
+    
     struct Scheduler::workload* Scheduler::get_work()
     {
         SCHED_LOCK();
@@ -557,32 +642,35 @@ namespace libodb
         struct workload* first_work = NULL;
         void* first_queue = RedBlackTreeI::e_pop_first(root);
 
-        LFQueue* queue = ((struct tree_node*)first_queue)->queue;
+        struct queue_el* q = (struct queue_el*)first_queue;
+        LFQueue<struct Scheduler::workload*>* queue = q->queue;
 
         // This is more of a sanity check than anything.
         // This shouldn't ever fail.
         if (queue->size() > 0)
         {
             first_work = queue->pop_front();
+            Scheduler::update_queue_pop_flags(q, first_work->flags);
 
             // At this point, if the queue isn't the independent queue, or the workload isn't
             // marked as READ_ONLY, the queue should be removed from the RBT, so that no
-            // conflicting workloads are processed concurrently.
+            // conflicting workloads are processed concurrently. (the 'else', that is we
+            // just don't add it back, and let the worker thread do that.)
             //
             // If the queue is the indep queue, or the workload is marked as READ_ONLY, then
             // the queue should be relocated in the tree to a position appropriate for the
             // new workload at the head of the queue. This will likely involve a 'remove'
             // and an 'add' operation, so two RBT operations consecutively. Not sure if there
-            // is a faster way of doing this.
-            if ((queue->size() > 0) && ((queue == indep) || (first_work->flags & Scheduler::READ_ONLY)))
+            // is a faster way of doing this. (the 'if')
+            if ((queue->size() > 0) && ((queue == indep.queue) || (first_work->flags & Scheduler::READ_ONLY)))
             {
-                RedBlackTreeI::e_add(root, queue->tree_node);
-                queue->in_tree = true;
-                first_work->queue = NULL;
+                RedBlackTreeI::e_add(root, q);
+                q->in_tree = true;
+                first_work->q->queue = NULL;
             }
             else
             {
-                first_work->queue = queue;
+                first_work->q = q;
             }
 
             work_avail--;
@@ -604,7 +692,6 @@ namespace libodb
         // If there are any unparked threads, we need to wait on them
         while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
         {
-            //! @bug RACE CONDITION A thread may park in here before we wait on the condition variable, so we'll never wake up.
             // When worker threads park themselves, they signal this condvar. The only thing
             // that waits on this is this function. 
             THREAD_COND_WAIT(block_cond, mlock);
