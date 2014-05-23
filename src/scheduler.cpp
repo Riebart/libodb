@@ -16,8 +16,7 @@
 #include "scheduler.hpp"
 #include "common.hpp"
 
-#if defined(CPP11THREADS) &&\
-!defined(CPP11SPINMUTEX)
+#if defined(CPP11THREADS) && !defined(CPP11SPINMUTEX)
 #include <atomic>
 #endif
 

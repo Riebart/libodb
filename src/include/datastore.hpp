@@ -22,12 +22,13 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "lock.hpp"
-
 namespace libodb
 {
 
-    //! @todo Promote these away from preprocessor defines.
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
+
+    //! @todo Promote these away from preprocessor defines or at least into cpp files
     #define GET_TIME_STAMP(x, dlen) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + dlen))
     #define SET_TIME_STAMP(x, t, dlen) (GET_TIME_STAMP(x, dlen) = t);
     #define GET_QUERY_COUNT(x, dlen) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + dlen + time_stamp * sizeof(time_t)))

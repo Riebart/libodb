@@ -48,12 +48,14 @@
 
 #endif
 
-#include "lock.hpp"
 #include "lfqueue.hpp"
 #include "redblacktreei.hpp"
 
 namespace libodb
 {
+
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
 
 #ifdef CPP11THREADS
     typedef std::thread* THREAD_T;

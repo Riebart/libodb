@@ -29,6 +29,9 @@
 namespace libodb
 {
 
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
+
     /// Get the value of the least-significant bit in the specified node's left
     ///pointer.
     /// Performs an embedded NULL check.

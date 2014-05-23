@@ -22,6 +22,9 @@
 namespace libodb
 {
 
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
+
     DataStore::DataStore()
     {
         clones = new std::vector<ODB*>();

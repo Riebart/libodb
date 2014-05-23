@@ -21,11 +21,13 @@
 #include <stack>
 
 #include "datastore.hpp"
-#include "lock.hpp"
 #include "iterator.hpp"
 
 namespace libodb
 {
+
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
 
     class LIBODB_API BankDS : public DataStore
     {

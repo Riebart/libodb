@@ -16,6 +16,11 @@
 ///spin locks, pthread mutex locks, and Google's spin locks. If none of the locks
 ///are chosen or enabled, then the copmpiler definitions are defined to map to
 ///nothing (and so will resolve, but will not result in the placement of any code.
+/// You should define one of LOCK_HPP_TYPES or LOCK_HPP_FUNCTIONS before including
+//this file. These defines control which parts of this file get activated. The types
+///should be included/defined in your class/namespace headers, and the functions
+///should be included/defined in your cpp/source header files to limit scope
+///pollution.
 /// @file lock.hpp
 
 #ifndef LOCK_HPP
@@ -25,7 +30,10 @@
 ///lock flavours
 #if defined(ENABLE_PTHREAD_LOCKS) || \
 defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SPIN_LOCKS)
+
 #include "pthread.h"
+
+#ifdef LOCK_HPP_FUNCTIONS
 
 /* PTHREAD_RW */
 // PTHREAD_RW_*LOCK*() makes no sense, don't use it.
@@ -52,12 +60,15 @@ defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SP
 #define PTHREAD_RW_LOCK_DESTROY() int[-1];
 #define PTHREAD_RW_LOCK_DESTROY_P(x) int[-1];
 
+#elif defined(LOCK_HPP_TYPES)
 #define PTHREAD_RW_LOCK_T_NAME int[-1];
 #define PTHREAD_RW_RWLOCK_T_NAME prwlock
 typedef pthread_rwlock_t PTHREAD_RW_LOCK_T;
 typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
+#endif
 
 /* PTHREAD_SIMPLE */
+#ifdef LOCK_HPP_FUNCTIONS
 #define PTHREAD_SIMPLE_READ_LOCK() pthread_mutex_lock(&mrwlock)
 #define PTHREAD_SIMPLE_READ_LOCK_P(x) pthread_mutex_lock(&((x)->mrwlock))
 #define PTHREAD_SIMPLE_READ_UNLOCK() pthread_mutex_unlock(&mrwlock)
@@ -81,12 +92,15 @@ typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
 #define PTHREAD_SIMPLE_LOCK_DESTROY() pthread_mutex_destroy(&mlock)
 #define PTHREAD_SIMPLE_LOCK_DESTROY_P(x) pthread_mutex_destroy(&((x)->mlock))
 
+#elif defined(LOCK_HPP_TYPES)
 #define PTHREAD_SIMPLE_LOCK_T_NAME mlock
 #define PTHREAD_SIMPLE_RWLOCK_T_NAME mrwlock
 typedef pthread_mutex_t PTHREAD_SIMPLE_LOCK_T;
 typedef pthread_mutex_t PTHREAD_SIMPLE_RWLOCK_T;
+#endif
 
 /* PTHREAD_SPIN */
+#ifdef LOCK_HPP_FUNCTIONS
 #define PTHREAD_SPIN_READ_LOCK() pthread_spin_lock(&srwlock)
 #define PTHREAD_SPIN_READ_LOCK_P(x) pthread_spin_lock(&((x)->srwlock))
 #define PTHREAD_SPIN_READ_UNLOCK() pthread_spin_unlock(&srwlock)
@@ -110,18 +124,21 @@ typedef pthread_mutex_t PTHREAD_SIMPLE_RWLOCK_T;
 #define PTHREAD_SPIN_LOCK_DESTROY() pthread_spin_destroy(&slock)
 #define PTHREAD_SPIN_LOCK_DESTROY_P(x) pthread_spin_destroy(&((x)->slock))
 
+#elif defined(LOCK_HPP_TYPES)
 #define PTHREAD_SIMPLE_LOCK_T_NAME slock
 #define PTHREAD_SIMPLE_LOCK_T_NAME srwlock
 typedef pthread_spinlock_t PTHREAD_SPIN_LOCK_T;
 typedef pthread_spinlock_t PTHREAD_SPIN_RWLOCK_T;
+#endif
 
 #endif
 
 #if defined(ENABLE_GOOGLE_LOCKS) || \
 defined(GOOGLE_SPIN_LOCKS)
-//! @todo This might incur namespacing errors, like the STL items now that we're namespaced...
+
 #include "spinlock/spinlock.h"
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define GOOGLE_SPIN_READ_LOCK() gsrwlock.Lock()
 #define GOOGLE_SPIN_READ_LOCK_P(x) ((x)->gsrwlock).Lock()
 #define GOOGLE_SPIN_READ_UNLOCK() gsrwlock.Unlock()
@@ -145,17 +162,21 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_LOCK_DESTROY()
 #define GOOGLE_SPIN_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define GOOGLE_SPIN_LOCK_T_NAME gslock
 #define GOOGLE_SPIN_RWLOCK_T_NAME gsrwlock
 typedef SpinLock GOOGLE_SPIN_LOCK_T;
 typedef SpinLock GOOGLE_SPIN_RWLOCK_T;
+#endif
 
 #endif
 
 #if defined (ENABLE_CPP11LOCKS) || \
 defined(CPP11LOCKS)
+
 #include <mutex>
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define CPP11_READ_LOCK() cpp11rwlock->lock()
 #define CPP11_READ_LOCK_P(x) ((x)->cpp11rwlock)->lock()
 #define CPP11_READ_UNLOCK() cpp11rwlock->unlock()
@@ -179,14 +200,18 @@ defined(CPP11LOCKS)
 #define CPP11_LOCK_DESTROY() delete cpp11lock
 #define CPP11_LOCK_DESTROY_P(x) delete ((x)->cpp11lock)
 
+#elif defined(LOCK_HPP_TYPES)
 #define CPP11_LOCK_T_NAME cpp11lock
 #define CPP11_RWLOCK_T_NAME cpp11rwlock
 typedef std::mutex* CPP11_LOCK_T;
 typedef std::mutex* CPP11_RWLOCK_T;
+#endif
 
 #endif
 
 #if defined(PTHREAD_RW_LOCKS)
+
+#ifdef LOCK_HPP_FUNCTIONS
 #define READ_LOCK() PTHREAD_RW_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_RW_READ_LOCK_P(x)
 #define READ_UNLOCK() PTHREAD_RW_READ_UNLOCK()
@@ -210,14 +235,17 @@ typedef std::mutex* CPP11_RWLOCK_T;
 #define LOCK_DESTROY() PTHREAD_RW_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_RW_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define LOCK_T_NAME PTHREAD_RW_LOCK_T_NAME
 #define RWLOCK_T_NAME PTHREAD_RW_RWLOCK_T_NAME
 typedef PTHREAD_RW_LOCK_T LOCK_T;
 typedef PTHREAD_RW_RWLOCK_T RWLOCK_T;
+#endif
 
 //==============================================================================
 #elif defined(PTHREAD_SIMPLE_LOCKS)
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define READ_LOCK() PTHREAD_SIMPLE_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_SIMPLE_READ_LOCK_P(x)
 #define READ_UNLOCK() PTHREAD_SIMPLE_READ_UNLOCK()
@@ -241,14 +269,17 @@ typedef PTHREAD_RW_RWLOCK_T RWLOCK_T;
 #define LOCK_DESTROY() PTHREAD_SIMPLE_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_SIMPLE_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define LOCK_T_NAME PTHREAD_SIMPLE_LOCK_T_NAME
 #define RWLOCK_T_NAME PTHREAD_SIMPLE_RWLOCK_T_NAME
 typedef PTHREAD_SIMPLE_LOCK_T LOCK_T;
 typedef PTHREAD_SIMPLE_RWLOCK_T RWLOCK_T;
+#endif
 
 //==============================================================================
 #elif defined(PTHREAD_SPIN_LOCKS)
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define READ_LOCK() PTHREAD_SPIN_READ_LOCK()
 #define READ_LOCK_P(x) PTHREAD_SPIN_READ_LOCK_P(x)
 #define READ_UNLOCK() PTHREAD_SPIN_READ_UNLOCK()
@@ -272,14 +303,17 @@ typedef PTHREAD_SIMPLE_RWLOCK_T RWLOCK_T;
 #define LOCK_DESTROY() PTHREAD_SPIN_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_SPIN_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define LOCK_T_NAME PTHREAD_SPIN_LOCK_T_NAME
 #define RWLOCK_T_NAME PTHREAD_SPIN_RWLOCK_T_NAME
 typedef PTHREAD_SPIN_LOCK_T LOCK_T;
 typedef PTHREAD_SPIN_RWLOCK_T RWLOCK_T;
+#endif
 
 //==============================================================================
 #elif defined(GOOGLE_SPIN_LOCKS)
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define READ_LOCK() GOOGLE_SPIN_READ_LOCK()
 #define READ_LOCK_P(x) GOOGLE_SPIN_READ_LOCK_P(x)
 #define READ_UNLOCK() GOOGLE_SPIN_READ_UNLOCK()
@@ -303,14 +337,17 @@ typedef PTHREAD_SPIN_RWLOCK_T RWLOCK_T;
 #define LOCK_DESTROY() GOOGLE_SPIN_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) GOOGLE_SPIN_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define LOCK_T_NAME GOOGLE_SPIN_LOCK_T_NAME
 #define RWLOCK_T_NAME GOOGLE_SPIN_RWLOCK_T_NAME
 typedef GOOGLE_SPIN_LOCK_T LOCK_T;
 typedef GOOGLE_SPIN_RWLOCK_T RWLOCK_T;
+#endif
 
 //==============================================================================
 #elif defined(CPP11LOCKS)
 
+#ifdef LOCK_HPP_FUNCTIONS
 #define READ_LOCK() CPP11_READ_LOCK()
 #define READ_LOCK_P(x) CPP11_READ_LOCK_P(x)
 #define READ_UNLOCK() CPP11_READ_UNLOCK()
@@ -334,15 +371,18 @@ typedef GOOGLE_SPIN_RWLOCK_T RWLOCK_T;
 #define LOCK_DESTROY() CPP11_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) CPP11_LOCK_DESTROY_P(x)
 
+#elif defined(LOCK_HPP_TYPES)
 #define LOCK_T_NAME CPP11_LOCK_T_NAME
 #define RWLOCK_T_NAME CPP11_RWLOCK_T_NAME
 typedef CPP11_LOCK_T LOCK_T;
 typedef CPP11_RWLOCK_T RWLOCK_T;
+#endif
 
 
 //==============================================================================
 #else
 
+#ifdef LOCK_HPP_FUNCTIONS
 /// Obtain a read lock in the context of a locking object
 #define READ_LOCK() int[-1];
 /// Obtain a read lock on the locking member of something we have a pointer to
@@ -388,6 +428,7 @@ typedef CPP11_RWLOCK_T RWLOCK_T;
 /// Destroy the locking member of something we have a pointer to
 #define LOCK_DESTROY_P(x) int[-1];
 
+#elif defined(LOCK_HPP_TYPES)
 /// Standard name of the variable of this lock time for read-write locks
 #define RWLOCK_T_NAME int[-1];
 /// Standard name of the variable of this lock time for simple locks.
@@ -396,6 +437,8 @@ typedef CPP11_RWLOCK_T RWLOCK_T;
 #define LOCK_T
 /// Read/write type
 #define RWLOCK_T
+#endif
+
 #endif
 
 #endif

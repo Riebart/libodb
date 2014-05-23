@@ -23,12 +23,16 @@
 
 #include "common.hpp"
 #include "scheduler.hpp"
-#include "lock.hpp"
 
 #include <deque>
 
 namespace libodb
 {
+
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
 
     /// Eventually this should implement a lockfree queue, but for now it can simply
     /// wrap an STL deque as much as is needed to satisfy the Scheduler. All it really

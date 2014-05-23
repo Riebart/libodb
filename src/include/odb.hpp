@@ -34,11 +34,13 @@
 #include <pthread.h>
 #endif
 
-#include "lock.hpp"
 #include "scheduler.hpp"
 
 namespace libodb
 {
+
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
 
 #ifdef CPP11THREADS
     typedef std::thread* THREADP_T;

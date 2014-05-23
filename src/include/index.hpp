@@ -21,10 +21,11 @@
 #include <vector>
 #include <stdint.h>
 
-#include "lock.hpp"
-
 namespace libodb
 {
+
+#define LOCK_HPP_TYPES
+#include "lock.hpp"
 
     // Forward declarations.
     class ODB;

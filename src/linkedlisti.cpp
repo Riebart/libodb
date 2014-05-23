@@ -23,6 +23,9 @@
 namespace libodb
 {
 
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
+
 #define GET_DATA(x) (x->data)
 
     LinkedListI::LinkedListI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)

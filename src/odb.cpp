@@ -68,6 +68,10 @@ int temp[-1];
 
 namespace libodb
 {
+
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
+
     const int SLEEP_DURATION = 60;
 
     ATOMICP_T ODB::num_unique = ATOMIC_INIT(0);

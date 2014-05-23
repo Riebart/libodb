@@ -24,9 +24,11 @@
 #include "common.hpp"
 #include "index.hpp"
 
-
 namespace libodb
 {
+
+#define LOCK_HPP_FUNCTIONS
+#include "lock.hpp"
 
     LinkedListDS::LinkedListDS(DataStore* _parent, bool(*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags)
     {
