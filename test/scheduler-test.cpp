@@ -200,6 +200,7 @@ void test_spinlocks()
     
     TEST_CASE("Driver holding lock and adding four work units");
     lock.lock();
+
     sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
     sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
     sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
@@ -333,7 +334,6 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 	char buf[128];
 	uint64_t done = 0;
 	int64_t us1 = 0, uso;
-	int64_t omp_local;
 	Scheduler* sched = new Scheduler(0);
 
 	// Test single-threaded performance, with and without the scheduler.

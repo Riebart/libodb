@@ -94,16 +94,18 @@ namespace libodb
 
         T pop_front()
         {
+            WRITE_LOCK();
             if (base->size() == 0)
             {
+                WRITE_UNLOCK();
                 return NULL;
             }
             else
             {
-                WRITE_LOCK();
                 T front = base->front();
                 base->pop_front();
                 WRITE_UNLOCK();
+                return front;
 
 //                 // If we just popped a HP load, we need to see if that was the latest one.
 //                 // Alternatively, if we weren't HP to begin with...
@@ -119,16 +121,15 @@ namespace libodb
 //                         flags = Scheduler::NONE;
 //                     }
 //                 }
-
-                return front;
             }
         }
 
         uint64_t size()
         {
             READ_LOCK();
-            return base->size();
+            size_t s = base->size();
             READ_UNLOCK();
+            return s;
         }
 
     private:

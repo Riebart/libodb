@@ -351,6 +351,7 @@ namespace libodb
         indep.queue = new LFQueue<struct workload*>();
         indep.flags = Scheduler::NONE;
         indep.in_tree = false;
+        indep.num_hp = 0;
 
         SAFE_MALLOC(THREAD_T*, threads, num_threads * sizeof(THREAD_T));
         SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
@@ -390,43 +391,6 @@ namespace libodb
         SCHED_MLOCK_DESTROY();
     }
 
-    void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
-    {
-        if ((flags & Scheduler::BACKGROUND) && (flags & Scheduler::HIGH_PRIORITY))
-        {
-            throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
-        }
-
-        SCHED_LOCK();
-
-        uint64_t workload_id = work_counter;
-        work_counter++;
-
-        struct workload* work;
-        SAFE_MALLOC(struct workload*, work, sizeof(struct workload));
-        work->func = func;
-        work->args = args;
-        work->retval = retval;
-        work->id = workload_id;
-        work->flags = flags;
-
-        // We need to consider the flags here.
-        indep.queue->push_back(work);
-
-        if (!indep.in_tree)
-        {
-            RedBlackTreeI::e_add(root, &indep);
-            indep.in_tree = true;
-        }
-
-        work_avail++;
-
-        // Now we need to notify at least one thread that there is work available.
-        THREAD_COND_SIGNAL(work_cond);
-
-        SCHED_UNLOCK();
-    }
-
     void Scheduler::update_queue_push_flags(struct Scheduler::queue_el* q, uint32_t f)
     {
         // If the new item is high priority, then so is the queue
@@ -450,6 +414,46 @@ namespace libodb
         // If the new workload isn't high priority, or background, then the priority
         // doesn't change when adding a new item.
         //! @todo Other priority types?
+    }
+
+    void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint32_t flags)
+    {
+        if ((flags & Scheduler::BACKGROUND) && (flags & Scheduler::HIGH_PRIORITY))
+        {
+            throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
+        }
+
+        SCHED_LOCK();
+
+        uint64_t workload_id = work_counter;
+        work_counter++;
+
+        struct workload* work;
+        SAFE_MALLOC(struct workload*, work, sizeof(struct workload));
+        work->func = func;
+        work->args = args;
+        work->retval = retval;
+        work->id = workload_id;
+        work->flags = flags;
+
+        // We need to consider the flags here.
+        indep.queue->push_back(work);
+        Scheduler::update_queue_push_flags(&indep, flags);
+
+        work->q = &indep;
+
+        if (!indep.in_tree)
+        {
+            RedBlackTreeI::e_add(root, &indep);
+            indep.in_tree = true;
+        }
+
+        work_avail++;
+
+        // Now we need to notify at least one thread that there is work available.
+        THREAD_COND_SIGNAL(work_cond);
+
+        SCHED_UNLOCK();
     }
 
     void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)

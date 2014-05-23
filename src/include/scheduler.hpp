@@ -28,6 +28,10 @@
 #include <mutex>
 #include <condition_variable>
 
+#ifndef CPP11SPINMUTEX
+#include <atomic>
+#endif
+
 #else
 #include <pthread.h>
 
