@@ -55,6 +55,7 @@
 namespace libodb
 {
 
+    //! @todo Have this obey the rest of the lock.hpp conventions.
 #define LOCK_HPP_TYPES
 #include "lock.hpp"
 
