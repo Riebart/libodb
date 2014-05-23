@@ -4,36 +4,39 @@
 #include <vector>
 #include <set>
 #include <stdio.h>
-#include <time.h>
+#include <sys/timeb.h>
 
 // Use OpenMP as a comparison for multithreading speedup.
 #include <omp.h>
 
+#define TIME_DIFF(e, s) ((e).time - (s).time + 0.001 * ((int16_t)(e).millitm - (int16_t)(s).millitm))
+
 #define ASSERT_UU(LHS, RHS)\
 	if (LHS != RHS)\
 	{\
-		fprintf(stderr, "%u %u\n", (LHS), (RHS));\
+		printf("%u %u\n", (LHS), (RHS));\
 		assert((LHS) == (RHS));\
 	}
 
 #define TEST_CLASS_BEGIN(name) \
 	{\
-	clock_t ___class_start = {0}, ___class_end = {0};\
-	clock_t ___case_start = {0}, ___case_end = {0};\
+	timeb ___class_start = {0}, ___class_end = {0};\
+	timeb ___case_start = {0}, ___case_end = {0};\
 	char* ___case_name = NULL;\
 	char* ___class_name = (name);\
 	double ___class_elapsed = 0.0;\
 	double ___case_elapsed = 0.0;\
 	bool ___case_ended = false;\
-	___class_start = clock();\
-	fprintf(stderr, "= %s =\n", (((name) != NULL) ? (name) : ""));
+	ftime(&___class_start);\
+	printf("= %s =\n", (((name) != NULL) ? (name) : ""));
 
 #define TEST_CASE_END() \
 	if (!___case_ended && (___case_name != NULL))\
 		{\
-		___case_end = clock();\
-		___case_elapsed = ((double)(___case_end - ___case_start) / CLOCKS_PER_SEC);\
-		fprintf(stderr, "(end) %.5gs\n", \
+		ftime(&___case_end);\
+		/*___case_elapsed = ((double)(___case_end - ___case_start) / CLOCKS_PER_SEC);*/\
+		___case_elapsed = TIME_DIFF(___case_end, ___case_start);\
+		printf("(end) %.5gs\n", \
 		___case_elapsed);\
 		___case_ended = true;\
 	}
@@ -42,9 +45,10 @@
 	TEST_CASE_END();\
 	if (___class_name != NULL)\
 	{\
-		___class_end = clock();\
-		___class_elapsed = ((double)(___class_end - ___class_start) / CLOCKS_PER_SEC);\
-		fprintf(stderr, "= %s = %.5gs\n\n", \
+		ftime(&___class_end);\
+		/*___class_elapsed = ((double)(___class_end - ___class_start) / CLOCKS_PER_SEC);*/\
+		___class_elapsed = TIME_DIFF(___class_end, ___class_start);\
+		printf("= %s = %.5gs\n\n", \
 		___class_name, \
 		___class_elapsed);\
 	}\
@@ -53,9 +57,9 @@
 #define TEST_CASE(name) \
 	TEST_CASE_END();\
 	___case_ended = false;\
-	___case_start = clock();\
+	ftime(&___case_start);\
 	___case_name = name;\
-	fprintf(stderr, "(start) %s\n", (((name) != NULL) ? (name) : ""));
+	printf("(start) %s\n", (((name) != NULL) ? (name) : ""));
 
 #ifdef WIN32
 #include <Windows.h>
@@ -63,7 +67,7 @@
 #include <Processthreadsapi.h>
 #include <algorithm>
 
-#define get_thread_id() GetCurrentThreadId
+#define get_thread_id() GetCurrentThreadId()
 #else
 #include <unistd.h>
 
@@ -79,7 +83,46 @@
 #include <atomic>
 
 std::mutex mlock;
+#endif
 
+void sleep(int msec, bool dots)
+{
+#ifdef CPP11THREADS
+	std::chrono::milliseconds d(min(msec, 1000));
+
+	for (int i = 1000; i <= msec; i += 1000)
+	{
+		if (dots)
+		{
+			printf(".");
+			fflush(stdout);
+		}
+
+		std::this_thread::sleep_for(d);
+	}
+
+	d = std::chrono::milliseconds(msec % 1000);
+	std::this_thread::sleep_for(d);
+#else
+	int d = min(msec, 1000);
+
+	for (int i = 1000; i <= msec; i += 1000)
+	{
+		if (dots)
+		{
+			printf(".");
+			fflush(stdout);
+		}
+
+		usleep(1000 * d);
+	}
+
+	d = msec % 1000;
+	usleep(1000 * d);
+#endif
+}
+
+#ifdef CPP11THREADS
 // http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
 // Nore that there's no way to get the value from an atomic_flag without setting it, so
 // we can't build a try_lock on it.
@@ -122,7 +165,7 @@ void test_atomic_bool()
         TEST_CASE("atomic<bool>")
         std::atomic<bool> a;
         b = std::atomic_is_lock_free(&a);
-        fprintf(stderr, "std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
+        printf("std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
         TEST_CASE_END();
     }
     
@@ -130,7 +173,7 @@ void test_atomic_bool()
         TEST_CASE("atomic<bool>")
         std::atomic<uint64_t> a;
         b = std::atomic_is_lock_free(&a);
-        fprintf(stderr, "std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
+        printf("std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
         TEST_CASE_END();
     }
     
@@ -142,7 +185,7 @@ SpinLock lock;
 void* threadid_print_worker(void* a)
 {
     lock.lock();
-    fprintf(stderr, "%u\n", gettid());
+	printf("%u\n", get_thread_id());
     sleep(500, false);
     lock.unlock();
     return NULL;
@@ -163,7 +206,7 @@ void test_spinlocks()
     sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
     
     TEST_CASE("Driver sleeping for five seconds, check CPU usage on host");
-    sleep(5000, true);
+    sleep(5000, false);
     
     TEST_CASE("Driver unlocking and blocking, workers starting");
     lock.unlock();
@@ -189,47 +232,10 @@ pthread_mutex_t mlock;
 std::vector<uint64_t> vec;
 std::set<uint64_t> set;
 
-void sleep(int msec, bool dots)
-{
-#ifdef CPP11THREADS
-	std::chrono::milliseconds d(min(msec, 1000));
-
-	for (int i = 1000; i <= msec; i += 1000)
-	{
-		if (dots)
-		{
-			printf(".");
-			fflush(stdout);
-		}
-
-		std::this_thread::sleep_for(d);
-	}
-
-	d = std::chrono::milliseconds(msec % 1000);
-	std::this_thread::sleep_for(d);
-#else
-   int d = min(msec, 1000);
-   
-   for (int i = 1000; i <= msec; i += 1000)
-   {
-       if (dots)
-       {
-           printf(".");
-           fflush(stdout);
-       }
-       
-       usleep(1000 * d);
-   }
-   
-   d = msec % 1000;
-   usleep(1000 * d);
-#endif
-}
-
 void* threadid_worker(void* a)
 {
 	MLOCK();
-   set.insert(get_thread_id());
+    set.insert(get_thread_id());
 	sleep(10, false);
 	MUNLOCK();
 	return NULL;
@@ -266,7 +272,7 @@ void thread_count(Scheduler* sched, int c)
 		}
 		else
 		{
-			fprintf(stderr, "FAILED TO ALLOCATE %d THREADS\n", c);
+			printf("FAILED TO ALLOCATE %d THREADS\n", c);
 		}
 	}
 
