@@ -121,7 +121,7 @@ private:
 // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #else
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
-#define THREAD_DESROY(t)
+#define THREAD_DESTROY(t) ;
 #define THREAD_JOIN(t) pthread_join((t), NULL)
 #define THREAD_COND_INIT(v) pthread_cond_init(&(v), NULL)
 #define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));

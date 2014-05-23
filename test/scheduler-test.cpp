@@ -5,8 +5,6 @@
 #include <set>
 #include <stdio.h>
 #include <time.h>
-#include <algorithm>
-#include <atomic>
 
 // Use OpenMP as a comparison for multithreading speedup.
 #include <omp.h>
@@ -63,13 +61,129 @@
 #include <Windows.h>
 #include <WinBase.h>
 #include <Processthreadsapi.h>
+#include <algorithm>
+
+#define get_thread_id() GetCurrentThreadId
+#else
+#include <unistd.h>
+
+#define get_thread_id() pthread_self()
+#define min(x,y) (((x) < (y)) ? (x) : (y))
+#define sprintf_s sprintf
+#endif
+
+#ifdef CPP11THREADS
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 std::mutex mlock;
+
+// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
+// Nore that there's no way to get the value from an atomic_flag without setting it, so
+// we can't build a try_lock on it.
+// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+class SpinLock
+{
+public:
+    void lock()
+    {
+        bool exp = false;
+        bool des = true;
+        // Weak exchanges can spuriously return
+        while (!lck.compare_exchange_weak(exp, des))
+        {
+            exp = false;
+        }
+    }
+    
+    //! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
+    bool try_lock()
+    {
+        return lck.load();
+    }
+    
+    void unlock()
+    {
+        lck.store(false);
+    }
+    
+private:
+    std::atomic<bool> lck = false;
+};
+
+void test_atomic_bool()
+{
+    TEST_CLASS_BEGIN("Atomic variable lock-free status");
+    bool b;
+    
+    {
+        TEST_CASE("atomic<bool>")
+        std::atomic<bool> a;
+        b = std::atomic_is_lock_free(&a);
+        fprintf(stderr, "std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
+        TEST_CASE_END();
+    }
+    
+    {
+        TEST_CASE("atomic<bool>")
+        std::atomic<uint64_t> a;
+        b = std::atomic_is_lock_free(&a);
+        fprintf(stderr, "std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
+        TEST_CASE_END();
+    }
+    
+    TEST_CLASS_END();
+}
+
+SpinLock lock;
+
+void* threadid_print_worker(void* a)
+{
+    lock.lock();
+    fprintf(stderr, "%u\n", gettid());
+    sleep(500, false);
+    lock.unlock();
+    return NULL;
+}
+
+void test_spinlocks()
+{
+    TEST_CLASS_BEGIN("SpinLock tests");
+    
+    TEST_CASE("Spawning Scheduler with four workers")
+    Scheduler* sched = new Scheduler(4);
+    
+    TEST_CASE("Driver holding lock and adding four work units");
+    lock.lock();
+    sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+    sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+    sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+    sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
+    
+    TEST_CASE("Driver sleeping for five seconds, check CPU usage on host");
+    sleep(5000, true);
+    
+    TEST_CASE("Driver unlocking and blocking, workers starting");
+    lock.unlock();
+    sched->block_until_done();
+    
+    TEST_CASE_END();
+    delete sched;
+    
+    TEST_CLASS_END();
+}
+
+#define MLOCK() mlock.lock()
+#define MUNLOCK() mlock.unlock()
 #else
-#define sprintf_s sprintf
+#include <pthread.h>
+
+pthread_mutex_t mlock;
+
+#define MLOCK() pthread_mutex_lock(&mlock);
+#define MUNLOCK() pthread_mutex_unlock(&mlock);
 #endif
 
 std::vector<uint64_t> vec;
@@ -77,6 +191,7 @@ std::set<uint64_t> set;
 
 void sleep(int msec, bool dots)
 {
+#ifdef CPP11THREADS
 	std::chrono::milliseconds d(min(msec, 1000));
 
 	for (int i = 1000; i <= msec; i += 1000)
@@ -92,109 +207,31 @@ void sleep(int msec, bool dots)
 
 	d = std::chrono::milliseconds(msec % 1000);
 	std::this_thread::sleep_for(d);
-}
-
-// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
-// Nore that there's no way to get the value from an atomic_flag without setting it, so
-// we can't build a try_lock on it.
-// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
-class SpinLock
-{
-public:
-	void lock()
-	{
-		bool exp = false;
-		bool des = true;
-		// Weak exchanges can spuriously return
-		while (!lck.compare_exchange_weak(exp, des))
-		{
-			exp = false;
-		}
-	}
-
-	//! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
-	bool try_lock()
-	{
-		return lck.load();
-	}
-
-	void unlock()
-	{
-		lck.store(false);
-	}
-
-private:
-	std::atomic<bool> lck = false;
-};
-
-void test_atomic_bool()
-{
-	TEST_CLASS_BEGIN("Atomic variable lock-free status");
-	bool b;
-
-	{
-		TEST_CASE("atomic<bool>")
-		std::atomic<bool> a;
-		b = std::atomic_is_lock_free(&a);
-		fprintf(stderr, "std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
-		TEST_CASE_END();
-	}
-
-	{
-		TEST_CASE("atomic<bool>")
-		std::atomic<uint64_t> a;
-		b = std::atomic_is_lock_free(&a);
-		fprintf(stderr, "std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
-		TEST_CASE_END();
-	}
-	
-	TEST_CLASS_END();
-}
-
-SpinLock lock;
-
-void* threadid_print_worker(void* a)
-{
-	lock.lock();
-	fprintf(stderr, "%u\n", GetCurrentThreadId());
-	sleep(500, false);
-	lock.unlock();
-	return NULL;
-}
-
-void test_spinlocks()
-{
-	TEST_CLASS_BEGIN("SpinLock tests");
-
-	TEST_CASE("Spawning Scheduler with four workers")
-	Scheduler* sched = new Scheduler(4);
-
-	TEST_CASE("Driver holding lock and adding four work units");
-	lock.lock();
-	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
-	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
-	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
-	sched->add_work(threadid_print_worker, NULL, NULL, Scheduler::NONE);
-
-	TEST_CASE("Driver sleeping for five seconds, check CPU usage on host");
-	sleep(5000, true);
-
-	TEST_CASE("Driver unlocking and blocking, workers starting");
-	lock.unlock();
-	sched->block_until_done();
-
-	TEST_CASE_END();
-	delete sched;
-
-	TEST_CLASS_END();
+#else
+   int d = min(msec, 1000);
+   
+   for (int i = 1000; i <= msec; i += 1000)
+   {
+       if (dots)
+       {
+           printf(".");
+           fflush(stdout);
+       }
+       
+       usleep(1000 * d);
+   }
+   
+   d = msec % 1000;
+   usleep(1000 * d);
+#endif
 }
 
 void* threadid_worker(void* a)
 {
-	mlock.lock();
-	set.insert(GetCurrentThreadId());
+	MLOCK();
+   set.insert(get_thread_id());
 	sleep(10, false);
-	mlock.unlock();
+	MUNLOCK();
 	return NULL;
 }
 
@@ -267,7 +304,7 @@ void thread_start_stop()
 
 void* nop_workload(void* args)
 {
-	return &nop_workload;
+	return (void*)&nop_workload;
 }
 
 void* spin_workload(void* countV)
@@ -368,8 +405,12 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 
 int main(int argc, char** argv)
 {
+#ifdef CPP11THREADS
 	test_atomic_bool();
 	test_spinlocks();
+#else
+   pthread_mutex_init(&mlock, NULL);
+#endif
 
 	create_destroy();
 	thread_start_stop();

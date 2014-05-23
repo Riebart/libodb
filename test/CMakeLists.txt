@@ -24,6 +24,8 @@ add_executable(comp-scheduler comp-scheduler.cpp)
 add_executable(unit-collator unit-collator.cpp)
 add_executable(unit-protoparse unit-protoparse.cpp)
 
+add_executable(scheduler-test scheduler-test.cpp)
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 target_link_libraries(minimal-erbt ${LIBS})
@@ -34,6 +36,8 @@ target_link_libraries(comp-scheduler ${LIBS} rt)
 
 target_link_libraries(unit-collator ${LIBS})
 target_link_libraries(unit-protoparse ${LIBS})
+
+target_link_libraries(scheduler-test ${LIBS})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -46,6 +50,8 @@ add_dependencies(checks comp-scheduler)
 add_dependencies(checks unit-collator)
 add_dependencies(checks unit-protoparse)
 
+add_dependencies(checks scheduler-test)
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 add_test(minimal-erbt test-output "392b78f9c2f4e0d6677bcf8575b3d24f89c39aea9ff30994526d36dd33eb2048" "" "./minimal-erbt")
@@ -56,6 +62,8 @@ add_test(comp-scheduler.sched_sync comp-scheduler 1)
 add_test(comp-scheduler.sched_defer comp-scheduler 2)
 add_test(comp-scheduler.unsched_single_odb comp-scheduler 3)
 add_test(comp-scheduler.sched_sync_odb comp-scheduler 4)
+
+add_test(scheduler-test scheduler-test)
 
 add_test(comp-rbt.bank.none  test-output "" "43031308a1919ec69606810188462336ceab795a057a987a2ea3112898ff5c2c" "./comp-index_datastore" "-e 8 -n 100000 -t 10 -i 0 -T 0")
 add_test(comp-rbt.bank.drop  test-output "" "bbfd379491b29ba724f4a2163972bf827c83ff7bc14a5a49058fc39d23d658e0" "./comp-index_datastore" "-e 8 -n 100000 -t 10 -i 1 -T 0")
