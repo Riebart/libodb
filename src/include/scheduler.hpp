@@ -51,6 +51,12 @@
 namespace libodb
 {
 
+#ifdef CPP11THREADS
+    typedef std::thread* THREAD_T;
+    typedef std::condition_variable_any* CONDVAR_T;
+    typedef std::mutex* SCHED_MLOCK_T;
+
+#ifndef CPP11SPINMUTEX
     // http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
     // Nore that there's no way to get the value from an atomic_flag without setting it, so
     // we can't build a try_lock on it.
@@ -63,18 +69,11 @@ namespace libodb
         void lock();
         bool try_lock();
         void unlock();
-
+        
     private:
         std::atomic<bool>* l;
     };
-
-#ifdef CPP11THREADS
-    typedef std::thread* THREAD_T;
-    typedef std::condition_variable_any* CONDVAR_T;
-    typedef std::mutex* SCHED_MLOCK_T;
-
-#ifndef CPP11SPINMUTEX
-    //! @todo Promote the spin locks to an API exported type? Could be useful...
+    
     class SpinLock;
     typedef SpinLock* SCHED_LOCK_T;
 

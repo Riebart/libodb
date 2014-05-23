@@ -62,6 +62,45 @@ namespace libodb
 #define SCHED_LOCK_INIT() lock = new SpinLock()
 #define SCHED_LOCK_DESTROY() delete lock
 
+    SpinLock::SpinLock()
+    {
+        l = new std::atomic<bool>(false);
+    }
+
+    SpinLock::~SpinLock()
+    {
+        delete l;
+    }
+
+    void SpinLock::lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true;
+        while (!l->compare_exchange_weak(expected, desired))
+        {
+            // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
+            expected = false;
+        }
+    }
+
+    bool SpinLock::try_lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true, but we'll ony try once, so we want a string check.
+        // The operation returns true if we changed the value, and false otherwise, so just return
+        // its value.
+        return l->compare_exchange_strong(expected, desired);
+    }
+
+    void SpinLock::unlock()
+    {
+        l->store(false);
+    }
+
 #else
 #define SCHED_LOCK() (lock->lock())
 #define SCHED_LOCK_P(x) ((x)->lock->lock())
@@ -137,45 +176,6 @@ namespace libodb
 #define MAP_GET(map, key) (*(map))[(key)]
 
 #endif
-
-    SpinLock::SpinLock()
-    {
-        l = new std::atomic<bool>(false);
-    }
-
-    SpinLock::~SpinLock()
-    {
-        delete l;
-    }
-
-    void SpinLock::lock()
-    {
-        bool expected = false;
-        bool desired = true;
-        // We expect the lock to be false (what we set it to when unlocking), and want to set it
-        // to true;
-        while (!l->compare_exchange_weak(expected, desired))
-        {
-            // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
-            expected = false;
-        }
-    }
-
-    bool SpinLock::try_lock()
-    {
-        bool expected = false;
-        bool desired = true;
-        // We expect the lock to be false (what we set it to when unlocking), and want to set it
-        // to true, but we'll ony try once, so we want a string check.
-        // The operation returns true if we changed the value, and false otherwise, so just return
-        // its value.
-        return l->compare_exchange_strong(expected, desired);
-    }
-
-    void SpinLock::unlock()
-    {
-        l->store(false);
-    }
 
     void* scheduler_worker_thread(void* args_v)
     {
