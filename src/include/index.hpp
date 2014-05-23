@@ -13,193 +13,197 @@
 /// Header file for Index, IndexGroup and DataObj objects.
 /// @file index.hpp
 
-#include "dll.hpp"
-
 #ifndef INDEX_HPP
 #define INDEX_HPP
+
+#include "dll.hpp"
 
 #include <vector>
 #include <stdint.h>
 
 #include "lock.hpp"
 
-// Forward declarations.
-class ODB;
-class DataStore;
-class Scheduler;
-class Comparator;
-class Condition;
-class Merger;
-class Iterator;
-class Index;
-
-class LIBODB_API DataObj
+namespace libodb
 {
-    /// Requires ability to set the data field.
-    friend class ODB;
 
-    /// Requires ability to read the ident field.
-    friend class IndexGroup;
+    // Forward declarations.
+    class ODB;
+    class DataStore;
+    class Scheduler;
+    class Comparator;
+    class Condition;
+    class Merger;
+    class Iterator;
+    class Index;
 
-    /// Requires ability to read the ident field.
-    friend class Index;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class RedBlackTreeI;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class LinkedListI;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class Iterator;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class RBTIterator;
-    friend class ERBTIterator;
-
-    /// Requires ability to create and manipulate DataObj.
-    friend class LLIterator;
-
-    friend class BankDS;
-    friend class BankDSIterator;
-
-    friend class LinkedListDS;
-    friend class LinkedListDSIterator;
-
-public:
-    inline void* get_data()
+    class LIBODB_API DataObj
     {
-        return data;
+        /// Requires ability to set the data field.
+        friend class ODB;
+
+        /// Requires ability to read the ident field.
+        friend class IndexGroup;
+
+        /// Requires ability to read the ident field.
+        friend class Index;
+
+        /// Requires ability to create and manipulate DataObj.
+        friend class RedBlackTreeI;
+
+        /// Requires ability to create and manipulate DataObj.
+        friend class LinkedListI;
+
+        /// Requires ability to create and manipulate DataObj.
+        friend class Iterator;
+
+        /// Requires ability to create and manipulate DataObj.
+        friend class RBTIterator;
+        friend class ERBTIterator;
+
+        /// Requires ability to create and manipulate DataObj.
+        friend class LLIterator;
+
+        friend class BankDS;
+        friend class BankDSIterator;
+
+        friend class LinkedListDS;
+        friend class LinkedListDSIterator;
+
+    public:
+        inline void* get_data()
+        {
+            return data;
+        };
+
+
+    private:
+        DataObj();
+        DataObj(uint64_t ident);
+        ~DataObj();
+
+        uint64_t ident;
+        void* data;
     };
 
+    class LIBODB_API IndexGroup
+    {
+        /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
+        ///skip the overhead of verifying data integrity since that is guaranteed
+        ///in that usage scenario.
+        friend class ODB;
 
-private:
-    DataObj();
-    DataObj(uint64_t ident);
-    ~DataObj();
+        /// Allow the ODB scheduled workload to access the add_data_v function.
+        friend void* odb_sched_workload(void* argsV);
+        friend void* ig_sched_workload(void* argsV);
 
-    uint64_t ident;
-    void* data;
-};
+    public:
+        virtual ~IndexGroup();
 
-class LIBODB_API IndexGroup
-{
-    /// Allows ODB objects to call the IndexGroup::add_data_v method directly and
-    ///skip the overhead of verifying data integrity since that is guaranteed
-    ///in that usage scenario.
-    friend class ODB;
+        bool add_index(IndexGroup* ig);
+        bool delete_index(IndexGroup* ig);
+        IndexGroup* at(uint32_t i);
+        std::vector<Index*>* flatten();
+        virtual void add_data(DataObj* data);
+        virtual ODB* query(bool(*condition)(void*));
+        virtual ODB* query(Condition* condition);
+        virtual ODB* query_eq(void* rawdata);
+        virtual ODB* query_lt(void* rawdata);
+        virtual ODB* query_gt(void* rawdata);
+        virtual uint64_t get_ident();
+        /// @todo Add a recursive flavour of size()
+        ///It will have to return the number of items
+        ///in all contained indices though. Is there a way to stop before indices at
+        ///the last layer of IndexGroups?
+        virtual uint64_t size();
 
-    /// Allow the ODB scheduled workload to access the add_data_v function.
-    friend void* odb_sched_workload(void* argsV);
-    friend void* ig_sched_workload(void* argsV);
+    protected:
+        IndexGroup();
+        IndexGroup(uint64_t _ident, DataStore* _parent);
 
-public:
-    virtual ~IndexGroup();
+        uint64_t ident;
+        DataStore* parent;
 
-    bool add_index(IndexGroup* ig);
-    bool delete_index(IndexGroup* ig);
-    IndexGroup* at(uint32_t i);
-    std::vector<Index*>* flatten();
-    virtual void add_data(DataObj* data);
-    virtual ODB* query(bool (*condition)(void*));
-    virtual ODB* query(Condition* condition);
-    virtual ODB* query_eq(void* rawdata);
-    virtual ODB* query_lt(void* rawdata);
-    virtual ODB* query_gt(void* rawdata);
-    virtual uint64_t get_ident();
-    /// @todo Add a recursive flavour of size()
-    ///It will have to return the number of items
-    ///in all contained indices though. Is there a way to stop before indices at
-    ///the last layer of IndexGroups?
-    virtual uint64_t size();
+        Scheduler* scheduler;
 
-protected:
-    IndexGroup();
-    IndexGroup(uint64_t _ident, DataStore* _parent);
+        virtual void add_data_v(void* data);
+        virtual void query(Condition* condition, DataStore* ds);
+        virtual void query_eq(void* rawdata, DataStore* ds);
+        virtual void query_lt(void* rawdata, DataStore* ds);
+        virtual void query_gt(void* rawdata, DataStore* ds);
+        virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
 
-    uint64_t ident;
-    DataStore* parent;
+        RWLOCK_T;
 
-    Scheduler* scheduler;
+    private:
+        std::vector<IndexGroup*>* indices;
+    };
 
-    virtual void add_data_v(void* data);
-    virtual void query(Condition* condition, DataStore* ds);
-    virtual void query_eq(void* rawdata, DataStore* ds);
-    virtual void query_lt(void* rawdata, DataStore* ds);
-    virtual void query_gt(void* rawdata, DataStore* ds);
-    virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
+    /// @todo An index table built on a vector, behaving like the LinkedListI.
+    /// @todo Batch insertions for index tables. At least LL.
+    class LIBODB_API Index : public IndexGroup
+    {
+        /// Allows ODB to call remove_sweep.
+        friend class ODB;
 
-    RWLOCK_T;
+        /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
+        ///to bypass integrity checking.
+        friend class BankDS;
 
-private:
-    std::vector<IndexGroup*>* indices;
-};
+        /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
+        ///to bypass integrity checking.
+        friend class BankIDS;
 
-/// @todo An index table built on a vector, behaving like the LinkedListI.
-/// @todo Batch insertions for index tables. At least LL.
-class LIBODB_API Index : public IndexGroup
-{
-    /// Allows ODB to call remove_sweep.
-    friend class ODB;
+        /// Allows LinkedListDS to access the Index::add_data_v function in
+        ///LinkedListDS::populate to bypass integrity checking.
+        friend class LinkedListDS;
 
-    /// Allows BankDS to access the Index::add_data_v function in BankDS::populate
-    ///to bypass integrity checking.
-    friend class BankDS;
+        /// Allows LinkedListIDS to access the Index::add_data_v function in
+        ///LinkedListIDS::populate to bypass integrity checking.
+        friend class LinkedListIDS;
 
-    /// Allows BankIDS to access the Index::add_data_v function in BankIDS::populate
-    ///to bypass integrity checking.
-    friend class BankIDS;
+        /// Needed in order to wrap the actual work function which is a fat pointer
+        /// and won't fit into a normal function pointer.
+        friend void* add_data_v_wrapper(void* args);
 
-    /// Allows LinkedListDS to access the Index::add_data_v function in
-    ///LinkedListDS::populate to bypass integrity checking.
-    friend class LinkedListDS;
+    public:
+        virtual void add_data(DataObj* data);
+        virtual uint64_t size();
+        virtual uint64_t luid();
+        virtual bool remove(DataObj* data);
+        virtual ODB* query(bool(*condition)(void*));
+        virtual ODB* query(Condition* condition);
+        virtual ODB* query_eq(void* rawdata);
+        virtual ODB* query_lt(void* rawdata);
+        virtual ODB* query_gt(void* rawdata);
+        virtual Iterator* it_first();
+        virtual Iterator* it_last();
+        virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
+        virtual void it_release(Iterator* it);
 
-    /// Allows LinkedListIDS to access the Index::add_data_v function in
-    ///LinkedListIDS::populate to bypass integrity checking.
-    friend class LinkedListIDS;
+    protected:
+        Index();
+        void add_data_v(void* rawdata);
+        //     void* add_data_v_wrapper(void* args);
+        virtual bool add_data_v2(void* rawdata);
+        virtual void purge();
+        virtual void query(Condition* condition, DataStore* ds);
+        virtual void query_eq(void* rawdata, DataStore* ds);
+        virtual void query_lt(void* rawdata, DataStore* ds);
+        virtual void query_gt(void* rawdata, DataStore* ds);
+        virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
+        //! @bug Another setting of -1 as a the defauly value to a uint...
+        virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint64_t datalen = -1);
+        virtual bool remove(void* rawdata);
+        virtual void remove_sweep(std::vector<void*>* marked);
 
-    /// Needed in order to wrap the actual work function which is a fat pointer
-    /// and won't fit into a normal function pointer.
-    friend void* add_data_v_wrapper(void* args);
+        Comparator* compare;
+        Merger* merge;
+        uint64_t count;
+        bool drop_duplicates;
+        uint64_t luid_val;
+    };
 
-public:
-    virtual void add_data(DataObj* data);
-    virtual uint64_t size();
-    virtual uint64_t luid();
-    virtual bool remove(DataObj* data);
-    virtual ODB* query(bool (*condition)(void*));
-    virtual ODB* query(Condition* condition);
-    virtual ODB* query_eq(void* rawdata);
-    virtual ODB* query_lt(void* rawdata);
-    virtual ODB* query_gt(void* rawdata);
-    virtual Iterator* it_first();
-    virtual Iterator* it_last();
-    virtual Iterator* it_lookup(void* rawdata, int8_t dir = 0);
-    virtual void it_release(Iterator* it);
-
-protected:
-    Index();
-    void add_data_v(void* rawdata);
-//     void* add_data_v_wrapper(void* args);
-    virtual bool add_data_v2(void* rawdata);
-    virtual void purge();
-    virtual void query(Condition* condition, DataStore* ds);
-    virtual void query_eq(void* rawdata, DataStore* ds);
-    virtual void query_lt(void* rawdata, DataStore* ds);
-    virtual void query_gt(void* rawdata, DataStore* ds);
-    virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
-    //! @bug Another setting of -1 as a the defauly value to a uint...
-    virtual void update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint64_t datalen = -1);
-    virtual bool remove(void* rawdata);
-    virtual void remove_sweep(std::vector<void*>* marked);
-
-    Comparator* compare;
-    Merger* merge;
-    uint64_t count;
-    bool drop_duplicates;
-    uint64_t luid_val;
-};
-
+}
 
 #endif
 

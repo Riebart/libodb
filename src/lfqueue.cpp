@@ -16,3 +16,8 @@
 #include "lfqueue.hpp"
 
 /// @todo Actually implement a lock-free queue, don't just wrap std::deque
+namespace libodb
+{
+
+
+}

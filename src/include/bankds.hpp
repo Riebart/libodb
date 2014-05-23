@@ -13,10 +13,10 @@
 /// Header file for BankDS datastore type and any children (BankIDS) as well as their Iterators.
 /// @file bankds.hpp
 
-#include "dll.hpp"
-
 #ifndef BANKDS_HPP
 #define BANKDS_HPP
+
+#include "dll.hpp"
 
 #include <stack>
 
@@ -24,86 +24,91 @@
 #include "lock.hpp"
 #include "iterator.hpp"
 
-class LIBODB_API BankDS : public DataStore
+namespace libodb
 {
-    using DataStore::add_data;
-    using DataStore::get_addr;
 
-    /// Since the constructors are protected, ODB needs to be able to create new
-    ///datastores.
-    friend class ODB;
+    class LIBODB_API BankDS : public DataStore
+    {
+        using DataStore::add_data;
+        using DataStore::get_addr;
 
-    friend class BankDSIterator;
+        /// Since the constructors are protected, ODB needs to be able to create new
+        ///datastores.
+        friend class ODB;
 
-public:
-    virtual ~BankDS();
+        friend class BankDSIterator;
 
-protected:
-    BankDS();
-    BankDS(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint32_t flags = 0, uint64_t cap = 102400);
-    virtual void init(DataStore* parent, bool (*prune)(void* rawdata), uint64_t data_size, uint64_t cap);
-    virtual void* add_data(void* rawdata);
-    virtual void* get_addr();
-    virtual void* get_at(uint64_t index);
-    virtual bool remove_at(uint64_t index);
-    virtual bool remove_addr(void* addr);
-    virtual std::vector<void*>** remove_sweep(Archive* archive);
-    virtual void remove_cleanup(std::vector<void*>** marked);
-    virtual void purge(void (*freep)(void*));
-    virtual void populate(Index* index);
-    virtual DataStore* clone();
-    virtual DataStore* clone_indirect();
+    public:
+        virtual ~BankDS();
 
-    Iterator* it_first();
-    Iterator* it_last();
+    protected:
+        BankDS();
+        BankDS(DataStore* parent, bool(*prune)(void* rawdata), uint64_t data_size, uint32_t flags = 0, uint64_t cap = 102400);
+        virtual void init(DataStore* parent, bool(*prune)(void* rawdata), uint64_t data_size, uint64_t cap);
+        virtual void* add_data(void* rawdata);
+        virtual void* get_addr();
+        virtual void* get_at(uint64_t index);
+        virtual bool remove_at(uint64_t index);
+        virtual bool remove_addr(void* addr);
+        virtual std::vector<void*>** remove_sweep(Archive* archive);
+        virtual void remove_cleanup(std::vector<void*>** marked);
+        virtual void purge(void(*freep)(void*));
+        virtual void populate(Index* index);
+        virtual DataStore* clone();
+        virtual DataStore* clone_indirect();
 
-    char** data;
-    uint64_t posA;
-    uint64_t posB;
-    uint64_t list_size;
-    uint64_t cap;
-    uint64_t cap_size;
-    uint64_t datalen;
-    std::stack<void*>* deleted;
-};
+        Iterator* it_first();
+        Iterator* it_last();
 
-class LIBODB_API BankIDS : public BankDS
-{
-    using DataStore::add_data;
+        char** data;
+        uint64_t posA;
+        uint64_t posB;
+        uint64_t list_size;
+        uint64_t cap;
+        uint64_t cap_size;
+        uint64_t datalen;
+        std::stack<void*>* deleted;
+    };
 
-    /// Since the constructors are protected, ODB needs to be able to create new
-    ///datastores.
-    friend class ODB;
+    class LIBODB_API BankIDS : public BankDS
+    {
+        using DataStore::add_data;
 
-    /// Allows BankDS to create an indirect copy of itself.
-    friend class BankDS;
+        /// Since the constructors are protected, ODB needs to be able to create new
+        ///datastores.
+        friend class ODB;
 
-protected:
-    BankIDS();
-    /// @todo Make proper use of the parent pointers where necessary. (See comment)
-    //(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
-    //Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
-    BankIDS(DataStore* parent, bool (*prune)(void* rawdata), uint32_t flags = 0, uint64_t cap = 102400);
-    virtual void* add_data(void* rawdata);
-    virtual void* get_at(uint64_t index);
-    virtual std::vector<void*>** remove_sweep(Archive* archive);
-    virtual void remove_cleanup(std::vector<void*>** marked);
-    virtual void populate(Index* index);
-};
+        /// Allows BankDS to create an indirect copy of itself.
+        friend class BankDS;
 
-class LIBODB_API BankDSIterator : public Iterator
-{
-    friend class BankDS;
+    protected:
+        BankIDS();
+        /// @todo Make proper use of the parent pointers where necessary. (See comment)
+        //(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
+        //Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
+        BankIDS(DataStore* parent, bool(*prune)(void* rawdata), uint32_t flags = 0, uint64_t cap = 102400);
+        virtual void* add_data(void* rawdata);
+        virtual void* get_at(uint64_t index);
+        virtual std::vector<void*>** remove_sweep(Archive* archive);
+        virtual void remove_cleanup(std::vector<void*>** marked);
+        virtual void populate(Index* index);
+    };
 
-protected:
-    BankDSIterator();
-    DataObj* next();
-    DataObj* prev();
+    class LIBODB_API BankDSIterator : public Iterator
+    {
+        friend class BankDS;
 
-    BankDS* dstore;
-    uint64_t posA;
-    uint64_t posB;
-};
+    protected:
+        BankDSIterator();
+        DataObj* next();
+        DataObj* prev();
+
+        BankDS* dstore;
+        uint64_t posA;
+        uint64_t posB;
+    };
+
+}
 
 #endif
 

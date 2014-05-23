@@ -16,10 +16,10 @@
 //! @todo Update the documentation with potentially changed function signatures.
 //! @todo Provide facilities for deleting the clones potenntially returned by queries.
 
-#include "dll.hpp"
-
 #ifndef ODB_HPP
 #define ODB_HPP
+
+#include "dll.hpp"
 
 #include <stdint.h>
 #include <string.h>
@@ -30,210 +30,218 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-
-#define THREADP_T std::thread*
-#define ATOMICP_T std::atomic<uint64_t>*
 #else
 #include <pthread.h>
-
-#define THREADP_T pthread_t
-#define ATOMICP_T volatile uint32_t
 #endif
 
 #include "lock.hpp"
 #include "scheduler.hpp"
 
-#ifndef LEN_V
-#define LEN_V
-inline uint32_t len_v(void* rawdata)
+namespace libodb
 {
-    return strlen((const char*)rawdata);
-}
+
+#ifdef CPP11THREADS
+    typedef std::thread* THREADP_T;
+    typedef std::atomic<uint64_t>* ATOMICP_T;
+#else
+    typedef pthread_t THREADP_T;
+    typedef volatile uint32_t ATOMICP_T;
 #endif
 
-class DataStore;
-class Archive;
-class Index;
-class IndexGroup;
-class DataObj;
-class Comparator;
-class Merger;
-class Keygen;
-class Iterator;
-
-class LIBODB_API ODB
-{
-    /// Allow IndexGroup objects to create a new specifically identified ODB
-    ///instance.
-    friend class IndexGroup;
-
-    /// Allow Index objects to create a new specifically identified ODB
-    ///instance.
-    friend class Index;
-
-    /// Allows the scheduled workload from ODB to access the private members.
-    friend void* odb_sched_workload(void* argsV);
-
-    /// Allows the scheduled workload on an Index Group from ODB to access the private members.
-    friend void* ig_sched_workload(void* argsV);
-
-    /// The memory checking thread needs access to private functions
-    /// for time checking and updating.
-    friend void * mem_checker(void * arg);
-
-public:
-    /// Enum defining the types of flags that an Index can have on creation.
-    /// When an index is created, these are the options that can be specified
-    ///at creation time. These options control the behaviour of the index
-    ///table. DROP_DUPLICATES indicates that any values that compare as equal
-    ///to one already in the tree should be simply freed and dropped.
-    ///DO_NOT_ADD_TO_ALL indicates that the index table should not be added
-    ///to the "all" index table of the parent ODB object. Care should be
-    ///taken with this flag since it is then the responsibility of the user
-    ///to clean up that Index table. DO_NOT_POPULATE indicates that, upon
-    ///creation, to suppress the standard practice which is populating the index
-    ///table with the data of all of the items in the ODB's DataStore.
-    /// @todo Apparently this isn't the appropriate way to do this (flags)?
-    typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexFlags;
-
-    /// Enum defining the specific index implementations available.
-    /// Index implementations starting with "Keyed" are key-value index tables, all
-    ///others are value-only index tables. Note that a value-only index table has
-    ///less storage overhead but must perform comparisons directly on the data
-    ///and may result in more complicated compare functions. Key-value index
-    ///tables however require a keygen function that generates a key from a piece
-    ///of data.
-    typedef enum { LINKED_LIST, RED_BLACK_TREE } IndexType;
-
-    /// Enum defining the specific fixed-width DataStore timplementations available
-    /// Fixed-width DataStore implementations require that a fixed value be
-    ///specified at instantiation time, and all data is assumed to be of the
-    ///the specified size.
-    typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
-
-    /// Emum defining the specific indirect DataStore implementations available.
-    /// Indirect DataStore types store pointers to data that is assumed to be
-    ///allocated and managed externally to the ODB object. All other DataStore
-    ///types are copy-on-insert and manage their own memory allocation and
-    ///release. Indirect DataStore types only store pointers and transfer the
-    ///onus of memory mamangement to the user.
-    typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
-
-    /// Enum defining the specific variable-width DataStore implementations available.
-    /// Variable-width DataStores types allow for variable sizes of data,
-    ///requiring a data-size option passed on insertion.
-    typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
-
-    ODB(FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
-
-    ~ODB();
-
-    Index* create_index(IndexType type, uint32_t flags, int32_t (*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
-
-    Index* create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
-
-    bool delete_index(Index* index);
-
-    IndexGroup* create_group();
-    IndexGroup* get_indexes();
-
-    void add_data(void* rawdata);
-    void add_data(void* rawdata, uint32_t nbytes);
-    DataObj* add_data(void* rawdata, bool add_to_all);
-    DataObj* add_data(void* rawdata, uint32_t nbytes, bool add_to_all);
-    void remove_sweep();
-    void purge();
-    void set_prune(bool (*prune)(void*));
-    virtual bool (*get_prune())(void*);
-    uint64_t size();
-    void update_time(time_t t);
-    time_t get_time();
-
-    uint32_t start_scheduler(uint32_t num_threads);
-    void block_until_done();
-
-    Iterator* it_first();
-    Iterator* it_last();
-    void it_release(Iterator* it);
-
-    /// The memory limit, in pages (usually 4k), that the memory sweeping
-    ///thread uses as a maximum limit for this ODB to consume.
-    uint64_t mem_limit;
-
-    /// Used to determine if memory checker thread is running or not.
-    bool is_running()
+    //! @todo Do something about this #define of LEN_V. Where else do i define it? Can't it be in a cpp file?
+#ifndef LEN_V
+#define LEN_V
+    inline uint32_t len_v(void* rawdata)
     {
-        return running;
+        return strlen((const char*)rawdata);
+    }
+#endif
+
+    class DataStore;
+    class Archive;
+    class Index;
+    class IndexGroup;
+    class DataObj;
+    class Comparator;
+    class Merger;
+    class Keygen;
+    class Iterator;
+
+    class LIBODB_API ODB
+    {
+        /// Allow IndexGroup objects to create a new specifically identified ODB
+        ///instance.
+        friend class IndexGroup;
+
+        /// Allow Index objects to create a new specifically identified ODB
+        ///instance.
+        friend class Index;
+
+        /// Allows the scheduled workload from ODB to access the private members.
+        friend void* odb_sched_workload(void* argsV);
+
+        /// Allows the scheduled workload on an Index Group from ODB to access the private members.
+        friend void* ig_sched_workload(void* argsV);
+
+        /// The memory checking thread needs access to private functions
+        /// for time checking and updating.
+        friend void * mem_checker(void * arg);
+
+    public:
+        /// Enum defining the types of flags that an Index can have on creation.
+        /// When an index is created, these are the options that can be specified
+        ///at creation time. These options control the behaviour of the index
+        ///table. DROP_DUPLICATES indicates that any values that compare as equal
+        ///to one already in the tree should be simply freed and dropped.
+        ///DO_NOT_ADD_TO_ALL indicates that the index table should not be added
+        ///to the "all" index table of the parent ODB object. Care should be
+        ///taken with this flag since it is then the responsibility of the user
+        ///to clean up that Index table. DO_NOT_POPULATE indicates that, upon
+        ///creation, to suppress the standard practice which is populating the index
+        ///table with the data of all of the items in the ODB's DataStore.
+        /// @todo Apparently this isn't the appropriate way to do this (flags)?
+        typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexFlags;
+
+        /// Enum defining the specific index implementations available.
+        /// Index implementations starting with "Keyed" are key-value index tables, all
+        ///others are value-only index tables. Note that a value-only index table has
+        ///less storage overhead but must perform comparisons directly on the data
+        ///and may result in more complicated compare functions. Key-value index
+        ///tables however require a keygen function that generates a key from a piece
+        ///of data.
+        typedef enum { LINKED_LIST, RED_BLACK_TREE } IndexType;
+
+        /// Enum defining the specific fixed-width DataStore timplementations available
+        /// Fixed-width DataStore implementations require that a fixed value be
+        ///specified at instantiation time, and all data is assumed to be of the
+        ///the specified size.
+        typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
+
+        /// Emum defining the specific indirect DataStore implementations available.
+        /// Indirect DataStore types store pointers to data that is assumed to be
+        ///allocated and managed externally to the ODB object. All other DataStore
+        ///types are copy-on-insert and manage their own memory allocation and
+        ///release. Indirect DataStore types only store pointers and transfer the
+        ///onus of memory mamangement to the user.
+        typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
+
+        /// Enum defining the specific variable-width DataStore implementations available.
+        /// Variable-width DataStores types allow for variable sizes of data,
+        ///requiring a data-size option passed on insertion.
+        typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
+
+        ODB(FixedDatastoreType dt, uint64_t datalen, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+
+        ~ODB();
+
+        Index* create_index(IndexType type, uint32_t flags, int32_t(*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
+
+        Index* create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge = NULL, Keygen* keygen = NULL, int32_t keylen = -1);
+
+        bool delete_index(Index* index);
+
+        IndexGroup* create_group();
+        IndexGroup* get_indexes();
+
+        void add_data(void* rawdata);
+        void add_data(void* rawdata, uint32_t nbytes);
+        DataObj* add_data(void* rawdata, bool add_to_all);
+        DataObj* add_data(void* rawdata, uint32_t nbytes, bool add_to_all);
+        void remove_sweep();
+        void purge();
+        void set_prune(bool(*prune)(void*));
+        virtual bool(*get_prune())(void*);
+        uint64_t size();
+        void update_time(time_t t);
+        time_t get_time();
+
+        uint32_t start_scheduler(uint32_t num_threads);
+        void block_until_done();
+
+        Iterator* it_first();
+        Iterator* it_last();
+        void it_release(Iterator* it);
+
+        /// The memory limit, in pages (usually 4k), that the memory sweeping
+        ///thread uses as a maximum limit for this ODB to consume.
+        uint64_t mem_limit;
+
+        /// Used to determine if memory checker thread is running or not.
+        bool is_running()
+        {
+            return running;
+        };
+
+
+    private:
+        ODB(FixedDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(DataStore* dt, uint64_t ident, uint64_t datalen);
+
+        void init(DataStore* data, uint64_t ident, uint64_t datalen, Archive* archive, void(*freep)(void*), uint32_t sleep_duration);
+        void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
+
+        /// Static variable that indicates the number of unique ODB instances
+        ///currently running in the context of the process. Atomic operations
+        ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
+        ///this value.
+        static ATOMICP_T num_unique;
+
+        /// Identity of this ODB insance in this process' context.
+        uint64_t ident;
+
+        /// The amount of user data, in bytes, stored per data item. This is passed
+        ///to the Datastore which augments it based on the options (timestamps and
+        ///query count).
+        uint64_t datalen;
+
+        /// Complete list of all Index tables associated with this ODB context.
+        std::vector<Index*>* tables;
+
+        /// Complete list of all IndexGroup objects associated with this ODB context.
+        std::vector<IndexGroup*>* groups;
+
+        /// DataStore object used as backend storage for this ODB context.
+        DataStore* data;
+
+        /// IndexGroup used for automatic insertion of data to index tables. The
+        ///default behaviour is for new index tables to be added to this group
+        ///however this can be overridden with the DO_NOT_ADD_TO_ALL.
+        IndexGroup* all;
+
+        /// Pointer to a DataOBj that is handed back to the user when the appropriate
+        ///methods are called.
+        DataObj* dataobj;
+
+        /// Thread that the memory checker runs in.
+        THREADP_T mem_thread;
+
+        /// Duration that the memory checker thread sleeps between sweeps. If this
+        ///value is set to zero at ODB creation time, the memory checker thread
+        ///is not started.
+        uint32_t sleep_duration;
+
+        /// Archiving method used when objects are swept from the Datastore.
+        Archive* archive;
+
+        /// Function used to free portions of data that are user-managed and
+        ///linked to ODB managed data.
+        void(*freep)(void*);
+
+        /// Scheduler that the ODB uses for multithreaded performance.
+        Scheduler* scheduler;
+
+        /// Whether or not the memory checker thread is running.
+        bool running;
+
+        /// Locking context.
+        RWLOCK_T;
     };
 
-
-private:
-    ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void (*freep)(void*) = NULL, uint32_t (*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
-    ODB(DataStore* dt, uint64_t ident, uint64_t datalen);
-
-    void init(DataStore* data, uint64_t ident, uint64_t datalen, Archive* archive, void (*freep)(void*), uint32_t sleep_duration);
-    void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
-
-    /// Static variable that indicates the number of unique ODB instances
-    ///currently running in the context of the process. Atomic operations
-    ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
-    ///this value.
-    static ATOMICP_T num_unique;
-
-    /// Identity of this ODB insance in this process' context.
-    uint64_t ident;
-
-    /// The amount of user data, in bytes, stored per data item. This is passed
-    ///to the Datastore which augments it based on the options (timestamps and
-    ///query count).
-    uint64_t datalen;
-
-    /// Complete list of all Index tables associated with this ODB context.
-    std::vector<Index*>* tables;
-
-    /// Complete list of all IndexGroup objects associated with this ODB context.
-    std::vector<IndexGroup*>* groups;
-
-    /// DataStore object used as backend storage for this ODB context.
-    DataStore* data;
-
-    /// IndexGroup used for automatic insertion of data to index tables. The
-    ///default behaviour is for new index tables to be added to this group
-    ///however this can be overridden with the DO_NOT_ADD_TO_ALL.
-    IndexGroup* all;
-
-    /// Pointer to a DataOBj that is handed back to the user when the appropriate
-    ///methods are called.
-    DataObj* dataobj;
-
-    /// Thread that the memory checker runs in.
-    THREADP_T mem_thread;
-
-    /// Duration that the memory checker thread sleeps between sweeps. If this
-    ///value is set to zero at ODB creation time, the memory checker thread
-    ///is not started.
-    uint32_t sleep_duration;
-
-    /// Archiving method used when objects are swept from the Datastore.
-    Archive* archive;
-
-    /// Function used to free portions of data that are user-managed and
-    ///linked to ODB managed data.
-    void (*freep)(void*);
-
-    /// Scheduler that the ODB uses for multithreaded performance.
-    Scheduler* scheduler;
-
-    /// Whether or not the memory checker thread is running.
-    bool running;
-
-    /// Locking context.
-    RWLOCK_T;
-};
+}
 
 #endif
 

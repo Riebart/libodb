@@ -16,115 +16,120 @@
 #include "archive.hpp"
 #include "common.hpp"
 
-Archive::~Archive()
+namespace libodb
 {
-}
 
-AppendOnlyFile::~AppendOnlyFile()
-{
-    fclose(data);
-    fclose(index);
-
-    free(data_name);
-    free(index_name);
-}
-
-/// @todo Make this use a biffered writer for improved throughput
-AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
-{
-    // The strcat call incurs a conditional jump on unitialized value from here
-    // according to valgrind. So calloc() it.
-    SAFE_CALLOC(char*, data_name, 1, strlen(base_filename)+5);
-    SAFE_CALLOC(char*, index_name, 1, strlen(base_filename)+5);
-
-    memcpy(data_name, base_filename, strlen(base_filename));
-    memcpy(index_name, base_filename, strlen(base_filename));
-
-#ifdef WIN32
-    strcat_s(data_name, 4, ".dat");
-    strcat_s(index_name, 4, ".ind");
-#else
-    strcat(data_name, ".dat");
-    strcat(index_name, ".ind");
-#endif
-
-    if (append)
+    Archive::~Archive()
     {
-#ifdef WIN32
-        int r;
-        r = fopen_s(&data, data_name, "ab");
-        if (r != 0)
-        {
-            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
-            return;
-        }
-
-        r = fopen_s(&index, index_name, "ab");
-        if (r != 0)
-        {
-            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
-            return;
-        }
-#else
-        data = fopen(data_name, "ab");
-        index = fopen(index_name, "ab");
-#endif
-
-        // Since we're appending, seek to the end, get the position, and then
-        // rewind back to the start.
-        fseek(data, 0, SEEK_END);
-        offset = ftell(data);
-        rewind(data);
-    }
-    else
-    {
-#ifdef WIN32
-        int r;
-        r = fopen_s(&data, data_name, "wb");
-        if (r != 0)
-        {
-            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
-            return;
-        }
-
-        r = fopen_s(&index, index_name, "wb");
-        if (r != 0)
-        {
-            fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
-            return;
-        }
-#else
-        data = fopen(data_name, "wb");
-        index = fopen(index_name, "wb");
-#endif
-
-        offset = 0;
     }
 
-    cond = NULL;
-}
-
-inline bool AppendOnlyFile::write(void* rawdata, uint64_t datalen)
-{
-    if ((cond != NULL) && (cond->condition(rawdata)))
+    AppendOnlyFile::~AppendOnlyFile()
     {
-        return false;
+        fclose(data);
+        fclose(index);
+
+        free(data_name);
+        free(index_name);
     }
 
-    if (fwrite(rawdata, (size_t)datalen, 1, data))
+    /// @todo Make this use a biffered writer for improved throughput
+    AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
     {
-        if (fwrite(&offset, sizeof(uint64_t), 1, index))
+        // The strcat call incurs a conditional jump on unitialized value from here
+        // according to valgrind. So calloc() it.
+        SAFE_CALLOC(char*, data_name, 1, strlen(base_filename) + 5);
+        SAFE_CALLOC(char*, index_name, 1, strlen(base_filename) + 5);
+
+        memcpy(data_name, base_filename, strlen(base_filename));
+        memcpy(index_name, base_filename, strlen(base_filename));
+
+#ifdef WIN32
+        strcat_s(data_name, 4, ".dat");
+        strcat_s(index_name, 4, ".ind");
+#else
+        strcat(data_name, ".dat");
+        strcat(index_name, ".ind");
+#endif
+
+        if (append)
         {
-            offset += datalen;
-            return true;
+#ifdef WIN32
+            int r;
+            r = fopen_s(&data, data_name, "ab");
+            if (r != 0)
+            {
+                fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+                return;
+            }
+
+            r = fopen_s(&index, index_name, "ab");
+            if (r != 0)
+            {
+                fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+                return;
+            }
+#else
+            data = fopen(data_name, "ab");
+            index = fopen(index_name, "ab");
+#endif
+
+            // Since we're appending, seek to the end, get the position, and then
+            // rewind back to the start.
+            fseek(data, 0, SEEK_END);
+            offset = ftell(data);
+            rewind(data);
+        }
+        else
+        {
+#ifdef WIN32
+            int r;
+            r = fopen_s(&data, data_name, "wb");
+            if (r != 0)
+            {
+                fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+                return;
+            }
+
+            r = fopen_s(&index, index_name, "wb");
+            if (r != 0)
+            {
+                fprintf(stderr, "UNABLE TO OPEN FILE \"%s\"\n", index_name);
+                return;
+            }
+#else
+            data = fopen(data_name, "wb");
+            index = fopen(index_name, "wb");
+#endif
+
+            offset = 0;
+        }
+
+        cond = NULL;
+    }
+
+    inline bool AppendOnlyFile::write(void* rawdata, uint64_t datalen)
+    {
+        if ((cond != NULL) && (cond->condition(rawdata)))
+        {
+            return false;
+        }
+
+        if (fwrite(rawdata, (size_t)datalen, 1, data))
+        {
+            if (fwrite(&offset, sizeof(uint64_t), 1, index))
+            {
+                offset += datalen;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
             return false;
         }
     }
-    else
-    {
-        return false;
-    }
+
 }

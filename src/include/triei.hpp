@@ -13,10 +13,10 @@
 /// Header file for TrieI index type as well as its iterators.
 /// @file triei.hpp
 
-#include "dll.hpp"
-
 #ifndef TRIEI_HPP
 #define TRIEI_HPP
+
+#include "dll.hpp"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -24,30 +24,35 @@
 
 #include "index.hpp"
 
-class LIBODB_API TrieI : public Index
+namespace libodb
 {
-public:
-    TrieI(int keylen);
-    virtual void add(void*, void*);
 
-private:
-    struct inode
+    class LIBODB_API TrieI : public Index
     {
-        struct node** next;
+    public:
+        TrieI(int keylen);
+        virtual void add(void*, void*);
+
+    private:
+        struct inode
+        {
+            struct node** next;
+        };
+
+        struct dnode
+        {
+            void* data;
+            char key;
+        };
+
+        struct inode* root;
+        int keylen;
     };
 
-    struct dnode
+    TrieI::TrieI()
     {
-        void* data;
-        char key;
-    };
+    }
 
-    struct inode* root;
-    int keylen;
-};
-
-TrieI::TrieI()
-{
 }
 
 #endif

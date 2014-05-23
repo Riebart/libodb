@@ -13,43 +13,48 @@
 /// Header file for Iterator objects.
 /// @file iterator.hpp
 
-#include "dll.hpp"
-
 #ifndef ITERATOR_HPP
 #define ITERATOR_HPP
+
+#include "dll.hpp"
 
 #include <stdint.h>
 #include <time.h>
 
-class DataObj;
-class DataStore;
-
-class LIBODB_API Iterator
+namespace libodb
 {
-    friend class RedBlackTreeI;
-    friend class LinkedListI;
 
-public:
-    virtual ~Iterator();
-    virtual DataObj* next();
-    virtual DataObj* prev();
-    virtual DataObj* data();
-    virtual void* get_data();
-    virtual time_t get_time_stamp();
-    virtual uint32_t get_query_count();
+    class DataObj;
+    class DataStore;
 
-protected:
-    Iterator();
-    Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
-    virtual void update_query_count();
+    class LIBODB_API Iterator
+    {
+        friend class RedBlackTreeI;
+        friend class LinkedListI;
 
-    bool drop_duplicates;
-    bool time_stamp;
-    bool query_count;
-    uint64_t true_datalen;
-    DataObj* dataobj;
-    Iterator* it;
-    DataStore* parent;
-};
+    public:
+        virtual ~Iterator();
+        virtual DataObj* next();
+        virtual DataObj* prev();
+        virtual DataObj* data();
+        virtual void* get_data();
+        virtual time_t get_time_stamp();
+        virtual uint32_t get_query_count();
+
+    protected:
+        Iterator();
+        Iterator(int ident, uint32_t true_datalen, bool time_stamp, bool query_count);
+        virtual void update_query_count();
+
+        bool drop_duplicates;
+        bool time_stamp;
+        bool query_count;
+        uint64_t true_datalen;
+        DataObj* dataobj;
+        Iterator* it;
+        DataStore* parent;
+    };
+
+}
 
 #endif
