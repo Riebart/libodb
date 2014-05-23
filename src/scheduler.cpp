@@ -662,12 +662,13 @@ namespace libodb
             {
                 RedBlackTreeI::e_add(root, q);
                 q->in_tree = true;
-                first_work->q->queue = NULL;
+                first_work->q = NULL;
             }
-            else
-            {
-                first_work->q = q;
-            }
+            //! @todo is this redundant?
+            //else
+            //{
+            //    first_work->q = q;
+            //}
 
             work_avail--;
         }
