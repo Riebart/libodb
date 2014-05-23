@@ -51,13 +51,13 @@ namespace libodb
 #define SQUARE(x) ((x) * (x))
 #endif
 
-#ifndef LEN_V
-#define LEN_V
+//#ifndef LEN_V
+//#define LEN_V
     inline uint32_t len_v(void* rawdata)
     {
         return strlen((const char*)rawdata);
     }
-#endif
+//#endif
 
     inline bool search(std::vector<void*>* marked, void* addr)
     {

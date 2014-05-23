@@ -36,6 +36,7 @@
 
 #include "scheduler.hpp"
 #include "lock.hpp"
+#include "utility.hpp"
 
 namespace libodb
 {
@@ -49,15 +50,6 @@ namespace libodb
 #else
     typedef pthread_t THREADP_T;
     typedef volatile uint32_t ATOMICP_T;
-#endif
-
-    //! @todo Do something about this #define of LEN_V. Where else do i define it? Can't it be in a cpp file?
-#ifndef LEN_V
-#define LEN_V
-    inline uint32_t len_v(void* rawdata)
-    {
-        return strlen((const char*)rawdata);
-    }
 #endif
 
     class DataStore;

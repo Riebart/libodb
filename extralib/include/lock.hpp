@@ -20,7 +20,13 @@
 ///this file. These defines control which parts of this file get activated. The types
 ///should be included/defined in your class/namespace headers, and the functions
 ///should be included/defined in your cpp/source header files to limit scope
-///pollution.
+///pollution. Including without any pre-define just includes any necessary headers.
+/// So, to use this file properly, you need to include it three times: The first time
+///should be in your header, with no pre-defines. The second time should be in your
+///class or namespace, preceeded by #define LOCK_HPP_TYPES, which will include
+///necessary typedef's and #define's. The third and final time is in your cpp file
+///preceeded by #define LOCK_HPP_FUNCTIONS which includes the necessary #define's
+///to use the abstracted lock/unlock calls.
 /// @file lock.hpp
 
 /// Check to see if pthread locks are defined as enabled. If so, enable all of its
