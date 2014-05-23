@@ -123,39 +123,6 @@ void sleep(int msec, bool dots)
 }
 
 #ifdef CPP11THREADS
-//// http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
-//// Nore that there's no way to get the value from an atomic_flag without setting it, so
-//// we can't build a try_lock on it.
-//// We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
-//class SpinLock
-//{
-//public:
-//    void lock()
-//    {
-//        bool exp = false;
-//        bool des = true;
-//        // Weak exchanges can spuriously return
-//        while (!lck.compare_exchange_weak(exp, des))
-//        {
-//            exp = false;
-//        }
-//    }
-//    
-//    //! @todo Reproduce this behaviour http://en.cppreference.com/w/cpp/thread/mutex/try_lock
-//    bool try_lock()
-//    {
-//        return lck.load();
-//    }
-//    
-//    void unlock()
-//    {
-//        lck.store(false);
-//    }
-//    
-//private:
-//    std::atomic<bool> lck = false;
-//};
-
 void test_atomic_bool()
 {
     TEST_CLASS_BEGIN("Atomic variable lock-free status");
@@ -407,6 +374,27 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 	TEST_CASE_END();
 	delete sched;
 	TEST_CLASS_END();
+}
+
+struct class_workload_args
+{
+    uint64_t id;
+    uint64_t num;
+    std::mutex* lock;
+
+};
+
+void* class_test(void* aV)
+{
+    struct class_workload_args* args = (struct class_workload_args*)aV;
+
+    return NULL;
+}
+
+void test_interference_class_correctness()
+{
+    Scheduler* sched = new Scheduler(2);
+    delete sched;
 }
 
 int main(int argc, char** argv)

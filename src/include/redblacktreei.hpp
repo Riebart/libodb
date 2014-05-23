@@ -108,7 +108,7 @@ namespace libodb
             Merger* merge;
             bool drop_duplicates;
             uint64_t count;
-            RWLOCK_T;
+            RWLOCK_T RWLOCK_T_NAME;
         };
 
         /// Destructor that employs a partial-recursion

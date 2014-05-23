@@ -96,7 +96,7 @@ namespace libodb
 
     private:
         std::deque<T>* base;
-        RWLOCK_T;
+        RWLOCK_T RWLOCK_T_NAME;
     };
 
 }

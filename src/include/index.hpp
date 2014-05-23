@@ -132,7 +132,7 @@ namespace libodb
         virtual void query_gt(void* rawdata, DataStore* ds);
         virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
 
-        RWLOCK_T;
+        RWLOCK_T RWLOCK_T_NAME;
 
     private:
         std::vector<IndexGroup*>* indices;

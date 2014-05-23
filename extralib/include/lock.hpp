@@ -28,105 +28,112 @@ defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SP
 #include "pthread.h"
 
 /* PTHREAD_RW */
-#define PTHREAD_RW_READ_LOCK() pthread_rwlock_rdlock(&rwlock)
-#define PTHREAD_RW_READ_LOCK_P(x) pthread_rwlock_rdlock(&(x->rwlock))
-#define PTHREAD_RW_READ_UNLOCK() pthread_rwlock_unlock(&rwlock)
-#define PTHREAD_RW_READ_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
-#define PTHREAD_RW_WRITE_LOCK() pthread_rwlock_wrlock(&rwlock)
-#define PTHREAD_RW_WRITE_LOCK_P(x) pthread_rwlock_wrlock(&(x->rwlock))
-#define PTHREAD_RW_WRITE_UNLOCK() pthread_rwlock_unlock(&rwlock)
-#define PTHREAD_RW_WRITE_UNLOCK_P(x) pthread_rwlock_unlock(&(x->rwlock))
-
 // PTHREAD_RW_*LOCK*() makes no sense, don't use it.
+#define PTHREAD_RW_READ_LOCK() pthread_rwlock_rdlock(&prwlock)
+#define PTHREAD_RW_READ_LOCK_P(x) pthread_rwlock_rdlock(&((x)->prwlock))
+#define PTHREAD_RW_READ_UNLOCK() pthread_rwlock_unlock(&prwlock)
+#define PTHREAD_RW_READ_UNLOCK_P(x) pthread_rwlock_unlock(&((x)->prwlock))
+#define PTHREAD_RW_WRITE_LOCK() pthread_rwlock_wrlock(&prwlock)
+#define PTHREAD_RW_WRITE_LOCK_P(x) pthread_rwlock_wrlock(&((x)->prwlock))
+#define PTHREAD_RW_WRITE_UNLOCK() pthread_rwlock_unlock(&prwlock)
+#define PTHREAD_RW_WRITE_UNLOCK_P(x) pthread_rwlock_unlock(&((x)->prwlock))
 #define PTHREAD_RW_LOCK() int[-1];
 #define PTHREAD_RW_LOCK_P(x) int[-1];
 #define PTHREAD_RW_UNLOCK() int[-1];
 #define PTHREAD_RW_UNLOCK_P(x) int[-1];
 
-#define PTHREAD_RW_RWLOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
-#define PTHREAD_RW_RWLOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
-#define PTHREAD_RW_LOCK_INIT() pthread_rwlock_init(&rwlock, NULL)
-#define PTHREAD_RW_LOCK_INIT_P(x) pthread_rwlock_init(&(x->rwlock), NULL)
+#define PTHREAD_RW_RWLOCK_INIT() pthread_rwlock_init(&prwlock, NULL)
+#define PTHREAD_RW_RWLOCK_INIT_P(x) pthread_rwlock_init(&((x)->prwlock), NULL)
+#define PTHREAD_RW_LOCK_INIT() int[-1];
+#define PTHREAD_RW_LOCK_INIT_P(x) int[-1];
 
-#define PTHREAD_RW_RWLOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
-#define PTHREAD_RW_RWLOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
-#define PTHREAD_RW_LOCK_DESTROY() pthread_rwlock_destroy(&rwlock)
-#define PTHREAD_RW_LOCK_DESTROY_P(x) pthread_rwlock_destroy(&(x->rwlock))
+#define PTHREAD_RW_RWLOCK_DESTROY() pthread_rwlock_destroy(&prwlock)
+#define PTHREAD_RW_RWLOCK_DESTROY_P(x) pthread_rwlock_destroy(&((x)->prwlock))
+#define PTHREAD_RW_LOCK_DESTROY() int[-1];
+#define PTHREAD_RW_LOCK_DESTROY_P(x) int[-1];
 
-#define PTHREAD_RW_LOCK_T pthread_rwlock_t rwlock
-#define PTHREAD_RW_RWLOCK_T pthread_rwlock_t rwlock
+#define PTHREAD_RW_LOCK_T_NAME int[-1];
+#define PTHREAD_RW_RWLOCK_T_NAME prwlock
+typedef pthread_rwlock_t PTHREAD_RW_LOCK_T;
+typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
 
 /* PTHREAD_SIMPLE */
-#define PTHREAD_SIMPLE_READ_LOCK() pthread_mutex_lock(&lock)
-#define PTHREAD_SIMPLE_READ_LOCK_P(x) pthread_mutex_lock(&(x->lock))
-#define PTHREAD_SIMPLE_READ_UNLOCK() pthread_mutex_unlock(&lock)
-#define PTHREAD_SIMPLE_READ_UNLOCK_P(x) pthread_mutex_unlock(&(x->lock))
-#define PTHREAD_SIMPLE_WRITE_LOCK() pthread_mutex_lock(&lock)
-#define PTHREAD_SIMPLE_WRITE_LOCK_P(x) pthread_mutex_lock(&(x->lock))
-#define PTHREAD_SIMPLE_WRITE_UNLOCK() pthread_mutex_unlock(&lock)
-#define PTHREAD_SIMPLE_WRITE_UNLOCK_P(x) pthread_mutex_unlock(&(x->lock))
-#define PTHREAD_SIMPLE_LOCK() pthread_mutex_lock(&lock)
-#define PTHREAD_SIMPLE_LOCK_P(x) pthread_mutex_lock(&(x->lock))
-#define PTHREAD_SIMPLE_UNLOCK() pthread_mutex_unlock(&lock)
-#define PTHREAD_SIMPLE_UNLOCK_P(x) pthread_mutex_unlock(&(x->lock))
+#define PTHREAD_SIMPLE_READ_LOCK() pthread_mutex_lock(&mrwlock)
+#define PTHREAD_SIMPLE_READ_LOCK_P(x) pthread_mutex_lock(&((x)->mrwlock))
+#define PTHREAD_SIMPLE_READ_UNLOCK() pthread_mutex_unlock(&mrwlock)
+#define PTHREAD_SIMPLE_READ_UNLOCK_P(x) pthread_mutex_unlock(&((x)->mrwlock))
+#define PTHREAD_SIMPLE_WRITE_LOCK() pthread_mutex_lock(&mrwlock)
+#define PTHREAD_SIMPLE_WRITE_LOCK_P(x) pthread_mutex_lock(&((x)->mrwlock))
+#define PTHREAD_SIMPLE_WRITE_UNLOCK() pthread_mutex_unlock(&mrwlock)
+#define PTHREAD_SIMPLE_WRITE_UNLOCK_P(x) pthread_mutex_unlock(&((x)->mrwlock))
+#define PTHREAD_SIMPLE_LOCK() pthread_mutex_lock(&mlock)
+#define PTHREAD_SIMPLE_LOCK_P(x) pthread_mutex_lock(&((x)->mlock))
+#define PTHREAD_SIMPLE_UNLOCK() pthread_mutex_unlock(&mlock)
+#define PTHREAD_SIMPLE_UNLOCK_P(x) pthread_mutex_unlock(&((x)->mlock))
 
-#define PTHREAD_SIMPLE_RWLOCK_INIT() pthread_mutex_init(&lock, NULL)
-#define PTHREAD_SIMPLE_RWLOCK_INIT_P(x) pthread_mutex_init(&(x->lock), NULL)
-#define PTHREAD_SIMPLE_LOCK_INIT() pthread_mutex_init(&lock, NULL)
-#define PTHREAD_SIMPLE_LOCK_INIT_P(x) pthread_mutex_init(&(x->lock), NULL)
+#define PTHREAD_SIMPLE_RWLOCK_INIT() pthread_mutex_init(&mrwlock, NULL)
+#define PTHREAD_SIMPLE_RWLOCK_INIT_P(x) pthread_mutex_init(&((x)->mrwlock), NULL)
+#define PTHREAD_SIMPLE_LOCK_INIT() pthread_mutex_init(&mlock, NULL)
+#define PTHREAD_SIMPLE_LOCK_INIT_P(x) pthread_mutex_init(&((x)->mlock), NULL)
 
-#define PTHREAD_SIMPLE_RWLOCK_DESTROY() pthread_mutex_destroy(&lock)
-#define PTHREAD_SIMPLE_RWLOCK_DESTROY_P(x) pthread_mutex_destroy(&(x->lock))
-#define PTHREAD_SIMPLE_LOCK_DESTROY() pthread_mutex_destroy(&lock)
-#define PTHREAD_SIMPLE_LOCK_DESTROY_P(x) pthread_mutex_destroy(&(x->lock))
+#define PTHREAD_SIMPLE_RWLOCK_DESTROY() pthread_mutex_destroy(&mrwlock)
+#define PTHREAD_SIMPLE_RWLOCK_DESTROY_P(x) pthread_mutex_destroy(&((x)->mrwlock))
+#define PTHREAD_SIMPLE_LOCK_DESTROY() pthread_mutex_destroy(&mlock)
+#define PTHREAD_SIMPLE_LOCK_DESTROY_P(x) pthread_mutex_destroy(&((x)->mlock))
 
-#define PTHREAD_SIMPLE_LOCK_T pthread_mutex_t lock
-#define PTHREAD_SIMPLE_RWLOCK_T pthread_mutex_t lock
+#define PTHREAD_SIMPLE_LOCK_T_NAME mlock
+#define PTHREAD_SIMPLE_RWLOCK_T_NAME mrwlock
+typedef pthread_mutex_t PTHREAD_SIMPLE_LOCK_T;
+typedef pthread_mutex_t PTHREAD_SIMPLE_RWLOCK_T;
 
 /* PTHREAD_SPIN */
-#define PTHREAD_SPIN_READ_LOCK() pthread_spin_lock(&lock)
-#define PTHREAD_SPIN_READ_LOCK_P(x) pthread_spin_lock(&(x->lock))
-#define PTHREAD_SPIN_READ_UNLOCK() pthread_spin_unlock(&lock)
-#define PTHREAD_SPIN_READ_UNLOCK_P(x) pthread_spin_unlock(&(x->lock))
-#define PTHREAD_SPIN_WRITE_LOCK() pthread_spin_lock(&lock)
-#define PTHREAD_SPIN_WRITE_LOCK_P(x) pthread_spin_lock(&(x->lock))
-#define PTHREAD_SPIN_WRITE_UNLOCK() pthread_spin_unlock(&lock)
-#define PTHREAD_SPIN_WRITE_UNLOCK_P(x) pthread_spin_unlock(&(x->lock))
-#define PTHREAD_SPIN_LOCK() pthread_spin_lock(&lock)
-#define PTHREAD_SPIN_LOCK_P(x) pthread_spin_lock(&(x->lock))
-#define PTHREAD_SPIN_UNLOCK() pthread_spin_unlock(&lock)
-#define PTHREAD_SPIN_UNLOCK_P(x) pthread_spin_unlock(&(x->lock))
+#define PTHREAD_SPIN_READ_LOCK() pthread_spin_lock(&srwlock)
+#define PTHREAD_SPIN_READ_LOCK_P(x) pthread_spin_lock(&((x)->srwlock))
+#define PTHREAD_SPIN_READ_UNLOCK() pthread_spin_unlock(&srwlock)
+#define PTHREAD_SPIN_READ_UNLOCK_P(x) pthread_spin_unlock(&((x)->srwlock))
+#define PTHREAD_SPIN_WRITE_LOCK() pthread_spin_lock(&srwlock)
+#define PTHREAD_SPIN_WRITE_LOCK_P(x) pthread_spin_lock(&((x)->srwlock))
+#define PTHREAD_SPIN_WRITE_UNLOCK() pthread_spin_unlock(&srwlock)
+#define PTHREAD_SPIN_WRITE_UNLOCK_P(x) pthread_spin_unlock(&((x)->srwlock))
+#define PTHREAD_SPIN_LOCK() pthread_spin_lock(&slock)
+#define PTHREAD_SPIN_LOCK_P(x) pthread_spin_lock(&((x)->slock))
+#define PTHREAD_SPIN_UNLOCK() pthread_spin_unlock(&slock)
+#define PTHREAD_SPIN_UNLOCK_P(x) pthread_spin_unlock(&((x)->slock))
 
-#define PTHREAD_SPIN_RWLOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
-#define PTHREAD_SPIN_RWLOCK_INIT_P(x) pthread_spin_init(&(x->lock), PTHREAD_PROCESS_PRIVATE)
-#define PTHREAD_SPIN_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
-#define PTHREAD_SPIN_LOCK_INIT_P(x) pthread_spin_init(&(x->lock), PTHREAD_PROCESS_PRIVATE)
+#define PTHREAD_SPIN_RWLOCK_INIT() pthread_spin_init(&srwlock, PTHREAD_PROCESS_PRIVATE)
+#define PTHREAD_SPIN_RWLOCK_INIT_P(x) pthread_spin_init(&((x)->srwlock), PTHREAD_PROCESS_PRIVATE)
+#define PTHREAD_SPIN_LOCK_INIT() pthread_spin_init(&slock, PTHREAD_PROCESS_PRIVATE)
+#define PTHREAD_SPIN_LOCK_INIT_P(x) pthread_spin_init(&((x)->slock), PTHREAD_PROCESS_PRIVATE)
 
-#define PTHREAD_SPIN_RWLOCK_DESTROY() pthread_spin_destroy(&lock)
-#define PTHREAD_SPIN_RWLOCK_DESTROY_P(x) pthread_spin_destroy(&(x->lock))
-#define PTHREAD_SPIN_LOCK_DESTROY() pthread_spin_destroy(&lock)
-#define PTHREAD_SPIN_LOCK_DESTROY_P(x) pthread_spin_destroy(&(x->lock))
+#define PTHREAD_SPIN_RWLOCK_DESTROY() pthread_spin_destroy(&srwlock)
+#define PTHREAD_SPIN_RWLOCK_DESTROY_P(x) pthread_spin_destroy(&((x)->srwlock))
+#define PTHREAD_SPIN_LOCK_DESTROY() pthread_spin_destroy(&slock)
+#define PTHREAD_SPIN_LOCK_DESTROY_P(x) pthread_spin_destroy(&((x)->slock))
 
-#define PTHREAD_SPIN_LOCK_T pthread_spinlock_t lock
-#define PTHREAD_SPIN_RWLOCK_T pthread_spinlock_t lock
+#define PTHREAD_SIMPLE_LOCK_T_NAME slock
+#define PTHREAD_SIMPLE_LOCK_T_NAME srwlock
+typedef pthread_spinlock_t PTHREAD_SPIN_LOCK_T;
+typedef pthread_spinlock_t PTHREAD_SPIN_RWLOCK_T;
+
 #endif
 
 #if defined(ENABLE_GOOGLE_LOCKS) || \
 defined(GOOGLE_SPIN_LOCKS)
+//! @todo This might incur namespacing errors, like the STL items now that we're namespaced...
 #include "spinlock/spinlock.h"
 
-#define GOOGLE_SPIN_READ_LOCK() lock.Lock()
-#define GOOGLE_SPIN_READ_LOCK_P(x) (x->lock).Lock()
-#define GOOGLE_SPIN_READ_UNLOCK() lock.Unlock()
-#define GOOGLE_SPIN_READ_UNLOCK_P(x) (x->lock).Unlock()
-#define GOOGLE_SPIN_WRITE_LOCK() lock.Lock()
-#define GOOGLE_SPIN_WRITE_LOCK_P(x) (x->lock).Lock()
-#define GOOGLE_SPIN_WRITE_UNLOCK() lock.Unlock()
-#define GOOGLE_SPIN_WRITE_UNLOCK_P(x) (x->lock).Unlock()
-#define GOOGLE_SPIN_LOCK() lock.Lock()
-#define GOOGLE_SPIN_LOCK_P(x) (x->lock).Lock()
-#define GOOGLE_SPIN_UNLOCK() lock.Unlock()
-#define GOOGLE_SPIN_UNLOCK_P(x) (x->lock).Unlock()
+#define GOOGLE_SPIN_READ_LOCK() gsrwlock.Lock()
+#define GOOGLE_SPIN_READ_LOCK_P(x) ((x)->gsrwlock).Lock()
+#define GOOGLE_SPIN_READ_UNLOCK() gsrwlock.Unlock()
+#define GOOGLE_SPIN_READ_UNLOCK_P(x) ((x)->gsrwlock).Unlock()
+#define GOOGLE_SPIN_WRITE_LOCK() gsrwlock.Lock()
+#define GOOGLE_SPIN_WRITE_LOCK_P(x) ((x)->gsrwlock).Lock()
+#define GOOGLE_SPIN_WRITE_UNLOCK() gsrwlock.Unlock()
+#define GOOGLE_SPIN_WRITE_UNLOCK_P(x) ((x)->gsrwlock).Unlock()
+#define GOOGLE_SPIN_LOCK() gslock.Lock()
+#define GOOGLE_SPIN_LOCK_P(x) ((x)->gslock).Lock()
+#define GOOGLE_SPIN_UNLOCK() gslock.Unlock()
+#define GOOGLE_SPIN_UNLOCK_P(x) ((x)->gslock).Unlock()
 
 #define GOOGLE_SPIN_RWLOCK_INIT()
 #define GOOGLE_SPIN_RWLOCK_INIT_P(x)
@@ -138,39 +145,45 @@ defined(GOOGLE_SPIN_LOCKS)
 #define GOOGLE_SPIN_LOCK_DESTROY()
 #define GOOGLE_SPIN_LOCK_DESTROY_P(x)
 
-#define GOOGLE_SPIN_LOCK_T SpinLock lock;
-#define GOOGLE_SPIN_RWLOCK_T SpinLock lock;
+#define GOOGLE_SPIN_LOCK_T_NAME gslock
+#define GOOGLE_SPIN_RWLOCK_T_NAME gsrwlock
+typedef SpinLock GOOGLE_SPIN_LOCK_T;
+typedef SpinLock GOOGLE_SPIN_RWLOCK_T;
+
 #endif
 
 #if defined (ENABLE_CPP11LOCKS) || \
 defined(CPP11LOCKS)
 #include <mutex>
 
-#define CPP11_READ_LOCK() rwlock->lock()
-#define CPP11_READ_LOCK_P(x) ((x)->rwlock)->lock()
-#define CPP11_READ_UNLOCK() rwlock->unlock()
-#define CPP11_READ_UNLOCK_P(x) ((x)->rwlock)->unlock()
-#define CPP11_WRITE_LOCK() rwlock->lock()
-#define CPP11_WRITE_LOCK_P(x) ((x)->rwlock)->lock()
-#define CPP11_WRITE_UNLOCK() rwlock->unlock()
-#define CPP11_WRITE_UNLOCK_P(x) ((x)->rwlock)->unlock()
-#define CPP11_LOCK() lock->lock()
-#define CPP11_LOCK_P(x) ((x)->lock)->lock()
-#define CPP11_UNLOCK() lock->unlock()
-#define CPP11_UNLOCK_P(x) ((x)->lock)->unlock()
+#define CPP11_READ_LOCK() cpp11rwlock->lock()
+#define CPP11_READ_LOCK_P(x) ((x)->cpp11rwlock)->lock()
+#define CPP11_READ_UNLOCK() cpp11rwlock->unlock()
+#define CPP11_READ_UNLOCK_P(x) ((x)->cpp11rwlock)->unlock()
+#define CPP11_WRITE_LOCK() cpp11rwlock->lock()
+#define CPP11_WRITE_LOCK_P(x) ((x)->cpp11rwlock)->lock()
+#define CPP11_WRITE_UNLOCK() cpp11rwlock->unlock()
+#define CPP11_WRITE_UNLOCK_P(x) ((x)->cpp11rwlock)->unlock()
+#define CPP11_LOCK() cpp11lock->lock()
+#define CPP11_LOCK_P(x) ((x)->cpp11lock)->lock()
+#define CPP11_UNLOCK() cpp11lock->unlock()
+#define CPP11_UNLOCK_P(x) ((x)->cpp11lock)->unlock()
 
-#define CPP11_RWLOCK_INIT() rwlock = new std::mutex()
-#define CPP11_RWLOCK_INIT_P(x) ((x)->rwlock) = new std::mutex()
-#define CPP11_LOCK_INIT() lock = new std::mutex()
-#define CPP11_LOCK_INIT_P(x) ((x)->lock) = new std::mutex()
+#define CPP11_RWLOCK_INIT() cpp11rwlock = new std::mutex()
+#define CPP11_RWLOCK_INIT_P(x) ((x)->cpp11rwlock) = new std::mutex()
+#define CPP11_LOCK_INIT() cpp11lock = new std::mutex()
+#define CPP11_LOCK_INIT_P(x) ((x)->cpp11lock) = new std::mutex()
 
-#define CPP11_RWLOCK_DESTROY() delete rwlock
-#define CPP11_RWLOCK_DESTROY_P(x) delete ((x)->rwlock)
-#define CPP11_LOCK_DESTROY() delete lock
-#define CPP11_LOCK_DESTROY_P(x) delete ((x)->lock)
+#define CPP11_RWLOCK_DESTROY() delete cpp11rwlock
+#define CPP11_RWLOCK_DESTROY_P(x) delete ((x)->cpp11rwlock)
+#define CPP11_LOCK_DESTROY() delete cpp11lock
+#define CPP11_LOCK_DESTROY_P(x) delete ((x)->cpp11lock)
 
-#define CPP11_LOCK_T std::mutex* lock;
-#define CPP11_RWLOCK_T std::mutex* rwlock;
+#define CPP11_LOCK_T_NAME cpp11lock
+#define CPP11_RWLOCK_T_NAME cpp11rwlock
+typedef std::mutex* CPP11_LOCK_T;
+typedef std::mutex* CPP11_RWLOCK_T;
+
 #endif
 
 #if defined(PTHREAD_RW_LOCKS)
@@ -197,8 +210,10 @@ defined(CPP11LOCKS)
 #define LOCK_DESTROY() PTHREAD_RW_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_RW_LOCK_DESTROY_P(x)
 
-#define LOCK_T PTHREAD_RW_LOCK_T
-#define RWLOCK_T PTHREAD_RW_RWLOCK_T
+#define LOCK_T_NAME PTHREAD_RW_LOCK_T_NAME
+#define RWLOCK_T_NAME PTHREAD_RW_RWLOCK_T_NAME
+typedef PTHREAD_RW_LOCK_T LOCK_T;
+typedef PTHREAD_RW_RWLOCK_T RWLOCK_T;
 
 //==============================================================================
 #elif defined(PTHREAD_SIMPLE_LOCKS)
@@ -226,8 +241,10 @@ defined(CPP11LOCKS)
 #define LOCK_DESTROY() PTHREAD_SIMPLE_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_SIMPLE_LOCK_DESTROY_P(x)
 
-#define LOCK_T PTHREAD_SIMPLE_LOCK_T
-#define RWLOCK_T PTHREAD_SIMPLE_RWLOCK_T
+#define LOCK_T_NAME PTHREAD_SIMPLE_LOCK_T_NAME
+#define RWLOCK_T_NAME PTHREAD_SIMPLE_RWLOCK_T_NAME
+typedef PTHREAD_SIMPLE_LOCK_T LOCK_T;
+typedef PTHREAD_SIMPLE_RWLOCK_T RWLOCK_T;
 
 //==============================================================================
 #elif defined(PTHREAD_SPIN_LOCKS)
@@ -255,8 +272,10 @@ defined(CPP11LOCKS)
 #define LOCK_DESTROY() PTHREAD_SPIN_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) PTHREAD_SPIN_LOCK_DESTROY_P(x)
 
-#define LOCK_T PTHREAD_SPIN_LOCK_T
-#define RWLOCK_T PTHREAD_SPIN_RWLOCK_T
+#define LOCK_T_NAME PTHREAD_SPIN_LOCK_T_NAME
+#define RWLOCK_T_NAME PTHREAD_SPIN_RWLOCK_T_NAME
+typedef PTHREAD_SPIN_LOCK_T LOCK_T;
+typedef PTHREAD_SPIN_RWLOCK_T RWLOCK_T;
 
 //==============================================================================
 #elif defined(GOOGLE_SPIN_LOCKS)
@@ -284,8 +303,10 @@ defined(CPP11LOCKS)
 #define LOCK_DESTROY() GOOGLE_SPIN_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) GOOGLE_SPIN_LOCK_DESTROY_P(x)
 
-#define LOCK_T GOOGLE_SPIN_LOCK_T
-#define RWLOCK_T GOOGLE_SPIN_RWLOCK_T
+#define LOCK_T_NAME GOOGLE_SPIN_LOCK_T_NAME
+#define RWLOCK_T_NAME GOOGLE_SPIN_RWLOCK_T_NAME
+typedef GOOGLE_SPIN_LOCK_T LOCK_T;
+typedef GOOGLE_SPIN_RWLOCK_T RWLOCK_T;
 
 //==============================================================================
 #elif defined(CPP11LOCKS)
@@ -313,58 +334,64 @@ defined(CPP11LOCKS)
 #define LOCK_DESTROY() CPP11_LOCK_DESTROY()
 #define LOCK_DESTROY_P(x) CPP11_LOCK_DESTROY_P(x)
 
-#define LOCK_T CPP11_LOCK_T
-#define RWLOCK_T CPP11_RWLOCK_T
+#define LOCK_T_NAME CPP11_LOCK_T_NAME
+#define RWLOCK_T_NAME CPP11_RWLOCK_T_NAME
+typedef CPP11_LOCK_T LOCK_T;
+typedef CPP11_RWLOCK_T RWLOCK_T;
 
 
 //==============================================================================
 #else
 
 /// Obtain a read lock in the context of a locking object
-#define READ_LOCK()
+#define READ_LOCK() int[-1];
 /// Obtain a read lock on the locking member of something we have a pointer to
-#define READ_LOCK_P(x)
+#define READ_LOCK_P(x) int[-1];
 /// Obtain a read unlock in the context of a locking object
-#define READ_UNLOCK()
+#define READ_UNLOCK() int[-1];
 /// Obtain a read unlock on the locking member of something we have a pointer to
-#define READ_UNLOCK_P(x)
+#define READ_UNLOCK_P(x) int[-1];
 
 /// Obtain a write lock in the context of a locking object
-#define WRITE_LOCK()
+#define WRITE_LOCK() int[-1];
 /// Obtain a write lock on the locking member of something we have a pointer to
-#define WRITE_LOCK_P(x)
+#define WRITE_LOCK_P(x) int[-1];
 /// Obtain a write unlock in the context of a locking object
-#define WRITE_UNLOCK()
+#define WRITE_UNLOCK() int[-1];
 /// Obtain a write unlock on the locking member of something we have a pointer to
-#define WRITE_UNLOCK_P(x)
+#define WRITE_UNLOCK_P(x) int[-1];
 
 /// Obtain a read/write lock in the context of a locking object
-#define LOCK()
+#define LOCK() int[-1];
 /// Obtain a read/write lock in the context of a locking objectof something we have a pointer to
-#define LOCK_P(x)
+#define LOCK_P(x) int[-1];
 /// Obtain a read/write unlock in the context of a locking object
-#define UNLOCK()
+#define UNLOCK() int[-1];
 /// Obtain a read/write unlock in the context of a locking object of something we have a pointer to
-#define UNLOCK_P(x)
+#define UNLOCK_P(x) int[-1];
 
 /// Initialize the locking member
-#define RWLOCK_INIT()
+#define RWLOCK_INIT() int[-1];
 /// Initialize the locking member of something we have a pointer to
-#define RWLOCK_INIT_P(x)
+#define RWLOCK_INIT_P(x) int[-1];
 /// Initialize the locking member
-#define LOCK_INIT()
+#define LOCK_INIT() int[-1];
 /// Initialize the locking member of something we have a pointer to
-#define LOCK_INIT_P(x)
+#define LOCK_INIT_P(x) int[-1];
 
 /// Destroy the locking member
-#define RWLOCK_DESTROY()
+#define RWLOCK_DESTROY() int[-1];
 /// Destroy the locking member of something we have a pointer to
-#define RWLOCK_DESTROY_P(x)
+#define RWLOCK_DESTROY_P(x) int[-1];
 /// Destroy the locking member
-#define LOCK_DESTROY()
+#define LOCK_DESTROY() int[-1];
 /// Destroy the locking member of something we have a pointer to
-#define LOCK_DESTROY_P(x)
+#define LOCK_DESTROY_P(x) int[-1];
 
+/// Standard name of the variable of this lock time for read-write locks
+#define RWLOCK_T_NAME int[-1];
+/// Standard name of the variable of this lock time for simple locks.
+#define LOCK_T_NAME int[-1];
 /// Simple lock type
 #define LOCK_T
 /// Read/write type

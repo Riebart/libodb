@@ -239,7 +239,7 @@ namespace libodb
         bool running;
 
         /// Locking context.
-        RWLOCK_T;
+        RWLOCK_T RWLOCK_T_NAME;
     };
 
 }

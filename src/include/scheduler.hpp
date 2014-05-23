@@ -65,6 +65,7 @@ namespace libodb
     // Nore that there's no way to get the value from an atomic_flag without setting it, so
     // we can't build a try_lock on it.
     // We can, however, build it on atomic<bool>, and then use .load() to see if we would wait.
+    //! @todo This class name might collide with Google's spinlocks, so make sure that doesn't happen.
     class LIBODB_API SpinLock
     {
     public:
