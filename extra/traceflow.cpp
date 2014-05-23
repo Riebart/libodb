@@ -13,6 +13,8 @@
 #include "tcp.hpp"
 #include "redblacktreei.hpp"
 
+using namespace libodb;
+
 #define TCP_TIMEOUT 10000000 // 10 seconds, counted in microseconds.
 
 /// Throw should only ever hold values of 1, 2 or 3 indicating how the flow ended.

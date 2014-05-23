@@ -20,6 +20,8 @@
 #include "scheduler.hpp"
 #include "cmwc.h"
 
+using namespace libodb;
+
 // The structure that describes each node in the RBT. Node that we need to include
 // the two void* pointers at the head of the RBT. These MUST be the first two
 // fields in the struct, so pack it if necessary.

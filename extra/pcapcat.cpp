@@ -31,6 +31,8 @@
 //or about 8*512=4096 bytes.
 #define BUFFER_LENGTH 1048576
 
+using namespace libodb;
+
 struct timeval32
 {
     uint32_t tv_sec;

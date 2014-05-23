@@ -57,6 +57,8 @@ using namespace std;
 //the offset distance, in number of bytes of element 'b' into struct 'a'
 #define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
 
+using namespace libodb;
+
 #define PERIOD 600
 #define DIMENSIONS 9
 uint32_t period_start = 0;

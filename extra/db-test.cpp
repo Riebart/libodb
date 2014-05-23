@@ -28,6 +28,8 @@
 #define SQLITE_TMPFILE "./sqlite-temp"
 #define NUM_ODB_THREADS 4
 
+using namespace libodb;
+
 MYSQL *myconn;
 // REDIS rh;
 PGconn *pgconn;

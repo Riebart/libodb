@@ -376,20 +376,20 @@ void load_lock(char* name, void* (*f)(void*), void* args, int n)
 	TEST_CLASS_END();
 }
 
-struct class_workload_args
-{
-    uint64_t id;
-    uint64_t num;
-    std::mutex* lock;
-
-};
-
-void* class_test(void* aV)
-{
-    struct class_workload_args* args = (struct class_workload_args*)aV;
-
-    return NULL;
-}
+// struct class_workload_args
+// {
+//     uint64_t id;
+//     uint64_t num;
+//     std::mutex* lock;
+// 
+// };
+// 
+// void* class_test(void* aV)
+// {
+//     struct class_workload_args* args = (struct class_workload_args*)aV;
+// 
+//     return NULL;
+// }
 
 void test_interference_class_correctness()
 {

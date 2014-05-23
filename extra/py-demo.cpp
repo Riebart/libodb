@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <boost/python.hpp>
 
+using namespace libodb;
+
 #define BUF_SIZE 50000
 
 // #include "Python.h"

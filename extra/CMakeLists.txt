@@ -16,7 +16,7 @@ include_directories("../src/include" "../extralib/include" "/usr/include/mysql/"
 add_definitions(-DENABLE_PTHREAD_LOCKS -D_BSD_SOURCE)
 
 add_executable (traceflow traceflow.cpp)
-add_executable (demo-flows demo-flows.cpp)
+# add_executable (demo-flows demo-flows.cpp)
 add_executable (demo-dns demo-dns.cpp)
 add_executable (demo-1 demo-1.cpp)
 add_executable (dnsstats dnsstats.cpp)
@@ -27,7 +27,7 @@ add_executable (db-test db-test.cpp)
 add_executable (db-mem-test db-mem-test.cpp)
 add_executable (pcapcat pcapcat.cpp)
 
-target_link_libraries(demo-flows z ft ${LIBS})
+# target_link_libraries(demo-flows z ft ${LIBS})
 target_link_libraries(demo-dns ${LIBS})
 target_link_libraries(demo-1 ${LIBS})
 target_link_libraries(dpep ${LIBS})
@@ -53,7 +53,7 @@ endif()
 
 
 add_dependencies(extra traceflow)
-add_dependencies(extra demo-flows)
+# add_dependencies(extra demo-flows)
 add_dependencies(extra demo-dns)
 add_dependencies(extra demo-1)
 add_dependencies(extra dnsstats)

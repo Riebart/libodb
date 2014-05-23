@@ -30,6 +30,8 @@
 // A run time of 1000000000 (1 billion) corresponds to approximately five seconds of processing on a C2D T9300 2.50GHz
 #define RUN_TIME 2000000000
 
+using namespace libodb;
+
 uint64_t N;
 int num_cycles;
 int num_indices;

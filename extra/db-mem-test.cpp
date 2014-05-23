@@ -27,6 +27,8 @@ uint64_t NUM_ITEMS = 100000;
 #define NUM_ODB_THREADS 1
 #define TIME_DIFF(start, end) (((int32_t)end.tv_sec - (int32_t)start.tv_sec) + 0.000000001 * ((int)end.tv_nsec - (int)start.tv_nsec))
 
+using namespace libodb;
+
 struct odb_item
 {
     char key [KEY_SIZE];

@@ -19,6 +19,8 @@
 #include "iterator.hpp"
 #include "cmwc.h"
 
+using namespace libodb;
+
 inline bool prune(void* rawdata)
 {
     return (((*(long*)rawdata) % 2) == 0);

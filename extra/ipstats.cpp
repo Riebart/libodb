@@ -66,6 +66,8 @@ uint16_t outfname_len;
 #include "odb.hpp"
 #include "index.hpp"
 #include "redblacktreei.hpp"
+
+using namespace libodb;
 // =============================================================================
 // =============================================================================
 

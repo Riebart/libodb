@@ -41,6 +41,8 @@ using namespace std;
 
 #define UINT32_TO_IP(x) x&255, (x>>8)&255, (x>>16)&255, (x>>24)&255
 
+using namespace libodb;
+
 #define PERIOD 600
 uint32_t period_start = 0;
 

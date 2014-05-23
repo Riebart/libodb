@@ -18,6 +18,8 @@
 #include <vector>
 #include <arpa/inet.h>
 
+using namespace libodb;
+
 //is this right?
 #define HEADER_SIZE 1974+9
 #define BUF_SIZE 2048

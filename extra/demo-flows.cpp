@@ -21,6 +21,8 @@
 #include "odb.hpp"
 #include "archive.hpp"
 
+using namespace libodb;
+
 extern "C"
 {
 #include <ftlib.h>
@@ -55,7 +57,7 @@ extern "C"
 // };
 
 
-inline bool prune_false(void* rawdata)
+bool prune_false(void* rawdata)
 {
     struct fts3rec_v5_gen* data = reinterpret_cast<struct fts3rec_v5_gen*>(rawdata);
     if (((data->srcport) >= 32768) && ((data->srcport) <= 65535))

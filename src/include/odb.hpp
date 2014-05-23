@@ -125,8 +125,8 @@ namespace libodb
         ///requiring a data-size option passed on insertion.
         typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
 
-        ODB(FixedDatastoreType dt, uint64_t datalen, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-        ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
 
         ~ODB();
@@ -146,7 +146,7 @@ namespace libodb
         DataObj* add_data(void* rawdata, uint32_t nbytes, bool add_to_all);
         void remove_sweep();
         void purge();
-        void set_prune(bool(*prune)(void*));
+        void set_prune(bool (*prune)(void*));
         virtual bool(*get_prune())(void*);
         uint64_t size();
         void update_time(time_t t);
@@ -172,9 +172,9 @@ namespace libodb
 
     private:
 
-        ODB(FixedDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-        ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-        ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(DataStore* dt, uint64_t ident, uint64_t datalen);
 
         void init(DataStore* data, uint64_t ident, uint64_t datalen, Archive* archive, void(*freep)(void*), uint32_t sleep_duration);

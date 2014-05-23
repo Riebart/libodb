@@ -56,6 +56,8 @@ using namespace std;
 
 #define OFFSET(a,b)  ((int64_t) (&( ((a*)(0)) -> b)))
 
+using namespace libodb;
+
 #define PERIOD 600
 uint32_t period_start = 0;
 

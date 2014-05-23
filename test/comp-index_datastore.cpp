@@ -30,6 +30,8 @@
 #include "redblacktreei.hpp"
 #include "common.hpp"
 
+using namespace libodb;
+
 #include "cmwc.h"
 
 #define SPREAD 500

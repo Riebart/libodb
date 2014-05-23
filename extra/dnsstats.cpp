@@ -37,6 +37,8 @@
 #define MIN(x, y) ((x < y) ? x : y)
 #endif
 
+using namespace libodb;
+
 std::vector<pthread_t> threads;
 uint32_t interval_start_sec = 0;
 char* outfname = NULL;
