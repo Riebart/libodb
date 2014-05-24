@@ -20,13 +20,9 @@
 
 #include <vector>
 #include <stdint.h>
-#include "lock.hpp"
 
 namespace libodb
 {
-
-#define LOCK_HPP_TYPES
-#include "lock.hpp"
 
     // Forward declarations.
     class ODB;
@@ -134,7 +130,7 @@ namespace libodb
         virtual void query_gt(void* rawdata, DataStore* ds);
         virtual std::vector<Index*>* flatten(std::vector<Index*>* list);
 
-        RWLOCK_T RWLOCK_T_NAME;
+        void* rwlock;
 
     private:
         std::vector<IndexGroup*>* indices;

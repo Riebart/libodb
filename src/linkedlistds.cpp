@@ -24,11 +24,17 @@
 #include "common.hpp"
 #include "index.hpp"
 
+#include "lock.hpp"
+
+//! @todo promote these to maybe static member functions of Datastore?
+#define GET_TIME_STAMP(x, dlen) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + dlen))
+#define SET_TIME_STAMP(x, t, dlen) (GET_TIME_STAMP(x, dlen) = t);
+#define GET_QUERY_COUNT(x, dlen) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + dlen + time_stamp * sizeof(time_t)))
+#define SET_QUERY_COUNT(x, c, dlen) (GET_QUERY_COUNT(x, dlen) = c);
+#define UPDATE_QUERY_COUNT(x, dlen) (GET_QUERY_COUNT(x, dlen)++);
+
 namespace libodb
 {
-
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
     LinkedListDS::LinkedListDS(DataStore* _parent, bool(*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags)
     {
@@ -67,12 +73,12 @@ namespace libodb
         this->prune = _prune;
         data_count = 0;
 
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
     }
 
     LinkedListDS::~LinkedListDS()
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         struct datanode * curr = bottom;
         struct datanode * prev;
 
@@ -83,8 +89,8 @@ namespace libodb
             free(prev);
         }
 
-        WRITE_UNLOCK();
-        RWLOCK_DESTROY();
+        WRITE_UNLOCK(rwlock);
+        RWLOCK_DESTROY(rwlock);
     }
 
     inline void* LinkedListDS::add_data(void* rawdata)
@@ -111,11 +117,11 @@ namespace libodb
         struct datanode* new_element;
         SAFE_MALLOC(struct datanode*, new_element, (size_t)(datalen + sizeof(struct datanode*)));
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         new_element->next = bottom;
         bottom = new_element;
         data_count++;
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return &(new_element->data);
     }
@@ -157,11 +163,11 @@ namespace libodb
         SAFE_MALLOC(struct datanode*, new_element, (size_t)(nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*)));
         new_element->datalen = nbytes;
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         new_element->next = bottom;
         bottom = new_element;
         data_count++;
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return &(new_element->data);
     }
@@ -190,7 +196,7 @@ namespace libodb
 
         if (index == data_count - 1)
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             void* old_bottom = bottom;
             bottom = bottom->next;
 
@@ -200,13 +206,13 @@ namespace libodb
             }
 
             data_count--;
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
 
             return true;
         }
         else
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             void* temp;
 
             // Handle removing the first item differently, as we need to re-point the bottom pointer.
@@ -231,7 +237,7 @@ namespace libodb
             }
 
             data_count--;
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
 
             return true;
         }
@@ -239,7 +245,7 @@ namespace libodb
 
     inline bool LinkedListDS::remove_addr(void* addr)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         void* temp;
 
         // Handle removing the first item differently, as we need to re-point the bottom pointer.
@@ -259,7 +265,7 @@ namespace libodb
 
             if ((curr->next) == NULL)
             {
-                WRITE_UNLOCK();
+                WRITE_UNLOCK(rwlock);
                 return false;
             }
 
@@ -268,7 +274,7 @@ namespace libodb
         }
 
         data_count--;
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         free(temp);
         return true;
@@ -282,7 +288,7 @@ namespace libodb
         marked[1] = new std::vector<void*>();
         marked[2] = NULL;
 
-        READ_LOCK();
+        READ_LOCK(rwlock);
         if (bottom != NULL)
         {
             struct datanode* curr = bottom;
@@ -313,7 +319,7 @@ namespace libodb
 
                 curr = curr->next;
             }
-            READ_UNLOCK();
+            READ_UNLOCK(rwlock);
 
             bool(*temp)(void*);
             for (uint32_t i = 0; i < clones->size(); i++)
@@ -328,7 +334,7 @@ namespace libodb
         }
         else
         {
-            READ_UNLOCK();
+            READ_UNLOCK(rwlock);
         }
 
         return marked;
@@ -342,7 +348,7 @@ namespace libodb
         marked[1] = new std::vector<void*>();
         marked[2] = NULL;
 
-        READ_LOCK();
+        READ_LOCK(rwlock);
         if (bottom != NULL)
         {
             struct datanode* curr = bottom;
@@ -370,7 +376,7 @@ namespace libodb
 
                 curr = curr->next;
             }
-            READ_UNLOCK();
+            READ_UNLOCK(rwlock);
 
             bool(*temp)(void*);
             for (uint32_t i = 0; i < clones->size(); i++)
@@ -385,7 +391,7 @@ namespace libodb
         }
         else
         {
-            READ_UNLOCK();
+            READ_UNLOCK(rwlock);
         }
 
         return marked;
@@ -393,7 +399,7 @@ namespace libodb
 
     void LinkedListDS::remove_cleanup(std::vector<void*>** marked)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         // Remove all but the first item.
         // We need to traverse last to first so we don't unlink any 'parents'.
         struct datanode* curr;
@@ -406,7 +412,7 @@ namespace libodb
             free(temp);
         }
         data_count -= marked[1]->size();
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         delete marked[0];
         delete marked[1];
@@ -415,7 +421,7 @@ namespace libodb
 
     void LinkedListDS::purge(void(*freep)(void*))
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         uint32_t num_clones = clones->size();
         for (uint32_t i = 0; i < num_clones; i++)
         {
@@ -447,27 +453,27 @@ namespace libodb
         data_count = 0;
         bottom = NULL;
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     inline void LinkedListDS::populate(Index* index)
     {
         struct datanode* curr = bottom;
 
-        READ_LOCK();
+        READ_LOCK(rwlock);
         while (curr != NULL)
         {
             index->add_data_v(&(curr->data));
             curr = curr->next;
         }
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     inline void LinkedListIDS::populate(Index* index)
     {
         struct datanode* curr = bottom;
 
-        READ_LOCK();
+        READ_LOCK(rwlock);
         while (curr != NULL)
         {
             // Needed to avoid a "dereferencing type-punned pointer will break strict-aliasing rules" error.
@@ -476,7 +482,7 @@ namespace libodb
             index->add_data_v(b);
             curr = curr->next;
         }
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     /// @attention O(n) complexity. Avoid if possilbe.
@@ -485,14 +491,14 @@ namespace libodb
         struct datanode * cur_item = bottom;
         uint32_t cur_index = 0;
 
-        READ_LOCK();
+        READ_LOCK(rwlock);
         while (cur_index < index && cur_item != NULL)
         {
             cur_index++;
             cur_item = cur_item->next;
         }
 
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
         if (cur_item != NULL)
         {
             return &(cur_item->data);
@@ -532,7 +538,7 @@ namespace libodb
 
     Iterator* LinkedListDS::it_first()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
 
         LinkedListDSIterator* it = new LinkedListDSIterator();
         it->dstore = this;

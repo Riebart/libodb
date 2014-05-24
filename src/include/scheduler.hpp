@@ -23,48 +23,11 @@
 #include <stdint.h>
 #include <vector>
 
-#ifdef CPP11THREADS
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-
-#ifndef CPP11SPINMUTEX
-#include <atomic>
-#endif
-
-#else
-#include <pthread.h>
-
-#endif
-
-#ifdef WIN32
-#include <unordered_map>
-
-#elif CMAKE_COMPILER_SUITE_GCC
-#include <tr1/unordered_map>
-
-#elif CMAKE_COMPILER_SUITE_SUN
-#include <hash_map>
-
-#endif
-
 #include "lfqueue.hpp"
 #include "redblacktreei.hpp"
-#include "lock.hpp"
 
 namespace libodb
 {
-
-    //! @todo Have this obey the rest of the lock.hpp conventions.
-#define LOCK_HPP_TYPES
-#include "lock.hpp"
-
-#ifdef CPP11THREADS
-    typedef std::thread* THREAD_T;
-    typedef std::condition_variable_any* CONDVAR_T;
-    typedef std::mutex* SCHED_MLOCK_T;
-
-#ifndef CPP11SPINMUTEX
     // http://anki3d.org/spinlock/ and http://en.cppreference.com/w/cpp/atomic/atomic_flag
     // Nore that there's no way to get the value from an atomic_flag without setting it, so
     // we can't build a try_lock on it.
@@ -78,28 +41,10 @@ namespace libodb
         void lock();
         bool try_lock();
         void unlock();
-        
+
     private:
-        std::atomic<bool>* l;
+        void* l;
     };
-    
-    class SpinLock;
-    typedef SpinLock* SCHED_LOCK_T;
-
-#else
-    typedef std::mutex* SCHED_LOCK_T;
-
-#endif
-
-#else
-    typedef pthread_t THREAD_T;
-    typedef pthread_cond_t CONDVAR_T;
-    typedef pthread_mutex_t SCHED_MLOCK_T;
-    typedef pthread_spinlock_t SCHED_LOCK_T;
-
-#endif
-
-    template <class T> class LFQueue;
 
     /* BEHAVIOUR DESCRIPTION
      * - Addition of new workloads is thread-safe, but blocking. Threads will block
@@ -130,8 +75,6 @@ namespace libodb
     {
         friend void* scheduler_worker_thread(void* args_v);
         friend int32_t compare_workqueue(void* aV, void* bV);
-
-        //         friend class LFQueue;
 
     public:
         /// These flags aren't currently propagated to the containing queues when appropriate,
@@ -204,7 +147,7 @@ namespace libodb
         struct queue_el
         {
             void* link[2];
-            LFQueue<struct workload*>* queue;
+            LFQueue* queue;
             bool in_tree;
             uint32_t flags;
             uint32_t num_hp;
@@ -240,12 +183,21 @@ namespace libodb
         //! This keeps track of the work completed by threads we've discarded.
         uint64_t historical_work_completed;
 
-        SCHED_LOCK_T lock;
-        SCHED_MLOCK_T mlock;
+        //! The spin-locking context.
+        //! Because it switches to wrapping pthread spin locks when C++11 atomics aren't
+        //! available, we don't need to hide this one behind an opaque pointer. That's
+        //! already done for us in the SpinLock class.
+        SpinLock lock;
+        //! Opaque pointer to the mutex locking context that supports condvars
+        void* mlock;
+        
+        //! Condvar for worker threads waiting on work.
+        void* work_cond;
+        //! Condvar for the scheduler to block until all in-queue workloads are consumed.
+        void* block_cond;
 
-        CONDVAR_T work_cond;
-        CONDVAR_T block_cond;
-        THREAD_T* threads;
+        //! Array containing the current handles to threads.
+        void** threads;
 
         uint32_t num_threads;
         volatile uint32_t num_threads_parked;
@@ -254,20 +206,8 @@ namespace libodb
 
         struct RedBlackTreeI::e_tree_root* root;
 
-#ifdef WIN32
-        typedef std::unordered_map<uint64_t, struct queue_el*> MAP_T;
-
-#elif CMAKE_COMPILER_SUITE_GCC
-        // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
-        // http://gcc.gnu.org/gcc-4.3/changes.html
-        typedef std::tr1::unordered_map<uint64_t, struct queue_el*> MAP_T;
-
-#elif CMAKE_COMPILER_SUITE_SUN
-        // http://www.sgi.com/tech/stl/hash_map.html
-        typedef std::hash_map<uint64_t, struct queue_el*> MAP_T;
-
-#endif
-        MAP_T* queue_map;
+        //! Opaque pointer to a platform-dependant standard template hash-table-based lookup structure.
+        void* queue_map;
 
         struct queue_el indep;
     };

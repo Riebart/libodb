@@ -24,11 +24,10 @@
 #include "comparator.hpp"
 #include "iterator.hpp"
 
+#include "lock.hpp"
+
 namespace libodb
 {
-    
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
     DataObj::~DataObj()
     {
@@ -511,7 +510,7 @@ namespace libodb
     inline void Index::it_release(Iterator* it)
     {
         delete it;
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
 }

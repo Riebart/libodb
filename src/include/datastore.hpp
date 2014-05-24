@@ -22,21 +22,9 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "lock.hpp"
-
 namespace libodb
 {
-
-#define LOCK_HPP_TYPES
-#include "lock.hpp"
-
-    //! @todo Promote these away from preprocessor defines or at least into cpp files
-    #define GET_TIME_STAMP(x, dlen) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + dlen))
-    #define SET_TIME_STAMP(x, t, dlen) (GET_TIME_STAMP(x, dlen) = t);
-    #define GET_QUERY_COUNT(x, dlen) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + dlen + time_stamp * sizeof(time_t)))
-    #define SET_QUERY_COUNT(x, c, dlen) (GET_QUERY_COUNT(x, dlen) = c);
-    #define UPDATE_QUERY_COUNT(x, dlen) (GET_QUERY_COUNT(x, dlen)++);
-    
+  
     class ODB;
     class Index;
     class Archive;
@@ -102,7 +90,10 @@ namespace libodb
         /// The number of items in this datastore.
         uint64_t data_count;
 
-        RWLOCK_T RWLOCK_T_NAME;
+        //! Opaque pointer to a read-write lock.
+        //! This is opaque because it allows us to abstract in the
+        //! implementation as opposed to the header.
+        void* rwlock;
     };
 
 }

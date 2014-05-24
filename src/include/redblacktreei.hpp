@@ -23,13 +23,9 @@
 
 #include "index.hpp"
 #include "iterator.hpp"
-#include "lock.hpp"
 
 namespace libodb
 {
-    
-#define LOCK_HPP_TYPES
-#include "lock.hpp"
 
     /// @class RedBlackTreeI
     /// Implementation of a top-down red-black tree.
@@ -112,7 +108,7 @@ namespace libodb
             Merger* merge;
             bool drop_duplicates;
             uint64_t count;
-            RWLOCK_T RWLOCK_T_NAME;
+            void* rwlock;
         };
 
         /// Destructor that employs a partial-recursion

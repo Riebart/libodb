@@ -16,105 +16,87 @@
 #include "scheduler.hpp"
 #include "common.hpp"
 
-#if defined(CPP11THREADS) && !defined(CPP11SPINMUTEX)
+#include "lock.hpp"
+
+#ifdef WIN32
+#include <unordered_map>
+typedef std::unordered_map<uint64_t, struct queue_el*> MAP_T;
+
+#elif CMAKE_COMPILER_SUITE_GCC
+#include <tr1/unordered_map>
+// http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
+// http://gcc.gnu.org/gcc-4.3/changes.html
+typedef std::tr1::unordered_map<uint64_t, struct queue_el*> MAP_T;
+
+#elif CMAKE_COMPILER_SUITE_SUN
+#include <hash_map>
+// http://www.sgi.com/tech/stl/hash_map.html
+typedef std::hash_map<uint64_t, struct queue_el*> MAP_T;
+
+#endif
+
+//! @todo Have this obey the rest of the lock.hpp conventions.
+
+#ifdef CPP11THREADS
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+// If we're using C++11 threads, we're going to force the spinlock class to use atomic<bool>
 #include <atomic>
+
+#else
+#include <pthread.h>
+
+// Otherwise, if we are using pthreads, it will just wrap the pthreads spinlock.
 #endif
 
 namespace libodb
 {
 
+    // Typedefs for the type of hash mapping we're using, platform dependant.
+#ifdef WIN32
+    typedef std::unordered_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
+#define MAP_GET(map, key) ((MAP_T*)(map))->at((key))
+
+#elif CMAKE_COMPILER_SUITE_GCC
+    typedef std::tr1::unordered_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
+#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
+
+#elif CMAKE_COMPILER_SUITE_SUN
+    typedef std::hash_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
+#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
+
+#endif
+
 #ifdef CPP11THREADS
-#define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
-#define THREAD_DESTROY(t) delete (t)
-#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
-#define THREAD_COND_INIT(v) (v) = new std::condition_variable_any();
-#define THREAD_COND_WAIT(v, l) (v)->wait(*(l))
-#define THREAD_COND_SIGNAL(v) (v)->notify_one()
-#define THREAD_COND_BROADCAST(v) (v)->notify_all()
+    typedef std::thread THREAD_T;
+    typedef std::condition_variable_any CONDVAR_T;
+    typedef std::mutex SCHED_MLOCK_T;
+
+#define THREAD_CREATE(t, f, a) (t) = new THREAD_T((f), (a))
+#define THREAD_DESTROY(t) delete ((THREAD_T*)(t))
+#define THREAD_JOIN(t) if (((THREAD_T*)(t))->joinable()) ((THREAD_T*)(t))->join()
+#define THREAD_COND_INIT(v) (v) = new CONDVAR_T();
+#define THREAD_COND_WAIT(v, l) ((CONDVAR_T*)(v))->wait(*((SCHED_MLOCK_T*)(l)))
+#define THREAD_COND_SIGNAL(v) ((CONDVAR_T*)(v))->notify_one()
+#define THREAD_COND_BROADCAST(v) ((CONDVAR_T*)(v))->notify_all()
 
     /// The MLOCK class of locks is used in the scheduler anywhere sleeping is
     /// necessary. This includes in the worker threads when there is no more
     /// work immediately available and in block_until_done.
     /// @{
-#define SCHED_MLOCK() (mlock->lock())
-#define SCHED_MLOCK_P(x) ((x)->mlock->lock())
-#define SCHED_MUNLOCK() (mlock->unlock())
-#define SCHED_MUNLOCK_P(x) ((x)->mlock->unlock())
-#define SCHED_MLOCK_INIT() mlock = new std::mutex()
-#define SCHED_MLOCK_DESTROY() delete mlock
-    /// @}
-
-    /// The LOCK class of locks is used when a fast lock is required, and we
-    /// won't be sleeping on it. This is used in add_work (overseer thread)
-    /// and get_work (worker threads). The worker threads also use these locks
-    /// when they are shuffling the workqueue in its tree. These locks will no
-    /// longer be needed once a proper lockfree queue is implemented.
-    /// @{
-#ifndef CPP11SPINMUTEX
-#define SCHED_LOCK() (lock->lock())
-#define SCHED_LOCK_P(x) ((x)->lock->lock())
-#define SCHED_TRYLOCK() (lock->try_lock())
-#define SCHED_TRYLOCK_P(x) ((x)->lock->try_lock())
-#define SCHED_TRYLOCK_SUCCESSVAL true
-#define SCHED_UNLOCK() (lock->unlock())
-#define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
-#define SCHED_LOCK_INIT() lock = new SpinLock()
-#define SCHED_LOCK_DESTROY() delete lock
-
-    SpinLock::SpinLock()
-    {
-        l = new std::atomic<bool>(false);
-    }
-
-    SpinLock::~SpinLock()
-    {
-        delete l;
-    }
-
-    void SpinLock::lock()
-    {
-        bool expected = false;
-        bool desired = true;
-        // We expect the lock to be false (what we set it to when unlocking), and want to set it
-        // to true;
-        while (!l->compare_exchange_weak(expected, desired))
-        {
-            // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
-            expected = false;
-        }
-    }
-
-    bool SpinLock::try_lock()
-    {
-        bool expected = false;
-        bool desired = true;
-        // We expect the lock to be false (what we set it to when unlocking), and want to set it
-        // to true, but we'll ony try once, so we want a string check.
-        // The operation returns true if we changed the value, and false otherwise, so just return
-        // its value.
-        return l->compare_exchange_strong(expected, desired);
-    }
-
-    void SpinLock::unlock()
-    {
-        l->store(false);
-    }
-
-#else
-#define SCHED_LOCK() (lock->lock())
-#define SCHED_LOCK_P(x) ((x)->lock->lock())
-#define SCHED_TRYLOCK() (lock->try_lock())
-#define SCHED_TRYLOCK_P(x) ((x)->lock->try_lock())
-#define SCHED_TRYLOCK_SUCCESSVAL true
-#define SCHED_UNLOCK() (lock->unlock())
-#define SCHED_UNLOCK_P(x) ((x)->lock->unlock())
-#define SCHED_LOCK_INIT() lock = new std::mutex()
-#define SCHED_LOCK_DESTROY() delete lock
-
-#endif
+#define SCHED_MLOCK_INIT(l) (l) = new SCHED_MLOCK_T()
+#define SCHED_MLOCK_DESTROY(l) delete ((SCHED_MLOCK_T*)(l))
+#define SCHED_MLOCK(l) (((SCHED_MLOCK_T*)(l))->lock())
+#define SCHED_MUNLOCK(l) (((SCHED_MLOCK_T*)(l))->unlock())
     /// @}
 
 #else
+    typedef pthread_t THREAD_T;
+    typedef pthread_cond_t CONDVAR_T;
+    typedef pthread_mutex_t SCHED_MLOCK_T;
+
 #define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
 #define THREAD_DESTROY(t) ;
 #define THREAD_JOIN(t) pthread_join((t), NULL)
@@ -133,46 +115,76 @@ namespace libodb
 #define SCHED_MUNLOCK_P(x) pthread_mutex_unlock(&((x)->mlock))
 #define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
 #define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
-
     /// @}
-
-    /// The LOCK class of locks is used when a fast lock is required, and we
-    /// won't be sleeping on it. This is used in add_work (overseer thread)
-    /// and get_work (worker threads). The worker threads also use these locks
-    /// when they are shuffling the workqueue in its tree. These locks will no
-    /// longer be needed once a proper lockfree queue is implemented.
-    /// @{
-#define SCHED_LOCK() pthread_spin_lock(&lock)
-#define SCHED_LOCK_P(x) pthread_spin_lock(&((x)->lock))
-#define SCHED_TRYLOCK() pthread_spin_trylock(&lock)
-#define SCHED_TRYLOCK_P(x) pthread_spin_trylock(&((x)->lock))
-#define SCHED_TRYLOCK_SUCCESSVAL 0
-#define SCHED_UNLOCK() pthread_spin_unlock(&lock)
-#define SCHED_UNLOCK_P(x) pthread_spin_unlock(&((x)->lock))
-#define SCHED_LOCK_INIT() pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE)
-#define SCHED_LOCK_DESTROY() pthread_spin_destroy(&lock)
-    /// @}
-
-    // #define SCHED_LOCK() PTHREAD_SPIN_WRITE_LOCK()
-    // #define SCHED_LOCK_P(p) PTHREAD_SPIN_WRITE_LOCK_P(p)
-    // #define SCHED_UNLOCK() PTHREAD_SPIN_WRITE_UNLOCK()
-    // #define SCHED_UNLOCK_P(p) PTHREAD_SPIN_WRITE_UNLOCK_P(p)
-    // #define SCHED_LOCK_T PTHREAD_SPIN_RWLOCK_T
-    // #define SCHED_LOCK_INIT() PTHREAD_SPIN_RWLOCK_INIT()
-    // #define SCHED_LOCK_DESTROY() PTHREAD_SPIN_RWLOCK_DESTROY()
 #endif
 
-#ifdef WIN32
-#define MAP_GET(map, key) (map)->at((key))
+#ifdef CPP11THREADS
+    SpinLock::SpinLock()
+    {
+        l = new std::atomic<bool>(false);
+    }
 
-#elif CMAKE_COMPILER_SUITE_GCC
-    // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
-    // http://gcc.gnu.org/gcc-4.3/changes.html
-#define MAP_GET(map, key) (*(map))[(key)]
+    SpinLock::~SpinLock()
+    {
+        delete l;
+    }
 
-#elif CMAKE_COMPILER_SUITE_SUN
-    // http://www.sgi.com/tech/stl/hash_map.html
-#define MAP_GET(map, key) (*(map))[(key)]
+    void SpinLock::lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true;
+        while (!((std::atomic<bool>*)l)->compare_exchange_weak(expected, desired))
+        {
+            // Each time we 'fail' a compare-exchange, the desired expected value gets changed.
+            expected = false;
+        }
+    }
+
+    bool SpinLock::try_lock()
+    {
+        bool expected = false;
+        bool desired = true;
+        // We expect the lock to be false (what we set it to when unlocking), and want to set it
+        // to true, but we'll ony try once, so we want a string check.
+        // The operation returns true if we changed the value, and false otherwise, so just return
+        // its value.
+        return ((std::atomic<bool>*)l)->compare_exchange_strong(expected, desired);
+    }
+
+    void SpinLock::unlock()
+    {
+        ((std::atomic<bool>*)l)->store(false);
+    }
+
+#else
+
+    SpinLock::SpinLock()
+    {
+        PTHREAD_SPIN_LOCK_INIT(l);
+    }
+
+    SpinLock::~SpinLock()
+    {
+        PTHREAD_SPIN_LOCK_DESROY(l);
+    }
+
+    void SpinLock::lock()
+    {
+        PTHREAD_SPIN_LOCK(l);
+    }
+
+    bool SpinLock::try_lock()
+    {
+        // This returns 0 on success, which means it grabbed the lock.
+        return (pthread_spin_trylock((PTHREAD_SPIN_LOCK_T*)l) == 0);
+    }
+
+    void SpinLock::unlock()
+    {
+        PTHREAD_SPIN_UNLOCK(l);
+    }
 
 #endif
 
@@ -204,7 +216,7 @@ namespace libodb
         {
             // Break out if we're told to stop before we re-acquire the lock.
 
-            SCHED_MLOCK_P(args->scheduler);
+            SCHED_MLOCK(args->scheduler->mlock);
 
             while ((args->scheduler->root->count == 0) && (args->scheduler->work_avail == 0) && (args->run))
             {
@@ -220,7 +232,7 @@ namespace libodb
                 args->scheduler->num_threads_parked--;
             }
 
-            SCHED_MUNLOCK_P(args->scheduler);
+            SCHED_MUNLOCK(args->scheduler->mlock);
 
             // Break out if we're told to wake up because we were stopping.
             if (!args->run)
@@ -256,10 +268,10 @@ namespace libodb
                 {
                     if (work->q->queue->size() > 0)
                     {
-                        SCHED_LOCK_P(args->scheduler);
+                        args->scheduler->lock.lock();
                         RedBlackTreeI::e_add(args->scheduler->root, work->q);
                         work->q->in_tree = true;
-                        SCHED_UNLOCK_P(args->scheduler);
+                        args->scheduler->lock.unlock();
                     }
                     else
                     {
@@ -284,8 +296,8 @@ namespace libodb
         struct Scheduler::queue_el* aN = reinterpret_cast<struct Scheduler::queue_el*>(aV);
         struct Scheduler::queue_el* bN = reinterpret_cast<struct Scheduler::queue_el*>(bV);
 
-        LFQueue<struct Scheduler::workload*>* a = aN->queue;
-        LFQueue<struct Scheduler::workload*>* b = aN->queue;
+        LFQueue* a = aN->queue;
+        LFQueue* b = aN->queue;
 
         int32_t ret = 0;
 
@@ -314,8 +326,8 @@ namespace libodb
             }
             else
             {
-                uint64_t aid = a->peek()->id;
-                uint64_t bid = b->peek()->id;
+                uint64_t aid = ((struct Scheduler::workload*)(a->peek()))->id;
+                uint64_t bid = ((struct Scheduler::workload*)(b->peek()))->id;
 
                 // Now we're stuck comparing the IDs of the head workloads.
                 if (aid > bid) // If existing ID is lower than this one.
@@ -347,17 +359,16 @@ namespace libodb
         THREAD_COND_INIT(work_cond);
         THREAD_COND_INIT(block_cond);
 
-        indep.queue = new LFQueue<struct workload*>();
+        indep.queue = new LFQueue();
         indep.flags = Scheduler::NONE;
         indep.in_tree = false;
         indep.num_hp = 0;
 
-        SAFE_MALLOC(THREAD_T*, threads, num_threads * sizeof(THREAD_T));
+        SAFE_MALLOC(void**, threads, num_threads * sizeof(THREAD_T));
         SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
         root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
-        SCHED_LOCK_INIT();
-        SCHED_MLOCK_INIT();
+        SCHED_MLOCK_INIT(mlock);
 
         for (uint32_t i = 0; i < num_threads; i++)
         {
@@ -385,9 +396,8 @@ namespace libodb
         /// Need to free the data used by the workqueues and their unprocessed wokloads here.
         RedBlackTreeI::e_destroy_tree(root, free);
 
-        delete queue_map;
-        SCHED_LOCK_DESTROY();
-        SCHED_MLOCK_DESTROY();
+        delete (MAP_T*)queue_map;
+        SCHED_MLOCK_DESTROY(mlock);
     }
 
     void Scheduler::update_queue_push_flags(struct Scheduler::queue_el* q, uint32_t f)
@@ -422,7 +432,7 @@ namespace libodb
             throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
         }
 
-        SCHED_LOCK();
+        lock.lock();
 
         uint64_t workload_id = work_counter;
         work_counter++;
@@ -452,7 +462,7 @@ namespace libodb
         // Now we need to notify at least one thread that there is work available.
         THREAD_COND_SIGNAL(work_cond);
 
-        SCHED_UNLOCK();
+        lock.unlock();
     }
 
     void Scheduler::add_work(void* (*func)(void*), void* args, void** retval, uint64_t class_id, uint32_t flags)
@@ -463,7 +473,7 @@ namespace libodb
             throw "A workload cannot be both background and high priority. Workload not added to scheduler.\n";
         }
 
-        SCHED_LOCK();
+        lock.lock();
 
         uint64_t workload_id = work_counter;
         work_counter++;
@@ -494,7 +504,7 @@ namespace libodb
         // Now we need to notify at least one thread that there is work available.
         THREAD_COND_SIGNAL(work_cond);
 
-        SCHED_UNLOCK();
+        lock.unlock();
     }
 
     // This is not an asynchronous call. It will block until the requested operation
@@ -509,8 +519,8 @@ namespace libodb
         }
         else if (new_num_threads > num_threads)
         {
-            THREAD_T* new_threads;
-            SAFE_REALLOC(THREAD_T*, threads, new_threads, new_num_threads * sizeof(THREAD_T));
+            void** new_threads;
+            SAFE_REALLOC(void**, threads, new_threads, new_num_threads * sizeof(THREAD_T));
 
             struct thread_args** new_t_args;
             SAFE_REALLOC(struct thread_args**, t_args, new_t_args, new_num_threads * sizeof(struct thread_args*));
@@ -592,7 +602,7 @@ namespace libodb
             SAFE_MALLOC(struct queue_el*, retval, sizeof(struct queue_el));
             retval->link[0] = NULL;
             retval->link[1] = NULL;
-            retval->queue = new LFQueue<struct workload*>();
+            retval->queue = new LFQueue();
             retval->flags = Scheduler::NONE;
             retval->in_tree = false;
             retval->num_hp = 0;
@@ -618,7 +628,7 @@ namespace libodb
         }
         // If we're back to the last item, and it is BACKGROUND, then the queue is
         // BACKGROUND
-        else if ((q->queue->size() == 1) && (q->queue->peek()->flags & Scheduler::BACKGROUND))
+        else if ((q->queue->size() == 1) && (((struct workload*)(q->queue->peek()))->flags & Scheduler::BACKGROUND))
         {
             q->flags &= BACKGROUND;
         }
@@ -626,11 +636,11 @@ namespace libodb
 
     struct Scheduler::workload* Scheduler::get_work()
     {
-        SCHED_LOCK();
+        lock.lock();
 
         if (root->count == 0)
         {
-            SCHED_UNLOCK();
+            lock.unlock();
             return NULL;
         }
 
@@ -638,13 +648,13 @@ namespace libodb
         void* first_queue = RedBlackTreeI::e_pop_first(root);
 
         struct queue_el* q = (struct queue_el*)first_queue;
-        LFQueue<struct Scheduler::workload*>* queue = q->queue;
+        LFQueue* queue = q->queue;
 
         // This is more of a sanity check than anything.
         // This shouldn't ever fail.
         if (queue->size() > 0)
         {
-            first_work = queue->pop_front();
+            first_work = (struct workload*)queue->pop_front();
             Scheduler::update_queue_pop_flags(q, first_work->flags);
 
             // At this point, if the queue isn't the independent queue, or the workload isn't
@@ -667,7 +677,7 @@ namespace libodb
             work_avail--;
         }
 
-        SCHED_UNLOCK();
+        lock.unlock();
 
         return first_work;
     }
@@ -678,7 +688,7 @@ namespace libodb
     // Another spurious return can occur if 
     void Scheduler::block_until_done()
     {
-        SCHED_MLOCK();
+        SCHED_MLOCK(mlock);
 
         // If there are any unparked threads, we need to wait on them
         while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
@@ -695,16 +705,16 @@ namespace libodb
                 // be adding work.
                 // Note that C++11 try_lock() returns true if it grabbed the lock, while pthread_spn_trylock()
                 // returns 0 on success, and otherwise on error. Ugh.
-                if (SCHED_TRYLOCK() == SCHED_TRYLOCK_SUCCESSVAL)
+                if (lock.try_lock())
                 {
                     // If we succeed, then unlock and return;
-                    SCHED_UNLOCK();
+                    lock.unlock();
                     break;
                 }
             }
         }
 
-        SCHED_MUNLOCK();
+        SCHED_MUNLOCK(mlock);
     }
 
     uint64_t Scheduler::get_num_complete()

@@ -19,18 +19,17 @@
 #include "common.hpp"
 #include "utility.hpp"
 
+#include "lock.hpp"
+
+namespace libodb
+{
+
 #define RED_BLACK_BIT 0x1
 #define RED_BLACK_MASK ~RED_BLACK_BIT
 #define TREE_BIT 0x2
 #define TREE_MASK ~TREE_BIT
 #define META_BIT 0x7
 #define META_MASK ~META_BIT
-
-namespace libodb
-{
-
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
     /// Get the value of the least-significant bit in the specified node's left
     ///pointer.
@@ -120,7 +119,7 @@ namespace libodb
 
     RedBlackTreeI::RedBlackTreeI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
     {
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
         this->ident = _ident;
         root = NULL;
         this->compare = _compare;
@@ -149,7 +148,7 @@ namespace libodb
             delete merge;
         }
 
-        RWLOCK_DESTROY();
+        RWLOCK_DESTROY(rwlock);
     }
 
     int RedBlackTreeI::rbt_verify()
@@ -157,9 +156,9 @@ namespace libodb
 #ifdef VERBOSE_RBT_VERIFY
         printf("TreePlot[{");
 #endif
-        READ_LOCK();
+        READ_LOCK(rwlock);
         int ret = rbt_verify_n(root, compare, false);
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
 #ifdef VERBOSE_RBT_VERIFY
         printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
@@ -171,9 +170,9 @@ namespace libodb
 #ifdef VERBOSE_RBT_VERIFY
         printf("TreePlot[{");
 #endif
-        READ_LOCK_P(root);
+        READ_LOCK(root->rwlock);
         int ret = rbt_verify_n((struct tree_node*)(root->data), root->compare, true);
-        READ_UNLOCK_P(root);
+        READ_UNLOCK(root->rwlock);
 #ifdef VERBOSE_RBT_VERIFY
         printf("\b},Automatic,\"%ld%c%c\",DirectedEdges -> True, VertexRenderingFunction -> ({If[StringMatchQ[#2, RegularExpression[\".*R\"]], Darker[Darker[Red]], Black], EdgeForm[{Thick, If[StringMatchQ[#2, RegularExpression[\".*L.\"]], Blue, Black]}], Disk[#, {0.2, 0.1}], Lighter[Gray], Text[StringTake[#2, StringLength[#2] - 2], #1]} &)]\n", *(long*)GET_DATA(root), (IS_TREE(root) ? 'L' : 'V'), (IS_RED(root) ? 'R' : 'B'));
 #endif
@@ -237,7 +236,7 @@ namespace libodb
 
     bool RedBlackTreeI::add_data_v2(void* rawdata)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         bool something_added = false;
         root = add_data_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
@@ -252,7 +251,7 @@ namespace libodb
             root = UNTAINT(root);
             something_added = true;
         }
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return something_added;
     }
@@ -281,14 +280,14 @@ namespace libodb
         root->drop_duplicates = drop_duplicates;
         root->count = 0;
 
-        RWLOCK_INIT_P(root);
+        RWLOCK_INIT(root->rwlock);
 
         return root;
     }
 
     void RedBlackTreeI::e_destroy_tree(struct RedBlackTreeI::e_tree_root* root, void(*freep)(void*))
     {
-        WRITE_LOCK_P(root);
+        WRITE_LOCK(root->rwlock);
 
         if (freep != NULL)
         {
@@ -303,14 +302,14 @@ namespace libodb
 
         free(root->false_root);
         free(root->sub_false_root);
-        WRITE_UNLOCK_P(root);
-        RWLOCK_DESTROY_P(root);
+        WRITE_UNLOCK(root->rwlock);
+        RWLOCK_DESTROY(root->rwlock);
         free(root);
     }
 
     bool RedBlackTreeI::e_add(struct RedBlackTreeI::e_tree_root* root, void* rawdata)
     {
-        WRITE_LOCK_P(root);
+        WRITE_LOCK(root->rwlock);
 
         bool something_added = false;
 
@@ -333,7 +332,7 @@ namespace libodb
             something_added = true;
         }
 
-        WRITE_UNLOCK_P(root);
+        WRITE_UNLOCK(root->rwlock);
 
         return something_added;
     }
@@ -345,7 +344,7 @@ namespace libodb
             return false;
         }
 
-        WRITE_LOCK_P(root);
+        WRITE_LOCK(root->rwlock);
 
         root->data = e_remove_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->compare, root->merge, root->drop_duplicates, rawdata, del_node);
         //(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
@@ -358,19 +357,19 @@ namespace libodb
 
         root->count -= ret;
 
-        WRITE_UNLOCK_P(root);
+        WRITE_UNLOCK(root->rwlock);
         return (ret != 0);
     }
 
     void RedBlackTreeI::purge()
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         free_n(root, drop_duplicates);
         count = 0;
         root = NULL;
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     struct RedBlackTreeI::tree_node* RedBlackTreeI::e_add_data_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, Comparator* compare, Merger* merge, bool drop_duplicates, void* rawdata)
@@ -898,7 +897,7 @@ namespace libodb
 
     inline bool RedBlackTreeI::remove(void* rawdata)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         root = remove_n(root, false_root, sub_false_root, compare, merge, drop_duplicates, rawdata);
 
         uint8_t ret = TAINTED(root);
@@ -908,7 +907,7 @@ namespace libodb
         }
 
         count -= ret;
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
         return (ret != 0);
     }
 
@@ -1336,7 +1335,7 @@ namespace libodb
 
     inline void RedBlackTreeI::update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint32_t datalen)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         struct tree_node* curr;
         int32_t c;
@@ -1381,7 +1380,7 @@ namespace libodb
             }
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     void RedBlackTreeI::free_n(struct tree_node* root, bool drop_duplicates)
@@ -1447,13 +1446,13 @@ namespace libodb
 
     inline Iterator* RedBlackTreeI::it_first()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         return it_first(parent, root, ident, drop_duplicates);
     }
 
     Iterator* RedBlackTreeI::e_it_first(struct RedBlackTreeI::e_tree_root* root)
     {
-        READ_LOCK_P(root);
+        READ_LOCK(root->rwlock);
         return e_it_first((struct tree_node*)(root->data), root->drop_duplicates);
     }
 
@@ -1544,7 +1543,7 @@ namespace libodb
 
     void* RedBlackTreeI::e_pop_first(struct RedBlackTreeI::e_tree_root* root)
     {
-        WRITE_LOCK_P(root);
+        WRITE_LOCK(root->rwlock);
 
         void* del_node;
         root->data = e_pop_first_n((struct tree_node*)(root->data), (struct tree_node*)(root->false_root), (struct tree_node*)(root->sub_false_root), root->drop_duplicates, &del_node);
@@ -1554,7 +1553,7 @@ namespace libodb
             root->count--;
         }
 
-        WRITE_UNLOCK_P(root);
+        WRITE_UNLOCK(root->rwlock);
 
         return del_node;
     }
@@ -1724,13 +1723,13 @@ namespace libodb
 
     inline Iterator* RedBlackTreeI::it_last()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         return it_last(parent, root, ident, drop_duplicates);
     }
 
     Iterator* RedBlackTreeI::e_it_last(struct RedBlackTreeI::e_tree_root* root)
     {
-        READ_LOCK_P(root);
+        READ_LOCK(root->rwlock);
         return e_it_last((struct tree_node*)(root->data), root->drop_duplicates);
     }
 
@@ -1828,13 +1827,13 @@ namespace libodb
 
     inline Iterator* RedBlackTreeI::it_lookup(void* rawdata, int8_t dir)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         return it_lookup(parent, root, ident, drop_duplicates, compare, rawdata, dir);
     }
 
     Iterator* RedBlackTreeI::e_it_lookup(struct RedBlackTreeI::e_tree_root* root, void* rawdata, int8_t dir)
     {
-        READ_LOCK_P(root);
+        READ_LOCK(root->rwlock);
         return e_it_lookup((struct tree_node*)(root->data), root->drop_duplicates, root->compare, rawdata, dir);
     }
 
@@ -2078,7 +2077,7 @@ namespace libodb
     void RedBlackTreeI::e_it_release(struct RedBlackTreeI::e_tree_root* root, Iterator* it)
     {
         delete it;
-        READ_UNLOCK_P(root);
+        READ_UNLOCK(root->rwlock);
     }
 
     RBTIterator::RBTIterator()

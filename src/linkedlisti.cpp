@@ -13,24 +13,23 @@
 /// Source file for implementations of LinkedListI index type as well as its iterators.
 /// @file linkedlisti.cpp
 
+#include <algorithm>
+
 #include "linkedlisti.hpp"
 #include "bankds.hpp"
 #include "utility.hpp"
 #include "common.hpp"
 
-#include <algorithm>
+#include "lock.hpp"
 
 namespace libodb
 {
-
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
 #define GET_DATA(x) (x->data)
 
     LinkedListI::LinkedListI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
     {
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
         this->ident = _ident;
         first = NULL;
         this->compare = _compare;
@@ -49,12 +48,12 @@ namespace libodb
             delete merge;
         }
 
-        RWLOCK_DESTROY();
+        RWLOCK_DESTROY(rwlock);
     }
 
     inline bool LinkedListI::add_data_v2(void* rawdata)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         // When the list is empty, make a new node and set it as the head of the list.
         if (first == NULL)
@@ -79,14 +78,14 @@ namespace libodb
                     if (merge != NULL)
                     {
                         first->data = merge->merge(rawdata, first->data);
-                        WRITE_UNLOCK();
+                        WRITE_UNLOCK(rwlock);
                         return false;
                     }
 
                     // If we don't allow duplicates, return now.
                     if (drop_duplicates)
                     {
-                        WRITE_UNLOCK();
+                        WRITE_UNLOCK(rwlock);
                         return false;
                     }
                 }
@@ -114,13 +113,13 @@ namespace libodb
                     if (merge != NULL)
                     {
                         curr->next->data = merge->merge(rawdata, curr->next->data);
-                        WRITE_UNLOCK();
+                        WRITE_UNLOCK(rwlock);
                         return false;
                     }
 
                     if (drop_duplicates)
                     {
-                        WRITE_UNLOCK();
+                        WRITE_UNLOCK(rwlock);
                         return false;
                     }
                 }
@@ -135,28 +134,28 @@ namespace libodb
             count++;
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return true;
     }
 
     void LinkedListI::purge()
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         free_list(first);
 
         count = 0;
         first = NULL;
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     bool LinkedListI::remove(void* data)
     {
         bool ret = false;
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         if (first != NULL)
         {
             if (compare->compare(data, first->data) == 0)
@@ -184,7 +183,7 @@ namespace libodb
                 }
             }
         }
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return ret;
     }
@@ -203,7 +202,7 @@ namespace libodb
 
     void LinkedListI::query(Condition* condition, DataStore* ds)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         struct node* curr = first;
 
         while (curr != NULL)
@@ -215,14 +214,14 @@ namespace libodb
 
             curr = curr->next;
         }
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     inline void LinkedListI::update(std::vector<void*>* old_addr, std::vector<void*>* new_addr, uint64_t datalen)
     {
         sort(old_addr->begin(), old_addr->end());
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         struct node* curr = first;
         uint32_t i = 0;
@@ -246,12 +245,12 @@ namespace libodb
             curr = curr->next;
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     inline void LinkedListI::remove_sweep(std::vector<void*>* marked)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         void* temp;
 
         while ((first != NULL) && (search(marked, first->data)))
@@ -276,12 +275,12 @@ namespace libodb
                 curr = curr->next;
             }
         }
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     inline Iterator* LinkedListI::it_first()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         LLIterator* it = new LLIterator(ident, parent->true_datalen, parent->time_stamp, parent->query_count);
         it->cursor = first;
         if (first != NULL)
@@ -298,7 +297,7 @@ namespace libodb
 
     inline Iterator* LinkedListI::it_middle(DataObj* data)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         return NULL;
     }
 

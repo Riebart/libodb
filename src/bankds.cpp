@@ -25,11 +25,17 @@
 #include "common.hpp"
 #include "index.hpp"
 
+#include "lock.hpp"
+
+//! @todo promote these to maybe static member functions of Datastore?
+#define GET_TIME_STAMP(x, dlen) (*reinterpret_cast<time_t*>(reinterpret_cast<uint64_t>(x) + dlen))
+#define SET_TIME_STAMP(x, t, dlen) (GET_TIME_STAMP(x, dlen) = t);
+#define GET_QUERY_COUNT(x, dlen) (*reinterpret_cast<uint32_t*>(reinterpret_cast<uint64_t>(x) + dlen + time_stamp * sizeof(time_t)))
+#define SET_QUERY_COUNT(x, c, dlen) (GET_QUERY_COUNT(x, dlen) = c);
+#define UPDATE_QUERY_COUNT(x, dlen) (GET_QUERY_COUNT(x, dlen)++);
+
 namespace libodb
 {
-
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
     BankDS::BankDS(DataStore* _parent, bool(*_prune)(void* rawdata), uint64_t _datalen, uint32_t _flags, uint64_t _cap)
     {
@@ -79,12 +85,12 @@ namespace libodb
         // This is essentially a memcpy without the memcpy call.
         SAFE_MALLOC(char*, *(data), (size_t)cap_size);
 
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
     }
 
     BankDS::~BankDS()
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         // To avoid creating more variables, just use posA. Since posA holds byte-offsets, it must be decremented by sizeof(char*).
         // In order to free the 'last' bucket, have no start condition which leaves posA at the appropriate value.
         // Since posA is unsigned, stop when posA==0.
@@ -101,8 +107,8 @@ namespace libodb
         free(data);
 
         delete deleted;
-        WRITE_UNLOCK();
-        RWLOCK_DESTROY();
+        WRITE_UNLOCK(rwlock);
+        RWLOCK_DESTROY(rwlock);
     }
 
     inline void* BankDS::add_data(void* rawdata)
@@ -131,7 +137,7 @@ namespace libodb
     {
         void* ret;
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         // Check if any locations are marked as empty. If none are...
         if (deleted->empty())
         {
@@ -177,7 +183,7 @@ namespace libodb
         // Increment the number of data items in the datastore.
         data_count++;
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         // Return the pointer to the data.
         return ret;
@@ -204,10 +210,10 @@ namespace libodb
 
     inline void* BankDS::get_at(uint64_t index)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         // Get the location in memory of the data item at location index.
         void* ret = *(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen;
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
         return ret;
     }
 
@@ -224,11 +230,11 @@ namespace libodb
         // If we're removing anything except the last item, then push it onto the deleted stack: Do it the hard way.
         if (index < data_count - 1)
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             // Push the memory location onto the stack.
             deleted->push(*(data + (index / cap) * sizeof(char*)) + (index % cap) * datalen);
             data_count--;
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
 
             // Return success
             return true;
@@ -236,7 +242,7 @@ namespace libodb
         // If we're removing the last item, it is far easier.
         else if (index == data_count - 1)
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             // If we are in the the middle of a row, then it is trivial:
             if (posB > 0)
             {
@@ -252,7 +258,7 @@ namespace libodb
             }
 
             data_count--;
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
 
             return true;
         }
@@ -279,10 +285,10 @@ namespace libodb
 
         if (found)
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             data_count--;
             deleted->push(addr);
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
         }
         return found;
     }
@@ -295,7 +301,7 @@ namespace libodb
         marked[2] = new std::vector<void*>();
         marked[3] = new std::vector<void*>();
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         // Intialize some local pointers to work backwards through the banks.
         uint64_t posA_t = posA;
@@ -444,7 +450,7 @@ namespace libodb
         marked[1] = NULL;
         marked[2] = NULL;
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         // Intialize some local pointers to work backwards through the banks.
         uint64_t posA_t = posA;
@@ -553,7 +559,7 @@ namespace libodb
 
         data_count -= marked[0]->size();
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         bool(*temp)(void*);
         for (uint32_t i = 0; i < clones->size(); i++)
@@ -591,7 +597,7 @@ namespace libodb
             posB -= shift;
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         delete marked[0];
         delete marked[2];
@@ -607,7 +613,7 @@ namespace libodb
 
     inline void BankDS::purge(void(*freep)(void*))
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         //! @todo Again, extern "C" is causing issues.
         if (freep == free)
@@ -669,12 +675,12 @@ namespace libodb
             free(*(data + posA));
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     inline void BankDS::populate(Index* index)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
 
         // Index over the whole datastore and add each item to the index.
         // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
@@ -692,12 +698,12 @@ namespace libodb
             index->add_data_v(*(data + posA) + j);
         }
 
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     inline void BankIDS::populate(Index* index)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         // Index over the whole datastore and add each item to the index.
         // Since we're a friend of Index, we have access to the add_data_v command which avoids the overhead of verifying data integrity, since that is guaranteed in this situation.
         // Last bucket needs to be handled specially.
@@ -712,7 +718,7 @@ namespace libodb
             index->add_data_v(*(reinterpret_cast<void**>(*(data + posA) + j)));
         }
 
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     inline DataStore* BankDS::clone()
@@ -729,7 +735,7 @@ namespace libodb
 
     Iterator* BankDS::it_first()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
 
         BankDSIterator* it = new BankDSIterator();
         it->dstore = this;
@@ -748,7 +754,7 @@ namespace libodb
 
     Iterator* BankDS::it_last()
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
 
         BankDSIterator* it = new BankDSIterator();
         it->dstore = this;

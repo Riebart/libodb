@@ -21,27 +21,50 @@
 
 #ifdef CPP11THREADS
 #include <chrono>
+#include <thread>
+#include <mutex>
+
 #define THREAD_CREATE(t, f, a) (t) = new std::thread((f), (a))
-#define THREAD_JOIN(t) if ((t)->joinable()) (t)->join()
-#define ATOMIC_INIT(val) new std::atomic<uint64_t>(val)
-#define ATOMIC_FETCH(val) (val)->load()
+#define THREAD_JOIN(t) if (((std::thread*)(t))->joinable()) ((std::thread*)(t))->join()
+#define THREAD_DESTROY(t) delete (std::thread*)(t);
 #else
 #include <unistd.h>
-#define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
-#define THREAD_JOIN(t) pthread_join((t), NULL)
-#define ATOMIC_INIT(val) (val)
-#define ATOMIC_FETCH(val) (val)
+#include <pthread.h>
+
+#include "common.hpp"
+
+#define THREAD_CREATE(t, f, a) \
+    SAFE_MALLOC(void*, t, sizeof(pthread_t));\
+    pthread_create((pthread_t*)(t), NULL, &(f), (a));
+#define THREAD_JOIN(t) pthread_join(*(pthread_t*)(t), NULL)
+#define THREAD_DESTROY(t) free(t)
 #endif
 
+// Now handle we do the atomic incrementing.
 #ifdef CPP11THREADS
-#define ATOMIC_INCREMENT(v) (v)->fetch_add(1);
+#include <atomic>
+#define ATOMIC_INIT(val) new std::atomic<uint64_t>(val)
+#define ATOMIC_FETCH(a) ((std::atomic<uint64_t>*)(a))->load()
+#define ATOMIC_INCREMENT(v) ((std::atomic<uint64_t>*)(v))->fetch_add(1);
+#define ATOMIC_DESTROY(v) delete (std::atomic<uint64_t>*)(v)
+
 #elif (CMAKE_COMPILER_SUITE_SUN)
 #include <atomic.h>
+#define ATOMIC_INIT(val) (val)
+//! @bug This isn't how do this! This will depend on the compiler-isms
+#define ATOMIC_FETCH(a) (a)
 //! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) atomic_inc_32(&(v));
+#define ATOMIC_DESTROY(v)
+
 #elif (CMAKE_COMPILER_SUITE_GCC)
+#define ATOMIC_INIT(val) (val)
+//! @bug This isn't how do this! This will depend on the compiler-isms
+#define ATOMIC_FETCH(a) (a)
 //! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) __sync_add_and_fetch(&(v), 1);
+#define ATOMIC_DESTROY(v)
+
 #else
 #ifdef WIN32
 #error "Can't find a way to atomicly increment a uint32_t."
@@ -49,6 +72,7 @@
 #warning "Can't find a way to atomicly increment a uint32_t."
 #endif
 int temp[-1];
+
 #endif
 
 // Utility headers.
@@ -66,15 +90,14 @@ int temp[-1];
 #include "bankds.hpp"
 #include "linkedlistds.hpp"
 
+#include "lock.hpp"
+
 namespace libodb
 {
 
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
-
     const int SLEEP_DURATION = 60;
 
-    ATOMICP_T ODB::num_unique = ATOMIC_INIT(0);
+    void* ODB::num_unique = ATOMIC_INIT(0);
 
     /// The worker function in the memory checker thread
     /// @param[in] arg The void pointer to arguments. This is actually a pair of
@@ -384,7 +407,7 @@ namespace libodb
 
         data->cur_time = time(NULL);
 
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
 
         mem_limit = 700000;
 
@@ -415,7 +438,7 @@ namespace libodb
             THREAD_JOIN(mem_thread);
         }
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         if (scheduler != NULL)
         {
@@ -450,13 +473,11 @@ namespace libodb
         //    delete archive;
         //}
 
-#ifdef CPP11THREADS
-        delete mem_thread;
-        delete num_unique;
-#endif
+        THREAD_DESTROY(mem_thread);
+        ATOMIC_DESTROY(num_unique);
 
-        WRITE_UNLOCK();
-        RWLOCK_DESTROY();
+        WRITE_UNLOCK(rwlock);
+        RWLOCK_DESTROY(rwlock);
     }
 
     struct sched_args
@@ -571,7 +592,7 @@ namespace libodb
 
     Index* ODB::create_index(IndexType type, uint32_t flags, Comparator* compare, Merger* merge, Keygen* keygen, int32_t keylen)
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         if (compare == NULL)
         {
@@ -625,7 +646,7 @@ namespace libodb
             data->populate(new_index);
         }
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
         return new_index;
     }
 
@@ -640,9 +661,9 @@ namespace libodb
         IndexGroup* g = new IndexGroup(ident, data);
         g->scheduler = scheduler;
 
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         groups->push_back(g);
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
 
         return g;
     }
@@ -658,7 +679,7 @@ namespace libodb
     {
         if (data->prune != NULL)
         {
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
             std::vector<void*>** marked = data->remove_sweep(archive);
 
             uint32_t n = tables->size();
@@ -682,7 +703,7 @@ namespace libodb
             }
 
             data->remove_cleanup(marked);
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
         }
     }
 
@@ -714,7 +735,7 @@ namespace libodb
 
     void ODB::purge()
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
 
         for (uint32_t i = 0; i < tables->size(); i++)
         {
@@ -723,21 +744,21 @@ namespace libodb
 
         data->purge(freep);
 
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     void ODB::set_prune(bool(*prune)(void*))
     {
-        WRITE_LOCK();
+        WRITE_LOCK(rwlock);
         data->prune = prune;
-        WRITE_UNLOCK();
+        WRITE_UNLOCK(rwlock);
     }
 
     bool(*ODB::get_prune())(void*)
     {
-        READ_LOCK();
+        READ_LOCK(rwlock);
         return data->prune;
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
     uint64_t ODB::size()
@@ -766,7 +787,7 @@ namespace libodb
         {
             scheduler = new Scheduler(num_threads);
 
-            WRITE_LOCK();
+            WRITE_LOCK(rwlock);
 
             for (uint32_t i = 0; i < tables->size(); i++)
             {
@@ -778,7 +799,7 @@ namespace libodb
                 groups->at(i)->scheduler = scheduler;
             }
 
-            WRITE_UNLOCK();
+            WRITE_UNLOCK(rwlock);
 
             return num_threads;
         }

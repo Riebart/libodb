@@ -19,18 +19,17 @@
 #include "lock.hpp"
 #include "utility.hpp"
 
+#include "lock.hpp"
+
 namespace libodb
 {
-
-#define LOCK_HPP_FUNCTIONS
-#include "lock.hpp"
 
     DataStore::DataStore()
     {
         clones = new std::vector<ODB*>();
         data_count = 0;
         parent = NULL;
-        RWLOCK_INIT();
+        RWLOCK_INIT(rwlock);
     }
 
     DataStore::~DataStore()
@@ -41,7 +40,7 @@ namespace libodb
             clones->pop_back();
         }
         delete clones;
-        RWLOCK_DESTROY();
+        RWLOCK_DESTROY(rwlock);
     }
 
     inline void* DataStore::add_data(void* rawdata)
@@ -136,6 +135,7 @@ namespace libodb
         return NULL;
     }
 
+    //! @bug We release the lock here, but we don't claim it in any others. Double check this.
     inline void DataStore::it_release(Iterator* it)
     {
         if (it != NULL)
@@ -143,7 +143,7 @@ namespace libodb
             delete it;
         }
 
-        READ_UNLOCK();
+        READ_UNLOCK(rwlock);
     }
 
 }

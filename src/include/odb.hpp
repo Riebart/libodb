@@ -26,31 +26,11 @@
 #include <time.h>
 #include <vector>
 
-#ifdef CPP11THREADS
-#include <thread>
-#include <mutex>
-#include <atomic>
-#else
-#include <pthread.h>
-#endif
-
 #include "scheduler.hpp"
-#include "lock.hpp"
 #include "utility.hpp"
 
 namespace libodb
 {
-
-#define LOCK_HPP_TYPES
-#include "lock.hpp"
-
-#ifdef CPP11THREADS
-    typedef std::thread* THREADP_T;
-    typedef std::atomic<uint64_t>* ATOMICP_T;
-#else
-    typedef pthread_t THREADP_T;
-    typedef volatile uint32_t ATOMICP_T;
-#endif
 
     class DataStore;
     class Archive;
@@ -183,8 +163,8 @@ namespace libodb
         /// Static variable that indicates the number of unique ODB instances
         ///currently running in the context of the process. Atomic operations
         ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
-        ///this value.
-        static ATOMICP_T num_unique;
+        ///this value. Opaque pointer as necessary.
+        static void* num_unique;
 
         /// Identity of this ODB insance in this process' context.
         uint64_t ident;
@@ -212,8 +192,8 @@ namespace libodb
         ///methods are called.
         DataObj* dataobj;
 
-        /// Thread that the memory checker runs in.
-        THREADP_T mem_thread;
+        /// Opaque pointer to thread that the memory checker runs in.
+        void* mem_thread;
 
         /// Duration that the memory checker thread sleeps between sweeps. If this
         ///value is set to zero at ODB creation time, the memory checker thread
@@ -233,8 +213,8 @@ namespace libodb
         /// Whether or not the memory checker thread is running.
         bool running;
 
-        /// Locking context.
-        RWLOCK_T RWLOCK_T_NAME;
+        /// Opaque pointer to locking context.
+        void* rwlock;
     };
 
 }
