@@ -743,6 +743,13 @@ defined(GOOGLE_SPIN_LOCKS)
         SCHED_MUNLOCK(mlock);
     }
 
+    void Scheduler::spin_until_done()
+    {
+        while (num_threads_parked != num_threads)
+        {
+        }
+    }
+
     uint64_t Scheduler::get_num_complete()
     {
         uint64_t sum = 0;

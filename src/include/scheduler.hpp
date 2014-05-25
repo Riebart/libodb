@@ -138,6 +138,8 @@ namespace libodb
 
         void block_until_done();
 
+        void spin_until_done();
+
         uint64_t get_num_complete();
         uint64_t get_num_available();
 
