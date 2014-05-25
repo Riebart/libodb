@@ -14,6 +14,9 @@
 /// @file lfqueue.cpp
 
 #include "lfqueue.hpp"
+
+#include <stdlib.h>
+
 #include "lock.hpp"
 
 /// @todo Actually implement a lock-free queue, don't just wrap std::deque

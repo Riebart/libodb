@@ -18,20 +18,24 @@
 
 #include "lock.hpp"
 
+// Includes, types, and macros to retrieve from the hash mapping we're using, platform dependant.
 #ifdef WIN32
 #include <unordered_map>
-typedef std::unordered_map<uint64_t, struct queue_el*> MAP_T;
+#define MAP_T std::unordered_map<uint64_t, struct Scheduler::queue_el*>
+#define MAP_GET(map, key) ((MAP_T*)(map))->at((key))
 
 #elif CMAKE_COMPILER_SUITE_GCC
 #include <tr1/unordered_map>
 // http://en.wikipedia.org/wiki/Unordered_map_(C%2B%2B)#Usage_example
 // http://gcc.gnu.org/gcc-4.3/changes.html
-typedef std::tr1::unordered_map<uint64_t, struct queue_el*> MAP_T;
+#define MAP_T std::tr1::unordered_map<uint64_t, struct Scheduler::queue_el*>
+#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
 
 #elif CMAKE_COMPILER_SUITE_SUN
 #include <hash_map>
 // http://www.sgi.com/tech/stl/hash_map.html
-typedef std::hash_map<uint64_t, struct queue_el*> MAP_T;
+#define MAP_T std::hash_map<uint64_t, struct Scheduler::queue_el*>
+#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
 
 #endif
 
@@ -41,33 +45,13 @@ typedef std::hash_map<uint64_t, struct queue_el*> MAP_T;
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-
-// If we're using C++11 threads, we're going to force the spinlock class to use atomic<bool>
-#include <atomic>
-
+#include <atomic> // If we're using C++11 threads, we're going to force the SpinLock class to use atomic<bool>
 #else
-#include <pthread.h>
-
-// Otherwise, if we are using pthreads, it will just wrap the pthreads spinlock.
+#include <pthread.h> // Otherwise, if we are using pthreads, it will just wrap the pthreads spinlock.
 #endif
 
 namespace libodb
 {
-
-    // Typedefs for the type of hash mapping we're using, platform dependant.
-#ifdef WIN32
-    typedef std::unordered_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
-#define MAP_GET(map, key) ((MAP_T*)(map))->at((key))
-
-#elif CMAKE_COMPILER_SUITE_GCC
-    typedef std::tr1::unordered_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
-#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
-
-#elif CMAKE_COMPILER_SUITE_SUN
-    typedef std::hash_map<uint64_t, struct Scheduler::queue_el*> MAP_T;
-#define MAP_GET(map, key) (*((MAP_T*)(map)))[(key)]
-
-#endif
 
 #ifdef CPP11THREADS
     typedef std::thread THREAD_T;
@@ -78,6 +62,7 @@ namespace libodb
 #define THREAD_DESTROY(t) delete ((THREAD_T*)(t))
 #define THREAD_JOIN(t) if (((THREAD_T*)(t))->joinable()) ((THREAD_T*)(t))->join()
 #define THREAD_COND_INIT(v) (v) = new CONDVAR_T();
+#define THREAD_COND_DESTROY(v) delete ((v))
 #define THREAD_COND_WAIT(v, l) ((CONDVAR_T*)(v))->wait(*((SCHED_MLOCK_T*)(l)))
 #define THREAD_COND_SIGNAL(v) ((CONDVAR_T*)(v))->notify_one()
 #define THREAD_COND_BROADCAST(v) ((CONDVAR_T*)(v))->notify_all()
@@ -97,24 +82,31 @@ namespace libodb
     typedef pthread_cond_t CONDVAR_T;
     typedef pthread_mutex_t SCHED_MLOCK_T;
 
-#define THREAD_CREATE(t, f, a) pthread_create(&(t), NULL, &(f), (a))
-#define THREAD_DESTROY(t) ;
-#define THREAD_JOIN(t) pthread_join((t), NULL)
-#define THREAD_COND_INIT(v) pthread_cond_init(&(v), NULL)
-#define THREAD_COND_WAIT(v, l) pthread_cond_wait(&(v), &(l));
-#define THREAD_COND_SIGNAL(v) pthread_cond_signal(&(v))
-#define THREAD_COND_BROADCAST(v) pthread_cond_broadcast(&(v))
+#define THREAD_CREATE(t, f, a) \
+    SAFE_MALLOC(void*, (t), sizeof(THREAD_T));\
+    pthread_create(((THREAD_T*)(t)), NULL, &(f), (a))
+#define THREAD_DESTROY(t) free((t))
+#define THREAD_JOIN(t) pthread_join((*(THREAD_T*)(t)), NULL)
+#define THREAD_COND_INIT(v)\
+    SAFE_MALLOC(void*, (v), sizeof(CONDVAR_T));\
+    pthread_cond_init(((CONDVAR_T*)(v)), NULL)
+#define THREAD_COND_DESTROY(v) free((v))
+#define THREAD_COND_WAIT(v, l) pthread_cond_wait(((CONDVAR_T*)(v)), ((SCHED_MLOCK_T*)(l)));
+#define THREAD_COND_SIGNAL(v) pthread_cond_signal(((CONDVAR_T*)(v)))
+#define THREAD_COND_BROADCAST(v) pthread_cond_broadcast(((CONDVAR_T*)(v)))
 
     /// The MLOCK class of locks is used in the scheduler anywhere sleeping is
     /// necessary. This includes in the worker threads when there is no more
     /// work immediately available and in block_until_done.
     /// @{
-#define SCHED_MLOCK() pthread_mutex_lock(&mlock)
-#define SCHED_MLOCK_P(x) pthread_mutex_lock(&((x)->mlock))
-#define SCHED_MUNLOCK() pthread_mutex_unlock(&mlock)
-#define SCHED_MUNLOCK_P(x) pthread_mutex_unlock(&((x)->mlock))
-#define SCHED_MLOCK_INIT() pthread_mutex_init(&mlock, NULL)
-#define SCHED_MLOCK_DESTROY() pthread_mutex_destroy(&mlock)
+#define SCHED_MLOCK_INIT(l) \
+    SAFE_MALLOC(void*, (l), sizeof(SCHED_MLOCK_T));\
+    pthread_mutex_init((SCHED_MLOCK_T*)(l), NULL)
+#define SCHED_MLOCK_DESTROY(l) \
+    pthread_mutex_destroy((SCHED_MLOCK_T*)(l));\
+    free((l))
+#define SCHED_MLOCK(l) pthread_mutex_lock((SCHED_MLOCK_T*)(l))
+#define SCHED_MUNLOCK(l) pthread_mutex_unlock((SCHED_MLOCK_T*)(l))
     /// @}
 #endif
 
@@ -158,8 +150,8 @@ namespace libodb
         ((std::atomic<bool>*)l)->store(false);
     }
 
-#else
-
+#elif defined(ENABLE_PTHREAD_LOCKS) || \
+defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SPIN_LOCKS)
     SpinLock::SpinLock()
     {
         PTHREAD_SPIN_LOCK_INIT(l);
@@ -167,7 +159,7 @@ namespace libodb
 
     SpinLock::~SpinLock()
     {
-        PTHREAD_SPIN_LOCK_DESROY(l);
+        PTHREAD_SPIN_LOCK_DESTROY(l);
     }
 
     void SpinLock::lock()
@@ -177,7 +169,7 @@ namespace libodb
 
     bool SpinLock::try_lock()
     {
-        // This returns 0 on success, which means it grabbed the lock.
+        // This returns 0 on successful acquisition of the lock
         return (pthread_spin_trylock((PTHREAD_SPIN_LOCK_T*)l) == 0);
     }
 
@@ -186,6 +178,37 @@ namespace libodb
         PTHREAD_SPIN_UNLOCK(l);
     }
 
+#elif defined(ENABLE_GOOGLE_LOCKS) || \
+defined(GOOGLE_SPIN_LOCKS)
+    SpinLock::SpinLock()
+    {
+        GOOGLE_SPIN_LOCK_INIT(l);
+    }
+
+    SpinLock::~SpinLock()
+    {
+        GOOGLE_SPIN_LOCK_DESTROY(l);
+    }
+
+    void SpinLock::lock()
+    {
+        GOOGLE_SPIN_LOCK(l);
+    }
+
+    bool SpinLock::try_lock()
+    {
+        // This returns true on successful acquisition of the lock
+        return ((GOOGLE_SPIN_LOCK_T*)l)->TryLock();
+    }
+
+    void SpinLock::unlock()
+    {
+        GOOGLE_SPIN_UNLOCK(l);
+    }
+
+#else
+    int[-1];
+    
 #endif
 
     void* scheduler_worker_thread(void* args_v)
@@ -368,6 +391,7 @@ namespace libodb
         SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
         root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
+        
         SCHED_MLOCK_INIT(mlock);
 
         for (uint32_t i = 0; i < num_threads; i++)
@@ -398,6 +422,8 @@ namespace libodb
 
         delete (MAP_T*)queue_map;
         SCHED_MLOCK_DESTROY(mlock);
+        THREAD_COND_DESTROY(work_cond);
+        THREAD_COND_DESTROY(block_cond);
     }
 
     void Scheduler::update_queue_push_flags(struct Scheduler::queue_el* q, uint32_t f)

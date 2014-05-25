@@ -43,27 +43,26 @@
 // Now handle we do the atomic incrementing.
 #ifdef CPP11THREADS
 #include <atomic>
-#define ATOMIC_INIT(val) new std::atomic<uint64_t>(val)
 #define ATOMIC_FETCH(a) ((std::atomic<uint64_t>*)(a))->load()
 #define ATOMIC_INCREMENT(v) ((std::atomic<uint64_t>*)(v))->fetch_add(1);
 #define ATOMIC_DESTROY(v) delete (std::atomic<uint64_t>*)(v)
 
+#elif (CMAKE_COMPILER_SUITE_GCC)
+typedef uint64_t ATOMIC_T;
+//! @bug This isn't how do this! This will depend on the compiler-isms
+#define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
+//! @bug This is a 32-bit incremement on a 64-bit value.
+#define ATOMIC_INCREMENT(v) __sync_add_and_fetch((ATOMIC_T*)v, 1)
+#define ATOMIC_DESTROY(v) free (v)
+
 #elif (CMAKE_COMPILER_SUITE_SUN)
 #include <atomic.h>
-#define ATOMIC_INIT(val) (val)
+typedef uint64_t ATOMIC_T;
 //! @bug This isn't how do this! This will depend on the compiler-isms
-#define ATOMIC_FETCH(a) (a)
+#define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
 //! @bug This is a 32-bit incremement on a 64-bit value.
-#define ATOMIC_INCREMENT(v) atomic_inc_32(&(v));
-#define ATOMIC_DESTROY(v)
-
-#elif (CMAKE_COMPILER_SUITE_GCC)
-#define ATOMIC_INIT(val) (val)
-//! @bug This isn't how do this! This will depend on the compiler-isms
-#define ATOMIC_FETCH(a) (a)
-//! @bug This is a 32-bit incremement on a 64-bit value.
-#define ATOMIC_INCREMENT(v) __sync_add_and_fetch(&(v), 1);
-#define ATOMIC_DESTROY(v)
+#define ATOMIC_INCREMENT(v) atomic_inc_64((v))
+#define ATOMIC_DESTROY(v) free((v))
 
 #else
 #ifdef WIN32
@@ -97,7 +96,15 @@ namespace libodb
 
     const int SLEEP_DURATION = 60;
 
-    void* ODB::num_unique = ATOMIC_INIT(0);
+#ifdef CPP11THREADS
+    void* ODB::num_unique = new std::atomic<uint64_t>(0);
+#elif (CMAKE_COMPILER_SUITE_GCC)
+    void* ODB::num_unique = calloc(1, sizeof(ATOMIC_T));
+#elif (CMAKE_COMPILER_SUITE_SUN)
+    void* ODB::num_unique = calloc(1, sizeof(ATOMIC_T));
+#endif
+    
+//     void* ODB::num_unique = ATOMIC_INIT(0);
 
     /// The worker function in the memory checker thread
     /// @param[in] arg The void pointer to arguments. This is actually a pair of

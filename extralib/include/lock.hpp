@@ -18,7 +18,7 @@
 /// are chosen or enabled, then the copmpiler definitions are defined to map to
 /// nothing (and so will resolve, but will not result in the placement of any code.
 ///
-/// All of the functions here abstract away the locking mechanisms, and assume an
+/// All of the functions here abstract away the locking mechanisms, and assume
 /// input is a void* type.
 /// @file lock.hpp
 
@@ -27,13 +27,14 @@
 #if defined(ENABLE_PTHREAD_LOCKS) || \
 defined(PTHREAD_RW_LOCKS) || defined(PTHREAD_SIMPLE_LOCKS) || defined(PTHREAD_SPIN_LOCKS)
 #include <pthread.h>
+#include "common.hpp"
 
 /* PTHREAD_RW */
 // PTHREAD_RW_*LOCK*() makes no sense, don't use it.
 typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
 
 #define PTHREAD_RW_RWLOCK_INIT(l) \
-    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_RW_RWLOCK_T);\
+    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_RW_RWLOCK_T));\
     pthread_rwlock_init((PTHREAD_RW_RWLOCK_T*)(l), NULL);
 
 #define PTHREAD_RW_RWLOCK_DESTROY(l) \
@@ -50,7 +51,7 @@ typedef pthread_rwlock_t PTHREAD_RW_RWLOCK_T;
 typedef pthread_mutex_t PTHREAD_SIMPLE_LOCK_T;
 
 #define PTHREAD_SIMPLE_LOCK_INIT(l) \
-    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_SIMPLE_LOCK_T);\
+    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_SIMPLE_LOCK_T));\
     pthread_mutex_init((PTHREAD_SIMPLE_LOCK_T*)(l), NULL);
 
 #define PTHREAD_SIMPLE_LOCK_DESTROY(l) \
@@ -64,8 +65,8 @@ typedef pthread_mutex_t PTHREAD_SIMPLE_LOCK_T;
 typedef pthread_spinlock_t PTHREAD_SPIN_LOCK_T;
 
 #define PTHREAD_SPIN_LOCK_INIT(l) \
-    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_SPIN_LOCK_T);\
-    pthread_spin_init((PTHREAD_SPIN_LOCK_T*)(l), NULL);
+    SAFE_MALLOC(void*, (l), sizeof(PTHREAD_SPIN_LOCK_T));\
+    pthread_spin_init((PTHREAD_SPIN_LOCK_T*)(l), PTHREAD_PROCESS_PRIVATE);
 
 #define PTHREAD_SPIN_LOCK_DESTROY(l) \
     pthread_spin_destroy((PTHREAD_SPIN_LOCK_T*)(l));\
@@ -127,7 +128,7 @@ typedef PTHREAD_RW_RWLOCK_T RWLOCK_T;
 typedef PTHREAD_SIMPLE_LOCK_T LOCK_T;
 typedef PTHREAD_SIMPLE_LOCK_T RWLOCK_T;
 
-#define LOCK_INIT(l) PTHREAD_SIMPLE_LOCK_INIT((l))
+#define LOCK_INIT(l) PTHREAD_SIMPLE_LOCK_INIT((l), )
 #define RWLOCK_INIT(l) PTHREAD_SIMPLE_LOCK_INIT((l))
 
 #define LOCK_DESTROY(l) PTHREAD_SIMPLE_LOCK_DESTROY((l))

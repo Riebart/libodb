@@ -190,9 +190,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_FLAGS_ARCH_TUNE}")
 
 #this is probably the wrong way to do this: setting compile-time defines
 add_definitions(-DENABLE_PTHREAD_LOCKS)
-# add_definitions(-DPTHREAD_RW_LOCKS) # pthread read/write locks
+add_definitions(-DPTHREAD_RW_LOCKS) # pthread read/write locks
 # add_definitions(-DPTHREAD_SIMPLE_LOCKS) # pthread mutex locks
-add_definitions(-DPTHREAD_SPIN_LOCKS) # pthread spin locks
+# add_definitions(-DPTHREAD_SPIN_LOCKS) # pthread spin locks
 
 # add_definitions(-DENABLE_GOOGLE_LOCKS) # Enable Google locks
 # add_definitions(-DGOOGLE_SPIN_LOCKS) # Google spinlocks

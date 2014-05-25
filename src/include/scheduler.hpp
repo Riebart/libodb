@@ -202,6 +202,7 @@ namespace libodb
         uint32_t num_threads;
         volatile uint32_t num_threads_parked;
 
+        //! @todo convert this to not be a list of pointers
         struct thread_args** t_args;
 
         struct RedBlackTreeI::e_tree_root* root;
