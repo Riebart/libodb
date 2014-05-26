@@ -745,7 +745,7 @@ defined(GOOGLE_SPIN_LOCKS)
 
     void Scheduler::spin_until_done()
     {
-        while (num_threads_parked != num_threads)
+        while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
         {
         }
     }
