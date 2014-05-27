@@ -208,6 +208,7 @@ namespace libodb
         struct thread_args** t_args;
 
         struct RedBlackTreeI::e_tree_root* root;
+        volatile uint64_t tree_count;
 
         //! Opaque pointer to a platform-dependant standard template hash-table-based lookup structure.
         void* queue_map;

@@ -241,7 +241,7 @@ defined(GOOGLE_SPIN_LOCKS)
 
             SCHED_MLOCK(args->scheduler->mlock);
 
-            while ((args->scheduler->root->count == 0) && (args->scheduler->work_avail == 0) && (args->run))
+            while ((args->scheduler->tree_count == 0) && (args->scheduler->work_avail == 0) && (args->run))
             {
                 // Before we sleep, we should wake up anything waiting on the block
                 args->scheduler->num_threads_parked++;
@@ -264,7 +264,7 @@ defined(GOOGLE_SPIN_LOCKS)
             }
 
             // get_work() grabs the fast lock on its own.
-            work = ((args->scheduler->root->count > 0) ? args->scheduler->get_work() : NULL);
+            work = ((args->scheduler->tree_count > 0) ? args->scheduler->get_work() : NULL);
 
             if (work != NULL)
             {
@@ -293,6 +293,7 @@ defined(GOOGLE_SPIN_LOCKS)
                     {
                         args->scheduler->lock.lock();
                         RedBlackTreeI::e_add(args->scheduler->root, work->q);
+                        args->scheduler->tree_count++;
                         work->q->in_tree = true;
                         args->scheduler->lock.unlock();
                     }
@@ -391,6 +392,7 @@ defined(GOOGLE_SPIN_LOCKS)
         SAFE_MALLOC(struct thread_args**, t_args, num_threads * sizeof(struct thread_args*));
 
         root = RedBlackTreeI::e_init_tree(true, compare_workqueue);
+        tree_count = 0;
         
         SCHED_MLOCK_INIT(mlock);
 
@@ -522,6 +524,7 @@ defined(GOOGLE_SPIN_LOCKS)
         if (!q->in_tree)
         {
             RedBlackTreeI::e_add(root, q);
+            tree_count++;
             q->in_tree = true;
         }
 
@@ -664,7 +667,7 @@ defined(GOOGLE_SPIN_LOCKS)
     {
         lock.lock();
 
-        if (root->count == 0)
+        if (tree_count == 0)
         {
             lock.unlock();
             return NULL;
@@ -672,6 +675,7 @@ defined(GOOGLE_SPIN_LOCKS)
 
         struct workload* first_work = NULL;
         void* first_queue = RedBlackTreeI::e_pop_first(root);
+        tree_count--;
 
         struct queue_el* q = (struct queue_el*)first_queue;
         LFQueue* queue = q->queue;
@@ -696,6 +700,7 @@ defined(GOOGLE_SPIN_LOCKS)
             if ((queue->size() > 0) && ((queue == indep.queue) || (first_work->flags & Scheduler::READ_ONLY)))
             {
                 RedBlackTreeI::e_add(root, q);
+                tree_count++;
                 q->in_tree = true;
                 first_work->q = NULL;
             }
@@ -717,7 +722,7 @@ defined(GOOGLE_SPIN_LOCKS)
         SCHED_MLOCK(mlock);
 
         // If there are any unparked threads, we need to wait on them
-        while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
+        while ((work_avail > 0) || (tree_count > 0) || (num_threads_parked != num_threads))
         {
             // When worker threads park themselves, they signal this condvar. The only thing
             // that waits on this is this function. 
@@ -725,7 +730,7 @@ defined(GOOGLE_SPIN_LOCKS)
 
             // If we still pass the looping condition, we can skip the trylock.
             // If we don't pass the looping condition, that is it looks like we might be out of work
-            if (!((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads)))
+            if (!((work_avail > 0) || (tree_count > 0) || (num_threads_parked != num_threads)))
             {
                 // Try to spinlock to see if anything is contending for spinlock access, which means we might
                 // be adding work.
@@ -745,7 +750,7 @@ defined(GOOGLE_SPIN_LOCKS)
 
     void Scheduler::spin_until_done()
     {
-        while ((work_avail > 0) || (root->count > 0) || (num_threads_parked != num_threads))
+        while ((work_avail > 0) || (tree_count > 0) || (num_threads_parked != num_threads))
         {
         }
     }
