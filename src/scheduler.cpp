@@ -482,6 +482,7 @@ defined(GOOGLE_SPIN_LOCKS)
         if (!indep.in_tree)
         {
             RedBlackTreeI::e_add(root, &indep);
+            tree_count++;
             indep.in_tree = true;
         }
 
