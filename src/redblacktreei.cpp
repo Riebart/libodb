@@ -28,7 +28,7 @@ namespace libodb
 #define RED_BLACK_MASK ~RED_BLACK_BIT
 #define TREE_BIT 0x2
 #define TREE_MASK ~TREE_BIT
-#define META_BIT 0x7
+#define META_BIT 0x3
 #define META_MASK ~META_BIT
 
     /// Get the value of the least-significant bit in the specified node's left
@@ -38,45 +38,45 @@ namespace libodb
     /// @retval 0 If the node is black or NULL.
     /// @retval 1 If the node is red and non-NULL.
     ///conventions of C that 0 is a boolean false, and non-zero is a boolean true).
-#define IS_RED(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_BIT))
+#define IS_RED(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uintptr_t>(x->link[0])) & RED_BLACK_BIT))
 
     /// Get whether or not this node contains a linked list for duplicates.
     /// Performs an embedded NULL check.
     /// @param [in] x A pointer to the node to have its duplicate-status checked.
     /// @retval 0 If the value is singular or NULL.
     /// @retval 1 If the node contains an embedded list.
-#define IS_TREE(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uint64_t>(x->link[0])) & TREE_BIT))
+#define IS_TREE(x) ((STRIP(x) != NULL) && ((reinterpret_cast<uintptr_t>(x->link[0])) & TREE_BIT))
 
     /// Get whether or not this node contains a linked list for duplicates.
     /// Performs an embedded NULL check.
     /// @param [in] x A pointer to the node to have its duplicate-status checked.
     /// @retval 0 If the node contains an embedded list or is NULL.
     /// @retval 1 If the value is singular.
-#define IS_VALUE(x) ((STRIP(x) != NULL) && !((reinterpret_cast<uint64_t>(x->link[0])) & TREE_BIT))
+#define IS_VALUE(x) ((STRIP(x) != NULL) && !((reinterpret_cast<uintptr_t>(x->link[0])) & TREE_BIT))
 
     /// Set a node as red.
     /// Get the value of the least-significant bit in the specified node's left
     ///pointer to 1.
     /// @param [in] x A pointer to the node to have its colour set.
-#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | RED_BLACK_BIT)))
+#define SET_RED(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x->link[0])) | RED_BLACK_BIT)))
 
     /// Set a node as black.
     /// Get the value of the least-significant bit in the specified node's left
     ///pointer to 0.
     /// @param [in] x A pointer to the node to have its colour set.
-#define SET_BLACK(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & RED_BLACK_MASK)))
+#define SET_BLACK(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x->link[0])) & RED_BLACK_MASK)))
 
     /// Set a node as containing a duplicate list.
     /// Set the value of the second-least-significant bit in the specified node's
     ///left pointer to 1.
     /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_TREE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) | TREE_BIT)))
+#define SET_TREE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x->link[0])) | TREE_BIT)))
 
     /// Set a node as containing a single value.
     /// Set the value of the second-least-significant bit in the specified node's
     ///left pointer to 0.
     /// @param [in] x A pointer to the node to have its data-type set.
-#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x->link[0])) & TREE_MASK)))
+#define SET_VALUE(x) ((x->link[0]) = (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x->link[0])) & TREE_MASK)))
 
     /// Set the three least-significant bits in the specified node's specified pointer
     ///to 0 for use when dereferencing.
@@ -90,7 +90,7 @@ namespace libodb
     ///must be STRIP()-ed.
     /// @param [in] x A pointer to the link to be stripped.
     /// @return A pointer to a node without the meta-data embedded in the address.
-#define STRIP(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
+#define STRIP(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x)) & META_MASK))
 
     /// Set x equal to y without destroying the meta-data in x.
     /// This is accomplished by first stripping the meta-data from y then isolating
@@ -101,7 +101,7 @@ namespace libodb
     /// @param [in,out] x A pointer to the link to be set. The meta data of this
     ///link is not destroyed during the process.
     /// @param [in] y A pointer to the location for x to end up pointing to.
-#define SET_LINK(x, y) (x = (reinterpret_cast<struct RedBlackTreeI::tree_node*>(((reinterpret_cast<uint64_t>(y)) & META_MASK) | ((reinterpret_cast<uint64_t>(x)) & META_BIT))))
+#define SET_LINK(x, y) (x = (reinterpret_cast<struct RedBlackTreeI::tree_node*>(((reinterpret_cast<uintptr_t>(y)) & META_MASK) | ((reinterpret_cast<uintptr_t>(x)) & META_BIT))))
 
     /// Get the data out of a node.
     /// Since a node can contain either a single value or a linked list, this takes
@@ -113,9 +113,9 @@ namespace libodb
     ///returned is that contained in the head of the list.
 #define GET_DATA(x) (IS_VALUE(x) ? (x->data) : ((reinterpret_cast<struct tree_node*>(x->data))->data))
 
-#define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) | RED_BLACK_BIT))
-#define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uint64_t>(x)) & META_MASK))
-#define TAINTED(x) ((reinterpret_cast<uint64_t>(x)) & RED_BLACK_BIT)
+#define TAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x)) | RED_BLACK_BIT))
+#define UNTAINT(x) (reinterpret_cast<struct RedBlackTreeI::tree_node*>((reinterpret_cast<uintptr_t>(x)) & META_MASK))
+#define TAINTED(x) ((reinterpret_cast<uintptr_t>(x)) & RED_BLACK_BIT)
 
     RedBlackTreeI::RedBlackTreeI(uint64_t _ident, Comparator* _compare, Merger* _merge, bool _drop_duplicates)
     {
