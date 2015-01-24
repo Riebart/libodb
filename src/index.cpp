@@ -233,24 +233,24 @@ namespace libodb
     inline void IndexGroup::add_data_v(void* data)
     {
         // Do it the silly way in order to preserve speed when compiled with zero optimizations.
-        uint32_t n = indices->size();
+        size_t n = indices->size();
 
         if (n == 0)
         {
             return;
         }
 
-        for (uint32_t i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
         {
             indices->at(i)->add_data_v(data);
         }
     }
 
-    /// @todo I don't think any of the read-only functions here are done right.
+    //! @todo I don't think any of the read-only functions here are done right.
     ///What the hell do I mean by this?
     inline void IndexGroup::query(Condition* condition, DataStore* ds)
     {
-        uint32_t n = indices->size();
+        size_t n = indices->size();
 
         // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
         if (n > 0)
@@ -260,16 +260,18 @@ namespace libodb
                 indices->at(0)->query(condition, ds);
             }
             else
-                for (uint32_t i = 0; i < n; i++)
+            {
+                for (size_t i = 0; i < n; i++)
                 {
-                indices->at(i)->query(condition, ds);
+                    indices->at(i)->query(condition, ds);
                 }
+            }
         }
     }
 
     inline void IndexGroup::query_eq(void* rawdata, DataStore* ds)
     {
-        uint32_t n = indices->size();
+        size_t n = indices->size();
 
         // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
         if (n > 0)
@@ -279,16 +281,18 @@ namespace libodb
                 indices->at(0)->query_eq(rawdata, ds);
             }
             else
-                for (uint32_t i = 0; i < n; i++)
+            {
+                for (size_t i = 0; i < n; i++)
                 {
-                indices->at(i)->query_eq(rawdata, ds);
+                    indices->at(i)->query_eq(rawdata, ds);
                 }
+            }
         }
     }
 
     inline void IndexGroup::query_lt(void* rawdata, DataStore* ds)
     {
-        uint32_t n = indices->size();
+        size_t n = indices->size();
 
         // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
         if (n > 0)
@@ -298,16 +302,18 @@ namespace libodb
                 indices->at(0)->query_lt(rawdata, ds);
             }
             else
-                for (uint32_t i = 0; i < n; i++)
+            {
+                for (size_t i = 0; i < n; i++)
                 {
-                indices->at(i)->query_lt(rawdata, ds);
+                    indices->at(i)->query_lt(rawdata, ds);
                 }
+            }
         }
     }
 
     inline void IndexGroup::query_gt(void* rawdata, DataStore* ds)
     {
-        uint32_t n = indices->size();
+        size_t n = indices->size();
 
         // Save on setting up and tearing down OpenMP if there is nothing to do anyway.
         if (n > 0)
@@ -317,10 +323,12 @@ namespace libodb
                 indices->at(0)->query_gt(rawdata, ds);
             }
             else
-                for (uint32_t i = 0; i < n; i++)
+            {
+                for (size_t i = 0; i < n; i++)
                 {
-                indices->at(i)->query_gt(rawdata, ds);
+                    indices->at(i)->query_gt(rawdata, ds);
                 }
+            }
         }
     }
 

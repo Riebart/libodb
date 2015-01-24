@@ -110,7 +110,7 @@ namespace libodb
     /// @param[in] arg The void pointer to arguments. This is actually a pair of
     ///pointers, one to the parent ODB object, and another to a 32-bit integer
     ///indicating how many seconds to sleep between sweeps.
-    /// @todo Have a way of starting and stopping the mem checker thread with more
+    //! @todo Have a way of starting and stopping the mem checker thread with more
     ///than just at construction/destruction time.
     void * mem_checker(void * arg)
     {
@@ -433,6 +433,7 @@ namespace libodb
         else
         {
             running = 0;
+            mem_thread = NULL;
         }
     }
 
@@ -480,7 +481,11 @@ namespace libodb
         //    delete archive;
         //}
 
-        THREAD_DESTROY(mem_thread);
+        if (mem_thread != NULL)
+        {
+            THREAD_DESTROY(mem_thread);
+        }
+
         ATOMIC_DESTROY(num_unique);
 
         WRITE_UNLOCK(rwlock);
@@ -680,7 +685,7 @@ namespace libodb
         return all;
     }
 
-    /// @todo Change this to use shorter lived locks and the scheduler so as to
+    //! @todo Change this to use shorter lived locks and the scheduler so as to
     ///not be as disruptive in a real-time situations.
     void ODB::remove_sweep()
     {
@@ -689,7 +694,7 @@ namespace libodb
             WRITE_LOCK(rwlock);
             std::vector<void*>** marked = data->remove_sweep(archive);
 
-            uint32_t n = tables->size();
+            size_t n = tables->size();
 
             if (n > 0)
             {
@@ -698,10 +703,12 @@ namespace libodb
                     tables->at(0)->remove_sweep(marked[0]);
                 }
                 else
-                    for (uint32_t i = 0; i < n; i++)
+                {
+                    for (size_t i = 0; i < n; i++)
                     {
-                    tables->at(i)->remove_sweep(marked[0]);
+                        tables->at(i)->remove_sweep(marked[0]);
                     }
+                }
 
                 if (marked[2] != NULL)
                 {
@@ -716,7 +723,7 @@ namespace libodb
 
     void ODB::update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr)
     {
-        uint32_t n = tables->size();
+        size_t n = tables->size();
 
         if (n > 0)
         {
@@ -725,16 +732,18 @@ namespace libodb
                 tables->at(0)->update(old_addr, new_addr, datalen);
             }
             else
+            {
                 // #pragma omp parallel for
-                for (uint32_t i = 0; i < n; i++)
+                for (size_t i = 0; i < n; i++)
                 {
-                tables->at(i)->update(old_addr, new_addr, datalen);
+                    tables->at(i)->update(old_addr, new_addr, datalen);
                 }
+            }
         }
 
         n = data->clones->size();
 
-        for (uint32_t i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
         {
             data->clones->at(i)->update_tables(old_addr, new_addr);
         }
@@ -744,7 +753,7 @@ namespace libodb
     {
         WRITE_LOCK(rwlock);
 
-        for (uint32_t i = 0; i < tables->size(); i++)
+        for (size_t i = 0; i < tables->size(); i++)
         {
             tables->at(i)->purge();
         }

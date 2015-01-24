@@ -74,7 +74,7 @@ namespace libodb
         ///to clean up that Index table. DO_NOT_POPULATE indicates that, upon
         ///creation, to suppress the standard practice which is populating the index
         ///table with the data of all of the items in the ODB's DataStore.
-        /// @todo Apparently this isn't the appropriate way to do this (flags)?
+        //! @todo Apparently this isn't the appropriate way to do this (flags)?
         typedef enum { NONE = 0, DROP_DUPLICATES = 1, DO_NOT_ADD_TO_ALL = 2, DO_NOT_POPULATE = 4 } IndexFlags;
 
         /// Enum defining the specific index implementations available.
@@ -223,7 +223,7 @@ namespace libodb
 
 /// @mainpage
 /// This is where the project, overall, will be described.
-/// @todo Write up the main page documentation.
+//! @todo Write up the main page documentation.
 
 /// @class ODB
 /// Overarching class that provides the functionality of libODB.
@@ -233,7 +233,7 @@ namespace libodb
 ///to provide backend storage, which is indexed by the Index classes. The
 ///Scheduler class is used to provide multithreading and improved performance
 ///in concurrent applications.
-/// @todo Extend this with some kind of dynamic querying, daemon something.
+//! @todo Extend this with some kind of dynamic querying, daemon something.
 ///Like what we tried to do with the Python interface
 
 /// @fn ODB::~ODB()

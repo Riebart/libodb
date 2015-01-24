@@ -32,20 +32,22 @@ namespace libodb
         free(index_name);
     }
 
-    /// @todo Make this use a biffered writer for improved throughput
+    //! @todo Make this use a biffered writer for improved throughput
     AppendOnlyFile::AppendOnlyFile(char* base_filename, bool append)
     {
+        size_t base_fname_len = strlen(base_filename);
+
         // The strcat call incurs a conditional jump on unitialized value from here
         // according to valgrind. So calloc() it.
-        SAFE_CALLOC(char*, data_name, 1, strlen(base_filename) + 5);
-        SAFE_CALLOC(char*, index_name, 1, strlen(base_filename) + 5);
+        SAFE_CALLOC(char*, data_name, 1, base_fname_len + 5);
+        SAFE_CALLOC(char*, index_name, 1, base_fname_len + 5);
 
-        memcpy(data_name, base_filename, strlen(base_filename));
-        memcpy(index_name, base_filename, strlen(base_filename));
+        memcpy(data_name, base_filename, base_fname_len);
+        memcpy(index_name, base_filename, base_fname_len);
 
 #ifdef WIN32
-        strcat_s(data_name, 4, ".dat");
-        strcat_s(index_name, 4, ".ind");
+        strncat_s(data_name, base_fname_len + 5, (char*)".dat", 4);
+        strncat_s(index_name, base_fname_len + 5, (char*)".ind", 4);
 #else
         strcat(data_name, ".dat");
         strcat(index_name, ".ind");

@@ -62,7 +62,7 @@ namespace libodb
         this->len = _len;
     }
 
-    /// @todo Since the only read case we (currently) have is trivial, might a
+    //! @todo Since the only read case we (currently) have is trivial, might a
     ///general lock be better suited?
     inline void LinkedListDS::init(DataStore* _parent, bool(*_prune)(void* rawdata), uint64_t _datalen)
     {
@@ -72,8 +72,6 @@ namespace libodb
         this->parent = _parent;
         this->prune = _prune;
         data_count = 0;
-
-        RWLOCK_INIT(rwlock);
     }
 
     LinkedListDS::~LinkedListDS()
@@ -90,7 +88,6 @@ namespace libodb
         }
 
         WRITE_UNLOCK(rwlock);
-        RWLOCK_DESTROY(rwlock);
     }
 
     inline void* LinkedListDS::add_data(void* rawdata)
@@ -404,7 +401,7 @@ namespace libodb
         // We need to traverse last to first so we don't unlink any 'parents'.
         struct datanode* curr;
         void* temp;
-        for (uint32_t i = marked[1]->size() - 1; i > 0; i--)
+        for (size_t i = marked[1]->size() - 1; i > 0; i--)
         {
             curr = reinterpret_cast<struct datanode*>(marked[1]->at(i));
             temp = curr->next;
@@ -422,8 +419,8 @@ namespace libodb
     void LinkedListDS::purge(void(*freep)(void*))
     {
         WRITE_LOCK(rwlock);
-        uint32_t num_clones = clones->size();
-        for (uint32_t i = 0; i < num_clones; i++)
+        size_t num_clones = clones->size();
+        for (size_t i = 0; i < num_clones; i++)
         {
             clones->at(i)->purge();
         }

@@ -15,8 +15,9 @@ using namespace libodb;
 
 #define ASSERT_UU(LHS, RHS)\
 	if (LHS != RHS)\
-	{\
+    {\
 		printf("%u %u\n", (LHS), (RHS));\
+        fflush(stdout);\
 		assert((LHS) == (RHS));\
 	}
 
@@ -30,15 +31,17 @@ using namespace libodb;
 	double ___case_elapsed = 0.0;\
 	bool ___case_ended = false;\
 	ftime(&___class_start);\
-	printf("= %s =\n", (((name) != NULL) ? (name) : ""));
+	printf("= %s =\n", (((name) != NULL) ? (name) : ""));\
+    fflush(stdout);
 
 #define TEST_CASE_END() \
 	if (!___case_ended && (___case_name != NULL))\
-		{\
+	{\
 		ftime(&___case_end);\
 		___case_elapsed = TIME_DIFF(___case_end, ___case_start);\
 		printf("(end) %.5gs\n", \
 		___case_elapsed);\
+        fflush(stdout);\
 		___case_ended = true;\
 	}
 
@@ -51,6 +54,7 @@ using namespace libodb;
 		printf("= %s = %.5gs\n\n", \
 		___class_name, \
 		___class_elapsed);\
+        fflush(stdout);\
 	}\
 	}
 
@@ -59,7 +63,8 @@ using namespace libodb;
 	___case_ended = false;\
 	ftime(&___case_start);\
 	___case_name = name;\
-	printf("(start) %s\n", (((name) != NULL) ? (name) : ""));
+	printf("(start) %s\n", (((name) != NULL) ? (name) : ""));\
+    fflush(stdout);
 
 #ifdef WIN32
 #include <Windows.h>
@@ -133,6 +138,7 @@ void test_atomic_bool()
         std::atomic<bool> a;
         b = std::atomic_is_lock_free(&a);
         printf("std atomic<bool> IS%s lock free\n", (b ? "" : " NOT"));
+        fflush(stdout);
         TEST_CASE_END();
     }
     
@@ -141,6 +147,7 @@ void test_atomic_bool()
         std::atomic<uint64_t> a;
         b = std::atomic_is_lock_free(&a);
         printf("std atomic<uint64_t> IS%s lock free\n", (b ? "" : " NOT"));
+        fflush(stdout);
         TEST_CASE_END();
     }
     
@@ -153,6 +160,7 @@ void* threadid_print_worker(void* a)
 {
     lock.lock();
 	printf("%u\n", get_thread_id());
+    fflush(stdout);
     sleep(500, false);
     lock.unlock();
     return NULL;
@@ -241,6 +249,7 @@ void thread_count(Scheduler* sched, int c)
 		else
 		{
 			printf("FAILED TO ALLOCATE %d THREADS\n", c);
+            fflush(stdout);
 		}
 	}
 

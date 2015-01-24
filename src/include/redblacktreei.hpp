@@ -73,9 +73,9 @@ namespace libodb
     ///(http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_rbtree.aspx)
     ///and some notes in a blog
     ///(http://www.canonware.com/~ttt/2008/04/left-leaning-red-black-trees-are-hard.html)
-    /// @todo Bring the bottom-up insertion code back. It is prototyped in changeset
+    //! @todo Bring the bottom-up insertion code back. It is prototyped in changeset
     ///134 so look there.
-    /// @todo Implement the RBT_PROFILE code paths in the deletion and lookup
+    //! @todo Implement the RBT_PROFILE code paths in the deletion and lookup
     ///functions in addition to insertion
     class LIBODB_API RedBlackTreeI : public Index
     {

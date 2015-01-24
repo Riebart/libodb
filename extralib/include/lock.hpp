@@ -161,6 +161,7 @@ typedef PTHREAD_SPIN_LOCK_T RWLOCK_T;
 
 //==============================================================================
 #elif defined(GOOGLE_SPIN_LOCKS)
+//! @warning "Google spin locks must be accompanied by pthreads for condcar support in the scheduler"
 typedef GOOGLE_SPIN_LOCK_T LOCK_T;
 typedef GOOGLE_SPIN_LOCK_T RWLOCK_T;
 

@@ -82,7 +82,7 @@ namespace libodb
 
     protected:
         BankIDS();
-        /// @todo Make proper use of the parent pointers where necessary. (See comment)
+        //! @todo Make proper use of the parent pointers where necessary. (See comment)
         //(In: Cloning, getting idents, checking data integrity, **multiple levels of indirect datastores**).
         //Applies to: BankDS, BankIDS, BankVDS, LinkedListDS, LinkedListIDS, LinkedListVDS.
         BankIDS(DataStore* parent, bool(*prune)(void* rawdata), uint32_t flags = 0, uint64_t cap = 102400);

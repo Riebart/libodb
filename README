@@ -1,15 +1,20 @@
 /* MPL2.0 HEADER START
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * MPL2.0 HEADER END
  *
- * Copyright 2010-2012 Michael Himbeault and Travis Friesen
+ * Copyright 2010-2014 Michael Himbeault and Travis Friesen
  *
  */
 
+= Table of Contents =
+# Building the library, it's compile-time options, and other targets
+# Notes on locking/threading APIs that are supported
+
+= Building =
 This is the repo for the libodb project.
 
 The libodb source code is in the 'src' directory.
@@ -44,14 +49,14 @@ To check your build:
     make check
     make check-extra
     make check-extralib
-    
+
 To build (but not run) the test programs:
 
     make checks
     make checks-extra
     make checks-extralib
 
-To build the doc target you'll need 
+To build the doc target you'll need
    - Documentation:  doxygen (http://www.stack.nl/~dimitri/doxygen/) - Required for documentation generation
    - Code Metrics:   cccc (http://cccc.sourceforge.net/)             - Optional
    - LaTeX PDF Docs: LaTeX (http://www.tug.org/texlive/)             - Optional
@@ -60,3 +65,82 @@ To build the doc target you'll need
 
         make doc
 
+
+
+= Notes on locking =
+libodb contains innate fine-grained locking, as well as a high performance
+multithreaded workload scheduler as part of its library.
+
+All locking is inherited based on compile-time defined symbols and their
+interaction with the lock.hpp header founding in extralib/include. For in-depth
+details, see the source files for in-line comments and documentation, however a
+basic summary of support options and configurations is contained here.
+
+The scheduler and the ODB class make use of threading, and inherit their
+threading API (independant of the locking API chosen) from compile-time defines.
+See the source code for technical details, however a summary is again provided
+below.
+
+== Supported locking environments ==
+* C++11
+* pthreads (spin locks, mutexes, and read-write locks)
+* Google spin locks (contained in the libodb distribution)
+
+'''WARNING: Do not specify more than one locking API at a time, as this will
+result in undefined behaviour.'''
+
+== Breadth of locking/threading choice effects ==
+* ODB creates a thread to perform it's memory cleanup operations
+* Index tables, ODB objects, and datastores use fine-grained locking of the type
+specified at compile-time.
+* Scheduler uses a condvar-supporting lock of the type specified, as well as a
+spinlock of a type available.
+
+== C++11 ==
+'''WARNING: As of this writing (August 2014), gcc does not contain the necessary
+C++11 concurrency components to support full C++11 multithreading
+applications.'''
+
+''REMARK: Compilation on Windows requires C++11 support, as no provisions are
+made for simultaneously non-Unix and non-C++11 atomics, threading, or timing
+functions on Windows platforms.''
+
+Under C++11 environments, the CPP11LOCKS (or, also supported: ENABLE_CPP11LOCKS)
+and CPP11THREADS defines control the use of C++11 locking and threading
+respectively.
+
+IMPORTANT: If C++11 locks are not specified, pthread locking APIs are assumed to 
+be available and are used instead.
+
+When C++11 threads are used, C++11 atomics and sleep/timing are also used,
+otherwise gcc/suncc intrinsics are used for atomics, based on the platform
+availability, and Unix. Additionally, C++11 threads also imply C++11 conditional
+variables for use in the scheduler.
+
+C++11 only supports mutex locking, and read-write locking macros are simply
+aliases to mutex locking.
+
+The scheduler makes use of spinlocks, and defines a SpinLock class that, under
+C++11, implements a spin lock from scratch based on C++11 atomics.
+
+== Unix: pthreads ==
+Under Unix environments, pthread support is controlled through the
+PTHREAD_RW_LOCKS, PTHREAD_SIMPLE_LOCKS (mutex), and PTHREAD_SPIN_LOCKS. Since
+pthreads APIs support additional locking options compared to C++11, any of these
+
+As noted above, when C++11 threads are not in use, pthreads APIs are assumed to
+be available. This means that when not using C++11, the following calls fall
+back to non-C++11 altenratives.
+
+* Threading, locking, conditional variables = pthreads
+* Atomics = gcc/suncc intrinsics as supported by the platform
+* Timing/sleeping = Unix/Posix (unistd.h)
+* SpinLock class in the Scheduler class simply wraps pthread spin lock calls
+
+=== Google spinlocks ===
+Google spinlocks are currently partially supported, however bugs exist in that
+they do not support condvars, and so scheduler sources will not compile
+properly.
+
+The intention is for Google spinlocks to become the default lock, but also
+providing pthread condvar locking mechanisms for the scheduler.

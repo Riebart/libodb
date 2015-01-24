@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{D36CEBCE-E9D4-4313-8D05-6416F502B38C}</ProjectGuid>
+    <ProjectGuid>{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>SchedulerTest</RootNamespace>
+    <RootNamespace>LibodbTest</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -156,7 +156,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\test\scheduler-test.cpp" />
+    <ClCompile Include="..\..\test\libodb-test.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

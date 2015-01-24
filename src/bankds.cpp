@@ -84,8 +84,6 @@ namespace libodb
         // Allocate the first bucket and assign the location of it to the first location in data.
         // This is essentially a memcpy without the memcpy call.
         SAFE_MALLOC(char*, *(data), (size_t)cap_size);
-
-        RWLOCK_INIT(rwlock);
     }
 
     BankDS::~BankDS()
@@ -108,7 +106,6 @@ namespace libodb
 
         delete deleted;
         WRITE_UNLOCK(rwlock);
-        RWLOCK_DESTROY(rwlock);
     }
 
     inline void* BankDS::add_data(void* rawdata)
@@ -426,7 +423,7 @@ namespace libodb
             }
         }
 
-        /// @todo Make this more efficient?
+        //! @todo Make this more efficient?
         /// I had a note here to replace something with a vector and then use a binary
         /// search... We're already using a vector, and we're not looking for anything?
         /// This also applies to the same code-block in BankIDS::remove_sweep(Archive* archive)
@@ -618,8 +615,8 @@ namespace libodb
         //! @todo Again, extern "C" is causing issues.
         if (freep == free)
         {
-            uint32_t num_clones = clones->size();
-            for (uint32_t i = 0; i < num_clones; i++)
+            size_t num_clones = clones->size();
+            for (size_t i = 0; i < num_clones; i++)
             {
                 clones->at(i)->purge();
             }

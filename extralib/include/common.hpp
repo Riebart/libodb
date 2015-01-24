@@ -28,6 +28,7 @@
 /// Prints a back trace from the location that it was called.
 /// @param[in] str... A variable-length list of arguments to pass to fprintf
 ///that includes some specific strings to print along with the backtrace.
+//! @todo Visual Studio warns that the __FILE__ and __LINE__ may be different here than gcc.
 #define PRINT_TRACE_M(str, ...) { \
     if (errno != 0) { \
         fprintf (stderr, "%s:%d: %m: ",  __FILE__, __LINE__);\

@@ -48,6 +48,7 @@ namespace libodb
             delete merge;
         }
 
+        //! @todo Move the lock destroy/init into Index ctor and dtor
         RWLOCK_DESTROY(rwlock);
     }
 

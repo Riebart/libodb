@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30324.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libodb", "libodb\libodb.vcxproj", "{6295B9DA-83C9-4DEC-9463-4F56ED2A66F4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SchedulerTest", "SchedulerTest\SchedulerTest.vcxproj", "{D36CEBCE-E9D4-4313-8D05-6416F502B38C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LibodbTest", "LibodbTest\LibodbTest.vcxproj", "{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,12 @@ Global
 		{D36CEBCE-E9D4-4313-8D05-6416F502B38C}.Release|Win32.Build.0 = Release|Win32
 		{D36CEBCE-E9D4-4313-8D05-6416F502B38C}.Release|x64.ActiveCfg = Release|x64
 		{D36CEBCE-E9D4-4313-8D05-6416F502B38C}.Release|x64.Build.0 = Release|x64
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Debug|Win32.Build.0 = Debug|Win32
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Debug|x64.ActiveCfg = Debug|Win32
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Release|Win32.ActiveCfg = Release|Win32
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Release|Win32.Build.0 = Release|Win32
+		{5595F2D4-09DD-4C0E-A866-BB38B25CEAAF}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

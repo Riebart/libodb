@@ -19,7 +19,7 @@
 
 #include "lock.hpp"
 
-/// @todo Actually implement a lock-free queue, don't just wrap std::deque
+//! @todo Actually implement a lock-free queue, don't just wrap std::deque
 namespace libodb
 {
 

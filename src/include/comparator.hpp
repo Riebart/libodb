@@ -26,7 +26,7 @@ namespace libodb
 
     /// @class Condition
 
-    /// @todo Do something like the comparators for the free() function we're
+    //! @todo Do something like the comparators for the free() function we're
     ///passing around. That is, turn them into an object-wrapped thing?
     class LIBODB_API Condition
     {

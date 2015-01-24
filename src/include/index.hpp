@@ -108,7 +108,7 @@ namespace libodb
         virtual ODB* query_lt(void* rawdata);
         virtual ODB* query_gt(void* rawdata);
         virtual uint64_t get_ident();
-        /// @todo Add a recursive flavour of size()
+        //! @todo Add a recursive flavour of size()
         ///It will have to return the number of items
         ///in all contained indices though. Is there a way to stop before indices at
         ///the last layer of IndexGroups?
@@ -136,8 +136,8 @@ namespace libodb
         std::vector<IndexGroup*>* indices;
     };
 
-    /// @todo An index table built on a vector, behaving like the LinkedListI.
-    /// @todo Batch insertions for index tables. At least LL.
+    //! @todo An index table built on a vector, behaving like the LinkedListI.
+    //! @todo Batch insertions for index tables. At least LL.
     class LIBODB_API Index : public IndexGroup
     {
         /// Allows ODB to call remove_sweep.

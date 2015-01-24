@@ -753,16 +753,15 @@ namespace libodb
             struct tree_node* right = STRIP(_root->link[1]);
 
             // Check for consecutive red links.
-            if (IS_RED(_root))
-                if (IS_RED(left) || IS_RED(right))
-                {
+            if (IS_RED(_root) && (IS_RED(left) || IS_RED(right)))
+            {
 #ifndef VERBOSE_RBT_VERIFY
                 FAIL_M("Red violation @ %ld, %p : %p", *(long*)GET_DATA(_root), left, right);
 #else
                 fprintf(stderr, "Red violation\n");
 #endif
                 return 0;
-                }
+            }
 
 #ifdef VERBOSE_RBT_VERIFY
             if (left)
