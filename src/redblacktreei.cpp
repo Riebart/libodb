@@ -978,7 +978,17 @@ namespace libodb
                     }
                     else
                     {
-                        if (rawdata == GET_DATA(i))
+                        // If we're here, and trying to delete from an embedded RBT that's not dropping duplicates
+                        // then how do we handle punting the entire subtree?
+                        //! @todo Dropping a subtree when we're not dropping duplicates. Still match pointers?
+                        if (!drop_duplicates)
+                        {
+                            //if (rawdata == GET_DATA(i))
+                            //{
+                            //}
+                        }
+                        // If we are dropping duplicates, then just be satisfied that we can drop this node.
+                        else
                         {
                             f = i;
                             ret = 1;
@@ -1160,7 +1170,17 @@ namespace libodb
                     }
                     else
                     {
-                        if (rawdata == i)
+                        // If we're here, and trying to delete from an embedded RBT that's not dropping duplicates
+                        // then how do we handle punting the entire subtree?
+                        //! @todo Dropping a subtree when we're not dropping duplicates. Still match pointers?
+                        if (!drop_duplicates)
+                        {
+                            //if (rawdata == i)
+                            //{
+                            //}
+                        }
+                        // If we are dropping duplicates, then just be satisfied that we can drop this node.
+                        else
                         {
                             f = i;
                             fp = p;

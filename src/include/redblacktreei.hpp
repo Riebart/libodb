@@ -133,6 +133,8 @@ namespace libodb
         /// Remove a piece of data from an embedded RBT.
         /// @param[in] root The root of the embedded RBT to remove the data from.
         /// @param[in] rawdata The data to remove
+        /// @param[in] del_note A place to return the node deleted. If NULL then this
+        ///operation returns immediately with false.
         /// @return Whether the removal was successful or not.
         /// @attention It is assumed that rawdata here has a pair of void* at the
         ///head of it. That is, it is a node ready to be inserted into the tree.
