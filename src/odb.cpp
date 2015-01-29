@@ -79,6 +79,7 @@ int temp[-1];
 #include "common.hpp"
 #include "lock.hpp"
 #include "utility.hpp"
+#include "comparator.hpp"
 
 // Include the 'main' type header files.
 #include "datastore.hpp"
@@ -94,6 +95,7 @@ int temp[-1];
 
 namespace libodb
 {
+    CompareCust* ODB::compare_addr = new CompareCust(compare_addr_f);
 
     const int SLEEP_DURATION = 60;
 

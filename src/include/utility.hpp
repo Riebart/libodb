@@ -21,8 +21,6 @@
 #include <string.h>
 #include <vector>
 
-#include "comparator.hpp"
-
 namespace libodb
 {
 
@@ -50,11 +48,6 @@ namespace libodb
 #ifndef SQUARE
 #define SQUARE(x) ((x) * (x))
 #endif
-
-    inline uint32_t len_v(void* rawdata)
-    {
-        return (uint32_t)strlen((const char*)rawdata);
-    }
 
     inline bool search(std::vector<void*>* marked, void* addr)
     {
@@ -108,9 +101,6 @@ namespace libodb
         }
         return 0;
     }
-
-    static CompareCust* compare_addr = new CompareCust(compare_addr_f);
-
 }
 
 #endif

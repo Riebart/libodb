@@ -18,12 +18,14 @@
 #include "linkedlisti.hpp"
 #include "bankds.hpp"
 #include "utility.hpp"
+#include "comparator.hpp"
 #include "common.hpp"
 
 #include "lock.hpp"
 
 namespace libodb
 {
+    CompareCust* LinkedListI::compare_addr = new CompareCust(compare_addr_f);
 
 #define GET_DATA(x) (x->data)
 

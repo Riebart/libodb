@@ -26,21 +26,24 @@
 #include <time.h>
 #include <vector>
 
-#include "utility.hpp"
-
 namespace libodb
 {
-
     class DataStore;
     class Archive;
     class Index;
     class IndexGroup;
     class DataObj;
     class Comparator;
+    class CompareCust;
     class Merger;
     class Keygen;
     class Iterator;
     class Scheduler;
+
+    inline uint32_t len_v(void* rawdata)
+    {
+        return (uint32_t)strlen((const char*)rawdata);
+    }
 
     class LIBODB_API ODB
     {
@@ -215,8 +218,10 @@ namespace libodb
 
         /// Opaque pointer to locking context.
         void* rwlock;
+        
+        /// A comparator for comparing memory pointers.
+        static CompareCust* compare_addr;
     };
-
 }
 
 #endif

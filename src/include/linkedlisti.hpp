@@ -25,6 +25,7 @@
 
 namespace libodb
 {
+    class CompareCust;
 
     class LIBODB_API LinkedListI : public Index
     {
@@ -62,6 +63,8 @@ namespace libodb
         virtual void remove_sweep(std::vector<void*>* marked);
 
         struct node* first;
+
+        static CompareCust* compare_addr;
     };
 
     class LIBODB_API LLIterator : public Iterator

@@ -26,6 +26,7 @@
 
 namespace libodb
 {
+    class CompareCust;
 
     /// @class RedBlackTreeI
     /// Implementation of a top-down red-black tree.
@@ -344,6 +345,8 @@ namespace libodb
         static Iterator* e_it_lookup(struct tree_node* root, bool drop_duiplicates, Comparator* compare, void* rawdata, int8_t dir);
 
         static struct tree_node* e_pop_first_n(struct tree_node* root, struct tree_node* false_root, struct tree_node* sub_false_root, bool drop_duplicates, void** del_node);
+
+        static CompareCust* compare_addr;
     };
 
     class LIBODB_API RBTIterator : public Iterator

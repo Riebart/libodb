@@ -18,11 +18,13 @@
 #include "bankds.hpp"
 #include "common.hpp"
 #include "utility.hpp"
+#include "comparator.hpp"
 
 #include "lock.hpp"
 
 namespace libodb
 {
+    CompareCust* RedBlackTreeI::compare_addr = new CompareCust(compare_addr_f);
 
 #define RED_BLACK_BIT 0x1
 #define RED_BLACK_MASK ~RED_BLACK_BIT
