@@ -14,6 +14,7 @@
 /// @file archive.cpp
 
 #include "archive.hpp"
+#include "comparator.hpp"
 #include "common.hpp"
 
 namespace libodb

@@ -26,7 +26,6 @@
 #include <time.h>
 #include <vector>
 
-#include "scheduler.hpp"
 #include "utility.hpp"
 
 namespace libodb
@@ -41,6 +40,7 @@ namespace libodb
     class Merger;
     class Keygen;
     class Iterator;
+    class Scheduler;
 
     class LIBODB_API ODB
     {

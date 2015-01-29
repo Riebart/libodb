@@ -22,10 +22,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "comparator.hpp"
-
 namespace libodb
 {
+    class Condition;
 
     /// The parent class for other archival objects.
     ///

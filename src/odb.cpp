@@ -18,6 +18,7 @@
 #include <time.h>
 
 #include "odb.hpp"
+#include "scheduler.hpp"
 
 #ifdef CPP11THREADS
 #include <chrono>

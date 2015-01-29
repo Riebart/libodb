@@ -20,6 +20,7 @@
 #include <stdio.h>
 
 #include "odb.hpp"
+#include "scheduler.hpp"
 #include "datastore.hpp"
 #include "comparator.hpp"
 #include "iterator.hpp"
