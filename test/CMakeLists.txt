@@ -38,6 +38,7 @@ target_link_libraries(unit-collator ${LIBS})
 target_link_libraries(unit-protoparse ${LIBS})
 
 target_link_libraries(scheduler-test ${LIBS})
+target_link_libraries(libodb-test ${LIBS})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -64,6 +65,7 @@ add_test(comp-scheduler.unsched_single_odb comp-scheduler 3)
 add_test(comp-scheduler.sched_sync_odb comp-scheduler 4)
 
 add_test(scheduler-test scheduler-test)
+add_test(libodb-test libodb-test)
 
 add_test(comp-rbt.bank.none  test-output "" "43031308a1919ec69606810188462336ceab795a057a987a2ea3112898ff5c2c" "./comp-index_datastore" "-e 8 -n 100000 -t 10 -i 0 -T 0")
 add_test(comp-rbt.bank.drop  test-output "" "bbfd379491b29ba724f4a2163972bf827c83ff7bc14a5a49058fc39d23d658e0" "./comp-index_datastore" "-e 8 -n 100000 -t 10 -i 1 -T 0")
