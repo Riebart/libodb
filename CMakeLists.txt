@@ -158,9 +158,9 @@ if(NOT ${COMPILER_SUITE} MATCHES "sun")
         set(CMAKE_C_OPTIMIZE_FLAGS "-g -O0 -fno-inline -fopenmp")
         set(CMAKE_CXX_OPTIMIZE_FLAGS "-g -O0 -fno-inline -fopenmp")
     endif()
-
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS}")
+    
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS} -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_FLAGS_ARCH_TUNE} -Wall ${CMAKE_C_OPTIMIZE_FLAGS} -fPIC")
 else()
 # http://dsc.sun.com/sunstudio/documentation/product/compiler.jsp for mor information on flags.
     set(CMAKE_SHARED_LIBRARY_C_FLAGS "-KPIC") # Make sure we don't use fPIC on Sun compilers.

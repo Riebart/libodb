@@ -25,6 +25,7 @@ add_executable(unit-collator unit-collator.cpp)
 add_executable(unit-protoparse unit-protoparse.cpp)
 
 add_executable(scheduler-test scheduler-test.cpp)
+add_executable(libodb-test libodb-test.cpp)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
