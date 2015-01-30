@@ -277,10 +277,31 @@ int minimal_erbt()
     return EXIT_SUCCESS;
 }
 
+int odb_flavour()
+{
+    TEST_CLASS_BEGIN("ODB flavoured classes");
+
+    TEST_CASE("ODBFixed");
+    ODBFixed* odbf = new ODBFixed(ODB::BANK_DS, sizeof(long), prune);
+    delete odbf;
+    
+    TEST_CASE("ODBIndirect");
+    ODBIndirect* odbi = new ODBIndirect(ODB::BANK_I_DS, prune);
+    delete odbi;
+    
+    TEST_CASE("ODBVariable");
+    ODBVariable* odbv = new ODBVariable(ODB::LINKED_LIST_V_DS, prune);
+    delete odbv;
+
+    TEST_CLASS_END();
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
     minimal_odb();
     minimal_erbt();
+    //odb_flavour();
 	
 	return 0;
 }

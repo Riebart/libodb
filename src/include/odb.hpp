@@ -87,13 +87,13 @@ namespace libodb
         ///and may result in more complicated compare functions. Key-value index
         ///tables however require a keygen function that generates a key from a piece
         ///of data.
-        typedef enum { LINKED_LIST, RED_BLACK_TREE } IndexType;
+        typedef enum { LINKED_LIST = 8, RED_BLACK_TREE = 16 } IndexType;
 
         /// Enum defining the specific fixed-width DataStore timplementations available
         /// Fixed-width DataStore implementations require that a fixed value be
         ///specified at instantiation time, and all data is assumed to be of the
         ///the specified size.
-        typedef enum { BANK_DS, LINKED_LIST_DS } FixedDatastoreType;
+        typedef enum { BANK_DS = 32, LINKED_LIST_DS = 64 } FixedDatastoreType;
 
         /// Emum defining the specific indirect DataStore implementations available.
         /// Indirect DataStore types store pointers to data that is assumed to be
@@ -101,12 +101,12 @@ namespace libodb
         ///types are copy-on-insert and manage their own memory allocation and
         ///release. Indirect DataStore types only store pointers and transfer the
         ///onus of memory mamangement to the user.
-        typedef enum { BANK_I_DS, LINKED_LIST_I_DS } IndirectDatastoreType;
+        typedef enum { BANK_I_DS = 128, LINKED_LIST_I_DS = 256 } IndirectDatastoreType;
 
         /// Enum defining the specific variable-width DataStore implementations available.
         /// Variable-width DataStores types allow for variable sizes of data,
         ///requiring a data-size option passed on insertion.
-        typedef enum { LINKED_LIST_V_DS } VariableDatastoreType;
+        typedef enum { LINKED_LIST_V_DS = 512 } VariableDatastoreType;
 
         ODB(FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
@@ -152,22 +152,17 @@ namespace libodb
             return running;
         };
 
-
     private:
-
         ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, uint64_t datalen, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t ident, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+
+    protected:
+        ODB();
         ODB(DataStore* dt, uint64_t ident, uint64_t datalen);
 
         void init(DataStore* data, uint64_t ident, uint64_t datalen, Archive* archive, void(*freep)(void*), uint32_t sleep_duration);
         void update_tables(std::vector<void*>* old_addr, std::vector<void*>* new_addr);
-
-        /// Static variable that indicates the number of unique ODB instances
-        ///currently running in the context of the process. Atomic operations
-        ///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
-        ///this value. Opaque pointer as necessary.
-        static void* num_unique;
 
         /// Identity of this ODB insance in this process' context.
         uint64_t ident;
@@ -221,6 +216,24 @@ namespace libodb
         
         /// A comparator for comparing memory pointers.
         static CompareCust* compare_addr;
+    };
+
+    class LIBODB_API ODBFixed : public ODB
+    {
+    public:
+        ODBFixed(ODB::FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    };
+
+    class LIBODB_API ODBIndirect : public ODB
+    {
+    public:
+        ODBIndirect(ODB::IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+    };
+
+    class LIBODB_API ODBVariable : public ODB
+    {
+    public:
+        ODBVariable(ODB::VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
     };
 }
 

@@ -41,29 +41,38 @@
 #define THREAD_DESTROY(t) free(t)
 #endif
 
+/// Static variable that indicates the number of unique ODB instances
+///currently running in the context of the process. Atomic operations
+///(using Sun's atomics.h and GCC's atomic intrinsics) are used to update
+///this value. Opaque pointer as necessary.
+
 // Now handle we do the atomic incrementing.
 #ifdef CPP11THREADS
 #include <atomic>
-#define ATOMIC_FETCH(a) ((std::atomic<uint64_t>*)(a))->load()
-#define ATOMIC_INCREMENT(v) ((std::atomic<uint64_t>*)(v))->fetch_add(1);
-#define ATOMIC_DESTROY(v) delete (std::atomic<uint64_t>*)(v)
+typedef uint64_t ATOMIC_BT;
+typedef std::atomic<ATOMIC_BT> ATOMIC_T;
+#define ATOMIC_FETCH(a) ((ATOMIC_T*)(a))->load()
+#define ATOMIC_INCREMENT(v) ((ATOMIC_T*)(v))->fetch_add(1);
+#define ATOMIC_DESTROY(v) delete (v)
 
 #elif (CMAKE_COMPILER_SUITE_GCC)
+typedef uint64_t ATOMIC_BT;
 typedef uint64_t ATOMIC_T;
 //! @bug This isn't how do this! This will depend on the compiler-isms
 #define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
 //! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) __sync_add_and_fetch((ATOMIC_T*)v, 1)
-#define ATOMIC_DESTROY(v) free (v)
+#define ATOMIC_DESTROY(v) 
 
 #elif (CMAKE_COMPILER_SUITE_SUN)
 #include <atomic.h>
+typedef uint64_t ATOMIC_BT;
 typedef uint64_t ATOMIC_T;
 //! @bug This isn't how do this! This will depend on the compiler-isms
 #define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
 //! @bug This is a 32-bit incremement on a 64-bit value.
 #define ATOMIC_INCREMENT(v) atomic_inc_64((v))
-#define ATOMIC_DESTROY(v) free((v))
+#define ATOMIC_DESTROY(v) 
 
 #else
 #ifdef WIN32
@@ -100,11 +109,11 @@ namespace libodb
     const int SLEEP_DURATION = 60;
 
 #ifdef CPP11THREADS
-    void* ODB::num_unique = new std::atomic<uint64_t>(0);
+    ATOMIC_T* num_unique = new ATOMIC_T(0);
 #elif (CMAKE_COMPILER_SUITE_GCC)
-    void* ODB::num_unique = calloc(1, sizeof(ATOMIC_T));
+    ATOMIC_T num_unique = 0;
 #elif (CMAKE_COMPILER_SUITE_SUN)
-    void* ODB::num_unique = calloc(1, sizeof(ATOMIC_T));
+    ATOMIC_T num_unique = 0;
 #endif
     
 //     void* ODB::num_unique = ATOMIC_INIT(0);
@@ -213,6 +222,22 @@ namespace libodb
         return NULL;
     }
 
+    ODB::ODB()
+    {
+    }
+
+    ODBFixed::ODBFixed(ODB::FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, datalen, prune, archive, freep, sleep_duration, flags)
+    {
+    }
+
+    ODBIndirect::ODBIndirect(ODB::IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB::ODB(dt, prune, archive, freep, sleep_duration, flags)
+    {
+    }
+
+    ODBVariable::ODBVariable(ODB::VariableDatastoreType dt, bool(*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t(*len)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, prune, archive, freep, len, sleep_duration, flags)
+    {
+    }
+
     ODB::ODB(FixedDatastoreType dt, uint64_t _datalen, bool(*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
@@ -240,8 +265,8 @@ namespace libodb
         }
         }
 
-        init(datastore, ATOMIC_FETCH(num_unique), _datalen, _archive, _freep, _sleep_duration);
-        ATOMIC_INCREMENT(num_unique);
+        ATOMIC_BT v = ATOMIC_INCREMENT(num_unique);
+        init(datastore, v, _datalen, _archive, _freep, _sleep_duration);
     }
 
     ODB::ODB(FixedDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, uint64_t _datalen, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
@@ -301,8 +326,8 @@ namespace libodb
         }
         }
 
-        init(datastore, ATOMIC_FETCH(num_unique), sizeof(void*), _archive, _freep, _sleep_duration);
-        ATOMIC_INCREMENT(num_unique);
+        ATOMIC_BT v = ATOMIC_INCREMENT(num_unique);
+        init(datastore, v, sizeof(void*), _archive, _freep, _sleep_duration);
     }
 
     ODB::ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
@@ -357,8 +382,8 @@ namespace libodb
         }
         }
 
-        init(datastore, ATOMIC_FETCH(num_unique), sizeof(void*), _archive, _freep, _sleep_duration);
-        ATOMIC_INCREMENT(num_unique);
+        ATOMIC_BT v = ATOMIC_INCREMENT(num_unique);
+        init(datastore, v, sizeof(void*), _archive, _freep, _sleep_duration);
     }
 
     ODB::ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t(*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
