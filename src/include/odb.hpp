@@ -112,7 +112,7 @@ namespace libodb
         ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
 
-        ~ODB();
+        virtual ~ODB();
 
         Index* create_index(IndexType type, uint32_t flags, int32_t(*compare)(void*, void*), void* (*merge)(void*, void*) = NULL, void* (*keygen)(void*) = NULL, int32_t keylen = -1);
 
@@ -222,18 +222,21 @@ namespace libodb
     {
     public:
         ODBFixed(ODB::FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ~ODBFixed();
     };
 
     class LIBODB_API ODBIndirect : public ODB
     {
     public:
         ODBIndirect(ODB::IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ~ODBIndirect();
     };
 
     class LIBODB_API ODBVariable : public ODB
     {
     public:
         ODBVariable(ODB::VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ~ODBVariable();
     };
 }
 

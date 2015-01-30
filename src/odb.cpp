@@ -61,7 +61,7 @@ typedef uint64_t ATOMIC_T;
 //! @bug This isn't how do this! This will depend on the compiler-isms
 #define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
 //! @bug This is a 32-bit incremement on a 64-bit value.
-#define ATOMIC_INCREMENT(v) __sync_add_and_fetch((ATOMIC_T*)v, 1)
+#define ATOMIC_INCREMENT(v) __sync_add_and_fetch(&(v), 1)
 #define ATOMIC_DESTROY(v) 
 
 #elif (CMAKE_COMPILER_SUITE_SUN)
@@ -69,9 +69,9 @@ typedef uint64_t ATOMIC_T;
 typedef uint64_t ATOMIC_BT;
 typedef uint64_t ATOMIC_T;
 //! @bug This isn't how do this! This will depend on the compiler-isms
-#define ATOMIC_FETCH(v) (*(ATOMIC_T*)(v))
+#define ATOMIC_FETCH(v) (v)
 //! @bug This is a 32-bit incremement on a 64-bit value.
-#define ATOMIC_INCREMENT(v) atomic_inc_64((v))
+#define ATOMIC_INCREMENT(v) atomic_inc_64(&(v))
 #define ATOMIC_DESTROY(v) 
 
 #else
@@ -230,7 +230,7 @@ namespace libodb
     {
     }
 
-    ODBIndirect::ODBIndirect(ODB::IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB::ODB(dt, prune, archive, freep, sleep_duration, flags)
+    ODBIndirect::ODBIndirect(ODB::IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, prune, archive, freep, sleep_duration, flags)
     {
     }
 
@@ -518,6 +518,18 @@ namespace libodb
 
         WRITE_UNLOCK(rwlock);
         RWLOCK_DESTROY(rwlock);
+    }
+
+    ODBFixed::~ODBFixed()
+    {
+    }
+    
+    ODBIndirect::~ODBIndirect()
+    {
+    }
+
+    ODBVariable::~ODBVariable()
+    {
     }
 
     struct sched_args

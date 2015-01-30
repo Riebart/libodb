@@ -34,7 +34,7 @@ namespace libodb
     {
     public:
         /// Standard destructor
-        ~Archive();
+        virtual ~Archive();
 
         /// The function used to write a piece of data according to the rules of the object defines.
         /// @param[in] rawdata Pointer to the data to be written

@@ -277,21 +277,120 @@ int minimal_erbt()
     return EXIT_SUCCESS;
 }
 
+// ===== ODB FLAVOUR =====
+inline bool prunev(void* rawdata)
+{
+    long v;
+    sscanf((char*)rawdata, "%d", &v);
+    return ((v % 2) == 0);
+}
+
+inline int cmpv(void* a, void* b)
+{
+    long aV, bV;
+    sscanf((char*)a, "%d", &aV);
+    sscanf((char*)b, "%d", &bV);
+    return (aV - bV);
+}
+// ===== ===== =====
+
 int odb_flavour()
 {
+    Archive* a;
+    Index* ind;
+    long v, p = 100;
+    struct cmwc_state cmwc;
+    
     TEST_CLASS_BEGIN("ODB flavoured classes");
 
     TEST_CASE("ODBFixed");
-    ODBFixed* odbf = new ODBFixed(ODB::BANK_DS, sizeof(long), prune);
-    delete odbf;
-    
+    {
+        a = new AppendOnlyFile((char*)"odbf.archive", false);
+        ODBFixed* odbf = new ODBFixed(ODB::BANK_DS, sizeof(long), prune, a);
+        ind = odbf->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+
+        cmwc_init(&cmwc, 1234567890);
+        for (long i = 0; i < 100; i++)
+        {
+            v = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
+            odbf->add_data(&v);
+        }
+
+        printf("%lu items in tree\n", odbf->size());
+        odbf->remove_sweep();
+        printf("%lu ODD items in left in tree\n", odbf->size());
+        printf("Here's the negative ones...\n");
+        v = 0;
+        Iterator* it = ind->it_lookup(&v, -1);
+        do
+        {
+            printf("%ld\n", *(long*)(it->get_data()));
+        } while (it->prev());
+        ind->it_release(it);
+        delete odbf;
+        delete a;
+    }
+
     TEST_CASE("ODBIndirect");
-    ODBIndirect* odbi = new ODBIndirect(ODB::BANK_I_DS, prune);
-    delete odbi;
+    {
+        a = new AppendOnlyFile((char*)"odbi.archive", false);
+        ODBIndirect* odbi = new ODBIndirect(ODB::BANK_I_DS, prune);
+        ind = odbi->create_index(ODB::RED_BLACK_TREE, ODB::NONE, compare);
+        cmwc_init(&cmwc, 1234567890);
+        for (long i = 0; i < 100; i++)
+        {
+            v = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
+            long* vp = (long*)malloc(sizeof(long));
+            *vp = v;
+            odbi->add_data(vp);
+        }
+
+        printf("%lu items in tree\n", odbi->size());
+        odbi->remove_sweep();
+        printf("%lu ODD items in left in tree\n", odbi->size());
+        printf("Here's the negative ones...\n");
+        v = 0;
+        Iterator* it = ind->it_lookup(&v, -1);
+        do
+        {
+            printf("%ld\n", *(long*)(it->get_data()));
+        } while (it->prev());
+        ind->it_release(it);
+        delete odbi;
+        delete a;
+    }
     
     TEST_CASE("ODBVariable");
-    ODBVariable* odbv = new ODBVariable(ODB::LINKED_LIST_V_DS, prune);
-    delete odbv;
+    {
+        a = new AppendOnlyFile((char*)"odbv.archive", false);
+        ODBVariable* odbv = new ODBVariable(ODB::LINKED_LIST_V_DS, prunev);
+        ind = odbv->create_index(ODB::RED_BLACK_TREE, ODB::NONE, cmpv);
+        cmwc_init(&cmwc, 1234567890);
+        for (long i = 0; i < 100; i++)
+        {
+            v = (i + ((cmwc_next(&cmwc) % (2 * p + 1)) - p));
+            char* s = (char*)malloc(5);
+            int n = snprintf(s, 5, "%d", v);
+            s[n] = 0;
+            odbv->add_data(s);
+        }
+        
+        printf("%lu items in DS\n", odbv->size());
+        printf("%lu items in tree\n", ind->size());
+        odbv->remove_sweep();
+        printf("%lu ODD items in left in tree\n", odbv->size());
+        printf("Here's the negative ones...\n");
+
+        Iterator* it = ind->it_lookup((char*)"0", -1);
+        do
+        {
+            printf("%s\n", (char*)(it->get_data()));
+        } while (it->prev());
+        ind->it_release(it);
+
+        delete odbv;
+        delete a;
+    }
 
     TEST_CLASS_END();
     return EXIT_SUCCESS;
@@ -301,7 +400,7 @@ int main(int argc, char** argv)
 {
     minimal_odb();
     minimal_erbt();
-    //odb_flavour();
+    odb_flavour();
 	
 	return 0;
 }
