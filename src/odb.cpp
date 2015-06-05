@@ -226,7 +226,7 @@ namespace libodb
     {
     }
 
-    ODBFixed::ODBFixed(ODB::FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, datalen, prune, archive, freep, sleep_duration, flags)
+    ODBFixed::ODBFixed(ODB::FixedDatastoreType dt, uint64_t datalen, bool(*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, datalen, prune, archive, freep, sleep_duration, flags)
     {
     }
 
@@ -234,11 +234,11 @@ namespace libodb
     {
     }
 
-    ODBVariable::ODBVariable(ODB::VariableDatastoreType dt, bool(*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t(*len)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, prune, archive, freep, len, sleep_duration, flags)
+    ODBVariable::ODBVariable(ODB::VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* archive, void(*freep)(void*), uint32_t(*len)(void*), uint32_t sleep_duration, uint32_t flags) : ODB(dt, prune, archive, freep, len, sleep_duration, flags)
     {
     }
 
-    ODB::ODB(FixedDatastoreType dt, uint64_t _datalen, bool(*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(FixedDatastoreType dt, uint64_t _datalen, bool (*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -269,7 +269,7 @@ namespace libodb
         init(datastore, v, _datalen, _archive, _freep, _sleep_duration);
     }
 
-    ODB::ODB(FixedDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, uint64_t _datalen, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(FixedDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, uint64_t _datalen, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -299,7 +299,7 @@ namespace libodb
         init(datastore, _ident, _datalen, _archive, _freep, _sleep_duration);
     }
 
-    ODB::ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -330,7 +330,7 @@ namespace libodb
         init(datastore, v, sizeof(void*), _archive, _freep, _sleep_duration);
     }
 
-    ODB::ODB(IndirectDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -360,7 +360,7 @@ namespace libodb
         init(datastore, _ident, sizeof(void*), _archive, _freep, _sleep_duration);
     }
 
-    ODB::ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t(*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), Archive* _archive, void(*_freep)(void*), uint32_t(*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -386,7 +386,7 @@ namespace libodb
         init(datastore, v, sizeof(void*), _archive, _freep, _sleep_duration);
     }
 
-    ODB::ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t(*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
+    ODB::ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata), uint64_t _ident, Archive* _archive, void(*_freep)(void*), uint32_t(*len_v)(void*), uint32_t _sleep_duration, uint32_t _flags)
     {
         if ((prune == NULL) && (_sleep_duration > 0))
         {
@@ -513,8 +513,6 @@ namespace libodb
         {
             THREAD_DESTROY(mem_thread);
         }
-
-        ATOMIC_DESTROY(num_unique);
 
         WRITE_UNLOCK(rwlock);
         RWLOCK_DESTROY(rwlock);

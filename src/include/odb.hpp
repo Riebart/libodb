@@ -42,7 +42,7 @@ namespace libodb
 
     inline uint32_t len_v(void* rawdata)
     {
-        return (uint32_t)strlen((const char*)rawdata);
+        return (uint32_t)strlen((const char*)rawdata) + 1;
     }
 
     class LIBODB_API ODB
@@ -110,7 +110,7 @@ namespace libodb
 
         ODB(FixedDatastoreType dt, uint64_t datalen, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ODB(IndirectDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t sleep_duration = 0, uint32_t flags = 0);
-        ODB(VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODB(VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
 
         virtual ~ODB();
 
@@ -235,7 +235,7 @@ namespace libodb
     class LIBODB_API ODBVariable : public ODB
     {
     public:
-        ODBVariable(ODB::VariableDatastoreType dt, bool(*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
+        ODBVariable(ODB::VariableDatastoreType dt, bool (*prune)(void* rawdata) = NULL, Archive* archive = NULL, void(*freep)(void*) = NULL, uint32_t(*len)(void*) = len_v, uint32_t sleep_duration = 0, uint32_t flags = 0);
         ~ODBVariable();
     };
 }

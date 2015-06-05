@@ -423,9 +423,11 @@ int main(int argc, char** argv)
 
 	int nspin;
 	nspin = 1000;
-	load_lock("1M Independent 1000-spinning workload performance", spin_workload, &nspin, 1000000);
+	load_lock("1M Independent 1k-spinning workload performance", spin_workload, &nspin, 1000000);
 	nspin = 10000;
-	load_lock("1M Independent 10000-spinning workload performance", spin_workload, &nspin, 1000000);
-	
+    load_lock("1M Independent 10k-spinning workload performance", spin_workload, &nspin, 1000000);
+    nspin = 100000;
+    load_lock("1M Independent 100k-spinning workload performance", spin_workload, &nspin, 1000000);
+
 	return 0;
 }

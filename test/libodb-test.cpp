@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef WIN32
+#define snprintf(a,b,c,d) _snprintf_s(a,b,b,c,d)
+#define sscanf sscanf_s
+#endif
+
 #include "odb.hpp"
 #include "index.hpp"
 #include "archive.hpp"

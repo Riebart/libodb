@@ -109,9 +109,8 @@ namespace libodb
 
     protected:
 #pragma pack(1)
-        struct datanode
+        struct datas
         {
-            struct datanode* next;
             uint32_t datalen;
             char data;
         };

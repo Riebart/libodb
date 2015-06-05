@@ -157,8 +157,9 @@ namespace libodb
     inline void* LinkedListVDS::get_addr(uint32_t nbytes)
     {
         struct datanode* new_element;
-        SAFE_MALLOC(struct datanode*, new_element, (size_t)(nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*)));
-        new_element->datalen = nbytes;
+        SAFE_MALLOC(struct datanode*, new_element, (size_t)(nbytes + datalen + sizeof(uint32_t) + sizeof(struct datanode*) + sizeof(struct datas) - sizeof(char)));
+        struct datas* ds = (struct datas*)(&new_element->data);
+        ds->datalen = nbytes;
 
         WRITE_LOCK(rwlock);
         new_element->next = bottom;
@@ -166,7 +167,7 @@ namespace libodb
         data_count++;
         WRITE_UNLOCK(rwlock);
 
-        return &(new_element->data);
+        return &(ds->data);
     }
 
     inline void* LinkedListIDS::add_data(void* rawdata)
